@@ -33,6 +33,16 @@
   },
   "remote_ci_executed": true,
   "remote_ci": {
+    "run_id": 42416726583,
+    "head_sha": "2570c0aecda750dab7927548552337136b9c088c",
+    "conclusion": "success",
+    "platforms": [
+      "ubuntu-latest",
+      "windows-latest",
+      "macos-latest"
+    ]
+  },
+  "previous_remote_ci": {
     "run_id": 42416274794,
     "head_sha": "6aaa089479d7c3317573dd394ac679d86c085a06",
     "conclusion": "success",
@@ -42,17 +52,17 @@
       "macos-latest"
     ]
   },
-  "previous_remote_ci": {
-    "run_id": 42415292766,
-    "head_sha": "08409413c8629307f653306042477030372bdd1e",
-    "conclusion": "success",
-    "platforms": [
-      "ubuntu-latest",
-      "windows-latest",
-      "macos-latest"
-    ]
-  },
   "earlier_remote_ci": [
+    {
+      "run_id": 42415292766,
+      "head_sha": "08409413c8629307f653306042477030372bdd1e",
+      "conclusion": "success",
+      "platforms": [
+        "ubuntu-latest",
+        "windows-latest",
+        "macos-latest"
+      ]
+    },
     {
       "run_id": 42398733846,
       "head_sha": "481afa17b1e01948598bb4102dab4174c5cbdb3c",
