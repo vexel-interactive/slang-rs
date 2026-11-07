@@ -30,8 +30,11 @@ signed/unsigned evaluation rules are not implemented.
 - Functions, prototypes, overloads, and `in`, `out`, `inout` parameters.
 - Global and local variables, and simple structures with fields.
 - `bool`, `int`, `uint`, `half`, `float`, `double`, and vectors with 2-4 components.
+- Scalar names `int32_t`, `uint32_t`, `float32_t`, and `float64_t` resolve to the
+  corresponding native scalar types.
 - Matrix aliases such as `float2x3`, with 2-4 rows and 2-4 columns.
-- One-dimensional arrays with a positive decimal literal size.
+- Fixed arrays with positive decimal literal dimensions, including nested arrays.
+- Global `typedef` and nongeneric `typealias` declarations.
 - `StructuredBuffer<T>` and `RWStructuredBuffer<T>` with indexed element access.
 - `Texture1D/2D/3D/Cube<T>`, `RWTexture1D/2D/3D<T>`, `SamplerState`, and
   `SamplerComparisonState`. Texture elements are half/float/int/uint scalar or
@@ -53,6 +56,39 @@ parameter directions and `const out/inout` are rejected. Global values without
 Global const declarations with initializers require `static`.
 Complete modifier rules are not yet implemented. Comma-separated declarations,
 default arguments, and aggregate initialization are not supported.
+
+## Type aliases and arrays
+
+Aliases are transparent: they resolve to their underlying types during checking
+and do not create distinct overload parameter types. Both forms are supported:
+
+```slang
+typedef float Number;
+typealias Vector = float2;
+typedef Number Row[2];
+typealias Grid = Row[3];
+```
+
+Aliases may refer to later aliases or structs, and may name resources. Cycles,
+unknown targets, and excessively deep alias chains produce `T002`. Public aliases
+obey module visibility and cannot expose internal structs. An internal numeric
+alias can underlie a public numeric alias because the resolved numeric type is
+public. Numeric alias constructors such as `Vector(1.0)` use the resolved target
+constructor. The backend emits canonical types rather than alias declarations.
+
+Trailing array declarators use conventional outer-to-inner order:
+`typedef int Grid[2][3];` creates a two-element array of three-element arrays.
+Leading array suffixes wrap the type in source order:
+`typedef int[2][3] Grid;` creates a three-element array of two-element arrays.
+The same distinction applies to variable declarations. Reflection uses
+outer-to-inner dimensions and HLSL preserves that order in declarations.
+
+Arrays can appear as variables, struct fields, and parameters. Unsized arrays,
+symbolic sizes, brace initialization, array constructors, array return types,
+and array elements inside resource types are not implemented. Alias chains and
+resolved array ranks are each limited to 32. Local/nested aliases, generic
+aliases, qualified type references, pointer declarators, and C-style casts using
+user alias names remain unported. See [the alias example](../examples/type-aliases.slang).
 
 ## Expressions and statements
 

@@ -49,6 +49,10 @@ impl<'a> Resolver<'a> {
 
     pub fn declaration(&mut self, declaration: &mut Declaration) -> Result<(), Diagnostic> {
         match declaration {
+            Declaration::TypeAlias(alias) => {
+                alias.name = self.symbol(&alias.name, true, alias.span)?;
+                self.ty(&mut alias.target)?;
+            }
             Declaration::Struct(structure) => {
                 structure.name = self.symbol(&structure.name, true, structure.span)?;
                 for field in &mut structure.fields {

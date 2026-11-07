@@ -16,11 +16,13 @@ impl Checker {
             self.error("T014", span, format!("value '{name}' is not callable"));
             return Type::Error;
         }
-        let constructor = Type::builtin(name).or_else(|| {
-            self.structures
-                .contains_key(name)
-                .then(|| Type::Struct(name.clone()))
-        });
+        let constructor = Type::builtin(name)
+            .or_else(|| self.alias_types.get(name).cloned())
+            .or_else(|| {
+                self.structures
+                    .contains_key(name)
+                    .then(|| Type::Struct(name.clone()))
+            });
         if let Some(target) = constructor {
             let valid = match &target {
                 Type::Scalar(_) => types.len() == 1 && matches!(types[0], Type::Scalar(_)),
@@ -68,6 +70,12 @@ impl Checker {
             }
             self.expression_types
                 .insert(callee.id, Type::Meta(Box::new(target.clone())));
+            if matches!(
+                target,
+                Type::Scalar(_) | Type::Vector(..) | Type::Matrix(..)
+            ) {
+                self.call_names.insert(callee.id, target.to_string());
+            }
             return target;
         }
         if let Some(overloads) = self.functions.get(name).cloned() {

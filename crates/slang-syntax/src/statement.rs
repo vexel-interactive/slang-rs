@@ -196,6 +196,17 @@ impl Parser {
                 }
             }
         }
+        while self.tokens.get(i).is_some_and(|t| t.is("[")) {
+            if !self
+                .tokens
+                .get(i + 1)
+                .is_some_and(|t| t.kind == TokenKind::Integer)
+                || !self.tokens.get(i + 2).is_some_and(|t| t.is("]"))
+            {
+                return false;
+            }
+            i += 3;
+        }
         self.tokens
             .get(i)
             .is_some_and(|t| t.kind == TokenKind::Identifier)

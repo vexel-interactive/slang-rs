@@ -212,5 +212,17 @@ impl Parser {
 }
 
 fn builtin_cast_type(name: &str) -> bool {
-    matches!(name, "bool" | "int" | "uint" | "half" | "float" | "double")
+    matches!(
+        name,
+        "bool"
+            | "int"
+            | "uint"
+            | "half"
+            | "float"
+            | "double"
+            | "int32_t"
+            | "uint32_t"
+            | "float32_t"
+            | "float64_t"
+    )
 }

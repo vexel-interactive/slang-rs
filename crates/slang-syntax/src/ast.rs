@@ -27,6 +27,7 @@ pub struct FileInclude {
 
 #[derive(Clone, Debug, Serialize)]
 pub enum Declaration {
+    TypeAlias(TypeAlias),
     Struct(Struct),
     Function(Box<Function>),
     Global(Variable),
@@ -36,7 +37,8 @@ pub enum Declaration {
 pub struct TypeRef {
     pub name: String,
     pub arguments: Vec<TypeRef>,
-    pub array: Option<u32>,
+    /// Array dimensions from outermost to innermost.
+    pub arrays: Vec<u32>,
     pub span: Span,
 }
 
@@ -44,6 +46,14 @@ pub struct TypeRef {
 pub struct Attribute {
     pub name: String,
     pub arguments: Vec<Expr>,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct TypeAlias {
+    pub name: String,
+    pub target: TypeRef,
+    pub modifiers: Vec<String>,
     pub span: Span,
 }
 

@@ -131,3 +131,43 @@ fn cli_reports_excessive_module_graph_depth() {
     }
     fs::remove_dir(&root).unwrap();
 }
+
+#[test]
+fn cli_reports_excessive_alias_and_array_nesting() {
+    let root = std::env::temp_dir().join(format!("slang-rs-alias-depth-{}", std::process::id()));
+    fs::create_dir_all(&root).unwrap();
+    let input = root.join("alias.slang");
+    let mut aliases = String::new();
+    for index in 0..100 {
+        aliases.push_str(&format!("typealias T{index}=T{};", index + 1));
+    }
+    aliases.push_str("typealias T100=float;");
+    for (source, code) in [
+        (aliases, "T002"),
+        (format!("typedef float Grid{};", "[2]".repeat(1000)), "S001"),
+        (
+            format!(
+                "typedef float Row{};typedef Row Grid{};",
+                "[2]".repeat(32),
+                "[2]".repeat(32)
+            ),
+            "T002",
+        ),
+    ] {
+        fs::write(&input, source).unwrap();
+        let result = Command::new(env!("CARGO_BIN_EXE_slangc-rs"))
+            .arg(&input)
+            .arg("--check")
+            .output()
+            .unwrap();
+        assert_eq!(
+            result.status.code(),
+            Some(1),
+            "{}",
+            String::from_utf8_lossy(&result.stderr)
+        );
+        assert!(String::from_utf8_lossy(&result.stderr).contains(code));
+    }
+    fs::remove_file(&input).unwrap();
+    fs::remove_dir(&root).unwrap();
+}

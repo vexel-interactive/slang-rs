@@ -10,7 +10,8 @@ subsystem is absent. No subsystem currently claims complete upstream parity.
 | Lexer | slang-lexer | Partial | Lossless tokens; incomplete literal grammar |
 | Preprocessor | slang-preprocessor | Partial | Macros, #, ##, variadics, includes, conditionals; no predefined macros or #line |
 | Parser and AST | slang-syntax | Partial | Functions, globals, structs, expressions, casts, loops, switches |
-| Name and type checking | slang-sema | Partial | Scalars, vectors, matrices, scopes, overloads, writable locations |
+| Name and type checking | slang-sema | Partial | Scalars, vectors, matrices, fixed arrays, aliases, scopes, overloads, writable locations |
+| Type aliases | slang-syntax, slang-sema | Partial | Transparent global typedef/typealias, forwards, cycles, imports; local/nested and generic aliases absent |
 | Core module | slang-sema | Partial | Small built-in signature set |
 | Texture and sampler operations | slang-sema, slang-codegen | Partial | 1D/2D/3D/cube, indexed access, load/sample/comparison/dimensions; advanced resources absent |
 | Modules and imports | slang-module, slang-sema | Partial | Imports, reexports, member files, isolated preprocessing, public/internal, legacy visibility; session API and cross-module overload merging absent |

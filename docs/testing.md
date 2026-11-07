@@ -9,7 +9,10 @@ output preservation after a compilation error, switch fallthrough, integer case
 constants, do/while exits, cast grammar, and CLI nesting diagnostics. Module
 tests cover public/internal access, overload visibility, lexical shadowing,
 diamond graphs, reexports, legacy sources, member cycles, macro isolation,
-membership errors, and graph limits in the Windows debug CLI.
+membership errors, and graph limits in the Windows debug CLI. Alias tests cover
+forward references, transparent overload types, constructors, resource/struct
+aliases, access control, dimension order, nested array parameters, and bounded
+alias/array graphs.
 
 Examples cover vector addition, control flow, matrix algebra, vertex transforms,
 fragment color output, and a multi-file module. With DXC

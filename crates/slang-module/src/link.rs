@@ -77,6 +77,7 @@ pub(crate) fn link(
                 Declaration::Struct(s) => (&s.name, &s.modifiers, true),
                 Declaration::Function(f) => (&f.name, &f.modifiers, false),
                 Declaration::Global(v) => (&v.name, &v.modifiers, false),
+                Declaration::TypeAlias(a) => (&a.name, &a.modifiers, true),
             };
             let target = if node.info.id.0 == 0 {
                 name.clone()

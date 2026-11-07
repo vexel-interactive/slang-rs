@@ -70,6 +70,15 @@ pub enum Type {
 
 impl Type {
     pub fn builtin(name: &str) -> Option<Self> {
+        if let Some(scalar) = match name {
+            "int32_t" => Some(Scalar::Int),
+            "uint32_t" => Some(Scalar::Uint),
+            "float32_t" => Some(Scalar::Float),
+            "float64_t" => Some(Scalar::Double),
+            _ => None,
+        } {
+            return Some(Self::Scalar(scalar));
+        }
         if let Some(texture) = Self::texture(name, Self::Vector(Scalar::Float, 4)) {
             return Some(texture);
         }
@@ -261,7 +270,15 @@ impl fmt::Display for Type {
             Self::Scalar(s) => write!(f, "{s}"),
             Self::Vector(s, n) => write!(f, "{s}{n}"),
             Self::Matrix(s, rows, columns) => write!(f, "{s}{rows}x{columns}"),
-            Self::Array(element, n) => write!(f, "{element}[{n}]"),
+            Self::Array(..) => {
+                let mut ty = self;
+                let mut suffix = String::new();
+                while let Self::Array(element, n) = ty {
+                    suffix.push_str(&format!("[{n}]"));
+                    ty = element;
+                }
+                write!(f, "{ty}{suffix}")
+            }
             Self::Struct(name) => f.write_str(name),
             Self::Buffer { element, writable } => write!(
                 f,

@@ -113,6 +113,8 @@ impl Parser {
                 | "namespace"
                 | "var"
                 | "let"
+                | "typealias"
+                | "typedef"
         ) {
             return Err(self.error("reserved keyword cannot be used as an identifier"));
         }

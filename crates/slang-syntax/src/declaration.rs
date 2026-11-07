@@ -35,6 +35,34 @@ impl Parser {
         let start = self.span();
         let attributes = self.attributes()?;
         let modifiers = self.modifiers();
+        if self.at("typedef") || self.at("typealias") {
+            if !attributes.is_empty()
+                || modifiers
+                    .iter()
+                    .any(|m| !matches!(m.as_str(), "public" | "internal"))
+            {
+                return Err(self.error("unsupported type alias attributes or modifiers"));
+            }
+            let (name, mut target) = if self.eat("typealias") {
+                let name = self.identifier()?.text;
+                self.expect("=")?;
+                (name, self.ty()?)
+            } else {
+                self.expect("typedef")?;
+                let target = self.ty()?;
+                let name = self.identifier()?.text;
+                (name, target)
+            };
+            let trailing = self.array_sizes()?;
+            target.arrays.splice(0..0, trailing);
+            let end = self.expect(";")?;
+            return Ok(Declaration::TypeAlias(TypeAlias {
+                name,
+                target,
+                modifiers,
+                span: start.join(end),
+            }));
+        }
         if self.eat("struct") {
             if !attributes.is_empty()
                 || modifiers
@@ -167,10 +195,12 @@ impl Parser {
             }
             self.expect(">")?;
         }
+        let mut arrays = self.array_sizes()?;
+        arrays.reverse();
         Ok(TypeRef {
             name: token.text,
             arguments,
-            array: None,
+            arrays,
             span: token.span,
         })
     }
@@ -181,24 +211,8 @@ impl Parser {
         name: Token,
         modifiers: Vec<String>,
     ) -> Result<Variable, Diagnostic> {
-        if self.eat("[") {
-            let token = self
-                .current()
-                .filter(|t| t.kind == TokenKind::Integer)
-                .ok_or_else(|| self.error("array size must be a positive integer literal"))?
-                .clone();
-            self.offset += 1;
-            let size: u32 = token
-                .text
-                .trim_end_matches(['u', 'U'])
-                .parse()
-                .map_err(|_| self.error("invalid array size"))?;
-            if size == 0 {
-                return Err(self.error("array size must be positive"));
-            }
-            ty.array = Some(size);
-            self.expect("]")?;
-        }
+        let arrays = self.array_sizes()?;
+        ty.arrays.splice(0..0, arrays);
         let semantic = self.semantic()?;
         let initializer = if self.eat("=") {
             Some(self.expression(0)?)
@@ -216,6 +230,32 @@ impl Parser {
             initializer,
             span,
         })
+    }
+
+    pub(crate) fn array_sizes(&mut self) -> Result<Vec<u32>, Diagnostic> {
+        let mut arrays = vec![];
+        while self.eat("[") {
+            if arrays.len() >= 32 {
+                return Err(self.error("array nesting limit exceeded"));
+            }
+            let token = self
+                .current()
+                .filter(|t| t.kind == TokenKind::Integer)
+                .ok_or_else(|| self.error("array size must be a positive integer literal"))?
+                .clone();
+            self.offset += 1;
+            let size: u32 = token
+                .text
+                .trim_end_matches(['u', 'U'])
+                .parse()
+                .map_err(|_| self.error("invalid array size"))?;
+            if size == 0 {
+                return Err(self.error("array size must be positive"));
+            }
+            arrays.push(size);
+            self.expect("]")?;
+        }
+        Ok(arrays)
     }
 
     fn semantic(&mut self) -> Result<Option<String>, Diagnostic> {

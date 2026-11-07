@@ -13,6 +13,7 @@ pub fn lower(checked: &CheckedModule) -> Result<Module, Diagnostic> {
     };
     for declaration in &checked.module.declarations {
         match declaration {
+            ast::Declaration::TypeAlias(_) => {}
             ast::Declaration::Struct(structure) => module.structures.push(Struct {
                 name: structure.name.clone(),
                 fields: structure

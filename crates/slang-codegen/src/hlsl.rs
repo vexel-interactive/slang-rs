@@ -178,14 +178,17 @@ fn variable(variable: &Variable) -> String {
         text.push_str(modifier);
         text.push(' ');
     }
-    match &variable.ty {
-        Type::Array(element, n) => text.push_str(&format!(
-            "{} {}[{n}]",
-            type_name(element),
-            identifier(&variable.name)
-        )),
-        ty => text.push_str(&format!("{} {}", type_name(ty), identifier(&variable.name))),
+    let mut ty = &variable.ty;
+    let mut suffix = String::new();
+    while let Type::Array(element, length) = ty {
+        suffix.push_str(&format!("[{length}]"));
+        ty = element;
     }
+    text.push_str(&format!(
+        "{} {}{suffix}",
+        type_name(ty),
+        identifier(&variable.name)
+    ));
     if let Some(semantic) = &variable.semantic {
         text.push_str(&format!(" : {semantic}"));
     }

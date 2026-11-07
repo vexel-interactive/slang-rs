@@ -28,7 +28,10 @@ impl Checker {
                 Type::Error
             } else {
                 let element = self.resolve_type(&reference.arguments[0]);
-                if element == Type::Void || element.is_resource() {
+                if element == Type::Void
+                    || element.is_resource()
+                    || matches!(element, Type::Array(..))
+                {
                     self.error("T002", reference.span, "invalid buffer element type");
                 }
                 Type::Buffer {
@@ -82,6 +85,8 @@ impl Checker {
             Type::Error
         } else if let Some(ty) = Type::builtin(&reference.name) {
             ty
+        } else if self.aliases.contains_key(&reference.name) {
+            self.resolve_alias(&reference.name, reference.span)
         } else if self.structures.contains_key(&reference.name) {
             Type::Struct(reference.name.clone())
         } else {
@@ -92,42 +97,30 @@ impl Checker {
             );
             Type::Error
         };
-        if let Some(size) = reference.array {
+        for size in reference.arrays.iter().rev() {
             if ty == Type::Void || ty.is_resource() {
                 self.error("T002", reference.span, "invalid array element type");
             }
-            ty = Type::Array(Box::new(ty), size);
+            let mut element = &ty;
+            let mut depth = 0;
+            while let Type::Array(inner, _) = element {
+                depth += 1;
+                element = inner;
+            }
+            if depth >= 32 {
+                self.error("T002", reference.span, "array type nesting limit exceeded");
+                return Type::Error;
+            }
+            ty = Type::Array(Box::new(ty), *size);
         }
         ty
     }
 
     pub(crate) fn declare(&mut self, module: &Module) {
-        let mut names = BTreeSet::new();
-        for declaration in &module.declarations {
-            if let Declaration::Struct(structure) = declaration {
-                if Type::builtin(self.source_name(&structure.name)).is_some()
-                    || !names.insert(structure.name.clone())
-                {
-                    self.error(
-                        "T003",
-                        structure.span,
-                        format!("duplicate type '{}'", structure.name),
-                    );
-                }
-                self.structures
-                    .insert(structure.name.clone(), BTreeMap::new());
-                let origin = self.symbols.get(&structure.name);
-                self.source_types.insert((
-                    origin.map_or(slang_module::ModuleId(0), |o| o.module),
-                    self.source_name(&structure.name).to_owned(),
-                ));
-                if structure.modifiers.iter().any(|m| m == "public") {
-                    self.public_types.insert(structure.name.clone());
-                }
-            }
-        }
+        let names = self.declare_types(module);
         for declaration in &module.declarations {
             match declaration {
+                Declaration::TypeAlias(_) => {}
                 Declaration::Struct(structure) => {
                     self.check_visibility_modifiers(&structure.modifiers, structure.span);
                     let mut fields = BTreeMap::new();
@@ -181,6 +174,13 @@ impl Checker {
                         );
                     }
                     let result = self.resolve_type(&function.return_type);
+                    if matches!(result, Type::Array(..)) {
+                        self.error(
+                            "T001",
+                            function.span,
+                            "array return types are not implemented",
+                        );
+                    }
                     self.declaration_types
                         .insert(span_key(function.span), result.clone());
                     let parameters: Vec<Type> = function

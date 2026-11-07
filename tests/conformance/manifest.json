@@ -344,6 +344,50 @@
       "file": "../../examples/modules/main.slang",
       "accept": true,
       "entry": "main"
+    },
+    {
+      "file": "../../examples/type-aliases.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/type-alias-forward.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/array-declarators.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "modules/type-alias-import.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "negative/type-alias-cycle.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T002"
+    },
+    {
+      "file": "negative/type-alias-conflict.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T003"
+    },
+    {
+      "file": "negative/type-alias-unknown.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T002"
+    },
+    {
+      "file": "negative/type-alias-visibility.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T018"
     }
   ]
 }

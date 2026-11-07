@@ -99,7 +99,7 @@ public struct Pair
 };
 ```
 
-Public functions, fields, and globals cannot expose internal struct types,
+Public functions, type aliases, fields, and globals cannot expose internal struct types,
 including through arrays and resources. A public field requires a public
 struct. Conflicting access modifiers fail with `T018`. Visibility applies to
 each overload: an internal overload is unavailable to importers even if a

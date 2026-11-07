@@ -59,6 +59,10 @@ The module linker assigns unique declaration names and expression IDs across
 all loaded ASTs, preserving lexical scopes and source ownership. `Program`
 records the module graph and each canonical declaration's source name and owner.
 Semantic checking resolves types into expression and declaration tables.
+Type aliases resolve through a compilation-local cache with cycle detection.
+They disappear during lowering, leaving canonical scalar, aggregate, and resource
+types. Array types record outer-to-inner dimensions independently of whether
+the source used leading or trailing array declarators.
 Lowering checks that this information exists and attaches a type to each IR
 expression.
 

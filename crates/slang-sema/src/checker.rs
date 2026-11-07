@@ -75,6 +75,9 @@ pub(crate) struct Checker {
     pub source_types: BTreeSet<(ModuleId, String)>,
     pub function_names: BTreeMap<SpanKey, String>,
     pub call_names: BTreeMap<ExprId, String>,
+    pub aliases: BTreeMap<String, TypeRef>,
+    pub alias_types: BTreeMap<String, Type>,
+    pub resolving_aliases: BTreeSet<String>,
 }
 
 pub fn check(mut module: Module) -> Result<CheckedModule, Vec<Diagnostic>> {
@@ -123,6 +126,9 @@ fn check_with_metadata(
         source_types: BTreeSet::new(),
         function_names: BTreeMap::new(),
         call_names: BTreeMap::new(),
+        aliases: BTreeMap::new(),
+        alias_types: BTreeMap::new(),
+        resolving_aliases: BTreeSet::new(),
     };
     checker.declare(&module);
     let mut entry_points = vec![];
@@ -131,12 +137,14 @@ fn check_with_metadata(
             Declaration::Struct(s) => &s.name,
             Declaration::Function(f) => &f.name,
             Declaration::Global(v) => &v.name,
+            Declaration::TypeAlias(a) => &a.name,
         };
         checker.current_module = checker
             .symbols
             .get(name)
             .map_or(ModuleId(0), |origin| origin.module);
         match declaration {
+            Declaration::TypeAlias(_) => {}
             Declaration::Global(variable) => checker.initialize_global(variable),
             Declaration::Function(function) => {
                 if let Some(entry) = checker.entry_point(function, &module) {
