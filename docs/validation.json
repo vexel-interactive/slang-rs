@@ -6,7 +6,7 @@
     "rustfmt": "passed",
     "clippy_all_targets_warnings_denied": "passed",
     "unit_tests": 21,
-    "integration_tests": 160,
+    "integration_tests": 168,
     "doc_tests": 1,
     "conformance_comparison_tests": 4,
     "rustdoc": "passed",
@@ -15,11 +15,11 @@
   },
   "differential_validation": {
     "oracle": "Slang 2026.21",
-    "cases_passed": 229,
-    "cases_total": 229,
-    "matching_acceptance_cases": 221,
+    "cases_passed": 242,
+    "cases_total": 242,
+    "matching_acceptance_cases": 234,
     "documented_oracle_differences": 8,
-    "dxc_hlsl_artifacts_validated": 230,
+    "dxc_hlsl_artifacts_validated": 250,
     "dxc_invalid_hlsl_artifacts_rejected": 8,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
@@ -32,6 +32,16 @@
   },
   "remote_ci_executed": true,
   "remote_ci": {
+    "run_id": 42396880318,
+    "head_sha": "00f343f9dc6917a9411ab3150e48a9be4f4182bd",
+    "conclusion": "success",
+    "platforms": [
+      "ubuntu-latest",
+      "windows-latest",
+      "macos-latest"
+    ]
+  },
+  "previous_remote_ci": {
     "run_id": 42395913113,
     "head_sha": "23ba98208059675883082bd75f26c7e6179891da",
     "conclusion": "success",
@@ -41,17 +51,17 @@
       "macos-latest"
     ]
   },
-  "previous_remote_ci": {
-    "run_id": 42395163553,
-    "head_sha": "e4fb974994a4c5c70b6911d4d6caa0eb101bd7df",
-    "conclusion": "success",
-    "platforms": [
-      "ubuntu-latest",
-      "windows-latest",
-      "macos-latest"
-    ]
-  },
   "earlier_remote_ci": [
+    {
+      "run_id": 42395163553,
+      "head_sha": "e4fb974994a4c5c70b6911d4d6caa0eb101bd7df",
+      "conclusion": "success",
+      "platforms": [
+        "ubuntu-latest",
+        "windows-latest",
+        "macos-latest"
+      ]
+    },
     {
       "run_id": 42394794638,
       "head_sha": "6f2611638f43f5698f286ae745fe1175a3756115",
@@ -220,5 +230,22 @@
       "cs_6_0"
     ],
     "gpu_execution_compared": false
+  },
+  "native_hlsl_suite": {
+    "manifest": "tests/native/manifest.json",
+    "artifacts_validated": 5,
+    "profiles": [
+      "cs_6_0",
+      "ps_6_0"
+    ],
+    "gpu_execution_compared": false,
+    "upstream_artifacts_compared": false,
+    "cases": [
+      "one-component-output-half.slang",
+      "one-component-derivatives-half.slang",
+      "one-component-output-float.slang",
+      "one-component-output-double.slang",
+      "one-component-derivatives-double.slang"
+    ]
   }
 }

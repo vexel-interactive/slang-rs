@@ -272,7 +272,7 @@ impl Checker {
 
     pub fn condition(&mut self, expression: &Expr) {
         let ty = self.expression(expression);
-        if !matches!(ty, Type::Scalar(_) | Type::Error) {
+        if !matches!(ty, Type::Scalar(_) | Type::Vector(_, 1) | Type::Error) {
             self.error("T009", expression.span, "condition must have a scalar type");
         }
     }

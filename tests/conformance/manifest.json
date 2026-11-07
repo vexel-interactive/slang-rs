@@ -1320,6 +1320,75 @@
       "entry": "main",
       "accept": false,
       "rust_code": "T026"
+    },
+    {
+      "file": "../../examples/one-component-shapes.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/one-component-bool.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/one-component-int.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/one-component-uint.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/one-component-half.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/one-component-float.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/one-component-double.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/one-component-derivatives-float.slang",
+      "entry": "main",
+      "accept": true,
+      "profile": "ps_6_0"
+    },
+    {
+      "file": "positive/one-component-overload-collisions.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "modules/one-component-root.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "negative/one-component-swizzle.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T013"
+    },
+    {
+      "file": "negative/one-component-output.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/one-component-matrix-conversion.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T008"
     }
   ]
 }

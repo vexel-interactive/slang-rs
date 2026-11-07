@@ -35,8 +35,8 @@ fn both_matrix_swizzle_conventions_cover_every_supported_component_type_and_shap
         Scalar::Float,
         Scalar::Double,
     ] {
-        for rows in 2..=4 {
-            for columns in 2..=4 {
+        for rows in 1..=4 {
+            for columns in 1..=4 {
                 let matrix = Type::Matrix(scalar, rows, columns);
                 let component = Type::Scalar(scalar);
                 let mut source = format!("void run({matrix} m){{");

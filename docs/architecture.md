@@ -104,6 +104,10 @@ Type aliases resolve through a compilation-local cache with cycle detection.
 They disappear during lowering, leaving canonical scalar, aggregate, and resource
 types. Array types record outer-to-inner dimensions independently of whether
 the source used leading or trailing array declarators.
+One-component vectors retain their shape in the type tables and matrix row
+indexing. Overload groups involving these shapes receive distinct target names
+because HLSL may treat a one-component vector as its scalar component. Generated
+names reserve global, parameter, and local declarations to avoid lexical capture.
 Lowering checks that this information exists and attaches a type to each IR
 expression.
 

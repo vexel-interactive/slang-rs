@@ -285,7 +285,7 @@ fn builtin_cast_type(name: &str) -> bool {
             let Some(shape) = name.strip_prefix(prefix) else {
                 return false;
             };
-            let dimension = |text: &str| text.parse::<u8>().is_ok_and(|n| (2..=4).contains(&n));
+            let dimension = |text: &str| text.parse::<u8>().is_ok_and(|n| (1..=4).contains(&n));
             shape
                 .split_once('x')
                 .map_or_else(|| dimension(shape), |(r, c)| dimension(r) && dimension(c))

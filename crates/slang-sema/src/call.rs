@@ -60,7 +60,9 @@ impl Checker {
                 }
             }
             let valid = match &target {
-                Type::Scalar(_) => types.len() == 1 && matches!(types[0], Type::Scalar(_)),
+                Type::Scalar(_) => {
+                    types.len() == 1 && matches!(types[0], Type::Scalar(_) | Type::Vector(_, 1))
+                }
                 Type::Vector(scalar, width) => {
                     let components: Option<u16> =
                         types.iter().map(|t| t.width().map(u16::from)).sum();

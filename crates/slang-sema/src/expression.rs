@@ -73,6 +73,7 @@ impl Checker {
                             Type::Scalar(_) | Type::Vector(..) | Type::Matrix(..),
                         ) => true,
                         (Type::Vector(_, a), Type::Vector(_, b)) => a == b,
+                        (Type::Vector(_, 1), Type::Scalar(_)) => true,
                         (Type::Matrix(_, ar, ac), Type::Matrix(_, br, bc)) => br <= ar && bc <= ac,
                         _ => false,
                     };

@@ -73,18 +73,27 @@ overloads, omitted defaults, and imported source locations. Cyclic graphs merge
 independent fragment and compute requirements rather than retaining only the
 first one discovered.
 
-Derivative tests check 351 intrinsic/type signatures across all supported floating
+Derivative tests check 567 intrinsic/type signatures across all supported floating
 scalar, vector, and matrix shapes, plus integer input conversions, helper caching,
 single argument evaluation, imports, defaults, and compute quad dimensions.
 Profile tests check automatic upgrades, reflected DXC profiles, mismatched stages,
 selected entries, and check-only compilation. CLI tests verify warning and
 reflection output together.
 
-Matrix selector tests cover both indexing conventions across 54 scalar/matrix
+Matrix selector tests cover both indexing conventions across 96 scalar/matrix
 shapes. They check typed scalar results, vector selections, duplicate reads,
 write and output rejection, bounds, resource locations, atomics, struct field
 names, and imported code. Differential cases also validate the emitted HLSL for
 all six scalar component types.
+
+One-component tests cover scalar/vector distinctions, matrix rows, reflection,
+explicit and implicit conversions, conditional use, writable components, output
+intrinsics, and imported aliases in nested aggregates. Overload tests include
+arrays with scalar or one-component vector elements and source declarations that
+collide with generated names. Differential fixtures validate all six scalar types
+and each matrix shape with one row or column, plus float derivatives, using Slang
+and DXC. Native-only fixtures cover floating output functions and half/double
+derivatives where the installed validator fails on upstream's HLSL output.
 
 Predefined macro tests cover physical CRLF lines, nested and multiline initiating
 calls, token paste and stringification, escaped file names, included definitions,
@@ -125,6 +134,19 @@ dxc -T cs_6_0 -E main -Fo vector-add.dxil vector-add.hlsl
 
 This confirms HLSL validity for DXC. It does not verify GPU execution or complete
 language compatibility.
+
+`tools/validate_hlsl.py` validates the fixtures in
+[tests/native/manifest.json](../tests/native/manifest.json) with DXC using the
+entry name and profile from compiler reflection:
+
+```text
+python tools/validate_hlsl.py --rust target/release/slangc-rs.exe --dxc path/to/dxc.exe
+```
+
+These native checks cover cases where the installed tools cannot validate an
+upstream artifact reliably. They require successful compilation and DXC validation;
+a validator crash always fails the case. Results in `out/native-hlsl.json` record
+native HLSL validity separately from the differential acceptance corpus.
 
 ## Differential comparison
 

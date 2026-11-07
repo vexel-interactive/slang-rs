@@ -1,0 +1,29 @@
+{
+  "cases": [
+    {
+      "file": "one-component-output-half.slang",
+      "entry": "main",
+      "reason": "The installed DXC crashes or reports invalid HLSL when validating the upstream artifact; native validity is checked separately."
+    },
+    {
+      "file": "one-component-derivatives-half.slang",
+      "entry": "main",
+      "reason": "The installed DXC crashes or reports invalid HLSL when validating the upstream artifact; native validity is checked separately."
+    },
+    {
+      "file": "one-component-output-float.slang",
+      "entry": "main",
+      "reason": "The installed DXC crashes or reports invalid HLSL when validating the upstream artifact; native validity is checked separately."
+    },
+    {
+      "file": "one-component-output-double.slang",
+      "entry": "main",
+      "reason": "The installed DXC crashes or reports invalid HLSL when validating the upstream artifact; native validity is checked separately."
+    },
+    {
+      "file": "one-component-derivatives-double.slang",
+      "entry": "main",
+      "reason": "The installed DXC crashes or reports invalid HLSL when validating the upstream artifact; native validity is checked separately."
+    }
+  ]
+}

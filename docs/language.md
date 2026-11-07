@@ -10,7 +10,9 @@ declarations, aliases, resource arguments, arrays, and constructor calls.
 | Source type | Canonical type |
 | --- | --- |
 | `vector<float, 3>` | `float3` |
+| `vector<float, 1>` | `float1` |
 | `matrix<double, 2, 3>` | `double2x3` |
+| `matrix<float, 1, 1>` | `float1x1` |
 | `vector`, `vector<>` | `float4` |
 | `vector<int>` | `int4` |
 | `matrix`, `matrix<>` | `float4x4` |
@@ -18,13 +20,21 @@ declarations, aliases, resource arguments, arrays, and constructor calls.
 
 Omitted arguments use the upstream core defaults: `float` for the component
 and four for each dimension. Supplied dimensions currently require integer
-literals from two through four; decimal, hexadecimal, and binary spellings are
+literals from one through four; decimal, hexadecimal, and binary spellings are
 accepted. Named constant or expression dimensions, the matrix layout argument,
-one-component shapes, user-defined generic types, and generic functions remain
+user-defined generic types, and generic functions remain
 unimplemented. Constructors require explicit angle brackets, including `<>`, or
 a transparent type alias; bare `vector(...)` and `matrix(...)` calls do not
 specialize a numeric type. They use the existing numeric and aggregate checks. See
 [numeric-type-templates.slang](../examples/numeric-type-templates.slang).
+
+One-component vectors remain distinct from scalars in arithmetic, reflection,
+and overload selection. `float1` supports `.x`, `.r`, and `[0]`; scalar casts and
+constructors extract its component. A matrix row is always a vector, including
+the `float1` row of `float3x1`. Matrix values retain both dimensions: a `float1x1`
+does not implicitly convert to a scalar or from a vector. One-component vectors
+can be used as conditions. See
+[one-component-shapes.slang](../examples/one-component-shapes.slang).
 
 The source language uses Slang syntax. Version 0.1.0 implements a small subset
 of upstream features. This document describes its actual boundaries; upstream's
@@ -81,10 +91,10 @@ signed/unsigned evaluation rules are not implemented.
 
 - Functions, prototypes, overloads, and `in`, `out`, `inout` parameters.
 - Global and local variables, and simple structures with fields.
-- `bool`, `int`, `uint`, `half`, `float`, `double`, and vectors with 2-4 components.
+- `bool`, `int`, `uint`, `half`, `float`, `double`, and vectors with 1-4 components.
 - Scalar names `int32_t`, `uint32_t`, `float32_t`, and `float64_t` resolve to the
   corresponding native scalar types.
-- Matrix aliases such as `float2x3`, with 2-4 rows and 2-4 columns.
+- Matrix aliases such as `float2x3`, with 1-4 rows and 1-4 columns.
 - Fixed arrays with positive decimal literal dimensions, including nested arrays.
 - Global `typedef` and nongeneric `typealias` declarations.
 - `StructuredBuffer<T>` and `RWStructuredBuffer<T>` with indexed element access.

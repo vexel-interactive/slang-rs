@@ -29,9 +29,9 @@ fn fails(source: &str, code: &str) {
 fn derivatives_preserve_all_floating_scalar_vector_and_matrix_shapes() {
     for scalar in [Scalar::Half, Scalar::Float, Scalar::Double] {
         let mut types = vec![Type::Scalar(scalar)];
-        types.extend((2..=4).map(|width| Type::Vector(scalar, width)));
-        for rows in 2..=4 {
-            types.extend((2..=4).map(|columns| Type::Matrix(scalar, rows, columns)));
+        types.extend((1..=4).map(|width| Type::Vector(scalar, width)));
+        for rows in 1..=4 {
+            types.extend((1..=4).map(|columns| Type::Matrix(scalar, rows, columns)));
         }
         for ty in types {
             let calls = [

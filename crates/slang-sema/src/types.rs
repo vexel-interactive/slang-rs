@@ -113,13 +113,13 @@ impl Type {
                 return Some(Self::Scalar(scalar));
             }
             if let Some(suffix) = name.strip_prefix(prefix)
-                && let Ok(size @ 2..=4) = suffix.parse::<u8>()
+                && let Ok(size @ 1..=4) = suffix.parse::<u8>()
             {
                 return Some(Self::Vector(scalar, size));
             }
             if let Some(suffix) = name.strip_prefix(prefix)
                 && let Some((rows, columns)) = suffix.split_once('x')
-                && let (Ok(rows @ 2..=4), Ok(columns @ 2..=4)) =
+                && let (Ok(rows @ 1..=4), Ok(columns @ 1..=4)) =
                     (rows.parse::<u8>(), columns.parse::<u8>())
             {
                 return Some(Self::Matrix(scalar, rows, columns));
@@ -210,6 +210,13 @@ impl Type {
         if self == target || *self == Self::Error || *target == Self::Error {
             return true;
         }
+        if matches!(
+            (self, target),
+            (Self::Scalar(Scalar::Bool), Self::Vector(Scalar::Bool, 1))
+                | (Self::Vector(Scalar::Bool, 1), Self::Scalar(Scalar::Bool))
+        ) {
+            return true;
+        }
         if let Self::Matrix(b, rows, columns) = target {
             return *b != Scalar::Bool
                 && match self {
@@ -232,6 +239,13 @@ impl Type {
         }
         let (sa, sb) = (a.scalar()?, b.scalar()?);
         if sa == Scalar::Bool || sb == Scalar::Bool {
+            if matches!(
+                (a, b),
+                (Self::Scalar(Scalar::Bool), Self::Vector(Scalar::Bool, 1))
+                    | (Self::Vector(Scalar::Bool, 1), Self::Scalar(Scalar::Bool))
+            ) {
+                return Some(Self::Vector(Scalar::Bool, 1));
+            }
             return (a == b).then(|| a.clone());
         }
         if let Self::Matrix(_, rows, columns) = a {
@@ -252,11 +266,13 @@ impl Type {
         }
         let scalar = sa.max(sb);
         let width = wa.max(wb);
-        Some(if width == 1 {
-            Self::Scalar(scalar)
-        } else {
-            Self::Vector(scalar, width)
-        })
+        Some(
+            if width == 1 && matches!((a, b), (Self::Scalar(_), Self::Scalar(_))) {
+                Self::Scalar(scalar)
+            } else {
+                Self::Vector(scalar, width)
+            },
+        )
     }
 
     pub fn boolean_shape(&self) -> Self {

@@ -189,11 +189,11 @@ impl Checker {
                 );
                 return Type::Error;
             };
-            if !(2..=4).contains(value) {
+            if !(1..=4).contains(value) {
                 self.error(
                     "T002",
                     *span,
-                    "numeric shape dimensions currently require values from 2 through 4",
+                    "numeric shape dimensions require values from 1 through 4",
                 );
                 return Type::Error;
             }
@@ -326,11 +326,17 @@ impl Checker {
                 }
             }
         }
-        // Imported overloads need distinct target names: HLSL cannot enforce module visibility.
-        // The linker prefix cannot occur in any source identifier, including local names.
-        let mut target_names: BTreeSet<_> = self.symbols.keys().cloned().collect();
+        // Preserve selected overloads when module visibility or one-component
+        // shapes cannot be distinguished by the target's overload rules.
+        let mut target_names = declaration_names(module);
+        target_names.extend(self.symbols.keys().cloned());
         for (name, overloads) in &mut self.functions {
-            if overloads.len() > 1 && self.symbols.get(name).is_some_and(|o| o.module.0 != 0) {
+            if overloads.len() > 1
+                && (self.symbols.get(name).is_some_and(|o| o.module.0 != 0)
+                    || overloads
+                        .iter()
+                        .any(|signature| signature.parameters.iter().any(one_component_shape)))
+            {
                 for (index, signature) in overloads.iter_mut().enumerate() {
                     let mut target = format!("{name}__overload_{index}");
                     while !target_names.insert(target.clone()) {
@@ -490,4 +496,71 @@ impl Checker {
             );
         }
     }
+}
+
+fn one_component_shape(ty: &Type) -> bool {
+    match ty {
+        Type::Vector(_, 1) | Type::Matrix(_, 1, _) | Type::Matrix(_, _, 1) => true,
+        Type::Array(element, _) | Type::Buffer { element, .. } | Type::Texture { element, .. } => {
+            one_component_shape(element)
+        }
+        _ => false,
+    }
+}
+
+/// Reserve lexical declarations as well as globals before generating function names.
+fn declaration_names(module: &Module) -> BTreeSet<String> {
+    use slang_syntax::StmtKind;
+    let mut names = BTreeSet::new();
+    let mut pending = vec![];
+    for declaration in &module.declarations {
+        match declaration {
+            Declaration::Function(function) => {
+                names.insert(function.name.clone());
+                names.extend(function.parameters.iter().map(|p| p.name.clone()));
+                pending.extend(function.body.as_ref());
+            }
+            Declaration::Global(variable) => {
+                names.insert(variable.name.clone());
+            }
+            Declaration::Struct(structure) => {
+                names.insert(structure.name.clone());
+            }
+            Declaration::TypeAlias(alias) => {
+                names.insert(alias.name.clone());
+            }
+        }
+    }
+    while let Some(statement) = pending.pop() {
+        match &statement.kind {
+            StmtKind::Block(statements) => pending.extend(statements),
+            StmtKind::Variable(variable) => {
+                names.insert(variable.name.clone());
+            }
+            StmtKind::Variables(variables) => {
+                names.extend(variables.iter().map(|v| v.name.clone()))
+            }
+            StmtKind::If {
+                then_branch,
+                else_branch,
+                ..
+            } => {
+                pending.push(then_branch.as_ref());
+                pending.extend(else_branch.as_deref());
+            }
+            StmtKind::While { body, .. } | StmtKind::DoWhile { body, .. } => {
+                pending.push(body.as_ref())
+            }
+            StmtKind::For {
+                initializer, body, ..
+            } => pending.extend([initializer.as_ref(), body.as_ref()]),
+            StmtKind::Switch { cases, .. } => {
+                for case in cases {
+                    pending.extend(&case.statements);
+                }
+            }
+            _ => {}
+        }
+    }
+    names
 }

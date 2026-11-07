@@ -15,9 +15,9 @@ subsystem is absent. No subsystem currently claims complete upstream parity.
 | Function default arguments | slang-sema, slang-ir | Partial | Trailing input defaults, first-declaration prototype rules, declaration-scope evaluation; parameter-dependent defaults absent |
 | Compile-time scalar constants | slang-sema, slang-ir | Partial | Typed 32-bit integer and boolean expressions, forward globals, initializer cycle diagnostics, computed thread sizes; general floating evaluation and constant function execution absent |
 | Type aliases | slang-syntax, slang-sema | Partial | Transparent global typedef/typealias, forwards, cycles, imports; local/nested and generic aliases absent |
-| Numeric type applications | slang-syntax, slang-sema | Partial | vector/matrix type and literal shape arguments, core defaults, constructors, nested resource arguments; expression dimensions and layout arguments absent |
+| Numeric type applications | slang-syntax, slang-sema | Partial | Vector/matrix dimensions 1-4, literal shape arguments, core defaults, constructors, nested resource arguments; expression dimensions and layout arguments absent |
 | Explicit numeric casts | slang-syntax, slang-sema, slang-ir | Partial | Scalar splats, same-width vectors, matrix component conversions and truncation, boolean conversions; standalone alias and aggregate cast syntax absent |
-| Matrix component selectors | slang-sema, slang-codegen | Partial | Zero/one-based scalar and vector selections, checked bounds, distinct writable components, resource and atomic locations; numeric shapes remain limited to 2-4 dimensions |
+| Matrix component selectors | slang-sema, slang-codegen | Partial | Zero/one-based scalar and vector selections, checked bounds, distinct writable components, resource and atomic locations across dimensions 1-4 |
 | Aggregate initialization | slang-syntax, slang-sema, slang-ir | Partial | Struct and fixed-array constructors, copies, defaults, contextual brace lists, nested/flat arrays, numeric padding/splats; user constructors and full generic inference absent |
 | Core module | slang-sema | Partial | Small built-in signature set |
 | Screen derivatives | slang-sema, slang-ir | Partial | ddx/ddy/fwidth and coarse/fine variants, floating shapes and integer conversion, compute quads; full uniformity analysis absent |
