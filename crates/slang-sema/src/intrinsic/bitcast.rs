@@ -1,10 +1,5 @@
+use super::Signature;
 use crate::{Scalar, Type};
-
-pub(crate) struct Signature {
-    pub parameters: Vec<Type>,
-    pub result: Type,
-    pub outputs_start: Option<usize>,
-}
 
 /// Resolve the 32-bit overloads and the upstream double packing signatures.
 pub(crate) fn signature(name: &str, types: &[Type]) -> Option<Signature> {

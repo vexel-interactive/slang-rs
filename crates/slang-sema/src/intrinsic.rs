@@ -2,12 +2,20 @@ use crate::{Scalar, Type};
 
 mod atomic;
 mod bitcast;
+mod bitops;
 mod derivative;
 mod output;
 pub(crate) use atomic::signature as atomic_signature;
 pub(crate) use bitcast::signature as bitcast_signature;
+pub(crate) use bitops::signature as bitops_signature;
 pub(crate) use derivative::{name as derivative_name, signature as derivative_signature};
 pub(crate) use output::signature as output_signature;
+
+pub(crate) struct Signature {
+    pub parameters: Vec<Type>,
+    pub result: Type,
+    pub outputs_start: Option<usize>,
+}
 
 /// Names implemented by the native builtin signature set.
 pub fn is_intrinsic_name(name: &str) -> bool {
@@ -19,6 +27,10 @@ pub fn is_intrinsic_name(name: &str) -> bool {
                 | "asuint"
                 | "asfloat"
                 | "asdouble"
+                | "countbits"
+                | "reversebits"
+                | "firstbithigh"
+                | "firstbitlow"
                 | "sin"
                 | "cos"
                 | "tan"

@@ -1455,6 +1455,49 @@
       "entry": "main",
       "accept": false,
       "rust_code": "T014"
+    },
+    {
+      "file": "../../examples/integer-bit-operations.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/bit-operation-defaults.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/bit-operations-bool.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/bit-operations-int.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/bit-operations-uint.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "negative/bit-operation-float.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/bit-operation-matrix.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/bit-operation-arity.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T014"
     }
   ]
 }

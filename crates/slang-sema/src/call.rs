@@ -216,7 +216,9 @@ impl Checker {
                 }
             }
         }
-        if let Some(signature) = crate::intrinsic::bitcast_signature(name, &types) {
+        if let Some(signature) = crate::intrinsic::bitcast_signature(name, &types)
+            .or_else(|| crate::intrinsic::bitops_signature(name, &types))
+        {
             if let Some(start) = signature.outputs_start {
                 for argument in &arguments[start..] {
                     self.require_writable(argument);

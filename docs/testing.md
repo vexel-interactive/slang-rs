@@ -103,6 +103,12 @@ invalid double, arity, width, output-type, and writable-location uses. A native
 fixture checks a bitcast-spelled entry through its reflected target name. HLSL
 validation does not compare execution or floating-point payloads on a GPU.
 
+Integer bit-operation tests check 60 signatures, unsigned count/position results,
+signed reverse results, boolean promotions, and declaration-scope defaults. Invalid
+floating, matrix, and arity inputs are rejected. Differential cases validate both
+integer signs and each vector width with DXC. Signed search inputs must reach the
+target intrinsic without a conversion to unsigned integers.
+
 Predefined macro tests cover physical CRLF lines, nested and multiline initiating
 calls, token paste and stringification, escaped file names, included definitions,
 module isolation, user overrides, undef, and source-located redefinition warnings.

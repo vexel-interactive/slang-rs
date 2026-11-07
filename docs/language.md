@@ -465,6 +465,20 @@ const values, temporary expressions, and repeated swizzles are rejected. `sincos
 and `modf` can infer brace-list input types from their outputs. See
 [output-intrinsics.slang](../examples/output-intrinsics.slang).
 
+## Integer bit operations
+
+`countbits`, `firstbithigh`, and `firstbitlow` return `uint` counts or positions
+with the same scalar/vector width as their input. `reversebits` reverses all
+32 bits and preserves the input's integer sign and width. Boolean scalar/vector
+arguments promote to `int`. Floating inputs, matrices, and wider integer types
+are outside these signatures.
+
+The highest-bit search retains signed inputs: negative `int` values search for
+the highest zero bit, while `uint` values search for the highest set bit. A search
+without a qualifying bit returns `0xffffffffu`. These calls retain runtime
+evaluation, including when used in function defaults. See
+[integer-bit-operations.slang](../examples/integer-bit-operations.slang).
+
 ## Bit reinterpretation
 
 `asint`, `asuint`, and `asfloat` reinterpret 32-bit numeric components while
