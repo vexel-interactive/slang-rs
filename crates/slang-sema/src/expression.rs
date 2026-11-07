@@ -64,7 +64,15 @@ impl Checker {
                 let target = self.resolve_type(target);
                 let valid = actual == Type::Error
                     || target == Type::Error
-                    || matches!(actual, Type::Scalar(_)) && matches!(target, Type::Scalar(_));
+                    || match (&actual, &target) {
+                        (
+                            Type::Scalar(_),
+                            Type::Scalar(_) | Type::Vector(..) | Type::Matrix(..),
+                        ) => true,
+                        (Type::Vector(_, a), Type::Vector(_, b)) => a == b,
+                        (Type::Matrix(_, ar, ac), Type::Matrix(_, br, bc)) => br <= ar && bc <= ac,
+                        _ => false,
+                    };
                 if !valid {
                     self.error(
                         "T008",

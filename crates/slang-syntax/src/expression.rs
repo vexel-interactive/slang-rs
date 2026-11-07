@@ -74,7 +74,11 @@ impl Parser {
             let end = self.expect(")")?;
             expr.span = token.span.join(end);
             expr
-        } else if matches!(token.text.as_str(), "vector" | "matrix") && self.at("<") {
+        } else if matches!(token.text.as_str(), "vector" | "matrix")
+            && self
+                .type_application_end(self.offset - 1)
+                .is_some_and(|end| self.tokens.get(end).is_some_and(|t| t.is("(") || t.is("[")))
+        {
             self.offset -= 1;
             let target = self.ty()?;
             let span = target.span;
@@ -211,8 +215,37 @@ impl Parser {
         let Some(token) = self.current() else {
             return false;
         };
+        if matches!(token.text.as_str(), "vector" | "matrix") {
+            return self
+                .type_application_end(self.offset)
+                .is_some_and(|end| self.tokens.get(end).is_some_and(|t| t.is(")")));
+        }
         self.tokens.get(self.offset + 1).is_some_and(|t| t.is(")"))
             && builtin_cast_type(&token.text)
+    }
+
+    /// Recognize angle brackets without consuming comparisons or shifting tokens.
+    fn type_application_end(&self, start: usize) -> Option<usize> {
+        if !self.tokens.get(start + 1)?.is("<") {
+            return None;
+        }
+        let mut nesting = 0i32;
+        for (offset, token) in self.tokens.iter().enumerate().skip(start + 1) {
+            match token.text.as_str() {
+                "<" => nesting += 1,
+                ">" => nesting -= 1,
+                ">>" => nesting -= 2,
+                "(" | ")" | ";" | "{" | "}" | "=" | "?" => return None,
+                _ => {}
+            }
+            if nesting == 0 {
+                return Some(offset + 1);
+            }
+            if nesting < 0 || token.kind == TokenKind::Eof {
+                return None;
+            }
+        }
+        None
     }
 
     fn cast_expression(&mut self, start: Span) -> Result<Expr, Diagnostic> {
@@ -231,7 +264,7 @@ impl Parser {
 }
 
 fn builtin_cast_type(name: &str) -> bool {
-    matches!(
+    if matches!(
         name,
         "bool"
             | "int"
@@ -243,5 +276,18 @@ fn builtin_cast_type(name: &str) -> bool {
             | "uint32_t"
             | "float32_t"
             | "float64_t"
-    )
+    ) {
+        return true;
+    }
+    ["bool", "int", "uint", "half", "float", "double"]
+        .iter()
+        .any(|prefix| {
+            let Some(shape) = name.strip_prefix(prefix) else {
+                return false;
+            };
+            let dimension = |text: &str| text.parse::<u8>().is_ok_and(|n| (2..=4).contains(&n));
+            shape
+                .split_once('x')
+                .map_or_else(|| dimension(shape), |(r, c)| dimension(r) && dimension(c))
+        })
 }

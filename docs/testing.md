@@ -146,6 +146,11 @@ alias constructors, imported scalar arguments, nested resources, and arrays.
 Invalid shape, component, arity, and resource arguments must fail before IR
 lowering.
 
+Numeric cast fixtures check scalar splats, vector component conversions, boolean
+conversions, matrix truncation, imported component aliases, and incompatible
+shapes. Value comparisons using names `vector` and `matrix` remain expressions
+and must not be parsed as type applications.
+
 [validation.json](validation.json) records the Windows validation run for this
 checkpoint. It includes the pinned compiler version, workspace checks, and
 differential corpus counts. It is a snapshot of that run, not a promise of

@@ -906,6 +906,45 @@
       "file": "positive/numeric-template-names.slang",
       "entry": "main",
       "accept": true
+    },
+    {
+      "file": "../../examples/numeric-casts.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/template-value-comparisons.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "modules/cast-root.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "negative/cast-vector-truncate.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T008"
+    },
+    {
+      "file": "negative/cast-vector-scalar.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T008"
+    },
+    {
+      "file": "negative/cast-matrix-reshape.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T008"
+    },
+    {
+      "file": "negative/cast-matrix-expand.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T008"
     }
   ]
 }

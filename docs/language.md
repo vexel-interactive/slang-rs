@@ -252,8 +252,15 @@ function calls, fields, swizzles, indexing, conditionals, and increment/decremen
 
 Statements include blocks, local declarations, expression statements, `return`,
 `if/else`, `while`, `for`, `do/while`, `switch`, `break`, `continue`, and `discard`.
-C-style casts support scalar-to-scalar conversions. Use constructors for vector
-and matrix values. Statement attributes remain to be ported.
+C-style numeric casts accept scalar names, scalar-prefixed vector/matrix names,
+and explicit `vector<...>` or `matrix<...>` applications. Scalars can convert to
+another scalar or splat into a vector or matrix. Vector casts preserve the width.
+Matrix casts preserve or reduce both dimensions, selecting the top-left region.
+Component conversions include boolean and numeric types. Vector truncation,
+vector-to-scalar conversion, matrix expansion, and reshaping are rejected.
+The operand is evaluated once. Standalone alias names and aggregate/resource
+cast targets remain unsupported. See [numeric-casts.slang](../examples/numeric-casts.slang).
+Statement attributes remain to be ported.
 
 The comma operator evaluates its left operand before its right operand and
 returns the right operand's value. It has lower precedence than assignment and
