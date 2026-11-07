@@ -1,5 +1,5 @@
 use crate::{Scalar, Type, checker::Checker, intrinsic::intrinsic};
-use slang_source::Span;
+use slang_source::{Diagnostic, Span};
 use slang_syntax::{Expr, ExprKind};
 
 impl Checker {
@@ -8,22 +8,20 @@ impl Checker {
         if let ExprKind::Member { base, name } = &callee.kind {
             return self.resource_call(base, name, arguments, &types, callee.id, span);
         }
-        let ExprKind::Name(name) = &callee.kind else {
-            self.error("T001", span, "only named function calls are implemented");
-            return Type::Error;
+        let constructor = match self.constructor_target(callee) {
+            Ok(target) => target,
+            Err(error) => {
+                self.diagnostics.push(error);
+                return Type::Error;
+            }
         };
-        if self.lookup(name).is_some() {
-            self.error("T014", span, format!("value '{name}' is not callable"));
-            return Type::Error;
-        }
-        let constructor = Type::builtin(name)
-            .or_else(|| self.alias_types.get(name).cloned())
-            .or_else(|| {
-                self.structures
-                    .contains_key(name)
-                    .then(|| Type::Struct(name.clone()))
-            });
         if let Some(target) = constructor {
+            if matches!(target, Type::Array(..)) {
+                let result = self.array_constructor(&target, arguments, callee.id, span);
+                self.expression_types
+                    .insert(callee.id, Type::Meta(Box::new(target)));
+                return result;
+            }
             if let Type::Struct(name) = &target {
                 let result = self.struct_constructor(name, arguments, &types, callee.id, span);
                 self.expression_types
@@ -96,6 +94,14 @@ impl Checker {
                 self.call_names.insert(callee.id, target.to_string());
             }
             return target;
+        }
+        let ExprKind::Name(name) = &callee.kind else {
+            self.error("T001", span, "only named function calls are implemented");
+            return Type::Error;
+        };
+        if self.lookup(name).is_some() {
+            self.error("T014", span, format!("value '{name}' is not callable"));
+            return Type::Error;
         }
         if let Some(overloads) = self.functions.get(name).cloned() {
             let owner = self
@@ -196,6 +202,53 @@ impl Checker {
             format!("unknown function or unsupported intrinsic '{name}'"),
         );
         Type::Error
+    }
+
+    fn constructor_target(&self, callee: &Expr) -> Result<Option<Type>, Diagnostic> {
+        match &callee.kind {
+            ExprKind::Name(name) if self.lookup(name).is_none() => Ok(Type::builtin(name)
+                .or_else(|| self.alias_types.get(name).cloned())
+                .or_else(|| {
+                    self.structures
+                        .contains_key(name)
+                        .then(|| Type::Struct(name.clone()))
+                })),
+            ExprKind::Index { base, index } => {
+                let Some(element) = self.constructor_target(base)? else {
+                    return Ok(None);
+                };
+                let ExprKind::Integer(text) = &index.kind else {
+                    return Err(Diagnostic::error(
+                        "T002",
+                        index.span,
+                        "array constructor size must be a positive decimal literal",
+                    ));
+                };
+                let size = text
+                    .trim_end_matches(['u', 'U'])
+                    .parse::<u32>()
+                    .ok()
+                    .filter(|n| *n > 0)
+                    .ok_or_else(|| {
+                        Diagnostic::error("T002", index.span, "invalid array constructor size")
+                    })?;
+                let mut rank = 0;
+                let mut ty = &element;
+                while let Type::Array(inner, _) = ty {
+                    rank += 1;
+                    ty = inner;
+                }
+                if rank >= 32 || element == Type::Void || ty.is_resource() {
+                    return Err(Diagnostic::error(
+                        "T002",
+                        callee.span,
+                        "invalid or excessively nested array constructor type",
+                    ));
+                }
+                Ok(Some(Type::Array(Box::new(element), size)))
+            }
+            _ => Ok(None),
+        }
     }
 
     pub(crate) fn numeric_list_types(

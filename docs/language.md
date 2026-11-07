@@ -86,11 +86,21 @@ The same distinction applies to variable declarations. Reflection uses
 outer-to-inner dimensions and HLSL preserves that order in declarations.
 
 Arrays can appear as variables, struct fields, and parameters. Unsized arrays,
-symbolic sizes, array constructors, array return types,
+symbolic sizes, array return types,
 and array elements inside resource types are not implemented. Alias chains and
 resolved array ranks are each limited to 32. Local/nested aliases, generic
 aliases, qualified type references, pointer declarators, and C-style casts using
 user alias names remain unported. See [the alias example](../examples/type-aliases.slang).
+
+Fixed arrays also support constructors: `float[3](1.0, 2.0)`, `float[3]()`,
+and `Row(1.0, 2.0, 3.0)` through a transparent alias. Supplied values follow
+initializer-list rules, including flat multidimensional arguments and nested
+list boundaries. Remaining elements use zero or struct field defaults. A single
+argument of the exact array type copies the array without evaluating defaults.
+Leading dimensions wrap in source order: `float[3][2](...)` constructs two rows
+of three floats. Constructor dimensions currently require positive decimal
+literals and remain bounded to rank 32. See
+[array-construction.slang](../examples/array-construction.slang).
 
 ## Struct construction and field defaults
 

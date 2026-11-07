@@ -551,6 +551,34 @@
       "entry": "main",
       "accept": false,
       "rust_code": "T014"
+    },
+    {
+      "file": "../../examples/array-construction.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "modules/array-constructor-import.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "negative/array-constructor-excess.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T021"
+    },
+    {
+      "file": "negative/array-constructor-nested.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T021"
+    },
+    {
+      "file": "negative/array-constructor-zero.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T002"
     }
   ]
 }

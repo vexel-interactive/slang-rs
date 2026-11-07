@@ -31,6 +31,10 @@ defaults retain their owning module. Debug CLI tests bound large arrays and
 branching defaults as well as recursive syntax. The differential corpus includes
 invalid copies, excess inner values, output arguments, and generic inference.
 
+Array constructor tests cover direct and aliased types, dimension order, exact
+copies, struct defaults, flat/nested arguments, imported types, and invalid sizes.
+Generated HLSL for direct constructors and imported arrays is checked with DXC.
+
 Examples cover vector addition, control flow, matrix algebra, vertex transforms,
 fragment color output, struct construction, and a multi-file module. With DXC
 installed, validate generated HLSL independently:

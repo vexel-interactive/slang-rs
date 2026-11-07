@@ -1,8 +1,60 @@
 use crate::{Initialization, InitializationKind, Type, checker::Checker};
 use slang_source::{Diagnostic, Span};
-use slang_syntax::{Expr, ExprKind, Variable};
+use slang_syntax::{Expr, ExprId, ExprKind, Variable};
 
 impl Checker {
+    pub(crate) fn array_constructor(
+        &mut self,
+        target: &Type,
+        arguments: &[Expr],
+        callee: ExprId,
+        span: Span,
+    ) -> Type {
+        let plan = if arguments.len() == 1
+            && self.expression_types.get(&arguments[0].id) == Some(target)
+        {
+            Ok(Initialization {
+                ty: target.clone(),
+                kind: InitializationKind::Value(Box::new(arguments[0].clone())),
+            })
+        } else if self.constant_buffer_data(target, &mut Default::default()) {
+            let mut planner = Planner {
+                checker: self,
+                remaining: 65536,
+            };
+            let mut index = 0;
+            planner
+                .aggregate(arguments, &mut index, target, span, 0)
+                .and_then(|plan| {
+                    if index == arguments.len() {
+                        Ok(plan)
+                    } else {
+                        Err(Diagnostic::error(
+                            "T021",
+                            span,
+                            format!("too many initializers for {target}"),
+                        ))
+                    }
+                })
+        } else {
+            Err(Diagnostic::error(
+                "T020",
+                span,
+                "resource-valued array construction is not implemented",
+            ))
+        };
+        match plan {
+            Ok(plan) => {
+                self.initializations.insert(callee, plan);
+                target.clone()
+            }
+            Err(error) => {
+                self.diagnostics.push(error);
+                Type::Error
+            }
+        }
+    }
+
     pub(crate) fn check_value(&mut self, value: &Expr, target: &Type) {
         self.expression(value);
         self.coerce_value(value, target);
