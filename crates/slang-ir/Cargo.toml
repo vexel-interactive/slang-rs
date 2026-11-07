@@ -1,0 +1,17 @@
+[package]
+name = "slang-ir"
+description = "Typed structured intermediate representation and lowering"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+slang-source.workspace = true
+slang-syntax.workspace = true
+slang-sema.workspace = true
+serde.workspace = true
+
+[lints]
+workspace = true

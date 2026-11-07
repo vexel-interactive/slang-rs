@@ -1,0 +1,10 @@
+{
+  "repository": "https://github.com/shader-slang/slang",
+  "branch": "master",
+  "revision": "ae4e57957a0adad3061b069b0e0eec8217779338",
+  "reference_date": "2026-11-07",
+  "rust_toolchain": "1.99.1",
+  "license": "Apache-2.0 WITH LLVM-exception",
+  "oracle_release": "v2026.21",
+  "oracle_matches_source_revision": false
+}

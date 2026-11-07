@@ -1,0 +1,23 @@
+[package]
+name = "slang-compiler"
+description = "Public Rust API for the native Slang compiler pipeline"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+slang-source.workspace = true
+slang-preprocessor.workspace = true
+slang-syntax.workspace = true
+slang-sema.workspace = true
+slang-ir.workspace = true
+slang-codegen.workspace = true
+serde.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
+
+[lints]
+workspace = true

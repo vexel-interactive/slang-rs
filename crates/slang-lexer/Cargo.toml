@@ -1,0 +1,15 @@
+[package]
+name = "slang-lexer"
+description = "Lossless tokenization of Slang source"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+slang-source.workspace = true
+serde.workspace = true
+
+[lints]
+workspace = true

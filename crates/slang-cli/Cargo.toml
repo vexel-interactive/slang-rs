@@ -1,0 +1,19 @@
+[package]
+name = "slang-cli"
+description = "Command-line interface for the native Rust Slang compiler"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "slangc-rs"
+path = "src/main.rs"
+
+[dependencies]
+slang-compiler.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true

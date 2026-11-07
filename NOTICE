@@ -1,0 +1,11 @@
+slang-rs
+Copyright 2026 Ankerin
+
+This project reimplements portions of the Slang compiler in Rust.
+Upstream reference: https://github.com/shader-slang/slang
+Reference commit: ae4e57957a0adad3061b069b0e0eec8217779338
+
+The Slang compiler is distributed under Apache-2.0 WITH LLVM-exception.
+Upstream materials retain their original notices and licenses.
+The upstream checkout and oracle are development references and are not linked
+or executed by the production Rust compiler.
