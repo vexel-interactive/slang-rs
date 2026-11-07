@@ -14,6 +14,7 @@ subsystem is absent. No subsystem currently claims complete upstream parity.
 | Local storage and declaration scopes | slang-module, slang-sema, slang-ir | Partial | Lexical unbraced declarations, loop scopes, guarded local static initialization; definite-assignment analysis absent |
 | Function default arguments | slang-sema, slang-ir | Partial | Trailing input defaults, first-declaration prototype rules, declaration-scope evaluation; parameter-dependent defaults absent |
 | Type aliases | slang-syntax, slang-sema | Partial | Transparent global typedef/typealias, forwards, cycles, imports; local/nested and generic aliases absent |
+| Numeric type applications | slang-syntax, slang-sema | Partial | vector/matrix type and literal shape arguments, core defaults, constructors, nested resource arguments; expression dimensions and layout arguments absent |
 | Aggregate initialization | slang-syntax, slang-sema, slang-ir | Partial | Struct and fixed-array constructors, copies, defaults, contextual brace lists, nested/flat arrays, numeric padding/splats; user constructors and full generic inference absent |
 | Core module | slang-sema | Partial | Small built-in signature set |
 | Texture and sampler operations | slang-sema, slang-codegen | Partial | 1D/2D/3D/cube, indexed access, load/sample/bias/gradients/comparison/dimensions; advanced resources absent |

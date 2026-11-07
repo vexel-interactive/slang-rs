@@ -8,6 +8,15 @@ impl Checker {
         if let ExprKind::Member { base, name } = &callee.kind {
             return self.resource_call(base, name, arguments, &types, callee.id, span);
         }
+        if matches!(&callee.kind, ExprKind::Name(name) if matches!(name.as_str(), "vector" | "matrix") && self.lookup(name).is_none() && !(self.functions.contains_key(name) && self.module_symbol_visible(name)))
+        {
+            self.error(
+                "T014",
+                callee.span,
+                "numeric template constructors require explicit angle brackets or a type alias",
+            );
+            return Type::Error;
+        }
         let constructor = match self.constructor_target(callee) {
             Ok(target) => target,
             Err(error) => {
@@ -252,8 +261,9 @@ impl Checker {
         Type::Error
     }
 
-    fn constructor_target(&self, callee: &Expr) -> Result<Option<Type>, Diagnostic> {
+    fn constructor_target(&mut self, callee: &Expr) -> Result<Option<Type>, Diagnostic> {
         match &callee.kind {
+            ExprKind::TypeApplication(reference) => Ok(Some(self.resolve_type(reference))),
             ExprKind::Name(name) if self.lookup(name).is_none() => Ok(Type::builtin(name)
                 .or_else(|| {
                     self.module_symbol_visible(name)

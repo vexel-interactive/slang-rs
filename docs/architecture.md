@@ -8,6 +8,13 @@ scope while keeping ordinary initialization inside the control body. IR statemen
 sequences preserve order without introducing a scope; blocks represent scopes.
 Reflection selects source globals and excludes this generated storage.
 
+Syntax type applications distinguish type arguments from integer shape arguments.
+Semantic checking resolves numeric applications and their defaults into canonical
+vector and matrix types. Constructor callees retain their type application in the
+AST; lowering replaces them with the selected canonical constructor. The typed IR
+and HLSL emitter therefore use one representation for `vector<float, 3>` and
+`float3`.
+
 ## Compilation flow
 
 ```mermaid

@@ -90,6 +90,14 @@ impl Checker {
                     Type::Error
                 }
             }
+            ExprKind::TypeApplication(_) => {
+                self.error(
+                    "T001",
+                    expression.span,
+                    "type applications require a constructor call",
+                );
+                Type::Error
+            }
             ExprKind::Unary { op, value } => {
                 let ty = self.expression(value);
                 match op.as_str() {

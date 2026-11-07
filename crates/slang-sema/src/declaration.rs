@@ -2,7 +2,7 @@ use crate::{
     Type,
     checker::{Binding, Checker, Signature, span_key},
 };
-use slang_syntax::{Declaration, Module, TypeRef, Variable};
+use slang_syntax::{Declaration, Module, TypeArgument, TypeRef, Variable};
 use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Clone, Copy)]
@@ -14,10 +14,12 @@ pub(crate) enum VariableScope {
 
 impl Checker {
     pub fn resolve_type(&mut self, reference: &TypeRef) -> Type {
-        let mut ty = if reference.name == "ConstantBuffer" {
+        let mut ty = if matches!(reference.name.as_str(), "vector" | "matrix") {
+            self.numeric_type_application(reference)
+        } else if reference.name == "ConstantBuffer" {
             match reference.arguments.as_slice() {
                 [element] => {
-                    let element = self.resolve_type(element);
+                    let element = self.type_argument(element);
                     if !matches!(element, Type::Struct(_) | Type::Error) {
                         self.error(
                             "T002",
@@ -48,7 +50,7 @@ impl Checker {
                 );
                 Type::Error
             } else {
-                let element = self.resolve_type(&reference.arguments[0]);
+                let element = self.type_argument(&reference.arguments[0]);
                 if element == Type::Void
                     || element.is_resource()
                     || matches!(element, Type::Array(..))
@@ -63,7 +65,7 @@ impl Checker {
         } else if Type::texture(&reference.name, Type::Error).is_some() {
             let element = match reference.arguments.as_slice() {
                 [] => Type::Vector(crate::Scalar::Float, 4),
-                [element] => self.resolve_type(element),
+                [element] => self.type_argument(element),
                 _ => {
                     self.error(
                         "T002",
@@ -139,6 +141,70 @@ impl Checker {
             ty = Type::Array(Box::new(ty), *size);
         }
         ty
+    }
+
+    fn type_argument(&mut self, argument: &TypeArgument) -> Type {
+        match argument {
+            TypeArgument::Type(reference) => self.resolve_type(reference),
+            TypeArgument::Integer { span, .. } => {
+                self.error("T002", *span, "expected a type argument, found an integer");
+                Type::Error
+            }
+        }
+    }
+
+    fn numeric_type_application(&mut self, reference: &TypeRef) -> Type {
+        let expected = if reference.name == "vector" { 2 } else { 3 };
+        if reference.arguments.len() > expected {
+            self.error(
+                "T002",
+                reference.span,
+                format!("{} accepts at most {expected} arguments", reference.name),
+            );
+            return Type::Error;
+        }
+        let component = reference
+            .arguments
+            .first()
+            .map_or(Type::Scalar(crate::Scalar::Float), |argument| {
+                self.type_argument(argument)
+            });
+        let Type::Scalar(scalar) = component else {
+            if component != Type::Error {
+                self.error(
+                    "T002",
+                    reference.span,
+                    "vector and matrix components require a scalar type",
+                );
+            }
+            return Type::Error;
+        };
+        let mut dimensions = vec![];
+        for argument in reference.arguments.iter().skip(1) {
+            let TypeArgument::Integer { value, span } = argument else {
+                self.error(
+                    "T002",
+                    reference.span,
+                    "numeric shape arguments currently require integer literals",
+                );
+                return Type::Error;
+            };
+            if !(2..=4).contains(value) {
+                self.error(
+                    "T002",
+                    *span,
+                    "numeric shape dimensions currently require values from 2 through 4",
+                );
+                return Type::Error;
+            }
+            dimensions.push(*value as u8);
+        }
+        dimensions.resize(expected - 1, 4);
+        if reference.name == "vector" {
+            Type::Vector(scalar, dimensions[0])
+        } else {
+            Type::Matrix(scalar, dimensions[0], dimensions[1])
+        }
     }
 
     pub(crate) fn declare(&mut self, module: &Module) {

@@ -285,6 +285,15 @@ impl Lowerer<'_> {
                     }
                 }
                 match &callee.kind {
+                    ast::ExprKind::TypeApplication(_) => ExprKind::Call {
+                        name: self
+                            .checked
+                            .call_names
+                            .get(&callee.id)
+                            .cloned()
+                            .ok_or_else(|| error(callee.span))?,
+                        arguments,
+                    },
                     ast::ExprKind::Name(name)
                         if !self.checked.call_names.contains_key(&callee.id) =>
                     {
@@ -331,7 +340,9 @@ impl Lowerer<'_> {
                 op: op.clone(),
                 value: Box::new(self.expression(value)?),
             },
-            ast::ExprKind::String(_) => return Err(error(expression.span)),
+            ast::ExprKind::String(_) | ast::ExprKind::TypeApplication(_) => {
+                return Err(error(expression.span));
+            }
         };
         Ok(Expr {
             ty,

@@ -36,10 +36,17 @@ pub enum Declaration {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct TypeRef {
     pub name: String,
-    pub arguments: Vec<TypeRef>,
+    pub arguments: Vec<TypeArgument>,
     /// Array dimensions from outermost to innermost.
     pub arrays: Vec<u32>,
     pub span: Span,
+}
+
+/// A type application can contain both types and integer shape arguments.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub enum TypeArgument {
+    Type(TypeRef),
+    Integer { value: u32, span: Span },
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -158,6 +165,8 @@ pub enum ExprKind {
     Bool(bool),
     String(String),
     Name(String),
+    /// A numeric type application used as a constructor callee.
+    TypeApplication(Box<TypeRef>),
     Unary {
         op: String,
         value: Box<Expr>,

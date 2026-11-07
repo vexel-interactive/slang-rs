@@ -1,5 +1,31 @@
 # Supported language subset
 
+## Numeric type applications
+
+`vector<T, N>` and `matrix<T, R, C>` resolve to the same canonical types as
+`float3`, `float3x3`, and the other scalar-prefixed names. The component argument
+can use a scalar alias, including an imported alias. Type applications work in
+declarations, aliases, resource arguments, arrays, and constructor calls.
+
+| Source type | Canonical type |
+| --- | --- |
+| `vector<float, 3>` | `float3` |
+| `matrix<double, 2, 3>` | `double2x3` |
+| `vector`, `vector<>` | `float4` |
+| `vector<int>` | `int4` |
+| `matrix`, `matrix<>` | `float4x4` |
+| `matrix<float, 2>` | `float2x4` |
+
+Omitted arguments use the upstream core defaults: `float` for the component
+and four for each dimension. Supplied dimensions currently require integer
+literals from two through four; decimal, hexadecimal, and binary spellings are
+accepted. Named constant or expression dimensions, the matrix layout argument,
+one-component shapes, user-defined generic types, and generic functions remain
+unimplemented. Constructors require explicit angle brackets, including `<>`, or
+a transparent type alias; bare `vector(...)` and `matrix(...)` calls do not
+specialize a numeric type. They use the existing numeric and aggregate checks. See
+[numeric-type-templates.slang](../examples/numeric-type-templates.slang).
+
 The source language uses Slang syntax. Version 0.1.0 implements a small subset
 of upstream features. This document describes its actual boundaries; upstream's
 language reference remains the specification for the complete port.

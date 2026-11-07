@@ -74,6 +74,11 @@ impl Parser {
             let end = self.expect(")")?;
             expr.span = token.span.join(end);
             expr
+        } else if matches!(token.text.as_str(), "vector" | "matrix") && self.at("<") {
+            self.offset -= 1;
+            let target = self.ty()?;
+            let span = target.span;
+            self.expr(ExprKind::TypeApplication(Box::new(target)), span)?
         } else if matches!(token.text.as_str(), "+" | "-" | "!" | "~" | "++" | "--") {
             let value = self.expression(14)?;
             let span = token.span.join(value.span);

@@ -50,7 +50,9 @@ impl<'a> Resolver<'a> {
     fn ty(&self, ty: &mut TypeRef) -> Result<(), Diagnostic> {
         ty.name = self.symbol(&ty.name, true, ty.span)?;
         for argument in &mut ty.arguments {
-            self.ty(argument)?;
+            if let slang_syntax::TypeArgument::Type(argument) = argument {
+                self.ty(argument)?;
+            }
         }
         Ok(())
     }
@@ -254,6 +256,7 @@ impl<'a> Resolver<'a> {
                 self.ty(target)?;
                 self.expression(value)?;
             }
+            ExprKind::TypeApplication(target) => self.ty(target)?,
             ExprKind::Unary { value, .. } | ExprKind::Postfix { value, .. } => {
                 self.expression(value)?
             }

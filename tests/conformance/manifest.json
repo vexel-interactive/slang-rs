@@ -850,6 +850,62 @@
       "file": "positive/static-loop-initializer.slang",
       "entry": "main",
       "accept": true
+    },
+    {
+      "file": "../../examples/numeric-type-templates.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/numeric-template-defaults.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "modules/template-root.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "negative/numeric-template-shape-type.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T002"
+    },
+    {
+      "file": "negative/numeric-template-wide.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T002"
+    },
+    {
+      "file": "negative/numeric-template-component.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T002"
+    },
+    {
+      "file": "negative/numeric-template-arity.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T002"
+    },
+    {
+      "file": "negative/numeric-template-resource.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T002"
+    },
+    {
+      "file": "negative/numeric-template-bare-constructor.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T014"
+    },
+    {
+      "file": "positive/numeric-template-names.slang",
+      "entry": "main",
+      "accept": true
     }
   ]
 }

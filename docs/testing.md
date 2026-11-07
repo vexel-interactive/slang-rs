@@ -141,6 +141,11 @@ initializers, and imported functions. Unbraced declaration cases cover positive
 scope behavior and conflicting or escaping bindings. Accepted differential
 fixtures are validated with DXC; these checks do not execute the shaders.
 
+Numeric type application cases compare explicit shapes, upstream core defaults,
+alias constructors, imported scalar arguments, nested resources, and arrays.
+Invalid shape, component, arity, and resource arguments must fail before IR
+lowering.
+
 [validation.json](validation.json) records the Windows validation run for this
 checkpoint. It includes the pinned compiler version, workspace checks, and
 differential corpus counts. It is a snapshot of that run, not a promise of

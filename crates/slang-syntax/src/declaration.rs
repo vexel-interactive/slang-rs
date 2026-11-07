@@ -175,8 +175,30 @@ impl Parser {
         let token = self.identifier()?;
         let mut arguments = vec![];
         if self.eat("<") {
-            loop {
-                arguments.push(self.ty()?);
+            while !self.at(">") && !self.at(">>") {
+                if self.current().is_some_and(|t| t.kind == TokenKind::Integer) {
+                    let token = self.current().unwrap().clone();
+                    self.offset += 1;
+                    let text = token.text.trim_end_matches(['u', 'U']);
+                    let value = if let Some(hex) =
+                        text.strip_prefix("0x").or_else(|| text.strip_prefix("0X"))
+                    {
+                        u32::from_str_radix(hex, 16)
+                    } else if let Some(binary) =
+                        text.strip_prefix("0b").or_else(|| text.strip_prefix("0B"))
+                    {
+                        u32::from_str_radix(binary, 2)
+                    } else {
+                        text.parse()
+                    }
+                    .map_err(|_| self.error("invalid integer type argument"))?;
+                    arguments.push(TypeArgument::Integer {
+                        value,
+                        span: token.span,
+                    });
+                } else {
+                    arguments.push(TypeArgument::Type(self.ty()?));
+                }
                 if !self.eat(",") {
                     break;
                 }
@@ -200,7 +222,7 @@ impl Parser {
             name: token.text,
             arguments,
             arrays,
-            span: token.span,
+            span: token.span.join(self.tokens[self.offset - 1].span),
         })
     }
 
