@@ -1,4 +1,4 @@
-use crate::{Scalar, Type, checker::Checker};
+use crate::{Scalar, TextureDimension, Type, checker::Checker};
 use slang_source::Span;
 use slang_syntax::{Expr, ExprKind};
 
@@ -166,17 +166,27 @@ impl Checker {
             ExprKind::Index { base, index } => {
                 let ty = self.expression(base);
                 let index_type = self.expression(index);
-                if !matches!(
-                    index_type,
-                    Type::Scalar(Scalar::Int | Scalar::Uint) | Type::Error
-                ) {
-                    self.error("T013", index.span, "index must be a scalar integer");
+                let width = match &ty {
+                    Type::Texture { dimension, .. } => dimension.coordinates(),
+                    _ => 1,
+                };
+                if index_type != Type::Error
+                    && !(index_type.integral() && index_type.width() == Some(width))
+                {
+                    self.error(
+                        "T013",
+                        index.span,
+                        format!("index requires an integer with {width} component(s)"),
+                    );
                 }
                 let (result, size) = match ty {
                     Type::Array(element, size) => (*element, Some(size)),
                     Type::Vector(s, n) => (Type::Scalar(s), Some(u32::from(n))),
                     Type::Matrix(s, _, columns) => (Type::Vector(s, columns), None),
                     Type::Buffer { element, .. } => (*element, None),
+                    Type::Texture {
+                        element, dimension, ..
+                    } if dimension != TextureDimension::Cube => (*element, None),
                     Type::Error => (Type::Error, None),
                     _ => {
                         self.error("T013", expression.span, format!("cannot index {ty}"));
@@ -266,7 +276,7 @@ impl Checker {
                 unique && self.writable(base)
             }
             ExprKind::Index { base, .. } => match self.expression_types.get(&base.id) {
-                Some(Type::Buffer { writable, .. }) => *writable,
+                Some(Type::Buffer { writable, .. } | Type::Texture { writable, .. }) => *writable,
                 _ => self.writable(base),
             },
             _ => false,

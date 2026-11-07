@@ -136,6 +136,53 @@
       "accept": true,
       "entry": "main",
       "profile": "ps_6_0"
+    },
+    {
+      "file": "../../examples/texture-sample.slang",
+      "accept": true,
+      "entry": "main",
+      "profile": "ps_6_0"
+    },
+    {
+      "file": "positive/resource-load-store.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/texture-comparison.slang",
+      "accept": true,
+      "entry": "main",
+      "profile": "ps_6_0"
+    },
+    {
+      "file": "negative/read-only-texture.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T015"
+    },
+    {
+      "file": "negative/texture-coordinate.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T013"
+    },
+    {
+      "file": "negative/texture-sampler.slang",
+      "accept": false,
+      "entry": "main",
+      "profile": "ps_6_0",
+      "rust_code": "T008"
+    },
+    {
+      "file": "negative/texture-output-argument.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T015"
+    },
+    {
+      "file": "positive/hlsl-identifiers.slang",
+      "accept": true,
+      "entry": "main"
     }
   ]
 }

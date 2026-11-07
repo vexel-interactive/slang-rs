@@ -1,3 +1,4 @@
+use crate::names::{identifier, type_name};
 use slang_ir::*;
 use slang_sema::Type;
 use std::collections::BTreeSet;
@@ -69,7 +70,7 @@ impl Emitter {
                 self.structure(module, dependency, emitted);
             }
         }
-        self.line(&format!("struct {}", structure.name));
+        self.line(&format!("struct {}", identifier(&structure.name)));
         self.line("{");
         self.indent += 1;
         for field in &structure.fields {
@@ -155,8 +156,12 @@ fn variable(variable: &Variable) -> String {
         text.push(' ');
     }
     match &variable.ty {
-        Type::Array(element, n) => text.push_str(&format!("{element} {}[{n}]", variable.name)),
-        ty => text.push_str(&format!("{ty} {}", variable.name)),
+        Type::Array(element, n) => text.push_str(&format!(
+            "{} {}[{n}]",
+            type_name(element),
+            identifier(&variable.name)
+        )),
+        ty => text.push_str(&format!("{} {}", type_name(ty), identifier(&variable.name))),
     }
     if let Some(semantic) = &variable.semantic {
         text.push_str(&format!(" : {semantic}"));
@@ -185,13 +190,15 @@ fn signature(function: &Function) -> String {
         .map_or_else(String::new, |s| format!(" : {s}"));
     format!(
         "{modifiers}{} {}({params}){semantic}",
-        function.return_type, function.name
+        type_name(&function.return_type),
+        identifier(&function.name)
     )
 }
 
 fn expression(expr: &Expr) -> String {
     match &expr.kind {
-        ExprKind::Integer(text) | ExprKind::Float(text) | ExprKind::Name(text) => text.clone(),
+        ExprKind::Integer(text) | ExprKind::Float(text) => text.clone(),
+        ExprKind::Name(name) => identifier(name),
         ExprKind::Bool(value) => value.to_string(),
         ExprKind::Unary { op, value } => format!("({op}{})", expression(value)),
         ExprKind::Binary { op, left, right } => {
@@ -206,14 +213,32 @@ fn expression(expr: &Expr) -> String {
             format!("(({}){})", expr.ty, expression(&arguments[0]))
         }
         ExprKind::Call { name, arguments } => format!(
-            "{name}({})",
+            "{}({})",
+            if Type::builtin(name).is_some() {
+                name.clone()
+            } else {
+                identifier(name)
+            },
             arguments
                 .iter()
                 .map(expression)
                 .collect::<Vec<_>>()
                 .join(", ")
         ),
-        ExprKind::Member { base, name } => format!("({}).{name}", expression(base)),
+        ExprKind::Member { base, name } => format!("({}).{}", expression(base), identifier(name)),
+        ExprKind::MethodCall {
+            receiver,
+            name,
+            arguments,
+        } => format!(
+            "({}).{name}({})",
+            expression(receiver),
+            arguments
+                .iter()
+                .map(expression)
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
         ExprKind::Index { base, index } => format!("({})[{}]", expression(base), expression(index)),
         ExprKind::Conditional {
             condition,

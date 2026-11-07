@@ -11,6 +11,33 @@ pub enum Scalar {
     Double,
 }
 
+/// Texture topology supported by the HLSL resource model.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+pub enum TextureDimension {
+    D1,
+    D2,
+    D3,
+    Cube,
+}
+
+impl TextureDimension {
+    pub fn coordinates(self) -> u8 {
+        match self {
+            Self::D1 => 1,
+            Self::D2 => 2,
+            Self::D3 | Self::Cube => 3,
+        }
+    }
+
+    pub fn dimensions(self) -> usize {
+        match self {
+            Self::D1 => 1,
+            Self::D2 | Self::Cube => 2,
+            Self::D3 => 3,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub enum Type {
     Void,
@@ -24,6 +51,14 @@ pub enum Type {
         element: Box<Type>,
         writable: bool,
     },
+    Texture {
+        element: Box<Type>,
+        dimension: TextureDimension,
+        writable: bool,
+    },
+    Sampler {
+        comparison: bool,
+    },
     /// Used only for named callees; function values are not implemented.
     Callable {
         parameters: Vec<Type>,
@@ -35,6 +70,14 @@ pub enum Type {
 
 impl Type {
     pub fn builtin(name: &str) -> Option<Self> {
+        if let Some(texture) = Self::texture(name, Self::Vector(Scalar::Float, 4)) {
+            return Some(texture);
+        }
+        if matches!(name, "SamplerState" | "SamplerComparisonState") {
+            return Some(Self::Sampler {
+                comparison: name == "SamplerComparisonState",
+            });
+        }
         if name == "void" {
             return Some(Self::Void);
         }
@@ -63,6 +106,40 @@ impl Type {
             }
         }
         None
+    }
+
+    /// Recognize a texture alias without resolving or validating its element type.
+    pub fn texture(name: &str, element: Self) -> Option<Self> {
+        let (name, writable) = name
+            .strip_prefix("RW")
+            .map_or((name, false), |name| (name, true));
+        let dimension = match name {
+            "Texture1D" => TextureDimension::D1,
+            "Texture2D" => TextureDimension::D2,
+            "Texture3D" => TextureDimension::D3,
+            "TextureCube" if !writable => TextureDimension::Cube,
+            _ => return None,
+        };
+        Some(Self::Texture {
+            element: Box::new(element),
+            dimension,
+            writable,
+        })
+    }
+
+    pub fn is_resource(&self) -> bool {
+        matches!(
+            self,
+            Self::Buffer { .. } | Self::Texture { .. } | Self::Sampler { .. }
+        )
+    }
+
+    pub fn numeric_shape(scalar: Scalar, width: u8) -> Self {
+        if width == 1 {
+            Self::Scalar(scalar)
+        } else {
+            Self::Vector(scalar, width)
+        }
     }
 
     pub fn scalar(&self) -> Option<Scalar> {
@@ -191,6 +268,26 @@ impl fmt::Display for Type {
                 "{}StructuredBuffer<{element}>",
                 if *writable { "RW" } else { "" }
             ),
+            Self::Texture {
+                element,
+                dimension,
+                writable,
+            } => write!(
+                f,
+                "{}Texture{}<{element}>",
+                if *writable { "RW" } else { "" },
+                match dimension {
+                    TextureDimension::D1 => "1D",
+                    TextureDimension::D2 => "2D",
+                    TextureDimension::D3 => "3D",
+                    TextureDimension::Cube => "Cube",
+                }
+            ),
+            Self::Sampler { comparison } => f.write_str(if *comparison {
+                "SamplerComparisonState"
+            } else {
+                "SamplerState"
+            }),
             Self::Callable { .. } => f.write_str("<function>"),
             Self::Meta(ty) => write!(f, "<type {ty}>"),
         }

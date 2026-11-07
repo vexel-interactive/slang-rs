@@ -12,6 +12,7 @@ subsystem is absent. No subsystem currently claims complete upstream parity.
 | Parser and AST | slang-syntax | Partial | Functions, globals, structs, expressions, loops |
 | Name and type checking | slang-sema | Partial | Scalars, vectors, matrices, scopes, overloads, writable locations |
 | Core module | slang-sema | Partial | Small built-in signature set |
+| Texture and sampler operations | slang-sema, slang-codegen | Partial | 1D/2D/3D/cube, indexed access, load/sample/comparison/dimensions; advanced resources absent |
 | Modules and imports | ? | Not ported | Loader, visibility, dependency graph required |
 | Interfaces and generics | ? | Not ported | Constraints, witnesses, specialization required |
 | Capability system | ? | Not ported | Profiles and target requirements required |

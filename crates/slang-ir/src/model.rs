@@ -95,6 +95,11 @@ pub enum ExprKind {
         name: String,
         arguments: Vec<Expr>,
     },
+    MethodCall {
+        receiver: Box<Expr>,
+        name: String,
+        arguments: Vec<Expr>,
+    },
     Member {
         base: Box<Expr>,
         name: String,

@@ -1,6 +1,7 @@
 //! Backend dispatch. Unsupported targets fail instead of emitting placeholder artifacts.
 
 mod hlsl;
+mod names;
 
 use serde::Serialize;
 use slang_source::{Diagnostic, Span};
@@ -71,4 +72,12 @@ pub fn emit(module: &slang_ir::Module, target: Target) -> Result<String, Diagnos
         ));
     }
     Ok(hlsl::emit(module))
+}
+
+/// Name of a source entry point in the emitted target artifact.
+pub fn entry_point_name(name: &str, target: Target) -> String {
+    match target {
+        Target::Hlsl => names::identifier(name),
+        _ => name.to_owned(),
+    }
 }

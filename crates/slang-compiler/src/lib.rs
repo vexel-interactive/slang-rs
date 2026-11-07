@@ -13,7 +13,7 @@ mod reflection;
 
 pub use compiler::{Compilation, CompileError, CompileOptions, compile_file, compile_source};
 pub use include::{FileIncludes, MemoryIncludes};
-pub use reflection::{GlobalInfo, Reflection};
+pub use reflection::{EntryPointInfo, GlobalInfo, Reflection};
 pub use slang_codegen::Target;
 pub use slang_preprocessor::IncludeResolver;
 pub use slang_source::{Diagnostic, Severity, SourceMap};

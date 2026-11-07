@@ -154,15 +154,21 @@ impl Lowerer<'_> {
                 right: Box::new(self.expression(right)?),
             },
             ast::ExprKind::Call { callee, arguments } => {
-                let ast::ExprKind::Name(name) = &callee.kind else {
-                    return Err(error(callee.span));
-                };
-                ExprKind::Call {
-                    name: name.clone(),
-                    arguments: arguments
-                        .iter()
-                        .map(|a| self.expression(a))
-                        .collect::<Result<_, _>>()?,
+                let arguments = arguments
+                    .iter()
+                    .map(|a| self.expression(a))
+                    .collect::<Result<_, _>>()?;
+                match &callee.kind {
+                    ast::ExprKind::Name(name) => ExprKind::Call {
+                        name: name.clone(),
+                        arguments,
+                    },
+                    ast::ExprKind::Member { base, name } => ExprKind::MethodCall {
+                        receiver: Box::new(self.expression(base)?),
+                        name: name.clone(),
+                        arguments,
+                    },
+                    _ => return Err(error(callee.span)),
                 }
             }
             ast::ExprKind::Member { base, name } => ExprKind::Member {

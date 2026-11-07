@@ -7,8 +7,9 @@ mod entry;
 mod expression;
 mod interface;
 mod intrinsic;
+mod resource;
 mod statement;
 mod types;
 
 pub use checker::{CheckedModule, EntryPoint, ShaderStage, check, span_key};
-pub use types::{Scalar, Type};
+pub use types::{Scalar, TextureDimension, Type};

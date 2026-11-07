@@ -5,6 +5,9 @@ use slang_syntax::{Expr, ExprKind};
 impl Checker {
     pub(crate) fn call(&mut self, callee: &Expr, arguments: &[Expr], span: Span) -> Type {
         let types: Vec<Type> = arguments.iter().map(|a| self.expression(a)).collect();
+        if let ExprKind::Member { base, name } = &callee.kind {
+            return self.resource_call(base, name, arguments, &types, callee.id, span);
+        }
         let ExprKind::Name(name) = &callee.kind else {
             self.error("T001", span, "only named function calls are implemented");
             return Type::Error;

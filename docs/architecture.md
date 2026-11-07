@@ -65,7 +65,10 @@ IR layer. Backends must not depend on the AST or semantic checker.
 
 The HLSL emitter writes structures, function signatures, globals, and function
 bodies. It preserves names and system semantics, uses four-space indentation,
-and inserts parentheses to preserve evaluation order. Slang's `shader` attribute
+and inserts parentheses to preserve evaluation order. Its `names` module maps
+HLSL-reserved identifiers consistently across declarations, types, references,
+and fields, preserving distinct source names. Reflection exposes target names
+for entries and globals. Slang's `shader` attribute
 becomes entry-point metadata, while `numthreads` remains an HLSL attribute.
 
 Each new backend belongs in its own module under `slang-codegen`. A backend is

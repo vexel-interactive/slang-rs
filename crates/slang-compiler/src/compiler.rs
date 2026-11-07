@@ -108,7 +108,7 @@ pub fn compile_source(
             })?,
         )
     };
-    let reflection = Reflection::from_module(&ir);
+    let reflection = Reflection::from_module(&ir, options.target);
     Ok(Compilation {
         artifact,
         ir,

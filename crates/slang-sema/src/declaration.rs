@@ -28,7 +28,7 @@ impl Checker {
                 Type::Error
             } else {
                 let element = self.resolve_type(&reference.arguments[0]);
-                if matches!(element, Type::Void | Type::Buffer { .. }) {
+                if element == Type::Void || element.is_resource() {
                     self.error("T002", reference.span, "invalid buffer element type");
                 }
                 Type::Buffer {
@@ -36,6 +36,43 @@ impl Checker {
                     writable: reference.name.starts_with("RW"),
                 }
             }
+        } else if Type::texture(&reference.name, Type::Error).is_some() {
+            let element = match reference.arguments.as_slice() {
+                [] => Type::Vector(crate::Scalar::Float, 4),
+                [element] => self.resolve_type(element),
+                _ => {
+                    self.error(
+                        "T002",
+                        reference.span,
+                        "textures accept at most one element type",
+                    );
+                    Type::Error
+                }
+            };
+            if element != Type::Error
+                && !matches!(
+                    element,
+                    Type::Scalar(
+                        crate::Scalar::Half
+                            | crate::Scalar::Float
+                            | crate::Scalar::Int
+                            | crate::Scalar::Uint
+                    ) | Type::Vector(
+                        crate::Scalar::Half
+                            | crate::Scalar::Float
+                            | crate::Scalar::Int
+                            | crate::Scalar::Uint,
+                        _
+                    )
+                )
+            {
+                self.error(
+                    "T002",
+                    reference.span,
+                    "texture elements require half, float, int, or uint scalar/vector types",
+                );
+            }
+            Type::texture(&reference.name, element).unwrap()
         } else if !reference.arguments.is_empty() {
             self.error(
                 "T002",
@@ -56,7 +93,7 @@ impl Checker {
             Type::Error
         };
         if let Some(size) = reference.array {
-            if matches!(ty, Type::Void | Type::Buffer { .. }) {
+            if ty == Type::Void || ty.is_resource() {
                 self.error("T002", reference.span, "invalid array element type");
             }
             ty = Type::Array(Box::new(ty), size);

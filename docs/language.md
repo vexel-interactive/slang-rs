@@ -33,8 +33,11 @@ signed/unsigned evaluation rules are not implemented.
 - Matrix aliases such as `float2x3`, with 2-4 rows and 2-4 columns.
 - One-dimensional arrays with a positive decimal literal size.
 - `StructuredBuffer<T>` and `RWStructuredBuffer<T>` with indexed element access.
+- `Texture1D/2D/3D/Cube<T>`, `RWTexture1D/2D/3D<T>`, `SamplerState`, and
+  `SamplerComparisonState`. Texture elements are half/float/int/uint scalar or
+  vector types; omitting `T` selects `float4`.
 
-Textures, samplers, constant buffers, pointers, 64-bit integers,
+Constant buffers, pointers, 64-bit integers,
 user-defined generics, and struct constructors are not implemented.
 
 Supported modifiers are `const/static/uniform/groupshared` for globals,
@@ -84,6 +87,29 @@ dimensions and `determinant` requires a square floating-point matrix.
 One-dimensional matrix aliases, generic `matrix<T,R,C>` syntax, matrix member
 swizzles, and explicit matrix storage-layout options remain unimplemented.
 Row/column vector algebra does not itself define buffer storage layout.
+
+## Resource operations
+
+Read-only textures support indexed loads at mip zero, except cube textures.
+Read-write textures support indexed reads and writes. Coordinates have one, two,
+or three integer components matching the texture dimension. Cube textures
+support sampling with a three-component direction.
+
+| Method | Implemented receiver and arguments |
+| --- | --- |
+| `Load` | Structured buffer: scalar index; read texture: integer coordinates plus mip; RW texture: integer coordinates |
+| `Sample` | Floating-point read texture: `SamplerState`, floating-point coordinates |
+| `SampleLevel` | Floating-point read texture: sampler, coordinates, explicit float LOD |
+| `SampleCmp`, `SampleCmpLevelZero` | Floating-point 1D/2D/cube read texture: `SamplerComparisonState`, coordinates, float comparison value; returns float |
+| `GetDimensions` | Structured buffer: uint count and stride outputs; texture: uint/float dimensions; read texture also accepts uint mip input and a level-count output |
+
+Dimension outputs must be writable and use matching types. `Load` is unavailable
+on cube textures. Resource methods lower to typed method calls in IR and native
+HLSL calls. Texture arrays, multisampling, gather/gradient/bias/offset/status
+overloads, byte-address buffers, atomics, resource binding declarations, and
+target capability checks remain unimplemented. Implicit-LOD sampling must be
+validated for the chosen target stage/profile; this frontend does not yet
+perform a complete stage capability analysis.
 
 ## Intrinsics
 
@@ -146,8 +172,11 @@ unimplemented. See `examples/vertex-transform.slang` and
 ## Reflection
 
 JSON reflection reports entry points, stages, thread-group sizes, global names
-and type names, and read/read_write access for structured buffers. It does not
+and type names, and read/read_write access for structured buffers and textures. It does not
 provide binding indices, register spaces, byte offsets, strides, or layout.
 Applications must not treat this JSON as the upstream compiler's ABI reflection.
-Schema version 2 adds graphics stages and omits `thread_group_size` for graphics
-entry points. Compute entries retain their three-element thread-group array.
+Schema version 3 adds `target_name` for entries and globals. Source identifiers
+that conflict with HLSL keywords are renamed consistently; the source `name`
+remains available. Pass the entry's `target_name` to DXC. As in schema version 2,
+`thread_group_size` is omitted for graphics entries; compute entries retain
+their three-element array.
