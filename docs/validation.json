@@ -5,22 +5,22 @@
   "checks": {
     "rustfmt": "passed",
     "clippy_all_targets_warnings_denied": "passed",
-    "unit_tests": 24,
-    "integration_tests": 208,
+    "unit_tests": 27,
+    "integration_tests": 227,
     "doc_tests": 1,
-    "conformance_comparison_tests": 6,
+    "conformance_comparison_tests": 10,
     "rustdoc": "passed",
     "release_build": "passed",
     "english_documentation_and_links": "passed"
   },
   "differential_validation": {
     "oracle": "Slang 2026.21",
-    "cases_passed": 308,
-    "cases_total": 308,
-    "matching_acceptance_cases": 300,
-    "documented_oracle_differences": 8,
-    "dxc_hlsl_artifacts_validated": 321,
-    "dxc_invalid_hlsl_artifacts_rejected": 9,
+    "cases_passed": 341,
+    "cases_total": 341,
+    "matching_acceptance_cases": 331,
+    "documented_oracle_differences": 10,
+    "dxc_hlsl_artifacts_validated": 352,
+    "dxc_invalid_hlsl_artifacts_rejected": 12,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
     "profiles": [
@@ -29,12 +29,13 @@
       "ps_6_0",
       "vs_6_0"
     ],
-    "documented_oracle_artifact_differences": 1
+    "documented_oracle_artifact_differences": 1,
+    "resource_binding_cases_compared": 16
   },
   "remote_ci_executed": true,
   "remote_ci": {
-    "run_id": 42416726583,
-    "head_sha": "2570c0aecda750dab7927548552337136b9c088c",
+    "run_id": 42418894045,
+    "head_sha": "0d67faf29d6f165982668ffccbe1edcfe5f396e2",
     "conclusion": "success",
     "platforms": [
       "ubuntu-latest",
@@ -43,8 +44,8 @@
     ]
   },
   "previous_remote_ci": {
-    "run_id": 42416274794,
-    "head_sha": "6aaa089479d7c3317573dd394ac679d86c085a06",
+    "run_id": 42418145228,
+    "head_sha": "818f87fbcccca32cf61bafdfcbc3b0fcf5e385ea",
     "conclusion": "success",
     "platforms": [
       "ubuntu-latest",
@@ -53,6 +54,26 @@
     ]
   },
   "earlier_remote_ci": [
+    {
+      "run_id": 42416726583,
+      "head_sha": "2570c0aecda750dab7927548552337136b9c088c",
+      "conclusion": "success",
+      "platforms": [
+        "ubuntu-latest",
+        "windows-latest",
+        "macos-latest"
+      ]
+    },
+    {
+      "run_id": 42416274794,
+      "head_sha": "6aaa089479d7c3317573dd394ac679d86c085a06",
+      "conclusion": "success",
+      "platforms": [
+        "ubuntu-latest",
+        "windows-latest",
+        "macos-latest"
+      ]
+    },
     {
       "run_id": 42415292766,
       "head_sha": "08409413c8629307f653306042477030372bdd1e",
@@ -304,7 +325,7 @@
   },
   "native_hlsl_suite": {
     "manifest": "tests/native/manifest.json",
-    "artifacts_validated": 6,
+    "artifacts_validated": 7,
     "profiles": [
       "cs_6_0",
       "ps_6_0"
@@ -317,7 +338,8 @@
       "one-component-output-float.slang",
       "one-component-output-double.slang",
       "one-component-derivatives-double.slang",
-      "bitcast-entry-name.slang"
+      "bitcast-entry-name.slang",
+      "../../examples/resource-bindings.slang"
     ]
   }
 }
