@@ -36,11 +36,13 @@ signed/unsigned evaluation rules are not implemented.
 - Fixed arrays with positive decimal literal dimensions, including nested arrays.
 - Global `typedef` and nongeneric `typealias` declarations.
 - `StructuredBuffer<T>` and `RWStructuredBuffer<T>` with indexed element access.
+- `ConstantBuffer<T>` with a struct element and read-only field access.
+- `ByteAddressBuffer` and `RWByteAddressBuffer` with explicit byte-address methods.
 - `Texture1D/2D/3D/Cube<T>`, `RWTexture1D/2D/3D<T>`, `SamplerState`, and
   `SamplerComparisonState`. Texture elements are half/float/int/uint scalar or
   vector types; omitting `T` selects `float4`.
 
-Constant buffers, pointers, 64-bit integers,
+Direct `cbuffer` declarations, pointers, 64-bit integers,
 user-defined generics, and struct constructors are not implemented.
 
 Modules, imports, reexports, and member files are described in
@@ -152,6 +154,30 @@ Row/column vector algebra does not itself define buffer storage layout.
 
 ## Resource operations
 
+`ConstantBuffer<T>` currently requires a struct element. Its fields can contain
+the supported scalar, vector, matrix, array, and nested struct types. Access
+uses the usual field syntax, such as `parameters.scale`. Fields remain read-only,
+including nested array elements, swizzles, and `out` arguments. Imported constant
+buffers preserve their struct's field visibility. HLSL uses its native
+`ConstantBuffer<T>` template; reflection records read access.
+
+Direct `cbuffer` syntax, nonstruct constant-buffer elements, automatic conversion
+of a constant-buffer handle to its element, buffer arrays, register annotations,
+resource-valued fields, and target-specific byte layout remain unimplemented.
+
+Byte-address buffers support `Load`, `Load2`, `Load3`, and `Load4`, returning
+one to four `uint` components. Writable buffers provide matching `Store` methods.
+`GetDimensions` returns the byte count through a writable `uint` argument.
+`InterlockedAdd`, `InterlockedAnd`, `InterlockedOr`, `InterlockedXor`,
+`InterlockedExchange`, and `InterlockedCompareExchange` support writable buffers
+with an explicit `uint` original-value output. Addresses are byte offsets;
+these signatures follow native HLSL methods.
+
+Typed generic loads/stores, status outputs, optional atomic outputs, min/max and
+64-bit atomics, and atomics on other resource families remain unimplemented.
+The frontend does not prove byte-offset alignment, resource size, memory ordering,
+or target capabilities.
+
 Read-only textures support indexed loads at mip zero, except cube textures.
 Read-write textures support indexed reads and writes. Coordinates have one, two,
 or three integer components matching the texture dimension. Cube textures
@@ -168,7 +194,7 @@ support sampling with a three-component direction.
 Dimension outputs must be writable and use matching types. `Load` is unavailable
 on cube textures. Resource methods lower to typed method calls in IR and native
 HLSL calls. Texture arrays, multisampling, gather/gradient/bias/offset/status
-overloads, byte-address buffers, atomics, resource binding declarations, and
+overloads, other atomic overloads, resource binding declarations, and
 target capability checks remain unimplemented. Implicit-LOD sampling must be
 validated for the chosen target stage/profile; this frontend does not yet
 perform a complete stage capability analysis.
@@ -234,7 +260,8 @@ unimplemented. See `examples/vertex-transform.slang` and
 ## Reflection
 
 JSON reflection reports entry points, stages, thread-group sizes, global names
-and type names, and read/read_write access for structured buffers and textures. It does not
+and type names, and read/read_write access for constant, structured, byte-address
+buffers, and textures. It does not
 provide binding indices, register spaces, byte offsets, strides, or layout.
 Applications must not treat this JSON as the upstream compiler's ABI reflection.
 Schema version 4 adds a `modules` graph and the optional owning `module` name

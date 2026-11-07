@@ -12,7 +12,11 @@ diamond graphs, reexports, legacy sources, member cycles, macro isolation,
 membership errors, and graph limits in the Windows debug CLI. Alias tests cover
 forward references, transparent overload types, constructors, resource/struct
 aliases, access control, dimension order, nested array parameters, and bounded
-alias/array graphs.
+alias/array graphs. Constant-buffer tests cover nested read-only locations,
+output arguments, imported field visibility, and canonical HLSL element types.
+Byte-address tests cover access reflection, load/store widths, atomic output
+locations, and invalid method signatures. Independent DXC cases validate each
+implemented raw-buffer method.
 
 Examples cover vector addition, control flow, matrix algebra, vertex transforms,
 fragment color output, and a multi-file module. With DXC

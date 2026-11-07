@@ -47,6 +47,10 @@ pub enum Type {
     Matrix(Scalar, u8, u8),
     Array(Box<Type>, u32),
     Struct(String),
+    ConstantBuffer(Box<Type>),
+    ByteBuffer {
+        writable: bool,
+    },
     Buffer {
         element: Box<Type>,
         writable: bool,
@@ -70,6 +74,11 @@ pub enum Type {
 
 impl Type {
     pub fn builtin(name: &str) -> Option<Self> {
+        if matches!(name, "ByteAddressBuffer" | "RWByteAddressBuffer") {
+            return Some(Self::ByteBuffer {
+                writable: name.starts_with("RW"),
+            });
+        }
         if let Some(scalar) = match name {
             "int32_t" => Some(Scalar::Int),
             "uint32_t" => Some(Scalar::Uint),
@@ -139,7 +148,11 @@ impl Type {
     pub fn is_resource(&self) -> bool {
         matches!(
             self,
-            Self::Buffer { .. } | Self::Texture { .. } | Self::Sampler { .. }
+            Self::ConstantBuffer(_)
+                | Self::ByteBuffer { .. }
+                | Self::Buffer { .. }
+                | Self::Texture { .. }
+                | Self::Sampler { .. }
         )
     }
 
@@ -280,6 +293,10 @@ impl fmt::Display for Type {
                 write!(f, "{ty}{suffix}")
             }
             Self::Struct(name) => f.write_str(name),
+            Self::ConstantBuffer(element) => write!(f, "ConstantBuffer<{element}>"),
+            Self::ByteBuffer { writable } => {
+                write!(f, "{}ByteAddressBuffer", if *writable { "RW" } else { "" })
+            }
             Self::Buffer { element, writable } => write!(
                 f,
                 "{}StructuredBuffer<{element}>",

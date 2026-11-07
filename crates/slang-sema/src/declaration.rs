@@ -15,7 +15,29 @@ pub(crate) enum VariableScope {
 
 impl Checker {
     pub fn resolve_type(&mut self, reference: &TypeRef) -> Type {
-        let mut ty = if matches!(
+        let mut ty = if reference.name == "ConstantBuffer" {
+            match reference.arguments.as_slice() {
+                [element] => {
+                    let element = self.resolve_type(element);
+                    if !matches!(element, Type::Struct(_) | Type::Error) {
+                        self.error(
+                            "T002",
+                            reference.span,
+                            "constant buffers currently require a struct element type",
+                        );
+                    }
+                    Type::ConstantBuffer(Box::new(element))
+                }
+                _ => {
+                    self.error(
+                        "T002",
+                        reference.span,
+                        "constant buffers require one element type",
+                    );
+                    Type::Error
+                }
+            }
+        } else if matches!(
             reference.name.as_str(),
             "StructuredBuffer" | "RWStructuredBuffer"
         ) {

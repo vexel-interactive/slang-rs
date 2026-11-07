@@ -171,6 +171,7 @@ fn check_with_metadata(
             }
         }
     }
+    checker.validate_constant_buffers();
     if checker.diagnostics.is_empty() {
         Ok(CheckedModule {
             module,

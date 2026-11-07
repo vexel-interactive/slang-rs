@@ -1,6 +1,164 @@
 use slang_compiler::{CompileOptions, MemoryIncludes, compile_source};
 
 #[test]
+fn byte_buffers_preserve_widths_atomic_outputs_and_reflection() {
+    let compiled = compile_source(
+        "raw.slang",
+        include_str!("../../../examples/byte-address-buffer.slang"),
+        &CompileOptions::default(),
+        &MemoryIncludes::default(),
+    )
+    .unwrap();
+    assert_eq!(
+        compiled.reflection.globals[0].type_name,
+        "ByteAddressBuffer"
+    );
+    assert_eq!(
+        compiled.reflection.globals[0].resource_access.as_deref(),
+        Some("read")
+    );
+    assert_eq!(
+        compiled.reflection.globals[1].type_name,
+        "RWByteAddressBuffer"
+    );
+    assert_eq!(
+        compiled.reflection.globals[1].resource_access.as_deref(),
+        Some("read_write")
+    );
+    let code = compiled.artifact.unwrap();
+    assert!(code.contains("uint4 values = (input).Load4(0u)"));
+    assert!(code.contains("(output).InterlockedAdd(16u, byteCount, original)"));
+    for (source, code) in [
+        (
+            "ByteAddressBuffer data;void run(){data.Store(0u,1u);}",
+            "T014",
+        ),
+        (
+            "RWByteAddressBuffer data;void run(){data.InterlockedAdd(0u,1u,0u);}",
+            "T015",
+        ),
+        (
+            "RWByteAddressBuffer data;void run(){float result;data.InterlockedAdd(0u,1u,result);}",
+            "T014",
+        ),
+        (
+            "RWByteAddressBuffer data;void run(){uint2 count;data.GetDimensions(count);}",
+            "T014",
+        ),
+        (
+            "ByteAddressBuffer data;void run(){uint x=data.Load3(0u);}",
+            "T008",
+        ),
+    ] {
+        let error = compile_source(
+            "bad.slang",
+            source,
+            &CompileOptions::default(),
+            &MemoryIncludes::default(),
+        )
+        .unwrap_err();
+        assert!(
+            error.diagnostics.iter().any(|d| d.code == code),
+            "{source}: {error}"
+        );
+    }
+}
+
+#[test]
+fn constant_buffer_fields_are_typed_and_read_only() {
+    let compiled = compile_source(
+        "uniforms.slang",
+        include_str!("../../../examples/constant-buffer.slang"),
+        &CompileOptions::default(),
+        &MemoryIncludes::default(),
+    )
+    .unwrap();
+    assert_eq!(
+        compiled.reflection.globals[0].type_name,
+        "ConstantBuffer<Parameters>"
+    );
+    assert_eq!(
+        compiled.reflection.globals[0].resource_access.as_deref(),
+        Some("read")
+    );
+    assert!(
+        compiled
+            .artifact
+            .unwrap()
+            .contains("ConstantBuffer<Parameters> parameters")
+    );
+    for source in [
+        "struct P{float2 value;};ConstantBuffer<P> p;void run(){p.value.x=1;}",
+        "struct P{float value[2];};ConstantBuffer<P> p;void run(){p.value[0]=1;}",
+        "struct P{float value;};ConstantBuffer<P> p;void store(out float x){x=1;}void run(){store(p.value);}",
+    ] {
+        let error = compile_source(
+            "bad.slang",
+            source,
+            &CompileOptions::default(),
+            &MemoryIncludes::default(),
+        )
+        .unwrap_err();
+        assert!(
+            error.diagnostics.iter().any(|d| d.code == "T015"),
+            "{error}"
+        );
+    }
+    let error = compile_source(
+        "unsupported.slang",
+        "ConstantBuffer<float> p;",
+        &CompileOptions::default(),
+        &MemoryIncludes::default(),
+    )
+    .unwrap_err();
+    assert!(error.diagnostics.iter().any(|d| d.code == "T002"));
+    for source in [
+        "struct Inner{ByteAddressBuffer data;};struct Outer{Inner inner;};ConstantBuffer<Outer> p;",
+        "struct P{Texture2D<float> texture;};void run(ConstantBuffer<P> p){}",
+        "struct P{SamplerState sampler;};void run(){ConstantBuffer<P> p;}",
+    ] {
+        let error = compile_source(
+            "unsupported.slang",
+            source,
+            &CompileOptions::default(),
+            &MemoryIncludes::default(),
+        )
+        .unwrap_err();
+        assert!(
+            error.diagnostics.iter().any(|d| d.code == "T002"),
+            "{error}"
+        );
+    }
+}
+
+#[test]
+fn imported_constant_buffer_types_preserve_visibility_and_hlsl_names() {
+    let files=MemoryIncludes {files:[("lib.slang".into(),
+        "module lib;public struct Parameters{public float value;float hidden;};public ConstantBuffer<Parameters> parameters;".into())].into()};
+    let compiled = compile_source(
+        "main.slang",
+        "import lib;float run(){return parameters.value;}",
+        &CompileOptions::default(),
+        &files,
+    )
+    .unwrap();
+    assert_eq!(
+        compiled.reflection.globals[0].module.as_deref(),
+        Some("lib")
+    );
+    let code = compiled.artifact.unwrap();
+    assert!(code.contains("ConstantBuffer<_slang__slang_module_1_Parameters>"));
+    let error = compile_source(
+        "main.slang",
+        "import lib;float run(){return parameters.hidden;}",
+        &CompileOptions::default(),
+        &files,
+    )
+    .unwrap_err();
+    assert!(error.diagnostics.iter().any(|d| d.code == "T018"));
+}
+
+#[test]
 fn hlsl_names_remain_distinct_and_reflect_target_entry_names() {
     let compiled = compile_source(
         "names.slang",

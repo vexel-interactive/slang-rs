@@ -388,6 +388,44 @@
       "accept": false,
       "entry": "main",
       "rust_code": "T018"
+    },
+    {
+      "file": "../../examples/constant-buffer.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "modules/constant-import.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "negative/constant-buffer-write.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T015"
+    },
+    {
+      "file": "../../examples/byte-address-buffer.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "negative/read-only-byte-buffer.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/byte-buffer-output.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T015"
+    },
+    {
+      "file": "positive/byte-buffer-widths.slang",
+      "accept": true,
+      "entry": "main"
     }
   ]
 }

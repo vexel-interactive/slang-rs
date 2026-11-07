@@ -4,6 +4,7 @@ mod alias;
 mod call;
 mod checker;
 mod constant;
+mod constant_buffer;
 mod declaration;
 mod entry;
 mod expression;

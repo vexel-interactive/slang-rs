@@ -69,6 +69,7 @@ fn signature(receiver: &Type, name: &str, types: &[Type]) -> Option<Method> {
         })
     };
     match receiver {
+        Type::ByteBuffer { writable } => byte_buffer(name, types, *writable),
         Type::Buffer { element, .. } => match name {
             "Load" => input(vec![Type::Scalar(Scalar::Int)], *element.clone()),
             "GetDimensions" if types.len() == 2 && types[0] == Type::Scalar(Scalar::Uint) => {
@@ -120,6 +121,55 @@ fn signature(receiver: &Type, name: &str, types: &[Type]) -> Option<Method> {
         }
         _ => None,
     }
+}
+
+fn byte_buffer(name: &str, types: &[Type], writable: bool) -> Option<Method> {
+    let uint = Type::Scalar(Scalar::Uint);
+    let width = |suffix: &str| match suffix {
+        "" => Some(1),
+        "2" => Some(2),
+        "3" => Some(3),
+        "4" => Some(4),
+        _ => None,
+    };
+    if let Some(suffix) = name.strip_prefix("Load") {
+        let components = width(suffix)?;
+        return (types.len() == 1).then_some(Method {
+            parameters: vec![uint],
+            output_start: 1,
+            result: Type::numeric_shape(Scalar::Uint, components),
+        });
+    }
+    if let Some(suffix) = name.strip_prefix("Store") {
+        let components = width(suffix)?;
+        return (writable && types.len() == 2).then_some(Method {
+            parameters: vec![uint, Type::numeric_shape(Scalar::Uint, components)],
+            output_start: 2,
+            result: Type::Void,
+        });
+    }
+    if name == "GetDimensions" && types == [uint.clone()] {
+        return dimensions(types, 0, 1);
+    }
+    if writable {
+        let inputs = match name {
+            "InterlockedAdd"
+            | "InterlockedAnd"
+            | "InterlockedOr"
+            | "InterlockedXor"
+            | "InterlockedExchange" => 2,
+            "InterlockedCompareExchange" => 3,
+            _ => return None,
+        };
+        if types.len() == inputs + 1 {
+            return Some(Method {
+                parameters: vec![uint; inputs + 1],
+                output_start: inputs,
+                result: Type::Void,
+            });
+        }
+    }
+    None
 }
 
 fn dimensions(types: &[Type], input_count: usize, outputs: usize) -> Option<Method> {

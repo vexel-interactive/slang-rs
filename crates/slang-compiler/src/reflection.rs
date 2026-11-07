@@ -63,7 +63,10 @@ impl Reflection {
                     target_name: slang_codegen::entry_point_name(&global.name, target),
                     type_name: global.ty.to_string(),
                     resource_access: match &global.ty {
-                        Type::Buffer { writable, .. } | Type::Texture { writable, .. } => {
+                        Type::ConstantBuffer(_) => Some("read".into()),
+                        Type::ByteBuffer { writable }
+                        | Type::Buffer { writable, .. }
+                        | Type::Texture { writable, .. } => {
                             Some(if *writable { "read_write" } else { "read" }.into())
                         }
                         _ => None,

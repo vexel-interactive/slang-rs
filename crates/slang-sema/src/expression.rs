@@ -139,6 +139,10 @@ impl Checker {
             ExprKind::Call { callee, arguments } => self.call(callee, arguments, expression.span),
             ExprKind::Member { base, name } => {
                 let ty = self.expression(base);
+                let ty = match ty {
+                    Type::ConstantBuffer(element) => *element,
+                    ty => ty,
+                };
                 match ty {
                     Type::Struct(ref structure)
                         if self
@@ -295,6 +299,12 @@ impl Checker {
         match &expr.kind {
             ExprKind::Name(name) => self.lookup(name).is_some_and(|b| b.writable),
             ExprKind::Member { base, name } => {
+                if matches!(
+                    self.expression_types.get(&base.id),
+                    Some(Type::ConstantBuffer(_))
+                ) {
+                    return false;
+                }
                 let unique =
                     if matches!(self.expression_types.get(&base.id), Some(Type::Vector(..))) {
                         swizzle(name)

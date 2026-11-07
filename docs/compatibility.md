@@ -14,6 +14,8 @@ subsystem is absent. No subsystem currently claims complete upstream parity.
 | Type aliases | slang-syntax, slang-sema | Partial | Transparent global typedef/typealias, forwards, cycles, imports; local/nested and generic aliases absent |
 | Core module | slang-sema | Partial | Small built-in signature set |
 | Texture and sampler operations | slang-sema, slang-codegen | Partial | 1D/2D/3D/cube, indexed access, load/sample/comparison/dimensions; advanced resources absent |
+| Constant buffers | slang-sema, slang-codegen | Partial | ConstantBuffer with a struct element and read-only fields; direct cbuffer syntax and explicit layout absent |
+| Byte-address buffers | slang-sema, slang-codegen | Partial | Load/store widths, byte count, uint atomic operations with explicit outputs; typed access and advanced atomics absent |
 | Modules and imports | slang-module, slang-sema | Partial | Imports, reexports, member files, isolated preprocessing, public/internal, legacy visibility; session API and cross-module overload merging absent |
 | Interfaces and generics | ? | Not ported | Constraints, witnesses, specialization required |
 | Capability system | ? | Not ported | Profiles and target requirements required |
