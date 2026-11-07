@@ -83,6 +83,11 @@ Generated wrappers are excluded from source declaration reflection. A shared
 expansion budget bounds nested field defaults during lowering, including finite
 defaults whose expansion branches repeatedly.
 
+Value-type validation uses an iterative depth-first traversal with cached struct
+depths. Shared subgraphs are checked once, cycles propagate to their embedding
+types, and structures deeper than 128 levels receive a source-located diagnostic.
+The traversal does not consume the native thread stack.
+
 Imported function overloads receive distinct target names when needed. The
 checker records the selected callable in `CheckedModule`; lowering uses that
 selection so target compilation cannot select an internal overload by mistake.

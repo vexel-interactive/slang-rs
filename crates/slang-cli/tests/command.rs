@@ -227,3 +227,38 @@ fn cli_reports_excessive_and_recursive_constructor_defaults() {
     fs::remove_file(&input).unwrap();
     fs::remove_dir(&root).unwrap();
 }
+
+#[test]
+fn cli_checks_shared_and_deep_type_graphs_without_stack_recursion() {
+    let root = std::env::temp_dir().join(format!("slang-rs-type-graph-{}", std::process::id()));
+    fs::create_dir_all(&root).unwrap();
+    let input = root.join("types.slang");
+    for (levels, accepted) in [(128, true), (129, false)] {
+        let mut source = String::new();
+        for index in 0..levels {
+            let fields = if index + 1 == levels {
+                "float value;".into()
+            } else {
+                format!("S{0:03} a;S{0:03} b;", index + 1)
+            };
+            source.push_str(&format!("struct S{index:03}{{{fields}}};"));
+        }
+        fs::write(&input, source).unwrap();
+        let result = Command::new(env!("CARGO_BIN_EXE_slangc-rs"))
+            .arg(&input)
+            .arg("--check")
+            .output()
+            .unwrap();
+        assert_eq!(
+            result.status.code(),
+            Some(if accepted { 0 } else { 1 }),
+            "{}",
+            String::from_utf8_lossy(&result.stderr)
+        );
+        if !accepted {
+            assert!(String::from_utf8_lossy(&result.stderr).contains("T002"));
+        }
+    }
+    fs::remove_file(&input).unwrap();
+    fs::remove_dir(&root).unwrap();
+}

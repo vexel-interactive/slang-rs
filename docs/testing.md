@@ -34,6 +34,9 @@ invalid copies, excess inner values, output arguments, and generic inference.
 Array constructor tests cover direct and aliased types, dimension order, exact
 copies, struct defaults, flat/nested arguments, imported types, and invalid sizes.
 Generated HLSL for direct constructors and imported arrays is checked with DXC.
+Value-type tests include shared graphs with 128 levels, cached depth limits,
+array-mediated cycles, and source-located diagnostics. The Windows debug CLI
+also checks a deep shared graph whose first declaration is its outermost type.
 
 Examples cover vector addition, control flow, matrix algebra, vertex transforms,
 fragment color output, struct construction, and a multi-file module. With DXC

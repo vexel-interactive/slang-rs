@@ -2,7 +2,6 @@ use crate::{
     Type,
     checker::{Binding, Checker, Signature, span_key},
 };
-use slang_source::Span;
 use slang_syntax::{Declaration, Module, TypeRef, Variable};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -292,35 +291,7 @@ impl Checker {
                 );
             }
         }
-        for name in self.structures.keys().cloned().collect::<Vec<_>>() {
-            if self.recursive_struct(&name, &mut BTreeSet::new()) {
-                self.error(
-                    "T002",
-                    Span::default(),
-                    format!("recursive or excessively nested value type '{name}'"),
-                );
-            }
-        }
-    }
-
-    fn recursive_struct(&self, name: &str, path: &mut BTreeSet<String>) -> bool {
-        if path.len() >= 128 {
-            return true;
-        }
-        if !path.insert(name.into()) {
-            return true;
-        }
-        let recursive = self.structures.get(name).is_some_and(|fields| {
-            fields.values().any(|ty| {
-                let mut ty = ty;
-                while let Type::Array(element, _) = ty {
-                    ty = element;
-                }
-                matches!(ty, Type::Struct(child) if self.recursive_struct(child, path))
-            })
-        });
-        path.remove(name);
-        recursive
+        self.validate_value_types();
     }
 
     pub(crate) fn bind(&mut self, variable: &Variable, context: VariableScope) {

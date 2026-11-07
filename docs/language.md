@@ -132,6 +132,8 @@ construction remain unimplemented. Default
 aggregate expansion is limited to 32 levels and 65536 elements. Recursive
 constructor defaults report a diagnostic during lowering. See
 [struct-construction.slang](../examples/struct-construction.slang).
+Struct value graphs reject cycles and nesting beyond 128 levels independently
+of initialization; repeated uses of a shared child type do not expand the graph.
 
 ## Brace initializer lists
 

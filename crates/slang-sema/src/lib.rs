@@ -15,6 +15,7 @@ mod intrinsic;
 mod resource;
 mod statement;
 mod types;
+mod value_type;
 mod visibility;
 
 pub use checker::{CheckedModule, EntryPoint, ShaderStage, check, check_program, span_key};
