@@ -5,7 +5,8 @@
 `tools/check.ps1` runs rustfmt, Clippy, workspace tests, and rustdoc using Rust
 1.99.1. Tests cover precedence, scopes, const/read-only locations, overloads,
 macro recursion and operators, include guards, diagnostic locations, IR lowering,
-and output preservation after a compilation error.
+output preservation after a compilation error, switch fallthrough, integer case
+constants, do/while exits, cast grammar, and CLI nesting diagnostics.
 
 Examples cover vector addition, control flow, matrix algebra, vertex transforms,
 and fragment color output. With DXC

@@ -110,6 +110,30 @@ impl Lowerer<'_> {
                 condition: self.expression(condition)?,
                 body: Box::new(self.statement(body)?),
             },
+            ast::StmtKind::DoWhile { body, condition } => StmtKind::DoWhile {
+                body: Box::new(self.statement(body)?),
+                condition: self.expression(condition)?,
+            },
+            ast::StmtKind::Switch { selector, cases } => StmtKind::Switch {
+                selector: self.expression(selector)?,
+                cases: cases
+                    .iter()
+                    .map(|case| {
+                        Ok(SwitchCase {
+                            value: case
+                                .value
+                                .as_ref()
+                                .map(|value| self.expression(value))
+                                .transpose()?,
+                            statements: case
+                                .statements
+                                .iter()
+                                .map(|statement| self.statement(statement))
+                                .collect::<Result<_, _>>()?,
+                        })
+                    })
+                    .collect::<Result<_, Diagnostic>>()?,
+            },
             ast::StmtKind::For {
                 initializer,
                 condition,
@@ -146,6 +170,9 @@ impl Lowerer<'_> {
             ast::ExprKind::Name(name) => ExprKind::Name(name.clone()),
             ast::ExprKind::Unary { op, value } => ExprKind::Unary {
                 op: op.clone(),
+                value: Box::new(self.expression(value)?),
+            },
+            ast::ExprKind::Cast { value, .. } => ExprKind::Cast {
                 value: Box::new(self.expression(value)?),
             },
             ast::ExprKind::Binary { op, left, right } => ExprKind::Binary {

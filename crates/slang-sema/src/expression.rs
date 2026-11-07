@@ -53,6 +53,21 @@ impl Checker {
                 })
             }
             ExprKind::Bool(_) => Type::Scalar(Scalar::Bool),
+            ExprKind::Cast { target, value } => {
+                let actual = self.expression(value);
+                let target = self.resolve_type(target);
+                let valid = actual == Type::Error
+                    || target == Type::Error
+                    || matches!(actual, Type::Scalar(_)) && matches!(target, Type::Scalar(_));
+                if !valid {
+                    self.error(
+                        "T008",
+                        expression.span,
+                        format!("unsupported explicit cast from {actual} to {target}"),
+                    );
+                }
+                target
+            }
             ExprKind::String(_) => {
                 self.error(
                     "T001",

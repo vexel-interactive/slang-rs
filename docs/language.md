@@ -45,27 +45,48 @@ Supported modifiers are `const/static/uniform/groupshared` for globals,
 Structure fields support semantics and `nointerpolation`. Conflicting
 parameter directions and `const out/inout` are rejected. Global values without
 `static/groupshared` are read-only; RW buffer elements remain writable.
+Global const declarations with initializers require `static`.
 Complete modifier rules are not yet implemented. Comma-separated declarations,
 default arguments, and aggregate initialization are not supported.
 
 ## Expressions and statements
 
-Expressions include numeric and boolean literals, names, scalar and vector
-and matrix constructors, unary and binary operators, assignment, compound assignment,
+Expressions include numeric and boolean literals, names, scalar, vector, and
+matrix constructors, unary and binary operators, assignment, compound assignment,
 function calls, fields, swizzles, indexing, conditionals, and increment/decrement.
 
 Statements include blocks, local declarations, expression statements, `return`,
-`if/else`, `while`, `for`, `break`, and `continue`. `switch`, `do/while`, C-style
-casts, the comma operator, and statement attributes remain to be ported.
+`if/else`, `while`, `for`, `do/while`, `switch`, `break`, and `continue`.
+C-style casts support scalar-to-scalar conversions. Use constructors for vector
+and matrix values. The comma operator and statement attributes remain to be ported.
 
 The checker resolves nested scopes, validates conversions and scalar conditions,
 and tracks writable locations. It rejects writes to const values, read-only
 buffers, and swizzles with repeated components. Overload conversions currently
 have equal cost after exact matches. Full overload ranking, definite assignment,
-constant evaluation, uniformity analysis, and capability checking are absent.
+general constant evaluation, uniformity analysis, and capability checking are absent.
 
-Syntax nesting and expression trees are limited to 128 levels to prevent stack
-overflow on malformed or unusually deep inputs.
+Syntax recursion is limited to 32 levels and expression trees to 64 levels.
+These limits also apply to debug executables on Windows, where the default
+thread stack is small. Excessive nesting produces `S001` instead of a stack
+overflow. An iterative parser remains necessary for deeper upstream programs.
+
+## Switches and control flow
+
+Switch selectors require scalar `int` or `uint`. Labels support integer
+literals, const bindings, unary/binary integer operations, conditional
+expressions, and scalar integer conversions. The evaluator tracks 32-bit signed
+and unsigned expression types. Duplicate values after selector conversion,
+duplicate defaults, and nonconstant labels are rejected. Function calls in
+constant expressions and the complete upstream constant evaluator remain absent.
+Global const expressions are currently processed in declaration order.
+
+Consecutive labels and fallthrough are preserved. `break` exits the nearest
+loop or switch; `continue` requires a surrounding loop, including when nested
+inside a switch. Return checking tracks possible fallthrough, return, break,
+and continue exits. A do/while body executes at least once; a switch with a
+default can satisfy return checking when every entry path returns. This is a
+structured analysis rather than a complete CFG or definite-assignment analysis.
 
 ## Matrix operations
 
@@ -73,8 +94,8 @@ Matrix aliases specify rows and columns, for example `float2x3`. Constructors
 accept one scalar (splat), a matrix with the same dimensions, or scalar/vector
 arguments containing exactly `R * C` components. Indexing selects a row vector:
 `float2x3 m; m[0]` has type `float3`, and `m[0][1]` selects one component.
-Matrix row indices are not statically bounds-checked. All indexing currently
-requires a scalar `int` or `uint`; upstream also permits some numeric conversions
+Matrix row indices are not statically bounds-checked. Array, vector, matrix, and
+structured-buffer indexing requires a scalar `int` or `uint`; upstream permits numeric conversions
 with warnings, which this frontend does not yet implement.
 
 Arithmetic operators, including `*`, operate component by component. They accept

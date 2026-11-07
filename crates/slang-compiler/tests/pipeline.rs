@@ -28,7 +28,7 @@ fn includes_once_and_guards() {
     let mut includes = MemoryIncludes::default();
     includes.files.insert(
         "constants.slang".into(),
-        "#pragma once\nconst float factor = 2.0;\n".into(),
+        "#pragma once\nstatic const float factor = 2.0;\n".into(),
     );
     includes.files.insert("guarded.slang".into(), "#ifndef GUARDED\n#define GUARDED\n#include \"guarded.slang\"\nfloat twice(float x) {return x*factor;}\n#endif\n".into());
     let source = "#include \"constants.slang\"\n#include \"constants.slang\"\n#include \"guarded.slang\"\nfloat f(){return twice(1.0);}";

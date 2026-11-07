@@ -77,6 +77,42 @@ impl Parser {
                 increment,
                 body: Box::new(self.statement()?),
             }
+        } else if self.eat("do") {
+            let body = Box::new(self.statement()?);
+            self.expect("while")?;
+            self.expect("(")?;
+            let condition = self.expression(0)?;
+            self.expect(")")?;
+            self.expect(";")?;
+            StmtKind::DoWhile { body, condition }
+        } else if self.eat("switch") {
+            self.expect("(")?;
+            let selector = self.expression(0)?;
+            self.expect(")")?;
+            self.expect("{")?;
+            let mut cases = vec![];
+            while !self.at("}") && !self.at_end() {
+                let label_span = self.span();
+                let value = if self.eat("case") {
+                    Some(self.expression(0)?)
+                } else if self.eat("default") {
+                    None
+                } else {
+                    return Err(self.error("expected case or default label"));
+                };
+                self.expect(":")?;
+                let mut statements = vec![];
+                while !self.at("case") && !self.at("default") && !self.at("}") && !self.at_end() {
+                    statements.push(self.statement()?);
+                }
+                cases.push(SwitchCase {
+                    value,
+                    statements,
+                    span: label_span,
+                });
+            }
+            self.expect("}")?;
+            StmtKind::Switch { selector, cases }
         } else if self.eat("break") {
             self.expect(";")?;
             StmtKind::Break

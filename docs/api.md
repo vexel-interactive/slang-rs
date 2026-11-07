@@ -56,7 +56,7 @@ use slang_compiler::{CompileOptions, MemoryIncludes, compile_source};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let includes = MemoryIncludes {
-        files: [("constants.slang".into(), "const float scale = 2.0;".into())].into(),
+        files: [("constants.slang".into(), "static const float scale = 2.0;".into())].into(),
     };
     let compilation = compile_source(
         "main.slang",

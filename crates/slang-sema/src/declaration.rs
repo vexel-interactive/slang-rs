@@ -232,6 +232,17 @@ impl Checker {
     }
 
     pub(crate) fn bind(&mut self, variable: &Variable, context: VariableScope) {
+        if matches!(context, VariableScope::Global)
+            && variable.initializer.is_some()
+            && variable.modifiers.iter().any(|m| m == "const")
+            && !variable.modifiers.iter().any(|m| m == "static")
+        {
+            self.error(
+                "T004",
+                variable.span,
+                "global const with an initializer requires static",
+            );
+        }
         if Type::builtin(&variable.name).is_some() || self.structures.contains_key(&variable.name) {
             self.error("T003", variable.span, "variable name conflicts with a type");
         }
@@ -286,11 +297,23 @@ impl Checker {
                 .modifiers
                 .iter()
                 .any(|m| m == "const" || m == "uniform");
+        let constant = variable
+            .initializer
+            .as_ref()
+            .filter(|_| variable.modifiers.iter().any(|m| m == "const"))
+            .and_then(|expr| self.integer_constant(expr));
         self.declaration_types
             .insert(span_key(variable.span), ty.clone());
         let scope = self.scopes.last_mut().unwrap();
         if scope
-            .insert(variable.name.clone(), Binding { ty, writable })
+            .insert(
+                variable.name.clone(),
+                Binding {
+                    ty,
+                    writable,
+                    constant,
+                },
+            )
             .is_some()
         {
             self.error(

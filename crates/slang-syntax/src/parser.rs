@@ -109,7 +109,7 @@ impl Parser {
         Ok(token)
     }
     pub fn enter(&mut self) -> Result<(), Diagnostic> {
-        if self.depth >= 128 {
+        if self.depth >= 32 {
             return Err(self.error("syntax nesting limit exceeded"));
         }
         self.depth += 1;
@@ -177,8 +177,15 @@ mod tests {
         for expression in [
             "1+".repeat(1000) + "1",
             "(".repeat(1000) + "1" + &")".repeat(1000),
+            "(int)".repeat(1000) + "1",
         ] {
             assert!(module(&format!("int f() {{return {expression};}}")).is_err());
+        }
+        for body in [
+            "if(true)".repeat(1000) + ";",
+            "{".repeat(1000) + &"}".repeat(1000),
+        ] {
+            assert!(module(&format!("void f() {{{body}}}")).is_err());
         }
     }
 

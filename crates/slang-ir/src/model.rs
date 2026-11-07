@@ -58,6 +58,14 @@ pub enum StmtKind {
         condition: Expr,
         body: Box<Stmt>,
     },
+    DoWhile {
+        body: Box<Stmt>,
+        condition: Expr,
+    },
+    Switch {
+        selector: Expr,
+        cases: Vec<SwitchCase>,
+    },
     For {
         initializer: Box<Stmt>,
         condition: Option<Expr>,
@@ -77,6 +85,12 @@ pub struct Expr {
 }
 
 #[derive(Clone, Debug, Serialize)]
+pub struct SwitchCase {
+    pub value: Option<Expr>,
+    pub statements: Vec<Stmt>,
+}
+
+#[derive(Clone, Debug, Serialize)]
 pub enum ExprKind {
     Integer(String),
     Float(String),
@@ -84,6 +98,9 @@ pub enum ExprKind {
     Name(String),
     Unary {
         op: String,
+        value: Box<Expr>,
+    },
+    Cast {
         value: Box<Expr>,
     },
     Binary {

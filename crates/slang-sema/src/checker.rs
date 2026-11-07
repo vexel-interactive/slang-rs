@@ -40,6 +40,7 @@ pub fn span_key(span: Span) -> SpanKey {
 pub(crate) struct Binding {
     pub ty: Type,
     pub writable: bool,
+    pub constant: Option<i64>,
 }
 
 #[derive(Clone)]
@@ -59,6 +60,7 @@ pub(crate) struct Checker {
     pub diagnostics: Vec<Diagnostic>,
     pub return_type: Type,
     pub loops: usize,
+    pub switches: usize,
 }
 
 pub fn check(module: Module) -> Result<CheckedModule, Vec<Diagnostic>> {
@@ -71,12 +73,13 @@ pub fn check(module: Module) -> Result<CheckedModule, Vec<Diagnostic>> {
         diagnostics: vec![],
         return_type: Type::Void,
         loops: 0,
+        switches: 0,
     };
     checker.declare(&module);
     let mut entry_points = vec![];
     for declaration in &module.declarations {
         match declaration {
-            Declaration::Global(variable) => checker.initializer(variable),
+            Declaration::Global(variable) => checker.initialize_global(variable),
             Declaration::Function(function) => {
                 if let Some(entry) = checker.entry_point(function, &module) {
                     entry_points.push(entry);

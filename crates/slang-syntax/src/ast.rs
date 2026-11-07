@@ -78,6 +78,14 @@ pub enum StmtKind {
         condition: Expr,
         body: Box<Stmt>,
     },
+    DoWhile {
+        body: Box<Stmt>,
+        condition: Expr,
+    },
+    Switch {
+        selector: Expr,
+        cases: Vec<SwitchCase>,
+    },
     For {
         initializer: Box<Stmt>,
         condition: Option<Expr>,
@@ -87,6 +95,14 @@ pub enum StmtKind {
     Break,
     Continue,
     Empty,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct SwitchCase {
+    /// `None` denotes the default label; consecutive labels have empty bodies.
+    pub value: Option<Expr>,
+    pub statements: Vec<Stmt>,
+    pub span: Span,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
@@ -110,6 +126,10 @@ pub enum ExprKind {
     Name(String),
     Unary {
         op: String,
+        value: Box<Expr>,
+    },
+    Cast {
+        target: Box<TypeRef>,
         value: Box<Expr>,
     },
     Binary {

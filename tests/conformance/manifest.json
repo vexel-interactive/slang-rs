@@ -183,6 +183,47 @@
       "file": "positive/hlsl-identifiers.slang",
       "accept": true,
       "entry": "main"
+    },
+    {
+      "file": "../../examples/switch-loop.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "negative/switch-duplicate.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T017"
+    },
+    {
+      "file": "negative/switch-default.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T017"
+    },
+    {
+      "file": "negative/switch-continue.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T007"
+    },
+    {
+      "file": "negative/switch-constant.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T017"
+    },
+    {
+      "file": "negative/global-const.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T004"
+    },
+    {
+      "file": "negative/cast-vector.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T008"
     }
   ]
 }

@@ -12,7 +12,9 @@ impl Parser {
 
     fn expr(&mut self, kind: ExprKind, span: Span) -> Result<Expr, Diagnostic> {
         let height = 1 + match &kind {
-            ExprKind::Unary { value, .. } | ExprKind::Postfix { value, .. } => value.height,
+            ExprKind::Unary { value, .. }
+            | ExprKind::Postfix { value, .. }
+            | ExprKind::Cast { value, .. } => value.height,
             ExprKind::Binary { left, right, .. } => left.height.max(right.height),
             ExprKind::Call { callee, arguments } => callee
                 .height
@@ -29,7 +31,7 @@ impl Parser {
                 .max(else_value.height),
             _ => 0,
         };
-        if height > 128 {
+        if height > 64 {
             return Err(Diagnostic::error(
                 "S001",
                 span,
@@ -52,7 +54,9 @@ impl Parser {
             .ok_or_else(|| self.error("expected expression"))?
             .clone();
         self.offset += 1;
-        let mut left = if token.is("(") {
+        let mut left = if token.is("(") && self.cast_type() {
+            self.cast_expression(token.span)?
+        } else if token.is("(") {
             let mut expr = self.expression(0)?;
             let end = self.expect(")")?;
             expr.span = token.span.join(end);
@@ -183,4 +187,30 @@ impl Parser {
         }
         Ok(left)
     }
+
+    fn cast_type(&self) -> bool {
+        let Some(token) = self.current() else {
+            return false;
+        };
+        self.tokens.get(self.offset + 1).is_some_and(|t| t.is(")"))
+            && builtin_cast_type(&token.text)
+    }
+
+    fn cast_expression(&mut self, start: Span) -> Result<Expr, Diagnostic> {
+        let target = self.ty()?;
+        self.expect(")")?;
+        let value = self.expression(14)?;
+        let span = start.join(value.span);
+        self.expr(
+            ExprKind::Cast {
+                target: Box::new(target),
+                value: Box::new(value),
+            },
+            span,
+        )
+    }
+}
+
+fn builtin_cast_type(name: &str) -> bool {
+    matches!(name, "bool" | "int" | "uint" | "half" | "float" | "double")
 }

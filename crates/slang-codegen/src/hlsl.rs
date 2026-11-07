@@ -126,6 +126,29 @@ impl Emitter {
                 self.line(&format!("while ({})", expression(condition)));
                 self.controlled_body(body);
             }
+            StmtKind::DoWhile { body, condition } => {
+                self.line("do");
+                self.controlled_body(body);
+                self.line(&format!("while ({});", expression(condition)));
+            }
+            StmtKind::Switch { selector, cases } => {
+                self.line(&format!("switch ({})", expression(selector)));
+                self.line("{");
+                self.indent += 1;
+                for case in cases {
+                    self.line(&case.value.as_ref().map_or_else(
+                        || "default:".into(),
+                        |value| format!("case {}:", expression(value)),
+                    ));
+                    self.indent += 1;
+                    for statement in &case.statements {
+                        self.statement(statement);
+                    }
+                    self.indent -= 1;
+                }
+                self.indent -= 1;
+                self.line("}");
+            }
             StmtKind::For {
                 initializer,
                 condition,
@@ -201,6 +224,7 @@ fn expression(expr: &Expr) -> String {
         ExprKind::Name(name) => identifier(name),
         ExprKind::Bool(value) => value.to_string(),
         ExprKind::Unary { op, value } => format!("({op}{})", expression(value)),
+        ExprKind::Cast { value } => format!("(({}){})", type_name(&expr.ty), expression(value)),
         ExprKind::Binary { op, left, right } => {
             format!("({} {op} {})", expression(left), expression(right))
         }

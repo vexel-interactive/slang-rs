@@ -2,6 +2,7 @@
 
 mod call;
 mod checker;
+mod constant;
 mod declaration;
 mod entry;
 mod expression;
