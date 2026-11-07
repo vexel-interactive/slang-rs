@@ -143,6 +143,7 @@ fn integer_cross(name: &str, ty: &Type, span: Span) -> Function {
                 ty: ty.clone(),
                 modifiers: vec![],
                 semantic: None,
+                binding: None,
                 initializer: None,
                 span,
             })
@@ -213,6 +214,7 @@ fn dot(name: &str, parameter: &Type, span: Span) -> Function {
                 ty: parameter.clone(),
                 modifiers: vec![],
                 semantic: None,
+                binding: None,
                 initializer: None,
                 span,
             })

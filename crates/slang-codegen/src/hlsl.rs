@@ -218,6 +218,9 @@ fn variable(variable: &Variable) -> String {
     if let Some(semantic) = &variable.semantic {
         text.push_str(&format!(" : {semantic}"));
     }
+    if let Some(binding) = &variable.binding {
+        text.push_str(&format!(" : {}", binding.register));
+    }
     if let Some(initializer) = &variable.initializer {
         text.push_str(&format!(" = {}", expression(initializer)));
     }

@@ -22,6 +22,7 @@ pub struct Variable {
     pub ty: Type,
     pub modifiers: Vec<String>,
     pub semantic: Option<String>,
+    pub binding: Option<slang_layout::ResourceBinding>,
     pub initializer: Option<Expr>,
     pub span: Span,
 }

@@ -8,7 +8,7 @@ compiler into clearly defined phases.
 **The full rewrite is not complete.** The current implementation compiles a
 limited compute, vertex, and fragment shader subset to HLSL. It includes preprocessing, parsing, type
 checking, native module loading, type aliases, aggregate initialization and field defaults,
-typed structured IR, a Rust API, and a command-line compiler.
+typed structured IR, explicit resource register bindings, a Rust API, and a command-line compiler.
 Complete module sessions, user generics, interfaces, autodiff, advanced resources and most intrinsics, binary
 backends, complete reflection, the upstream C ABI, and LSP remain to be ported.
 See the [compatibility matrix](docs/compatibility.md) for exact status.
@@ -48,6 +48,7 @@ not yet provide a GPU runtime.
 ```text
 crates/
   slang-source/        source files, spans, diagnostics
+  slang-layout/        shared resource binding and layout models
   slang-lexer/         tokens and lexical analysis
   slang-preprocessor/  macros, includes, conditional compilation
   slang-syntax/        AST, declarations, expressions, statements
@@ -73,6 +74,7 @@ to compiler phases, without cycles. The workspace forbids `unsafe` code.
 - [Architecture and subsystem boundaries](docs/architecture.md)
 - [Supported language subset](docs/language.md)
 - [Modules and access control](docs/modules.md)
+- [Resources and register bindings](docs/resources.md)
 - [Rust API](docs/api.md)
 - [Tests and comparison with upstream](docs/testing.md)
 - [Compatibility and remaining work](docs/compatibility.md)

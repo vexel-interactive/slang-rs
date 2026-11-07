@@ -4,7 +4,7 @@ use slang_ir::Module;
 use slang_sema::{ShaderStage, Type};
 use std::collections::{BTreeMap, BTreeSet};
 
-/// Declaration reflection only. GPU binding allocation and byte layout are not yet implemented.
+/// Declaration and explicit binding reflection. Automatic allocation and byte layout are not yet implemented.
 #[derive(Clone, Debug, Serialize)]
 pub struct Reflection {
     pub schema_version: u32,
@@ -32,6 +32,9 @@ pub struct GlobalInfo {
     pub target_name: String,
     pub type_name: String,
     pub resource_access: Option<String>,
+    /// Explicit source binding; absent when automatic allocation would be needed.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub binding: Option<slang_layout::ResourceBinding>,
     /// Source module for imported globals; absent for root-module globals.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub module: Option<String>,
@@ -57,7 +60,7 @@ impl Reflection {
             })
             .collect();
         Self {
-            schema_version: 5,
+            schema_version: 6,
             modules: checked.modules.clone(),
             entry_points: module
                 .entry_points
@@ -81,7 +84,8 @@ impl Reflection {
                         .map_or_else(|| global.name.clone(), |o| o.name.clone()),
                     target_name: slang_codegen::entry_point_name(&global.name, target),
                     type_name: global.ty.to_string(),
-                    resource_access: match &global.ty {
+                    binding: global.binding,
+                    resource_access: match resource_element(&global.ty) {
                         Type::ConstantBuffer(_) => Some("read".into()),
                         Type::ByteBuffer { writable }
                         | Type::Buffer { writable, .. }
@@ -99,4 +103,11 @@ impl Reflection {
                 .collect(),
         }
     }
+}
+
+fn resource_element(mut ty: &Type) -> &Type {
+    while let Type::Array(element, _) = ty {
+        ty = element;
+    }
+    ty
 }

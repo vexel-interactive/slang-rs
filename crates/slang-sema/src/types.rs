@@ -148,6 +148,9 @@ impl Type {
     }
 
     pub fn is_resource(&self) -> bool {
+        if let Self::Array(element, _) = self {
+            return element.is_resource();
+        }
         matches!(
             self,
             Self::ConstantBuffer(_)

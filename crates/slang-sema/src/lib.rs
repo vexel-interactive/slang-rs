@@ -1,6 +1,7 @@
 //! Semantic checking is target-independent and never accepts error types as output.
 
 mod alias;
+mod binding;
 mod call;
 mod capability;
 mod checker;

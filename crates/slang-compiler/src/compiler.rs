@@ -77,6 +77,7 @@ pub fn compile_source(
         diagnostics,
         sources: sources.clone(),
     })?;
+    warnings.extend(checked.diagnostics.iter().cloned());
     if let Some(entry) = &options.entry_point
         && !checked.entry_points.iter().any(|e| &e.name == entry)
     {

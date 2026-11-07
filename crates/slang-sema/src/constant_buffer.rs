@@ -9,6 +9,10 @@ impl Checker {
             .declaration_types
             .iter()
             .filter_map(|(span, ty)| {
+                let mut ty = ty;
+                while let Type::Array(element, _) = ty {
+                    ty = element;
+                }
                 if let Type::ConstantBuffer(element) = ty {
                     Some((*span, *element.clone()))
                 } else {

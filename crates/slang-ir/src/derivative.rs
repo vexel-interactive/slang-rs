@@ -135,6 +135,7 @@ fn width_helper(name: &str, intrinsic: &str, ty: &Type, span: Span) -> Function 
             ty: ty.clone(),
             modifiers: vec![],
             semantic: None,
+            binding: None,
             initializer: None,
             span,
         }],

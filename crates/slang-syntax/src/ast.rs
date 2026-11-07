@@ -90,7 +90,14 @@ pub struct Variable {
     pub ty: TypeRef,
     pub modifiers: Vec<String>,
     pub semantic: Option<String>,
+    pub register: Option<RegisterAnnotation>,
     pub initializer: Option<Expr>,
+    pub span: Span,
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
+pub struct RegisterAnnotation {
+    pub binding: slang_layout::RegisterBinding,
     pub span: Span,
 }
 
@@ -103,7 +110,7 @@ pub struct Stmt {
 #[derive(Clone, Debug, Serialize)]
 pub enum StmtKind {
     Block(Vec<Stmt>),
-    Variable(Variable),
+    Variable(Box<Variable>),
     /// A declaration group introduces bindings sequentially in the current scope.
     Variables(Vec<Variable>),
     Expression(Expr),

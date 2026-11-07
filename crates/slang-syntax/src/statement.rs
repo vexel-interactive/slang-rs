@@ -151,7 +151,7 @@ impl Parser {
             let end = self.expect(";")?;
             return Ok(Stmt {
                 kind: if variables.len() == 1 {
-                    StmtKind::Variable(variables.pop().unwrap())
+                    StmtKind::Variable(Box::new(variables.pop().unwrap()))
                 } else {
                     StmtKind::Variables(variables)
                 },

@@ -28,6 +28,10 @@
     {
       "file": "bitcast-entry-name.slang",
       "entry": "asfloat"
+    },
+    {
+      "file": "../../examples/resource-bindings.slang",
+      "entry": "main"
     }
   ]
 }

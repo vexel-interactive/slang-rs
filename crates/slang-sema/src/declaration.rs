@@ -125,7 +125,7 @@ impl Checker {
             Type::Error
         };
         for size in reference.arrays.iter().rev() {
-            if ty == Type::Void || ty.is_resource() {
+            if ty == Type::Void {
                 self.error("T002", reference.span, "invalid array element type");
             }
             let mut element = &ty;
@@ -398,6 +398,7 @@ impl Checker {
             self.error("T003", variable.span, "variable name conflicts with a type");
         }
         let ty = self.resolve_type(&variable.ty);
+        self.check_register(variable, &ty, context);
         if matches!(context, VariableScope::Global)
             && variable.modifiers.iter().any(|m| m == "public")
         {

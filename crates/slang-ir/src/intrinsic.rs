@@ -100,6 +100,7 @@ fn matrix_helper(
         ty: matrix.clone(),
         modifiers: vec![],
         semantic: None,
+        binding: None,
         initializer: None,
         span,
     }];
@@ -110,6 +111,7 @@ fn matrix_helper(
             ty: output_type.clone(),
             modifiers: vec!["out".into()],
             semantic: None,
+            binding: None,
             initializer: None,
             span,
         });
@@ -123,6 +125,7 @@ fn matrix_helper(
                 ty: matrix.clone(),
                 modifiers: vec![],
                 semantic: None,
+                binding: None,
                 initializer: None,
                 span,
             }),

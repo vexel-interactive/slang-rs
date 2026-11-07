@@ -131,7 +131,14 @@ impl Parser {
                 self.eat("void");
             }
             self.expect(")")?;
-            let semantic = self.semantic()?;
+            let (semantic, register) = self.annotations()?;
+            if let Some(register) = register {
+                return Err(Diagnostic::error(
+                    "S001",
+                    register.span,
+                    "register annotations on function results are not implemented",
+                ));
+            }
             let body = if self.eat(";") {
                 None
             } else {
@@ -234,20 +241,19 @@ impl Parser {
     ) -> Result<Variable, Diagnostic> {
         let arrays = self.array_sizes()?;
         ty.arrays.splice(0..0, arrays);
-        let semantic = self.semantic()?;
+        let (semantic, register) = self.annotations()?;
         let initializer = if self.eat("=") {
             Some(self.expression(1)?)
         } else {
             None
         };
-        let span = ty
-            .span
-            .join(initializer.as_ref().map_or(name.span, |e| e.span));
+        let span = ty.span.join(self.tokens[self.offset - 1].span);
         Ok(Variable {
             name: name.text,
             ty,
             modifiers,
             semantic,
+            register,
             initializer,
             span,
         })
@@ -294,14 +300,6 @@ impl Parser {
             self.expect("]")?;
         }
         Ok(arrays)
-    }
-
-    fn semantic(&mut self) -> Result<Option<String>, Diagnostic> {
-        if self.eat(":") {
-            Ok(Some(self.identifier()?.text))
-        } else {
-            Ok(None)
-        }
     }
 
     fn attributes(&mut self) -> Result<Vec<Attribute>, Diagnostic> {

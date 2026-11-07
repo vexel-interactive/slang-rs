@@ -16,6 +16,7 @@ impl Lowerer {
                     ty: value.ty.clone(),
                     modifiers: vec![],
                     semantic: None,
+                    binding: None,
                     initializer: None,
                     span: value.span,
                 }],
@@ -37,6 +38,7 @@ impl Lowerer {
                     ty: ty.clone(),
                     modifiers: vec![],
                     semantic: None,
+                    binding: None,
                     initializer: Some(Expr {
                         ty: ty.clone(),
                         span: value.span,

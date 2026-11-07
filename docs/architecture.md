@@ -50,6 +50,7 @@ crate's `Cargo.toml` defines the exact dependency graph.
 | Crate | Input | Output | Responsibility |
 | --- | --- | --- | --- |
 | slang-source | UTF-8 text | SourceId, Span, Diagnostic | Source ownership and error locations |
+| slang-layout | Binding descriptions | Shared register models | Register classes, spaces, contiguous resource ranges |
 | slang-lexer | UTF-8 and SourceId | Tokens and diagnostics | Token recognition without grammar |
 | slang-preprocessor | File, resolver, definitions | Expanded tokens | Macros and include state |
 | slang-syntax | Expanded tokens | Module or diagnostics | Grammar and precedence |
@@ -91,6 +92,8 @@ lowering without invoking a backend.
 ## Syntax and IR
 
 The parsed AST retains source type names, attributes, spans, and expression IDs.
+Single local variable declarations are boxed inside statement nodes to keep
+recursive parser frames small on the Windows debug stack.
 The module linker assigns unique declaration names and expression IDs across
 all loaded ASTs, preserving lexical scopes and source ownership. `Program`
 records the module graph and each canonical declaration's source name and owner.
@@ -112,6 +115,18 @@ Type aliases resolve through a compilation-local cache with cycle detection.
 They disappear during lowering, leaving canonical scalar, aggregate, and resource
 types. Array types record outer-to-inner dimensions independently of whether
 the source used leading or trailing array declarators.
+
+Register annotations retain a separate AST node and source span; register tokens
+never enter lexical symbol resolution or expression checking. `slang-layout`
+defines the shared register class, index, space, and checked resource range
+without depending on syntax or types. Semantic checking validates each global
+resource's class after resolving aliases, computes array register counts, and
+records the result in `CheckedModule.resource_bindings`. A sorted range sweep
+diagnoses overlaps without expanding arrays or enumerating all pairs. Successful
+checked modules retain warnings separately from errors. IR variables receive
+the checked range, which HLSL emission and reflection both use. Generated
+variables have no resource binding. Automatic allocation and byte layout remain
+unimplemented.
 Bit reinterpretation signatures record the selected component type and shape.
 Boolean and half inputs lower through explicit casts before reinterpretation;
 identity operations reduce to their input expression. Double word outputs retain

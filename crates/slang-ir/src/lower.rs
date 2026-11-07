@@ -123,6 +123,11 @@ impl Lowerer<'_> {
             ty: self.declaration_type(variable.span)?,
             modifiers: target_modifiers(&variable.modifiers),
             semantic: variable.semantic.clone(),
+            binding: self
+                .checked
+                .resource_bindings
+                .get(&span_key(variable.span))
+                .copied(),
             initializer: variable
                 .initializer
                 .as_ref()

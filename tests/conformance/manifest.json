@@ -1790,6 +1790,160 @@
       "accept": false,
       "entry": "main",
       "rust_code": "T014"
+    },
+    {
+      "file": "positive/register-resources.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/register-arrays.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/register-declaration-groups.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/register-aliases.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/register-modules.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/register-spaces.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/register-identical.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/register-overlap.slang",
+      "accept": true,
+      "entry": "main",
+      "rust_warning": "T023",
+      "oracle_stderr_contains": [
+        "E39001"
+      ],
+      "rust_validation_accept": false,
+      "oracle_validation_accept": false,
+      "reason": "Both compilers preserve overlapping explicit resource ranges with a warning; DXC rejects the overlapping HLSL declarations."
+    },
+    {
+      "file": "negative/register-readonly-class.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T022"
+    },
+    {
+      "file": "negative/register-writable-class.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T022"
+    },
+    {
+      "file": "negative/register-constant-class.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T022"
+    },
+    {
+      "file": "negative/register-sampler-class.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T022"
+    },
+    {
+      "file": "negative/register-byte-class.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T022"
+    },
+    {
+      "file": "negative/register-rwbyte-class.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T022"
+    },
+    {
+      "file": "negative/register-buffer-class.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T022"
+    },
+    {
+      "file": "negative/register-rwbuffer-class.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T022"
+    },
+    {
+      "file": "negative/register-index.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "S001"
+    },
+    {
+      "file": "negative/register-space-index.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "S001"
+    },
+    {
+      "file": "negative/register-space-name.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "S001"
+    },
+    {
+      "file": "negative/register-uppercase.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "S001"
+    },
+    {
+      "file": "negative/register-arguments.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "S001"
+    },
+    {
+      "file": "negative/register-conflict.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "S001"
+    },
+    {
+      "file": "negative/register-local.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T022"
+    },
+    {
+      "file": "negative/register-numeric-uniform.slang",
+      "accept": false,
+      "oracle_accept": true,
+      "entry": "main",
+      "rust_code": "T022",
+      "reason": "Native explicit bindings currently apply to global resources; numeric uniform register annotations require uniform byte layout. Slang accepts and lays out the numeric global in an implicit constant buffer."
+    },
+    {
+      "file": "negative/register-overflow.slang",
+      "accept": false,
+      "oracle_accept": true,
+      "oracle_validation_accept": false,
+      "entry": "main",
+      "rust_code": "S001",
+      "reason": "Native register indices and spaces are checked against the nonnegative signed 32-bit range. Slang wraps overflowing indices and emits an invalid HLSL register number."
     }
   ]
 }

@@ -11,6 +11,7 @@ authors = ["Ankerin"]
 
 [workspace.dependencies]
 slang-source = { path = "crates/slang-source" }
+slang-layout = { path = "crates/slang-layout" }
 slang-lexer = { path = "crates/slang-lexer" }
 slang-preprocessor = { path = "crates/slang-preprocessor" }
 slang-syntax = { path = "crates/slang-syntax" }

@@ -41,6 +41,7 @@ impl Visitor for Lowerer {
                 ty: ty.clone(),
                 modifiers: vec!["static".into()],
                 semantic: None,
+                binding: None,
                 initializer: None,
                 span: expression.span,
             });

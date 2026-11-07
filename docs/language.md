@@ -426,8 +426,21 @@ buffers preserve their struct's field visibility. HLSL uses its native
 `ConstantBuffer<T>` template; reflection records read access.
 
 Direct `cbuffer` syntax, nonstruct constant-buffer elements, automatic conversion
-of a constant-buffer handle to its element, buffer arrays, register annotations,
+of a constant-buffer handle to its element,
 resource-valued fields, and target-specific byte layout remain unimplemented.
+
+Fixed arrays of the supported resource handles, including constant buffers,
+preserve their outer-to-inner dimensions. Indexing selects a resource handle;
+its usual resource operations then apply. Read-only resource contents remain
+read-only through array indexing. Structured buffer element arrays and
+resource-valued buffer elements remain unsupported.
+
+Global resources accept `: register(t0, space2)` and the corresponding `b`, `u`,
+and `s` classes. Omitted spaces normalize to zero. Aliases, declaration groups,
+imports, and macros preserve each resource's explicit binding. Resource arrays
+occupy a contiguous range with one slot per element. Overlaps produce warning
+`T023`; class mismatches and unsupported binding contexts produce error `T022`.
+See [resources.md](resources.md) for syntax, reflected ranges, and current limits.
 
 Byte-address buffers support `Load`, `Load2`, `Load3`, and `Load4`, returning
 one to four `uint` components. Writable buffers provide matching `Store` methods.
@@ -727,10 +740,13 @@ unimplemented. See `examples/vertex-transform.slang` and
 
 JSON reflection reports entry points, stages, thread-group sizes, global names
 and type names, and read/read_write access for constant, structured, byte-address
-buffers, and textures. It does not
-provide binding indices, register spaces, byte offsets, strides, or layout.
+buffers, and textures, including arrays of those resource handles. Schema
+version 6 adds an optional `binding` object for explicitly bound globals, with
+register `class`, `index`, `space`, and `count`. Unbound globals omit that field.
+Automatic allocation, byte offsets, strides, and complete target layout remain
+unimplemented.
 Applications must not treat this JSON as the upstream compiler's ABI reflection.
-Schema version 5 adds `target_profile` for HLSL entries, including any required
+Schema version 5 added `target_profile` for HLSL entries, including any required
 shader model upgrade. Pass `target_name` and `target_profile` to DXC's `-E` and
 `-T` options respectively.
 Schema version 4 added a `modules` graph and the optional owning `module` name

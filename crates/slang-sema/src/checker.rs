@@ -1,7 +1,7 @@
 use crate::Type;
 use serde::Serialize;
 use slang_module::{ModuleId, ModuleInfo, Program, SymbolOrigin};
-use slang_source::{Diagnostic, Span};
+use slang_source::{Diagnostic, Severity, Span};
 use slang_syntax::*;
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -42,6 +42,9 @@ pub struct CheckedModule {
     pub entry_point_requirements: BTreeMap<String, crate::EntryPointRequirements>,
     /// Checked scalar integer and boolean global constant values.
     pub global_constants: BTreeMap<SpanKey, i64>,
+    /// Explicit resource ranges, keyed by their source declarations.
+    pub resource_bindings: BTreeMap<SpanKey, slang_layout::ResourceBinding>,
+    pub diagnostics: Vec<Diagnostic>,
 }
 
 /// Byte-span key used to distinguish declarations in separate scopes and files.
@@ -101,6 +104,7 @@ pub(crate) struct Checker {
     pub initializations: BTreeMap<ExprId, crate::Initialization>,
     pub default_arguments: BTreeMap<ExprId, Vec<crate::Initialization>>,
     pub case_values: BTreeMap<ExprId, i64>,
+    pub resource_bindings: BTreeMap<SpanKey, slang_layout::ResourceBinding>,
 }
 
 pub fn check(mut module: Module) -> Result<CheckedModule, Vec<Diagnostic>> {
@@ -157,6 +161,7 @@ fn check_with_metadata(
         initializations: BTreeMap::new(),
         default_arguments: BTreeMap::new(),
         case_values: BTreeMap::new(),
+        resource_bindings: BTreeMap::new(),
     };
     checker.declare(&module);
     for declaration in &module.declarations {
@@ -205,6 +210,13 @@ fn check_with_metadata(
                     }
                     checker.check_interpolation(&field.modifiers, field.span);
                     checker.check_visibility_modifiers(&field.modifiers, field.span);
+                    if let Some(register) = field.register {
+                        checker.error(
+                            "T022",
+                            register.span,
+                            "register annotations on struct fields are not implemented",
+                        );
+                    }
                     if field.initializer.is_some() {
                         checker.initializer(field);
                     }
@@ -213,7 +225,12 @@ fn check_with_metadata(
         }
     }
     checker.validate_constant_buffers();
-    if checker.diagnostics.is_empty() {
+    checker.check_binding_overlaps(&module);
+    if !checker
+        .diagnostics
+        .iter()
+        .any(|d| d.severity == Severity::Error)
+    {
         let global_constants = checker.scopes[0]
             .values()
             .filter_map(|binding| {
@@ -246,6 +263,8 @@ fn check_with_metadata(
             case_values: checker.case_values,
             entry_point_requirements: BTreeMap::new(),
             global_constants,
+            resource_bindings: checker.resource_bindings,
+            diagnostics: checker.diagnostics,
         };
         checked.entry_point_requirements = crate::capability::validate(&checked)?;
         Ok(checked)

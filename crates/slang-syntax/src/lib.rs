@@ -1,6 +1,7 @@
 //! Syntax trees retain spans and expression IDs for later type checking.
 
 mod ast;
+mod binding;
 mod declaration;
 mod expression;
 mod module;
