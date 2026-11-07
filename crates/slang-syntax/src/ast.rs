@@ -3,7 +3,26 @@ use slang_source::Span;
 
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct Module {
+    pub module_declared: bool,
+    pub name: Option<String>,
+    pub implementation: Option<String>,
+    pub imports: Vec<Import>,
+    pub file_includes: Vec<FileInclude>,
     pub declarations: Vec<Declaration>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct Import {
+    /// Normalized file request, including the .slang extension.
+    pub path: String,
+    pub exported: bool,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct FileInclude {
+    pub path: String,
+    pub span: Span,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -31,6 +50,7 @@ pub struct Attribute {
 #[derive(Clone, Debug, Serialize)]
 pub struct Struct {
     pub name: String,
+    pub modifiers: Vec<String>,
     pub fields: Vec<Variable>,
     pub span: Span,
 }

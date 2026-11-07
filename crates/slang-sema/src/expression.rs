@@ -140,6 +140,20 @@ impl Checker {
             ExprKind::Member { base, name } => {
                 let ty = self.expression(base);
                 match ty {
+                    Type::Struct(ref structure)
+                        if self
+                            .structures
+                            .get(structure)
+                            .is_some_and(|fields| fields.contains_key(name))
+                            && !self.field_accessible(structure, name) =>
+                    {
+                        self.error(
+                            "T018",
+                            expression.span,
+                            format!("field '{name}' is internal to its module"),
+                        );
+                        Type::Error
+                    }
                     Type::Struct(structure) => self
                         .structures
                         .get(&structure)

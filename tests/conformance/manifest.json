@@ -224,6 +224,126 @@
       "accept": false,
       "entry": "main",
       "rust_code": "T008"
+    },
+    {
+      "file": "modules/public-import.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "modules/diamond.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "modules/reexports.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "modules/legacy-import.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "modules/member-cycles.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "modules/macro-isolation.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "modules/path-spellings.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "modules/overload-visibility.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "modules/shadowing.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "modules/own-precedence.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "modules/generated-collision.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "modules/internal-function.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014"
+    },
+    {
+      "file": "modules/internal-global.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T011"
+    },
+    {
+      "file": "modules/internal-field.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T018"
+    },
+    {
+      "file": "modules/transitive-hidden.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014"
+    },
+    {
+      "file": "modules/cyclic-import.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "M002"
+    },
+    {
+      "file": "modules/missing-import.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "M001"
+    },
+    {
+      "file": "modules/member-import.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "M003"
+    },
+    {
+      "file": "modules/wrong-membership.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "M003"
+    },
+    {
+      "file": "modules/exposed-internal-type.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T018"
+    },
+    {
+      "file": "modules/ambiguous-import.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "M004"
+    },
+    {
+      "file": "../../examples/modules/main.slang",
+      "accept": true,
+      "entry": "main"
     }
   ]
 }

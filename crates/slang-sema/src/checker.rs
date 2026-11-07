@@ -1,8 +1,9 @@
 use crate::Type;
 use serde::Serialize;
+use slang_module::{ModuleId, ModuleInfo, Program, SymbolOrigin};
 use slang_source::{Diagnostic, Span};
 use slang_syntax::*;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Clone, Debug, Serialize)]
 pub struct EntryPoint {
@@ -28,6 +29,10 @@ pub struct CheckedModule {
     pub expression_types: BTreeMap<ExprId, Type>,
     pub declaration_types: BTreeMap<SpanKey, Type>,
     pub entry_points: Vec<EntryPoint>,
+    pub modules: Vec<ModuleInfo>,
+    pub symbols: BTreeMap<String, SymbolOrigin>,
+    pub function_names: BTreeMap<SpanKey, String>,
+    pub call_names: BTreeMap<ExprId, String>,
 }
 
 /// Byte-span key used to distinguish declarations in separate scopes and files.
@@ -49,6 +54,8 @@ pub(crate) struct Signature {
     pub output_parameters: Vec<bool>,
     pub result: Type,
     pub defined: bool,
+    pub public: bool,
+    pub target_name: String,
 }
 
 pub(crate) struct Checker {
@@ -61,9 +68,44 @@ pub(crate) struct Checker {
     pub return_type: Type,
     pub loops: usize,
     pub switches: usize,
+    pub symbols: BTreeMap<String, SymbolOrigin>,
+    pub current_module: ModuleId,
+    pub public_types: BTreeSet<String>,
+    pub public_fields: BTreeSet<(String, String)>,
+    pub source_types: BTreeSet<(ModuleId, String)>,
+    pub function_names: BTreeMap<SpanKey, String>,
+    pub call_names: BTreeMap<ExprId, String>,
 }
 
-pub fn check(module: Module) -> Result<CheckedModule, Vec<Diagnostic>> {
+pub fn check(mut module: Module) -> Result<CheckedModule, Vec<Diagnostic>> {
+    module.apply_legacy_visibility();
+    check_with_metadata(module, vec![], BTreeMap::new())
+}
+
+/// Check a program after imports and lexical module names have been resolved.
+pub fn check_program(program: Program) -> Result<CheckedModule, Vec<Diagnostic>> {
+    check_with_metadata(program.syntax, program.modules, program.symbols)
+}
+
+fn check_with_metadata(
+    module: Module,
+    modules: Vec<ModuleInfo>,
+    symbols: BTreeMap<String, SymbolOrigin>,
+) -> Result<CheckedModule, Vec<Diagnostic>> {
+    if let Some(import) = module.imports.first() {
+        return Err(vec![Diagnostic::error(
+            "T001",
+            import.span,
+            "imports must be resolved before semantic checking",
+        )]);
+    }
+    if let Some(include) = module.file_includes.first() {
+        return Err(vec![Diagnostic::error(
+            "T001",
+            include.span,
+            "module members must be loaded before semantic checking",
+        )]);
+    }
     let mut checker = Checker {
         scopes: vec![BTreeMap::new()],
         functions: BTreeMap::new(),
@@ -74,10 +116,26 @@ pub fn check(module: Module) -> Result<CheckedModule, Vec<Diagnostic>> {
         return_type: Type::Void,
         loops: 0,
         switches: 0,
+        symbols,
+        current_module: ModuleId(0),
+        public_types: BTreeSet::new(),
+        public_fields: BTreeSet::new(),
+        source_types: BTreeSet::new(),
+        function_names: BTreeMap::new(),
+        call_names: BTreeMap::new(),
     };
     checker.declare(&module);
     let mut entry_points = vec![];
     for declaration in &module.declarations {
+        let name = match declaration {
+            Declaration::Struct(s) => &s.name,
+            Declaration::Function(f) => &f.name,
+            Declaration::Global(v) => &v.name,
+        };
+        checker.current_module = checker
+            .symbols
+            .get(name)
+            .map_or(ModuleId(0), |origin| origin.module);
         match declaration {
             Declaration::Global(variable) => checker.initialize_global(variable),
             Declaration::Function(function) => {
@@ -89,15 +147,18 @@ pub fn check(module: Module) -> Result<CheckedModule, Vec<Diagnostic>> {
             Declaration::Struct(structure) => {
                 for field in &structure.fields {
                     if field.initializer.is_some()
-                        || field.modifiers.iter().any(|m| m != "nointerpolation")
+                        || field.modifiers.iter().any(|m| {
+                            !matches!(m.as_str(), "nointerpolation" | "public" | "internal")
+                        })
                     {
                         checker.error(
                             "T001",
                             field.span,
-                            "struct field initializers and modifiers other than nointerpolation are not implemented",
+                            "unsupported struct field initializer or modifier",
                         );
                     }
                     checker.check_interpolation(&field.modifiers, field.span);
+                    checker.check_visibility_modifiers(&field.modifiers, field.span);
                 }
             }
         }
@@ -108,6 +169,10 @@ pub fn check(module: Module) -> Result<CheckedModule, Vec<Diagnostic>> {
             expression_types: checker.expression_types,
             declaration_types: checker.declaration_types,
             entry_points,
+            modules,
+            symbols: checker.symbols,
+            function_names: checker.function_names,
+            call_names: checker.call_names,
         })
     } else {
         Err(checker.diagnostics)

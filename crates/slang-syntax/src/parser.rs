@@ -15,8 +15,19 @@ pub fn parse(tokens: &[Token]) -> Result<Module, Vec<Diagnostic>> {
     let mut diagnostics = vec![];
     while !parser.at_end() {
         let start = parser.offset;
-        match parser.declaration() {
-            Ok(declaration) => module.declarations.push(declaration),
+        let parsed = if parser.at("import")
+            || parser.at("__exported")
+            || parser.at("module")
+            || parser.at("__include")
+            || parser.at("implementing")
+        {
+            parser.module_directive(&mut module).map(|()| None)
+        } else {
+            parser.declaration().map(Some)
+        };
+        match parsed {
+            Ok(None) => {}
+            Ok(Some(declaration)) => module.declarations.push(declaration),
             Err(error) => {
                 diagnostics.push(error);
                 if diagnostics.len() >= 32 {

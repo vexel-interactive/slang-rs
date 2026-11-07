@@ -72,7 +72,7 @@ fn graphics_stages_preserve_semantics_and_reflection() {
         let entry = &compiled.reflection.entry_points[0];
         assert_eq!(entry.stage, stage);
         assert_eq!(entry.thread_group_size, None);
-        assert_eq!(compiled.reflection.schema_version, 3);
+        assert_eq!(compiled.reflection.schema_version, 4);
         let json = serde_json::to_value(&compiled.reflection).unwrap();
         assert!(json["entry_points"][0].get("thread_group_size").is_none());
         let code = compiled.artifact.unwrap();

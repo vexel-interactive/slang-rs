@@ -3,8 +3,10 @@
 mod ast;
 mod declaration;
 mod expression;
+mod module;
 mod parser;
 mod statement;
+mod visibility;
 
 pub use ast::*;
 pub use parser::parse;

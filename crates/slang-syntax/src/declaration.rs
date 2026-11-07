@@ -36,8 +36,12 @@ impl Parser {
         let attributes = self.attributes()?;
         let modifiers = self.modifiers();
         if self.eat("struct") {
-            if !attributes.is_empty() || !modifiers.is_empty() {
-                return Err(self.error("struct attributes and modifiers are not implemented"));
+            if !attributes.is_empty()
+                || modifiers
+                    .iter()
+                    .any(|m| !matches!(m.as_str(), "public" | "internal"))
+            {
+                return Err(self.error("unsupported struct attributes or modifiers"));
             }
             let name = self.identifier()?.text;
             self.expect("{")?;
@@ -54,6 +58,7 @@ impl Parser {
             self.expect(";")?;
             return Ok(Declaration::Struct(Struct {
                 name,
+                modifiers,
                 fields,
                 span: start.join(end),
             }));

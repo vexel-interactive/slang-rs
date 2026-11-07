@@ -94,3 +94,40 @@ fn cli_preserves_existing_output_on_compile_failure() {
     }
     fs::remove_dir(&root).unwrap();
 }
+
+#[test]
+fn cli_reports_excessive_module_graph_depth() {
+    let root = std::env::temp_dir().join(format!("slang-rs-module-depth-{}", std::process::id()));
+    fs::create_dir_all(&root).unwrap();
+    for member in [false, true] {
+        for index in 0..40 {
+            let directive = if member { "__include" } else { "import" };
+            let declaration = if member && index > 0 {
+                "implementing m0;".into()
+            } else {
+                format!("module m{index};")
+            };
+            fs::write(
+                root.join(format!("m{index}.slang")),
+                format!("{declaration}{directive} m{};", index + 1),
+            )
+            .unwrap();
+        }
+        let result = Command::new(env!("CARGO_BIN_EXE_slangc-rs"))
+            .arg(root.join("m0.slang"))
+            .arg("--check")
+            .output()
+            .unwrap();
+        assert_eq!(
+            result.status.code(),
+            Some(1),
+            "{}",
+            String::from_utf8_lossy(&result.stderr)
+        );
+        assert!(String::from_utf8_lossy(&result.stderr).contains("M002"));
+    }
+    for index in 0..40 {
+        fs::remove_file(root.join(format!("m{index}.slang"))).unwrap();
+    }
+    fs::remove_dir(&root).unwrap();
+}

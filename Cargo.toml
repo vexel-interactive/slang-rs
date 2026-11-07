@@ -14,6 +14,7 @@ slang-source = { path = "crates/slang-source" }
 slang-lexer = { path = "crates/slang-lexer" }
 slang-preprocessor = { path = "crates/slang-preprocessor" }
 slang-syntax = { path = "crates/slang-syntax" }
+slang-module = { path = "crates/slang-module" }
 slang-sema = { path = "crates/slang-sema" }
 slang-ir = { path = "crates/slang-ir" }
 slang-codegen = { path = "crates/slang-codegen" }

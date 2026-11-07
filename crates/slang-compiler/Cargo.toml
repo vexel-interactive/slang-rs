@@ -11,6 +11,7 @@ authors.workspace = true
 slang-source.workspace = true
 slang-preprocessor.workspace = true
 slang-syntax.workspace = true
+slang-module.workspace = true
 slang-sema.workspace = true
 slang-ir.workspace = true
 slang-codegen.workspace = true

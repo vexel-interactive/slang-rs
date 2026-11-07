@@ -105,7 +105,8 @@ impl Checker {
         let mut names = BTreeSet::new();
         for declaration in &module.declarations {
             if let Declaration::Struct(structure) = declaration {
-                if Type::builtin(&structure.name).is_some() || !names.insert(structure.name.clone())
+                if Type::builtin(self.source_name(&structure.name)).is_some()
+                    || !names.insert(structure.name.clone())
                 {
                     self.error(
                         "T003",
@@ -115,14 +116,35 @@ impl Checker {
                 }
                 self.structures
                     .insert(structure.name.clone(), BTreeMap::new());
+                let origin = self.symbols.get(&structure.name);
+                self.source_types.insert((
+                    origin.map_or(slang_module::ModuleId(0), |o| o.module),
+                    self.source_name(&structure.name).to_owned(),
+                ));
+                if structure.modifiers.iter().any(|m| m == "public") {
+                    self.public_types.insert(structure.name.clone());
+                }
             }
         }
         for declaration in &module.declarations {
             match declaration {
                 Declaration::Struct(structure) => {
+                    self.check_visibility_modifiers(&structure.modifiers, structure.span);
                     let mut fields = BTreeMap::new();
                     for field in &structure.fields {
                         let ty = self.resolve_type(&field.ty);
+                        if field.modifiers.iter().any(|m| m == "public") {
+                            self.public_fields
+                                .insert((structure.name.clone(), field.name.clone()));
+                            if !self.public_types.contains(&structure.name) {
+                                self.error(
+                                    "T018",
+                                    field.span,
+                                    "a public field requires a public struct",
+                                );
+                            }
+                            self.require_public_type(&ty, field.span);
+                        }
                         if ty == Type::Void {
                             self.error("T002", field.span, "a field cannot have type void");
                         }
@@ -134,15 +156,23 @@ impl Checker {
                     self.structures.insert(structure.name.clone(), fields);
                 }
                 Declaration::Global(variable) => {
+                    self.current_module = self
+                        .symbols
+                        .get(&variable.name)
+                        .map_or(slang_module::ModuleId(0), |o| o.module);
                     if names.contains(&variable.name) {
                         self.error("T003", variable.span, "value name conflicts with a type");
                     }
                     self.bind(variable, VariableScope::Global);
                 }
                 Declaration::Function(function) => {
+                    self.current_module = self
+                        .symbols
+                        .get(&function.name)
+                        .map_or(slang_module::ModuleId(0), |o| o.module);
                     if self.scopes[0].contains_key(&function.name)
                         || names.contains(&function.name)
-                        || Type::builtin(&function.name).is_some()
+                        || Type::builtin(self.source_name(&function.name)).is_some()
                     {
                         self.error(
                             "T003",
@@ -158,6 +188,12 @@ impl Checker {
                         .iter()
                         .map(|p| self.resolve_type(&p.ty))
                         .collect();
+                    if function.modifiers.iter().any(|m| m == "public") {
+                        self.require_public_type(&result, function.span);
+                        for (ty, parameter) in parameters.iter().zip(&function.parameters) {
+                            self.require_public_type(ty, parameter.span);
+                        }
+                    }
                     let output_parameters = function
                         .parameters
                         .iter()
@@ -169,6 +205,7 @@ impl Checker {
                     {
                         let duplicate = existing.result != result
                             || existing.output_parameters != output_parameters
+                            || existing.public != function.modifiers.iter().any(|m| m == "public")
                             || existing.defined && function.body.is_some();
                         existing.defined |= function.body.is_some();
                         if duplicate {
@@ -184,8 +221,41 @@ impl Checker {
                             output_parameters,
                             result,
                             defined: function.body.is_some(),
+                            public: function.modifiers.iter().any(|m| m == "public"),
+                            target_name: function.name.clone(),
                         });
                     }
+                }
+            }
+        }
+        // Imported overloads need distinct target names: HLSL cannot enforce module visibility.
+        // The linker prefix cannot occur in any source identifier, including local names.
+        let mut target_names: BTreeSet<_> = self.symbols.keys().cloned().collect();
+        for (name, overloads) in &mut self.functions {
+            if overloads.len() > 1 && self.symbols.get(name).is_some_and(|o| o.module.0 != 0) {
+                for (index, signature) in overloads.iter_mut().enumerate() {
+                    let mut target = format!("{name}__overload_{index}");
+                    while !target_names.insert(target.clone()) {
+                        target.push('_');
+                    }
+                    signature.target_name = target;
+                }
+            }
+        }
+        for declaration in &module.declarations {
+            if let Declaration::Function(function) = declaration {
+                let parameters: Vec<_> = function
+                    .parameters
+                    .iter()
+                    .map(|p| self.resolve_type(&p.ty))
+                    .collect();
+                if let Some(signature) = self
+                    .functions
+                    .get(&function.name)
+                    .and_then(|overloads| overloads.iter().find(|s| s.parameters == parameters))
+                {
+                    self.function_names
+                        .insert(span_key(function.span), signature.target_name.clone());
                 }
             }
         }
@@ -243,10 +313,24 @@ impl Checker {
                 "global const with an initializer requires static",
             );
         }
-        if Type::builtin(&variable.name).is_some() || self.structures.contains_key(&variable.name) {
+        let source_name = if matches!(context, VariableScope::Global) {
+            self.source_name(&variable.name)
+        } else {
+            &variable.name
+        };
+        if Type::builtin(source_name).is_some()
+            || self
+                .source_types
+                .contains(&(self.current_module, source_name.to_owned()))
+        {
             self.error("T003", variable.span, "variable name conflicts with a type");
         }
         let ty = self.resolve_type(&variable.ty);
+        if matches!(context, VariableScope::Global)
+            && variable.modifiers.iter().any(|m| m == "public")
+        {
+            self.require_public_type(&ty, variable.span);
+        }
         if ty == Type::Void {
             self.error("T002", variable.span, "a variable cannot have type void");
         }
@@ -254,7 +338,7 @@ impl Checker {
             let valid = match context {
                 VariableScope::Global => matches!(
                     modifier.as_str(),
-                    "const" | "static" | "uniform" | "groupshared"
+                    "const" | "static" | "uniform" | "groupshared" | "public" | "internal"
                 ),
                 VariableScope::Local => matches!(modifier.as_str(), "const" | "static"),
                 VariableScope::Parameter => {
@@ -273,6 +357,7 @@ impl Checker {
             }
         }
         self.check_interpolation(&variable.modifiers, variable.span);
+        self.check_visibility_modifiers(&variable.modifiers, variable.span);
         let directions = variable
             .modifiers
             .iter()

@@ -13,7 +13,7 @@ subsystem is absent. No subsystem currently claims complete upstream parity.
 | Name and type checking | slang-sema | Partial | Scalars, vectors, matrices, scopes, overloads, writable locations |
 | Core module | slang-sema | Partial | Small built-in signature set |
 | Texture and sampler operations | slang-sema, slang-codegen | Partial | 1D/2D/3D/cube, indexed access, load/sample/comparison/dimensions; advanced resources absent |
-| Modules and imports | ? | Not ported | Loader, visibility, dependency graph required |
+| Modules and imports | slang-module, slang-sema | Partial | Imports, reexports, member files, isolated preprocessing, public/internal, legacy visibility; session API and cross-module overload merging absent |
 | Interfaces and generics | ? | Not ported | Constraints, witnesses, specialization required |
 | Capability system | ? | Not ported | Profiles and target requirements required |
 | Automatic differentiation | ? | Not ported | AD passes, JVP/VJP, runtime contracts required |
@@ -25,7 +25,7 @@ subsystem is absent. No subsystem currently claims complete upstream parity.
 | GLSL, WGSL, Metal | ? | Not ported | Target-specific lowering and validators required |
 | CUDA, C++, CPU targets | ? | Not ported | ABI lowering and runtime required |
 | Resource binding and layout | ? | Not ported | Target API layout rules required |
-| Declaration reflection | slang-compiler | Partial | Names, types, stages, group sizes |
+| Declaration reflection | slang-compiler | Partial | Source/target names, types, stages, group sizes, module graph |
 | Complete reflection API | ? | Not ported | Bindings, layouts, specialization absent |
 | Native Rust API | slang-compiler | Partial | Own API for the implemented pipeline |
 | Upstream C ABI and API | ? | Not ported | API/ABI compatibility suite required |

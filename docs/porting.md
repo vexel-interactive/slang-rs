@@ -51,6 +51,7 @@ Calling the upstream compiler does not implement a Rust backend.
 | --- | --- |
 | source/compiler-core/slang-lexer*, slang-preprocessor* | slang-lexer, slang-preprocessor |
 | source/slang/slang-parser*, slang-syntax*, slang-ast-* | slang-syntax |
+| Source module loading and lexical linking | slang-module |
 | source/slang/slang-check-* | slang-sema |
 | source/slang/slang-ir-* | slang-ir |
 | source/slang/slang-emit-* | slang-codegen |

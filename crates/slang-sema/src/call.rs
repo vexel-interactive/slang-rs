@@ -71,10 +71,15 @@ impl Checker {
             return target;
         }
         if let Some(overloads) = self.functions.get(name).cloned() {
+            let owner = self
+                .symbols
+                .get(name)
+                .map_or(slang_module::ModuleId(0), |o| o.module);
             let mut matches: Vec<_> = overloads
                 .into_iter()
                 .filter(|s| {
-                    s.parameters.len() == types.len()
+                    (s.public || owner == self.current_module)
+                        && s.parameters.len() == types.len()
                         && types
                             .iter()
                             .zip(&s.parameters)
@@ -120,6 +125,7 @@ impl Checker {
                         result: Box::new(best.result.clone()),
                     },
                 );
+                self.call_names.insert(callee.id, best.target_name.clone());
                 return best.result.clone();
             }
             self.error("T014", span, format!("no matching overload for '{name}'"));

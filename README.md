@@ -7,8 +7,8 @@ compiler into clearly defined phases.
 
 **The full rewrite is not complete.** The current implementation compiles a
 limited compute, vertex, and fragment shader subset to HLSL. It includes preprocessing, parsing, type
-checking, typed structured IR, a Rust API, and a command-line compiler. Modules,
-user generics, interfaces, autodiff, advanced resources and most intrinsics, binary
+checking, native module loading, typed structured IR, a Rust API, and a command-line compiler.
+Complete module sessions, user generics, interfaces, autodiff, advanced resources and most intrinsics, binary
 backends, complete reflection, the upstream C ABI, and LSP remain to be ported.
 See the [compatibility matrix](docs/compatibility.md) for exact status.
 
@@ -35,6 +35,7 @@ explicitly selects the pinned compiler and tools. See [build instructions](docs/
 ./target/release/slangc-rs examples/control-flow.slang --check
 ./target/release/slangc-rs examples/vector-add.slang --dump-ir -o vector-add.ir.json
 ./target/release/slangc-rs examples/vector-add.slang --reflection reflection.json
+./target/release/slangc-rs examples/modules/main.slang -entry main -o modules.hlsl
 ```
 
 HLSL is a textual output. Applications must compile it for their graphics API,
@@ -49,6 +50,7 @@ crates/
   slang-lexer/         tokens and lexical analysis
   slang-preprocessor/  macros, includes, conditional compilation
   slang-syntax/        AST, declarations, expressions, statements
+  slang-module/        imports, module members, dependency graph, name linking
   slang-sema/          names, types, overloads, shader validation
   slang-ir/            typed structured IR and lowering
   slang-codegen/       backend dispatch and HLSL generation
@@ -69,6 +71,7 @@ to compiler phases, without cycles. The workspace forbids `unsafe` code.
 - [Building and toolchains](docs/building.md)
 - [Architecture and subsystem boundaries](docs/architecture.md)
 - [Supported language subset](docs/language.md)
+- [Modules and access control](docs/modules.md)
 - [Rust API](docs/api.md)
 - [Tests and comparison with upstream](docs/testing.md)
 - [Compatibility and remaining work](docs/compatibility.md)

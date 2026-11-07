@@ -6,10 +6,13 @@
 1.99.1. Tests cover precedence, scopes, const/read-only locations, overloads,
 macro recursion and operators, include guards, diagnostic locations, IR lowering,
 output preservation after a compilation error, switch fallthrough, integer case
-constants, do/while exits, cast grammar, and CLI nesting diagnostics.
+constants, do/while exits, cast grammar, and CLI nesting diagnostics. Module
+tests cover public/internal access, overload visibility, lexical shadowing,
+diamond graphs, reexports, legacy sources, member cycles, macro isolation,
+membership errors, and graph limits in the Windows debug CLI.
 
 Examples cover vector addition, control flow, matrix algebra, vertex transforms,
-and fragment color output. With DXC
+fragment color output, and a multi-file module. With DXC
 installed, validate generated HLSL independently:
 
 ```text

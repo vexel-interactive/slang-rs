@@ -101,6 +101,7 @@ dependencies = [
  "serde_json",
  "slang-codegen",
  "slang-ir",
+ "slang-module",
  "slang-preprocessor",
  "slang-sema",
  "slang-source",
@@ -126,6 +127,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "slang-module"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "slang-lexer",
+ "slang-preprocessor",
+ "slang-source",
+ "slang-syntax",
+]
+
+[[package]]
 name = "slang-preprocessor"
 version = "0.1.0"
 dependencies = [
@@ -139,6 +151,7 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "slang-lexer",
+ "slang-module",
  "slang-source",
  "slang-syntax",
 ]
@@ -155,6 +168,7 @@ name = "slang-syntax"
 version = "0.1.0"
 dependencies = [
  "serde",
+ "serde_json",
  "slang-lexer",
  "slang-source",
 ]

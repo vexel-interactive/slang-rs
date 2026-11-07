@@ -81,7 +81,10 @@ impl Checker {
 
     pub(crate) fn function(&mut self, function: &Function) {
         for modifier in &function.modifiers {
-            if !matches!(modifier.as_str(), "static" | "inline") {
+            if !matches!(
+                modifier.as_str(),
+                "static" | "inline" | "public" | "internal"
+            ) {
                 self.error(
                     "T001",
                     function.span,
@@ -89,6 +92,7 @@ impl Checker {
                 );
             }
         }
+        self.check_visibility_modifiers(&function.modifiers, function.span);
         self.return_type = self.resolve_type(&function.return_type);
         self.scopes.push(BTreeMap::new());
         for parameter in &function.parameters {

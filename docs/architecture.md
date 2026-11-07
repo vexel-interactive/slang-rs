@@ -6,12 +6,14 @@
 flowchart LR
     CLI[slang-cli] --> API[slang-compiler]
     API --> Source[slang-source]
-    API --> PP[slang-preprocessor]
+    API --> Modules[slang-module]
+    Modules --> PP[slang-preprocessor]
     PP --> Lexer[slang-lexer]
-    API --> Syntax[slang-syntax]
+    Modules --> Syntax[slang-syntax]
     Syntax --> AST[AST with spans and ExprId]
     API --> Sema[slang-sema]
-    AST --> Sema
+    AST --> Link[Module graph and lexical name linking]
+    Link --> Sema
     Sema --> Checked[CheckedModule]
     Checked --> IR[slang-ir: typed structured IR]
     IR --> Gen[slang-codegen]
@@ -30,7 +32,8 @@ crate's `Cargo.toml` defines the exact dependency graph.
 | slang-lexer | UTF-8 and SourceId | Tokens and diagnostics | Token recognition without grammar |
 | slang-preprocessor | File, resolver, definitions | Expanded tokens | Macros and include state |
 | slang-syntax | Expanded tokens | Module or diagnostics | Grammar and precedence |
-| slang-sema | Module | CheckedModule or diagnostics | Names, types, writable locations, entry points |
+| slang-module | Root source, resolver, definitions | Program or diagnostics | Module graph, member files, visibility-aware names |
+| slang-sema | Linked Program | CheckedModule or diagnostics | Types, overload visibility, writable locations, entry points |
 | slang-ir | CheckedModule | Typed Module | Lowering away syntax details |
 | slang-codegen | IR and Target | Code or diagnostic | Target-specific generation |
 | slang-compiler | Source and CompileOptions | Compilation or CompileError | Public API and phase coordination |
@@ -51,10 +54,18 @@ lowering without invoking a backend.
 
 ## Syntax and IR
 
-The AST retains source type names, attributes, spans, and expression IDs.
+The parsed AST retains source type names, attributes, spans, and expression IDs.
+The module linker assigns unique declaration names and expression IDs across
+all loaded ASTs, preserving lexical scopes and source ownership. `Program`
+records the module graph and each canonical declaration's source name and owner.
 Semantic checking resolves types into expression and declaration tables.
 Lowering checks that this information exists and attaches a type to each IR
 expression.
+
+Imported function overloads receive distinct target names when needed. The
+checker records the selected callable in `CheckedModule`; lowering uses that
+selection so target compilation cannot select an internal overload by mistake.
+See [modules.md](modules.md) for file membership, access rules, and remaining limits.
 
 The current IR is **structured**: blocks, conditions, and loops remain explicit
 nodes. SSA, CFG construction, dominance, phi nodes, specialization, IR linking,

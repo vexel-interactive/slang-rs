@@ -1,7 +1,7 @@
 use crate::{FileIncludes, Reflection};
 use slang_codegen::Target;
 use slang_preprocessor::{IncludeResolver, Options};
-use slang_source::{Diagnostic, Severity, SourceMap, Span};
+use slang_source::{Diagnostic, SourceMap, Span};
 use std::{
     collections::BTreeMap,
     fmt, fs,
@@ -54,31 +54,21 @@ pub fn compile_source(
 ) -> Result<Compilation, CompileError> {
     let mut sources = SourceMap::default();
     let root = sources.add(name, text.to_owned());
-    let processed = slang_preprocessor::preprocess(
-        &mut sources,
+    let program = slang_module::load(
         root,
+        &mut sources,
         includes,
         &Options {
             defines: options.defines.clone(),
             ..Options::default()
         },
-    );
-    if processed
-        .diagnostics
-        .iter()
-        .any(|d| d.severity == Severity::Error)
-    {
-        return Err(CompileError {
-            diagnostics: processed.diagnostics,
-            sources,
-        });
-    }
-    let warnings = processed.diagnostics;
-    let module = slang_syntax::parse(&processed.tokens).map_err(|diagnostics| CompileError {
+    )
+    .map_err(|diagnostics| CompileError {
         diagnostics,
         sources: sources.clone(),
     })?;
-    let checked = slang_sema::check(module).map_err(|diagnostics| CompileError {
+    let warnings = program.diagnostics.clone();
+    let checked = slang_sema::check_program(program).map_err(|diagnostics| CompileError {
         diagnostics,
         sources: sources.clone(),
     })?;
@@ -108,7 +98,7 @@ pub fn compile_source(
             })?,
         )
     };
-    let reflection = Reflection::from_module(&ir, options.target);
+    let reflection = Reflection::from_module(&ir, options.target, &checked);
     Ok(Compilation {
         artifact,
         ir,

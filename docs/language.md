@@ -40,7 +40,12 @@ signed/unsigned evaluation rules are not implemented.
 Constant buffers, pointers, 64-bit integers,
 user-defined generics, and struct constructors are not implemented.
 
-Supported modifiers are `const/static/uniform/groupshared` for globals,
+Modules, imports, reexports, and member files are described in
+[Modules and access control](modules.md). Globals, functions, structures, and
+structure fields accept `public/internal`. Explicit module declarations use
+internal visibility by default; legacy modules export all declarations.
+
+Supported storage modifiers are `const/static/uniform/groupshared` for globals,
 `const/static` for locals, and `const/in/out/inout/nointerpolation` for parameters.
 Structure fields support semantics and `nointerpolation`. Conflicting
 parameter directions and `const out/inout` are rejected. Global values without
@@ -196,7 +201,13 @@ JSON reflection reports entry points, stages, thread-group sizes, global names
 and type names, and read/read_write access for structured buffers and textures. It does not
 provide binding indices, register spaces, byte offsets, strides, or layout.
 Applications must not treat this JSON as the upstream compiler's ABI reflection.
-Schema version 3 adds `target_name` for entries and globals. Source identifiers
+Schema version 4 adds a `modules` graph and the optional owning `module` name
+for imported globals. Each module lists its primary source and explicit member
+source IDs, imports, and legacy visibility mode. Imported global names retain
+their source spelling; `target_name` identifies their generated HLSL name.
+Imported struct type names currently use canonical linked names.
+
+Schema version 3 introduced `target_name` for entries and globals. Source identifiers
 that conflict with HLSL keywords are renamed consistently; the source `name`
 remains available. Pass the entry's `target_name` to DXC. As in schema version 2,
 `thread_group_size` is omitted for graphics entries; compute entries retain

@@ -9,6 +9,7 @@ pub struct Reflection {
     pub schema_version: u32,
     pub entry_points: Vec<EntryPointInfo>,
     pub globals: Vec<GlobalInfo>,
+    pub modules: Vec<slang_module::ModuleInfo>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -27,12 +28,20 @@ pub struct GlobalInfo {
     pub target_name: String,
     pub type_name: String,
     pub resource_access: Option<String>,
+    /// Source module for imported globals; absent for root-module globals.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub module: Option<String>,
 }
 
 impl Reflection {
-    pub(crate) fn from_module(module: &Module, target: Target) -> Self {
+    pub(crate) fn from_module(
+        module: &Module,
+        target: Target,
+        checked: &slang_sema::CheckedModule,
+    ) -> Self {
         Self {
-            schema_version: 3,
+            schema_version: 4,
+            modules: checked.modules.clone(),
             entry_points: module
                 .entry_points
                 .iter()
@@ -47,7 +56,10 @@ impl Reflection {
                 .globals
                 .iter()
                 .map(|global| GlobalInfo {
-                    name: global.name.clone(),
+                    name: checked
+                        .symbols
+                        .get(&global.name)
+                        .map_or_else(|| global.name.clone(), |o| o.name.clone()),
                     target_name: slang_codegen::entry_point_name(&global.name, target),
                     type_name: global.ty.to_string(),
                     resource_access: match &global.ty {
@@ -56,6 +68,11 @@ impl Reflection {
                         }
                         _ => None,
                     },
+                    module: checked
+                        .symbols
+                        .get(&global.name)
+                        .filter(|o| o.module.0 != 0)
+                        .map(|o| checked.modules[o.module.0].name.clone()),
                 })
                 .collect(),
         }

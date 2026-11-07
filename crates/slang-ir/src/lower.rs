@@ -23,14 +23,18 @@ pub fn lower(checked: &CheckedModule) -> Result<Module, Diagnostic> {
             }),
             ast::Declaration::Global(variable) => module.globals.push(lowerer.variable(variable)?),
             ast::Declaration::Function(function) => module.functions.push(Function {
-                name: function.name.clone(),
+                name: checked
+                    .function_names
+                    .get(&span_key(function.span))
+                    .cloned()
+                    .unwrap_or_else(|| function.name.clone()),
                 return_type: lowerer.declaration_type(function.span)?,
                 parameters: function
                     .parameters
                     .iter()
                     .map(|p| lowerer.variable(p))
                     .collect::<Result<_, _>>()?,
-                modifiers: function.modifiers.clone(),
+                modifiers: target_modifiers(&function.modifiers),
                 semantic: function.semantic.clone(),
                 body: function
                     .body
@@ -56,6 +60,14 @@ fn error(span: Span) -> Diagnostic {
     )
 }
 
+fn target_modifiers(modifiers: &[String]) -> Vec<String> {
+    modifiers
+        .iter()
+        .filter(|m| !matches!(m.as_str(), "public" | "internal"))
+        .cloned()
+        .collect()
+}
+
 impl Lowerer<'_> {
     fn declaration_type(&self, span: Span) -> Result<Type, Diagnostic> {
         self.checked
@@ -70,7 +82,7 @@ impl Lowerer<'_> {
         Ok(Variable {
             name: variable.name.clone(),
             ty: self.declaration_type(variable.span)?,
-            modifiers: variable.modifiers.clone(),
+            modifiers: target_modifiers(&variable.modifiers),
             semantic: variable.semantic.clone(),
             initializer: variable
                 .initializer
@@ -187,7 +199,12 @@ impl Lowerer<'_> {
                     .collect::<Result<_, _>>()?;
                 match &callee.kind {
                     ast::ExprKind::Name(name) => ExprKind::Call {
-                        name: name.clone(),
+                        name: self
+                            .checked
+                            .call_names
+                            .get(&callee.id)
+                            .cloned()
+                            .unwrap_or_else(|| name.clone()),
                         arguments,
                     },
                     ast::ExprKind::Member { base, name } => ExprKind::MethodCall {
