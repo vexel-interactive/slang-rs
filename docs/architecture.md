@@ -164,6 +164,13 @@ vector overloads row by row. Helpers are cached by intrinsic, scalar type, and
 matrix dimensions. Typed passes share a visitor and iterative binding-name
 collection; aggregate normalization runs before matrix intrinsic lowering.
 
+Vector and matrix component selectors share a dedicated semantic module.
+Matrix selectors normalize zero-based and one-based coordinates for bounds and
+writability checks while retaining their source spelling in typed IR. A repeated
+component can be read but cannot form an output location. The HLSL emitter keeps
+the selector on the original matrix expression, including resource elements and
+shared atomic destinations.
+
 Imported function overloads receive distinct target names when needed. The
 checker records the selected callable in `CheckedModule`; lowering uses that
 selection so target compilation cannot select an internal overload by mistake.

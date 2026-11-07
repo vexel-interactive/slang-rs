@@ -1177,6 +1177,51 @@
       "oracle_accept": true,
       "oracle_validation_accept": false,
       "reason": "Slang 2026.21 accepts compute derivatives with a group size rejected by DXC, while the native frontend diagnoses the invalid quad dimensions"
+    },
+    {
+      "file": "../../examples/matrix-swizzles.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/matrix-swizzle-locations.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/matrix-swizzle-types.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "negative/matrix-swizzle-mixed.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T013"
+    },
+    {
+      "file": "negative/matrix-swizzle-bounds.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T013"
+    },
+    {
+      "file": "negative/matrix-swizzle-duplicate.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T015"
+    },
+    {
+      "file": "negative/matrix-swizzle-output.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T015"
+    },
+    {
+      "file": "negative/matrix-swizzle-read-only.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T015"
     }
   ]
 }

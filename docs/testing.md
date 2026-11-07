@@ -80,6 +80,12 @@ Profile tests check automatic upgrades, reflected DXC profiles, mismatched stage
 selected entries, and check-only compilation. CLI tests verify warning and
 reflection output together.
 
+Matrix selector tests cover both indexing conventions across 54 scalar/matrix
+shapes. They check typed scalar results, vector selections, duplicate reads,
+write and output rejection, bounds, resource locations, atomics, struct field
+names, and imported code. Differential cases also validate the emitted HLSL for
+all six scalar component types.
+
 Sampling tests cover bias and explicit gradients for all four texture dimensions,
 element return types, contextual gradient lists, and invalid receivers and shapes.
 Differential fixtures validate fragment bias and compute gradient sampling with DXC.

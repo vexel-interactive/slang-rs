@@ -16,6 +16,7 @@ mod interface;
 mod intrinsic;
 mod resource;
 mod statement;
+mod swizzle;
 mod types;
 mod value_type;
 mod visibility;

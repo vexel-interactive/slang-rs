@@ -200,7 +200,7 @@ impl Checker {
                         }),
                     Type::Vector(scalar, width) => {
                         if let Some(indices) =
-                            swizzle(name).filter(|v| v.len() <= 4 && v.iter().all(|&i| i < width))
+                            crate::swizzle::vector(name).filter(|v| v.iter().all(|&i| i < width))
                         {
                             if indices.len() == 1 {
                                 Type::Scalar(scalar)
@@ -212,6 +212,18 @@ impl Checker {
                                 "T013",
                                 expression.span,
                                 format!("invalid swizzle '{name}'"),
+                            );
+                            Type::Error
+                        }
+                    }
+                    Type::Matrix(scalar, rows, columns) => {
+                        if let Some(indices) = crate::swizzle::matrix(name, rows, columns) {
+                            Type::numeric_shape(scalar, indices.len() as u8)
+                        } else {
+                            self.error(
+                                "T013",
+                                expression.span,
+                                format!("invalid matrix swizzle '{name}'"),
                             );
                             Type::Error
                         }
@@ -354,13 +366,16 @@ impl Checker {
                 ) {
                     return false;
                 }
-                let unique =
-                    if matches!(self.expression_types.get(&base.id), Some(Type::Vector(..))) {
-                        swizzle(name)
-                            .is_some_and(|v| v.iter().enumerate().all(|(i, x)| !v[..i].contains(x)))
-                    } else {
-                        true
-                    };
+                let unique = match self.expression_types.get(&base.id) {
+                    Some(Type::Vector(..)) => {
+                        crate::swizzle::vector(name).is_some_and(|v| crate::swizzle::unique(&v))
+                    }
+                    Some(Type::Matrix(_, rows, columns)) => {
+                        crate::swizzle::matrix(name, *rows, *columns)
+                            .is_some_and(|v| crate::swizzle::unique(&v))
+                    }
+                    _ => true,
+                };
                 unique && self.writable(base)
             }
             ExprKind::Index { base, .. } => match self.expression_types.get(&base.id) {
@@ -370,20 +385,4 @@ impl Checker {
             _ => false,
         }
     }
-}
-
-fn swizzle(name: &str) -> Option<Vec<u8>> {
-    if name.is_empty() {
-        return None;
-    }
-    for alphabet in ["xyzw", "rgba"] {
-        if let Some(indices) = name
-            .chars()
-            .map(|ch| alphabet.find(ch).map(|i| i as u8))
-            .collect::<Option<Vec<_>>>()
-        {
-            return Some(indices);
-        }
-    }
-    None
 }

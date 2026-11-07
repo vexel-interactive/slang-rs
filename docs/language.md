@@ -30,6 +30,22 @@ The source language uses Slang syntax. Version 0.1.0 implements a small subset
 of upstream features. This document describes its actual boundaries; upstream's
 language reference remains the specification for the complete port.
 
+## Matrix component selectors
+
+Matrices support `_m00` through `_m33` with zero-based coordinates, and `_11`
+through `_44` with one-based coordinates, subject to their actual dimensions.
+For example, `float2x3` allows `_m12` and `_23` for its last component. Combining
+one to four selectors produces a scalar or vector, such as `_m00_m12` or
+`_11_23`. One selection must use a single indexing convention.
+
+Repeated components are readable. Assignment, compound assignment, increment,
+and output arguments require distinct components and writable underlying storage.
+Selectors retain the original location for RW buffer elements, intrinsic outputs,
+and scalar integer atomics on shared matrices. Const matrices, read-only resource
+elements, and temporary values are not writable. Struct fields named `_m00`
+continue to use ordinary member lookup. See
+[matrix-swizzles.slang](../examples/matrix-swizzles.slang).
+
 ## Preprocessing
 
 Object and function macros support fixed and variadic parameters, nested calls,
