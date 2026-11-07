@@ -32,6 +32,7 @@ pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
             .collect(),
         prefix,
         functions: vec![],
+        generated_structures: vec![],
     };
     for global in &mut module.globals {
         if let Some(value) = &mut global.initializer {
@@ -44,6 +45,7 @@ pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
         }
     }
     module.functions.extend(lowerer.functions);
+    module.structures.extend(lowerer.generated_structures);
     Ok(())
 }
 
@@ -89,6 +91,7 @@ struct Lowerer {
     structures: BTreeMap<String, Struct>,
     prefix: String,
     functions: Vec<Function>,
+    generated_structures: Vec<Struct>,
 }
 
 impl Lowerer {
@@ -196,10 +199,34 @@ impl Lowerer {
             }
             _ => {}
         }
-        if let (Type::Struct(name), ExprKind::Construct(values)) =
-            (&expression.ty, &expression.kind)
+        if let ExprKind::Construct(values) = &expression.kind
+            && matches!(expression.ty, Type::Struct(_) | Type::Array(..))
         {
-            let structure = self.structures[name].clone();
+            // HLSL cannot return an array directly. A private wrapper provides
+            // an ordinary value expression for calls, assignments, and globals.
+            let array = matches!(expression.ty, Type::Array(..));
+            let structure = if let Type::Struct(name) = &expression.ty {
+                self.structures[name].clone()
+            } else {
+                let structure = Struct {
+                    name: format!("{}array_{}", self.prefix, self.generated_structures.len()),
+                    fields: vec![Variable {
+                        name: "_value".into(),
+                        ty: expression.ty.clone(),
+                        modifiers: vec![],
+                        semantic: None,
+                        initializer: None,
+                        span: expression.span,
+                    }],
+                };
+                self.generated_structures.push(structure.clone());
+                structure
+            };
+            let values = if array {
+                vec![expression.clone()]
+            } else {
+                values.clone()
+            };
             if structure.fields.len() != values.len() {
                 return Err(Diagnostic::error(
                     "I003",
@@ -208,7 +235,7 @@ impl Lowerer {
                 ));
             }
             let result = Expr {
-                ty: expression.ty.clone(),
+                ty: Type::Struct(structure.name.clone()),
                 kind: ExprKind::Name("_result".into()),
                 span: expression.span,
             };
@@ -218,18 +245,18 @@ impl Lowerer {
                 span: expression.span,
                 kind: StmtKind::Variable(Variable {
                     name: "_result".into(),
-                    ty: expression.ty.clone(),
+                    ty: result.ty.clone(),
                     modifiers: vec![],
                     semantic: None,
                     initializer: Some(Expr {
-                        ty: expression.ty.clone(),
+                        ty: result.ty.clone(),
                         kind: ExprKind::Zero,
                         span: expression.span,
                     }),
                     span: expression.span,
                 }),
             }];
-            for (field, value) in structure.fields.iter().zip(values) {
+            for (field, value) in structure.fields.iter().zip(&values) {
                 let path = Expr {
                     ty: field.ty.clone(),
                     kind: ExprKind::Member {
@@ -246,6 +273,7 @@ impl Lowerer {
                     &mut statements,
                 )?;
             }
+            let return_type = result.ty.clone();
             statements.push(Stmt {
                 span: expression.span,
                 kind: StmtKind::Return(Some(result)),
@@ -253,7 +281,7 @@ impl Lowerer {
             let name = format!("{}{}", self.prefix, self.functions.len());
             self.functions.push(Function {
                 name: name.clone(),
-                return_type: expression.ty.clone(),
+                return_type: return_type.clone(),
                 parameters,
                 modifiers: vec![],
                 semantic: None,
@@ -263,7 +291,18 @@ impl Lowerer {
                 }),
                 span: expression.span,
             });
-            expression.kind = ExprKind::Call { name, arguments };
+            expression.kind = if array {
+                ExprKind::Member {
+                    base: Box::new(Expr {
+                        ty: return_type,
+                        kind: ExprKind::Call { name, arguments },
+                        span: expression.span,
+                    }),
+                    name: "_value".into(),
+                }
+            } else {
+                ExprKind::Call { name, arguments }
+            };
         }
         Ok(())
     }

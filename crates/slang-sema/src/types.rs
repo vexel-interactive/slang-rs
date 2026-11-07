@@ -40,6 +40,8 @@ impl TextureDimension {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub enum Type {
+    /// A contextual source expression; never a concrete IR or declaration type.
+    InitializerList,
     Void,
     Scalar(Scalar),
     Vector(Scalar, u8),
@@ -279,6 +281,7 @@ impl fmt::Display for Type {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Void => f.write_str("void"),
+            Self::InitializerList => f.write_str("<initializer list>"),
             Self::Error => f.write_str("<error>"),
             Self::Scalar(s) => write!(f, "{s}"),
             Self::Vector(s, n) => write!(f, "{s}{n}"),

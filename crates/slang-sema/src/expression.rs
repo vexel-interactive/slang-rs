@@ -5,6 +5,12 @@ use slang_syntax::{Expr, ExprKind};
 impl Checker {
     pub fn expression(&mut self, expression: &Expr) -> Type {
         let ty = match &expression.kind {
+            ExprKind::InitializerList(values) => {
+                for value in values {
+                    self.expression(value);
+                }
+                Type::InitializerList
+            }
             ExprKind::Integer(text) => {
                 let digits = text.trim_end_matches(['u', 'U', 'l', 'L']);
                 let value = if let Some(hex) = digits
@@ -119,20 +125,21 @@ impl Checker {
             }
             ExprKind::Binary { op, left, right } => {
                 let a = self.expression(left);
-                let b = self.expression(right);
                 if op == "=" {
                     self.require_writable(left);
-                    self.require_conversion(&b, &a, right.span);
+                    self.check_value(right, &a);
                     a
                 } else if matches!(
                     op.as_str(),
                     "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^=" | "<<=" | ">>="
                 ) {
+                    let b = self.expression(right);
                     self.require_writable(left);
                     let result = self.binary(op.trim_end_matches('='), &a, &b, expression.span);
                     self.require_conversion(&result, &a, expression.span);
                     a
                 } else {
+                    let b = self.expression(right);
                     self.binary(op, &a, &b, expression.span)
                 }
             }
@@ -240,8 +247,23 @@ impl Checker {
                 else_value,
             } => {
                 self.condition(condition);
-                let a = self.expression(then_value);
-                let b = self.expression(else_value);
+                let mut a = self.expression(then_value);
+                let mut b = self.expression(else_value);
+                if a == Type::InitializerList && b == Type::InitializerList {
+                    self.error(
+                        "T021",
+                        expression.span,
+                        "conditional branches require a concrete type",
+                    );
+                    return Type::Error;
+                }
+                if a == Type::InitializerList && b != Type::InitializerList {
+                    self.coerce_value(then_value, &b);
+                    a = b.clone();
+                } else if b == Type::InitializerList && a != Type::InitializerList {
+                    self.coerce_value(else_value, &a);
+                    b = a.clone();
+                }
                 if a == b {
                     a
                 } else {

@@ -67,9 +67,8 @@ impl Checker {
 
     pub(crate) fn initializer(&mut self, variable: &Variable) {
         if let Some(value) = &variable.initializer {
-            let actual = self.expression(value);
             let expected = self.resolve_type(&variable.ty);
-            self.require_conversion(&actual, &expected, value.span);
+            self.check_value(value, &expected);
         } else if variable.modifiers.iter().any(|m| m == "const") {
             self.error(
                 "T004",
@@ -139,12 +138,21 @@ impl Checker {
                 Flow::FALLTHROUGH
             }
             StmtKind::Expression(expression) => {
-                self.expression(expression);
+                if self.expression(expression) == Type::InitializerList {
+                    self.error(
+                        "T021",
+                        expression.span,
+                        "initializer list requires a concrete target type",
+                    );
+                }
                 Flow::FALLTHROUGH
             }
             StmtKind::Return(value) => {
-                let actual = value.as_ref().map_or(Type::Void, |v| self.expression(v));
-                self.require_conversion(&actual, &self.return_type.clone(), statement.span);
+                if let Some(value) = value {
+                    self.check_value(value, &self.return_type.clone());
+                } else {
+                    self.require_conversion(&Type::Void, &self.return_type.clone(), statement.span);
+                }
                 Flow::RETURN
             }
             StmtKind::If {

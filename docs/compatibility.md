@@ -12,7 +12,7 @@ subsystem is absent. No subsystem currently claims complete upstream parity.
 | Parser and AST | slang-syntax | Partial | Functions, globals, structs, expressions, casts, loops, switches |
 | Name and type checking | slang-sema | Partial | Scalars, vectors, matrices, fixed arrays, aliases, scopes, overloads, writable locations |
 | Type aliases | slang-syntax, slang-sema | Partial | Transparent global typedef/typealias, forwards, cycles, imports; local/nested and generic aliases absent |
-| Struct initialization | slang-sema, slang-ir | Partial | Memberwise, partial, empty and copy construction, field defaults, nested data aggregates; brace lists and user constructors absent |
+| Aggregate initialization | slang-syntax, slang-sema, slang-ir | Partial | Named struct construction, defaults, contextual brace lists, nested/flat fixed arrays, numeric padding/splats; user constructors and full generic inference absent |
 | Core module | slang-sema | Partial | Small built-in signature set |
 | Texture and sampler operations | slang-sema, slang-codegen | Partial | 1D/2D/3D/cube, indexed access, load/sample/comparison/dimensions; advanced resources absent |
 | Constant buffers | slang-sema, slang-codegen | Partial | ConstantBuffer with a struct element and read-only fields; direct cbuffer syntax and explicit layout absent |

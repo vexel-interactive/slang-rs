@@ -74,6 +74,15 @@ field and array-element writes. Helper names avoid source bindings; supplied
 values occur once in the call arguments. Copy construction lowers directly to
 the copied value. Bounded expansion detects recursive constructor defaults.
 
+Initializer lists remain context-dependent in the AST. Checking records a
+concrete normalized plan after selecting a target. Numeric construction retains
+vector operands as single values, and array plans include every omitted element.
+IR lowers array expressions through private wrapper structs and constructor
+functions, allowing HLSL to represent arrays in assignments and call arguments.
+Generated wrappers are excluded from source declaration reflection. A shared
+expansion budget bounds nested field defaults during lowering, including finite
+defaults whose expansion branches repeatedly.
+
 Imported function overloads receive distinct target names when needed. The
 checker records the selected callable in `CheckedModule`; lowering uses that
 selection so target compilation cannot select an internal overload by mistake.

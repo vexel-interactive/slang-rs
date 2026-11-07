@@ -1,6 +1,6 @@
 use crate::{Type, checker::Checker};
 use slang_source::{SourceId, Span};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 impl Checker {
     /// Run after every struct field and local declaration has been checked.
@@ -28,19 +28,33 @@ impl Checker {
     }
 
     pub(crate) fn constant_buffer_data(&self, ty: &Type, path: &mut BTreeSet<String>) -> bool {
+        self.data_type(ty, path, &mut BTreeMap::new())
+    }
+
+    fn data_type(
+        &self,
+        ty: &Type,
+        path: &mut BTreeSet<String>,
+        cache: &mut BTreeMap<String, bool>,
+    ) -> bool {
         match ty {
             Type::Scalar(_) | Type::Vector(..) | Type::Matrix(..) | Type::Error => true,
-            Type::Array(element, _) => self.constant_buffer_data(element, path),
+            Type::Array(element, _) => self.data_type(element, path, cache),
             Type::Struct(name) => {
                 if path.len() >= 128 || !path.insert(name.clone()) {
                     return false;
                 }
+                if let Some(valid) = cache.get(name) {
+                    path.remove(name);
+                    return *valid;
+                }
                 let valid = self.structures.get(name).is_some_and(|fields| {
                     fields
                         .values()
-                        .all(|field| self.constant_buffer_data(field, path))
+                        .all(|field| self.data_type(field, path, cache))
                 });
                 path.remove(name);
+                cache.insert(name.clone(), valid);
                 valid
             }
             _ => false,

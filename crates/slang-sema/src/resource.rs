@@ -46,7 +46,7 @@ impl Checker {
                     );
                 }
             } else {
-                self.require_conversion(actual, expected, argument.span);
+                self.coerce_value(argument, expected);
             }
         }
         self.expression_types.insert(

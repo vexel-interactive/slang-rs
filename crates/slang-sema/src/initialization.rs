@@ -67,7 +67,7 @@ impl Checker {
         for field in &structure.fields {
             let ty = self.structures[name][&field.name].clone();
             let value = if eligible(field) && supplied < arguments.len() {
-                self.require_conversion(&types[supplied], &ty, arguments[supplied].span);
+                self.coerce_value(&arguments[supplied], &ty);
                 let expr = arguments[supplied].clone();
                 supplied += 1;
                 Initialization {

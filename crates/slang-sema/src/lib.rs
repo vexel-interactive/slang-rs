@@ -9,6 +9,7 @@ mod declaration;
 mod entry;
 mod expression;
 mod initialization;
+mod initializer_list;
 mod interface;
 mod intrinsic;
 mod resource;

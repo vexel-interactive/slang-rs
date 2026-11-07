@@ -12,6 +12,11 @@ fn cli_reports_deep_syntax_without_exhausting_its_stack() {
             ")".repeat(1000)
         ),
         format!("int f(){{return {}1;}}", "(int)".repeat(1000)),
+        format!(
+            "void f(){{float a={}1{};}}",
+            "{".repeat(1000),
+            "}".repeat(1000)
+        ),
         format!("void f(){{{};}}", "if(true)".repeat(1000)),
         format!("void f(){{{}{}}}", "{".repeat(1000), "}".repeat(1000)),
         format!("void f(){{{};}}", "for(;;)".repeat(1000)),
@@ -182,12 +187,23 @@ fn cli_reports_excessive_and_recursive_constructor_defaults() {
         nested.push_str(&format!("struct S{index}{{S{} value;}};", index - 1));
     }
     nested.push_str("void run(){S39 value=S39();}");
+    let mut branching = String::from("struct S0{float x=1;};");
+    for index in 1..18 {
+        branching.push_str(&format!(
+            "struct S{index}{{S{0} a=S{0}();S{0} b=S{0}();}};",
+            index - 1
+        ));
+    }
+    branching.push_str("void run(){S17 value={};}");
     for (source, code) in [
         (nested, "T020"),
+        (branching, "I002"),
         (
             "struct S{float values[65537];};void run(){S value=S();}".into(),
             "T020",
         ),
+        ("void run(){float values[512][512]={1};}".into(), "T020"),
+        ("void run(){float values[65537]={};}".into(), "T020"),
         (
             "struct S{float x=read(S());};float read(S s){return s.x;}void run(){S value=S();}"
                 .into(),

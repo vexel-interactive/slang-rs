@@ -24,6 +24,13 @@ visibility, and generated helper names. CLI tests check excessive aggregate
 expansion and recursive field defaults on the Windows debug stack. Differential
 fixtures also validate static global initialization and empty structs with DXC.
 
+Initializer-list tests distinguish numeric splats, padding, and matrix rows;
+cover flat/nested arrays, returns, assignments, function and resource arguments;
+and check overload ambiguity before contextual conversion. Imported field
+defaults retain their owning module. Debug CLI tests bound large arrays and
+branching defaults as well as recursive syntax. The differential corpus includes
+invalid copies, excess inner values, output arguments, and generic inference.
+
 Examples cover vector addition, control flow, matrix algebra, vertex transforms,
 fragment color output, struct construction, and a multi-file module. With DXC
 installed, validate generated HLSL independently:

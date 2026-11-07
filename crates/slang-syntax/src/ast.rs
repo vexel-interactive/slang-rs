@@ -149,6 +149,7 @@ pub struct Expr {
 
 #[derive(Clone, Debug, Serialize)]
 pub enum ExprKind {
+    InitializerList(Vec<Expr>),
     Integer(String),
     Float(String),
     Bool(bool),

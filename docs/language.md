@@ -56,8 +56,8 @@ Structure fields support semantics and `nointerpolation`. Conflicting
 parameter directions and `const out/inout` are rejected. Global values without
 `static/groupshared` are read-only; RW buffer elements remain writable.
 Global const declarations with initializers require `static`.
-Complete modifier rules are not yet implemented. Comma-separated declarations,
-default arguments, and brace initializer lists are not supported.
+Complete modifier rules are not yet implemented. Comma-separated declarations
+and default arguments are not supported.
 
 ## Type aliases and arrays
 
@@ -86,7 +86,7 @@ The same distinction applies to variable declarations. Reflection uses
 outer-to-inner dimensions and HLSL preserves that order in declarations.
 
 Arrays can appear as variables, struct fields, and parameters. Unsized arrays,
-symbolic sizes, brace initialization, array constructors, array return types,
+symbolic sizes, array constructors, array return types,
 and array elements inside resource types are not implemented. Alias chains and
 resolved array ranks are each limited to 32. Local/nested aliases, generic
 aliases, qualified type references, pointer declarators, and C-style casts using
@@ -117,11 +117,46 @@ accept constructor arguments only for explicitly public fields, including when
 called from their own module. Internal fields still receive their defaults.
 
 Declarations without an initializer remain uninitialized and do not invoke
-field defaults. User-defined constructors, resource-valued memberwise
-construction, and brace initializer lists remain unimplemented. Default
+field defaults. User-defined constructors and resource-valued memberwise
+construction remain unimplemented. Default
 aggregate expansion is limited to 32 levels and 65536 elements. Recursive
 constructor defaults report a diagnostic during lowering. See
 [struct-construction.slang](../examples/struct-construction.slang).
+
+## Brace initializer lists
+
+`{...}` uses the type of its declaration, assignment destination, return type,
+or selected function parameter. Lists support nested data-only structs, fixed
+arrays, scalars, vectors, and matrices. Trailing commas and empty lists are valid.
+
+```slang
+float values[3] = {1.0, 2.0}; // final element is zero
+float grid[2][3] = {{1.0}, {2.0, 3.0, 4.0}};
+float3 splat = {2.0};        // all components are 2
+float3 partial = {1.0, 2.0}; // final component is zero
+float2x2 rows = {1.0, 2.0};  // first row is 1, second row is 2
+```
+
+Struct lists first try memberwise initialization, including field defaults and
+visibility. When that form does not apply, flat values fill nested fields in
+declaration order. Arrays also accept flat lists across dimensions. Explicit
+nested lists keep their own boundaries; an excess value in an inner list is
+an error. Empty lists use zero values and nested struct defaults. Copy a struct
+with its named constructor or ordinary assignment.
+
+User function overloads treat list conversions as having equal cost and select
+using their other arguments. Two otherwise matching overloads are ambiguous
+even if one target would later reject the list's shape. Resource input arguments
+use their method signature; output parameters still require writable locations.
+Selected numeric constructor overloads and `dot/min/max/pow/clamp/lerp` support
+lists when their other arguments establish a type. A unary intrinsic such as
+`sin({1.0})` cannot infer its generic argument from the list.
+
+The current frontend does not implement every upstream constructor overload,
+resource-valued aggregate, or generic inference rule. Aggregate normalization
+and expanded defaults are bounded to 65536 nodes; excessive nesting and size
+produce diagnostics. See
+[aggregate-initialization.slang](../examples/aggregate-initialization.slang).
 
 ## Expressions and statements
 

@@ -7,6 +7,7 @@ pub fn lower(checked: &CheckedModule) -> Result<Module, Diagnostic> {
     let lowerer = Lowerer {
         checked,
         initializing: std::cell::RefCell::new(vec![]),
+        initialization_nodes: std::cell::Cell::new(65536),
     };
     let mut module = Module {
         structures: vec![],
@@ -60,6 +61,7 @@ pub fn lower(checked: &CheckedModule) -> Result<Module, Diagnostic> {
 struct Lowerer<'a> {
     checked: &'a CheckedModule,
     initializing: std::cell::RefCell<Vec<ast::ExprId>>,
+    initialization_nodes: std::cell::Cell<usize>,
 }
 
 fn error(span: Span) -> Diagnostic {
@@ -186,6 +188,14 @@ impl Lowerer<'_> {
             .cloned()
             .ok_or_else(|| error(expression.span))?;
         let kind = match &expression.kind {
+            ast::ExprKind::InitializerList(_) => {
+                let value = self
+                    .checked
+                    .initializations
+                    .get(&expression.id)
+                    .ok_or_else(|| error(expression.span))?;
+                return self.planned_initialization(expression.id, value, expression.span);
+            }
             ast::ExprKind::Integer(value) => ExprKind::Integer(value.clone()),
             ast::ExprKind::Float(value) => ExprKind::Float(value.clone()),
             ast::ExprKind::Bool(value) => ExprKind::Bool(*value),
@@ -204,19 +214,7 @@ impl Lowerer<'_> {
             },
             ast::ExprKind::Call { callee, arguments } => {
                 if let Some(value) = self.checked.initializations.get(&callee.id) {
-                    if self.initializing.borrow().len() >= 32
-                        || self.initializing.borrow().contains(&callee.id)
-                    {
-                        return Err(Diagnostic::error(
-                            "I002",
-                            expression.span,
-                            "recursive aggregate default initialization is not implemented",
-                        ));
-                    }
-                    self.initializing.borrow_mut().push(callee.id);
-                    let result = self.initialization(value, expression.span);
-                    self.initializing.borrow_mut().pop();
-                    return result;
+                    return self.planned_initialization(callee.id, value, expression.span);
                 }
                 let arguments = arguments
                     .iter()
@@ -270,11 +268,42 @@ impl Lowerer<'_> {
         })
     }
 
+    fn planned_initialization(
+        &self,
+        id: ast::ExprId,
+        value: &slang_sema::Initialization,
+        span: Span,
+    ) -> Result<Expr, Diagnostic> {
+        if self.initializing.borrow().is_empty() {
+            self.initialization_nodes.set(65536);
+        }
+        if self.initializing.borrow().len() >= 32 || self.initializing.borrow().contains(&id) {
+            return Err(Diagnostic::error(
+                "I002",
+                span,
+                "recursive aggregate default initialization is not implemented",
+            ));
+        }
+        self.initializing.borrow_mut().push(id);
+        let result = self.initialization(value, span);
+        self.initializing.borrow_mut().pop();
+        result
+    }
+
     fn initialization(
         &self,
         value: &slang_sema::Initialization,
         span: Span,
     ) -> Result<Expr, Diagnostic> {
+        let remaining = self.initialization_nodes.get();
+        if remaining == 0 {
+            return Err(Diagnostic::error(
+                "I002",
+                span,
+                "aggregate default expansion size limit exceeded",
+            ));
+        }
+        self.initialization_nodes.set(remaining - 1);
         let kind = match &value.kind {
             slang_sema::InitializationKind::Zero => ExprKind::Zero,
             slang_sema::InitializationKind::Aggregate(values) => ExprKind::Construct(

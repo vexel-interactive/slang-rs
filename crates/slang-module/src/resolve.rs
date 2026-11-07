@@ -168,6 +168,11 @@ impl<'a> Resolver<'a> {
         expression.id = ExprId(*self.next_expression);
         *self.next_expression += 1;
         match &mut expression.kind {
+            ExprKind::InitializerList(values) => {
+                for value in values {
+                    self.expression(value)?;
+                }
+            }
             ExprKind::Name(name) => {
                 if !self.scopes.iter().rev().any(|scope| scope.contains(name)) {
                     if let Some(target) = self.own.lookup(name, false, expression.span)? {

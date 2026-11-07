@@ -12,6 +12,7 @@ impl Parser {
 
     fn expr(&mut self, kind: ExprKind, span: Span) -> Result<Expr, Diagnostic> {
         let height = 1 + match &kind {
+            ExprKind::InitializerList(values) => values.iter().map(|v| v.height).max().unwrap_or(0),
             ExprKind::Unary { value, .. }
             | ExprKind::Postfix { value, .. }
             | ExprKind::Cast { value, .. } => value.height,
@@ -54,7 +55,19 @@ impl Parser {
             .ok_or_else(|| self.error("expected expression"))?
             .clone();
         self.offset += 1;
-        let mut left = if token.is("(") && self.cast_type() {
+        let mut left = if token.is("{") {
+            let mut values = vec![];
+            if !self.at("}") {
+                loop {
+                    values.push(self.expression(1)?);
+                    if !self.eat(",") || self.at("}") {
+                        break;
+                    }
+                }
+            }
+            let end = self.expect("}")?;
+            self.expr(ExprKind::InitializerList(values), token.span.join(end))?
+        } else if token.is("(") && self.cast_type() {
             self.cast_expression(token.span)?
         } else if token.is("(") {
             let mut expr = self.expression(0)?;

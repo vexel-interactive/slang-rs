@@ -4,7 +4,7 @@ use slang_syntax::{Expr, ExprKind};
 
 impl Checker {
     pub(crate) fn call(&mut self, callee: &Expr, arguments: &[Expr], span: Span) -> Type {
-        let types: Vec<Type> = arguments.iter().map(|a| self.expression(a)).collect();
+        let mut types: Vec<Type> = arguments.iter().map(|a| self.expression(a)).collect();
         if let ExprKind::Member { base, name } = &callee.kind {
             return self.resource_call(base, name, arguments, &types, callee.id, span);
         }
@@ -29,6 +29,28 @@ impl Checker {
                 self.expression_types
                     .insert(callee.id, Type::Meta(Box::new(target)));
                 return result;
+            }
+            if types.contains(&Type::InitializerList) {
+                if arguments.len() == 1 && matches!(target, Type::Vector(..) | Type::Matrix(..)) {
+                    let scalar = Type::Scalar(target.scalar().unwrap());
+                    self.coerce_value(&arguments[0], &scalar);
+                    types[0] = scalar;
+                } else {
+                    let Some(selected) = self.numeric_list_types(arguments, &types, &target) else {
+                        self.error(
+                            "T014",
+                            span,
+                            "invalid or ambiguous initializer-list constructor arguments",
+                        );
+                        return Type::Error;
+                    };
+                    for (argument, target) in arguments.iter().zip(&selected) {
+                        if matches!(argument.kind, ExprKind::InitializerList(_)) {
+                            self.coerce_value(argument, target);
+                        }
+                    }
+                    types = selected;
+                }
             }
             let valid = match &target {
                 Type::Scalar(_) => types.len() == 1 && matches!(types[0], Type::Scalar(_)),
@@ -88,14 +110,14 @@ impl Checker {
                         && types
                             .iter()
                             .zip(&s.parameters)
-                            .all(|(a, b)| a.convertible_to(b))
+                            .all(|(a, b)| *a == Type::InitializerList || a.convertible_to(b))
                 })
                 .collect();
             matches.sort_by_key(|s| {
                 types
                     .iter()
                     .zip(&s.parameters)
-                    .filter(|(a, b)| a != b)
+                    .filter(|(a, b)| **a != Type::InitializerList && a != b)
                     .count()
             });
             let best = matches.first();
@@ -103,13 +125,13 @@ impl Checker {
                 let score = types
                     .iter()
                     .zip(&best.parameters)
-                    .filter(|(a, b)| a != b)
+                    .filter(|(a, b)| **a != Type::InitializerList && a != b)
                     .count();
                 if matches.get(1).is_some_and(|s| {
                     types
                         .iter()
                         .zip(&s.parameters)
-                        .filter(|(a, b)| a != b)
+                        .filter(|(a, b)| **a != Type::InitializerList && a != b)
                         .count()
                         == score
                 }) {
@@ -123,6 +145,9 @@ impl Checker {
                         self.require_writable(argument);
                     }
                 }
+                for (argument, target) in arguments.iter().zip(&best.parameters) {
+                    self.coerce_value(argument, target);
+                }
                 self.expression_types.insert(
                     callee.id,
                     Type::Callable {
@@ -135,6 +160,25 @@ impl Checker {
             }
             self.error("T014", span, format!("no matching overload for '{name}'"));
             return Type::Error;
+        }
+        if types.contains(&Type::InitializerList)
+            && matches!(
+                name.as_str(),
+                "dot" | "min" | "max" | "pow" | "clamp" | "lerp"
+            )
+            && let Some(context) = types
+                .iter()
+                .filter(|t| **t != Type::InitializerList)
+                .cloned()
+                .reduce(|a, b| Type::common(&a, &b).unwrap_or(Type::Error))
+            && context != Type::Error
+        {
+            for (argument, ty) in arguments.iter().zip(&mut types) {
+                if *ty == Type::InitializerList {
+                    self.coerce_value(argument, &context);
+                    *ty = context.clone();
+                }
+            }
         }
         if let Some(result) = intrinsic(name, &types) {
             self.expression_types.insert(
@@ -152,5 +196,64 @@ impl Checker {
             format!("unknown function or unsupported intrinsic '{name}'"),
         );
         Type::Error
+    }
+
+    pub(crate) fn numeric_list_types(
+        &self,
+        arguments: &[Expr],
+        types: &[Type],
+        target: &Type,
+    ) -> Option<Vec<Type>> {
+        if !matches!(target, Type::Vector(..) | Type::Matrix(..)) {
+            return None;
+        }
+        let components = target.components()?;
+        if arguments.len() > usize::from(components) {
+            return None;
+        }
+        let scalar = target.scalar()?;
+        let choices: Vec<Vec<Type>> = arguments
+            .iter()
+            .zip(types)
+            .map(|(argument, ty)| {
+                if *ty == Type::InitializerList {
+                    (1..=4)
+                        .map(|width| Type::numeric_shape(scalar, width))
+                        .filter(|ty| self.can_initialize(argument, ty))
+                        .collect()
+                } else {
+                    vec![ty.clone()]
+                }
+            })
+            .collect();
+        let mut candidates = vec![];
+        constructor_partitions(&choices, components, &mut vec![], &mut candidates);
+        (candidates.len() == 1).then(|| candidates.remove(0))
+    }
+}
+
+fn constructor_partitions(
+    choices: &[Vec<Type>],
+    remaining: u16,
+    selected: &mut Vec<Type>,
+    candidates: &mut Vec<Vec<Type>>,
+) {
+    if candidates.len() >= 2 {
+        return;
+    }
+    if choices.is_empty() {
+        if remaining == 0 {
+            candidates.push(selected.clone());
+        }
+        return;
+    }
+    for ty in &choices[0] {
+        if let Some(width) = ty.width().map(u16::from)
+            && width <= remaining
+        {
+            selected.push(ty.clone());
+            constructor_partitions(&choices[1..], remaining - width, selected, candidates);
+            selected.pop();
+        }
     }
 }

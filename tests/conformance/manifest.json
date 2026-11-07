@@ -463,6 +463,94 @@
       "accept": false,
       "entry": "main",
       "rust_code": "T011"
+    },
+    {
+      "file": "../../examples/aggregate-initialization.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/initializer-array-global.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/initializer-numeric.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/initializer-flat.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/initializer-default-fields.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/initializer-overload.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/initializer-resource.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "modules/initializer-import.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "negative/initializer-excess.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T021"
+    },
+    {
+      "file": "negative/initializer-nested-excess.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T021"
+    },
+    {
+      "file": "negative/initializer-overload.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/initializer-output.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T015"
+    },
+    {
+      "file": "negative/initializer-intrinsic.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/initializer-numeric-ambiguous.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/initializer-copy.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T008"
+    },
+    {
+      "file": "negative/initializer-overload-shape.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T014"
     }
   ]
 }
