@@ -210,7 +210,10 @@ impl Checker {
                 ),
                 VariableScope::Local => matches!(modifier.as_str(), "const" | "static"),
                 VariableScope::Parameter => {
-                    matches!(modifier.as_str(), "const" | "in" | "out" | "inout")
+                    matches!(
+                        modifier.as_str(),
+                        "const" | "in" | "out" | "inout" | "nointerpolation"
+                    )
                 }
             };
             if !valid {
@@ -221,6 +224,7 @@ impl Checker {
                 );
             }
         }
+        self.check_interpolation(&variable.modifiers, variable.span);
         let directions = variable
             .modifiers
             .iter()

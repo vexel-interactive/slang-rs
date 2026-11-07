@@ -7,8 +7,19 @@ use std::collections::BTreeMap;
 #[derive(Clone, Debug, Serialize)]
 pub struct EntryPoint {
     pub name: String,
-    pub stage: String,
-    pub thread_group_size: [u32; 3],
+    pub stage: ShaderStage,
+    /// Present only for compute shaders.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub thread_group_size: Option<[u32; 3]>,
+}
+
+/// Shader execution models currently checked by the native frontend.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ShaderStage {
+    Compute,
+    Vertex,
+    Fragment,
 }
 
 #[derive(Clone, Debug)]
@@ -67,7 +78,7 @@ pub fn check(module: Module) -> Result<CheckedModule, Vec<Diagnostic>> {
         match declaration {
             Declaration::Global(variable) => checker.initializer(variable),
             Declaration::Function(function) => {
-                if let Some(entry) = checker.entry_point(function) {
+                if let Some(entry) = checker.entry_point(function, &module) {
                     entry_points.push(entry);
                 }
                 checker.function(function);
@@ -75,11 +86,15 @@ pub fn check(module: Module) -> Result<CheckedModule, Vec<Diagnostic>> {
             Declaration::Struct(structure) => {
                 for field in &structure.fields {
                     if field.initializer.is_some()
-                        || field.semantic.is_some()
-                        || !field.modifiers.is_empty()
+                        || field.modifiers.iter().any(|m| m != "nointerpolation")
                     {
-                        checker.error("T001", field.span, "struct field initializers, semantics, and modifiers are not implemented");
+                        checker.error(
+                            "T001",
+                            field.span,
+                            "struct field initializers and modifiers other than nointerpolation are not implemented",
+                        );
                     }
+                    checker.check_interpolation(&field.modifiers, field.span);
                 }
             }
         }
@@ -136,7 +151,7 @@ mod tests {
     fn compute_resource_access_and_overloads() {
         let text = "float twice(float x){return x*2.0;} int twice(int x){return x*2;} RWStructuredBuffer<float> output; [shader(\"compute\")][numthreads(64,1,1)] void main(uint3 id:SV_DispatchThreadID){output[id.x]=twice(float(id.x));}";
         let module = run(text).unwrap();
-        assert_eq!(module.entry_points[0].thread_group_size, [64, 1, 1]);
+        assert_eq!(module.entry_points[0].thread_group_size, Some([64, 1, 1]));
     }
 
     #[test]

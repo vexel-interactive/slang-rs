@@ -20,6 +20,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 Compilation returns `Result<Compilation, CompileError>`. `Compilation` contains
 a text artifact, typed IR, declaration reflection, a source map, and warnings.
+Reflection schema version 2 reports `compute`, `vertex`, or `fragment` stages;
+`thread_group_size` is present only for compute entries. The Rust model uses
+`slang_sema::ShaderStage` and `Option<[u32; 3]>` for these fields.
 With `check_only: true`, the artifact is `None`. Errors retain diagnostics and
 source files; their `Display` implementation reports source locations and text.
 

@@ -89,7 +89,7 @@ pub fn compile_source(
             diagnostics: vec![Diagnostic::error(
                 "C001",
                 Span::new(root, 0, 0),
-                format!("compute entry point '{entry}' was not found"),
+                format!("shader entry point '{entry}' was not found"),
             )],
             sources,
         });

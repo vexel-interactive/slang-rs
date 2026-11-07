@@ -20,7 +20,7 @@ pub struct GlobalInfo {
 impl Reflection {
     pub(crate) fn from_module(module: &Module) -> Self {
         Self {
-            schema_version: 1,
+            schema_version: 2,
             entry_points: module.entry_points.clone(),
             globals: module
                 .globals

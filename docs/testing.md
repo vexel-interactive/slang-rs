@@ -7,7 +7,8 @@
 macro recursion and operators, include guards, diagnostic locations, IR lowering,
 and output preservation after a compilation error.
 
-The example shaders are `vector-add.slang` and `control-flow.slang`. With DXC
+Examples cover vector addition, control flow, matrix algebra, vertex transforms,
+and fragment color output. With DXC
 installed, validate generated HLSL independently:
 
 ```text
@@ -24,6 +25,8 @@ language compatibility.
 Each source is compiled by both the Rust compiler and a standalone upstream
 `slangc`, and their acceptance statuses are compared. Positive HLSL artifacts
 are additionally checked with DXC when its executable path is supplied.
+Each case may specify a DXC `profile`: `vs_6_0` for vertex and `ps_6_0` for
+fragment shaders. The default is `cs_6_0` for compute shaders.
 
 ```text
 python tools/conformance.py --rust target/debug/slangc-rs.exe --oracle path/to/slangc.exe --dxc path/to/dxc.exe

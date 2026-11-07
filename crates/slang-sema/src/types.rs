@@ -16,6 +16,8 @@ pub enum Type {
     Void,
     Scalar(Scalar),
     Vector(Scalar, u8),
+    /// Component type, row count, and column count; indexing selects a row.
+    Matrix(Scalar, u8, u8),
     Array(Box<Type>, u32),
     Struct(String),
     Buffer {
@@ -52,13 +54,20 @@ impl Type {
             {
                 return Some(Self::Vector(scalar, size));
             }
+            if let Some(suffix) = name.strip_prefix(prefix)
+                && let Some((rows, columns)) = suffix.split_once('x')
+                && let (Ok(rows @ 2..=4), Ok(columns @ 2..=4)) =
+                    (rows.parse::<u8>(), columns.parse::<u8>())
+            {
+                return Some(Self::Matrix(scalar, rows, columns));
+            }
         }
         None
     }
 
     pub fn scalar(&self) -> Option<Scalar> {
         match self {
-            Self::Scalar(s) | Self::Vector(s, _) => Some(*s),
+            Self::Scalar(s) | Self::Vector(s, _) | Self::Matrix(s, _, _) => Some(*s),
             _ => None,
         }
     }
@@ -74,6 +83,24 @@ impl Type {
     pub fn numeric(&self) -> bool {
         self.scalar().is_some_and(|s| s != Scalar::Bool)
     }
+
+    /// Number of scalar components; unlike `width`, this includes matrices.
+    pub fn components(&self) -> Option<u16> {
+        match self {
+            Self::Matrix(_, rows, columns) => Some(u16::from(*rows) * u16::from(*columns)),
+            _ => self.width().map(u16::from),
+        }
+    }
+
+    /// Preserve this value's shape while replacing its component type.
+    pub fn with_scalar(&self, scalar: Scalar) -> Self {
+        match self {
+            Self::Scalar(_) => Self::Scalar(scalar),
+            Self::Vector(_, width) => Self::Vector(scalar, *width),
+            Self::Matrix(_, rows, columns) => Self::Matrix(scalar, *rows, *columns),
+            _ => Self::Error,
+        }
+    }
     pub fn integral(&self) -> bool {
         matches!(self.scalar(), Some(Scalar::Int | Scalar::Uint))
     }
@@ -81,6 +108,14 @@ impl Type {
     pub fn convertible_to(&self, target: &Self) -> bool {
         if self == target || *self == Self::Error || *target == Self::Error {
             return true;
+        }
+        if let Self::Matrix(b, rows, columns) = target {
+            return *b != Scalar::Bool
+                && match self {
+                    Self::Scalar(a) => *a != Scalar::Bool,
+                    Self::Matrix(a, r, c) => *a != Scalar::Bool && (r, c) == (rows, columns),
+                    _ => false,
+                };
         }
         if let (Some(a), Some(b), Some(aw), Some(bw)) =
             (self.scalar(), target.scalar(), self.width(), target.width())
@@ -94,10 +129,23 @@ impl Type {
         if *a == Self::Error || *b == Self::Error {
             return Some(Self::Error);
         }
-        let (sa, sb, wa, wb) = (a.scalar()?, b.scalar()?, a.width()?, b.width()?);
+        let (sa, sb) = (a.scalar()?, b.scalar()?);
         if sa == Scalar::Bool || sb == Scalar::Bool {
             return (a == b).then(|| a.clone());
         }
+        if let Self::Matrix(_, rows, columns) = a {
+            return match b {
+                Self::Scalar(_) => Some(a.with_scalar(sa.max(sb))),
+                Self::Matrix(_, r, c) if (r, c) == (rows, columns) => {
+                    Some(a.with_scalar(sa.max(sb)))
+                }
+                _ => None,
+            };
+        }
+        if matches!(b, Self::Matrix(..)) {
+            return Self::common(b, a);
+        }
+        let (wa, wb) = (a.width()?, b.width()?);
         if wa != wb && wa != 1 && wb != 1 {
             return None;
         }
@@ -111,11 +159,7 @@ impl Type {
     }
 
     pub fn boolean_shape(&self) -> Self {
-        match self.width() {
-            Some(1) => Self::Scalar(Scalar::Bool),
-            Some(n) => Self::Vector(Scalar::Bool, n),
-            None => Self::Error,
-        }
+        self.with_scalar(Scalar::Bool)
     }
 }
 
@@ -139,6 +183,7 @@ impl fmt::Display for Type {
             Self::Error => f.write_str("<error>"),
             Self::Scalar(s) => write!(f, "{s}"),
             Self::Vector(s, n) => write!(f, "{s}{n}"),
+            Self::Matrix(s, rows, columns) => write!(f, "{s}{rows}x{columns}"),
             Self::Array(element, n) => write!(f, "{element}[{n}]"),
             Self::Struct(name) => f.write_str(name),
             Self::Buffer { element, writable } => write!(

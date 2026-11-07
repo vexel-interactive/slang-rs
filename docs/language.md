@@ -29,15 +29,17 @@ signed/unsigned evaluation rules are not implemented.
 
 - Functions, prototypes, overloads, and `in`, `out`, `inout` parameters.
 - Global and local variables, and simple structures with fields.
-- `bool`, `int`, `uint`, `half`, `float`, `double`, and vectors with 2?4 components.
+- `bool`, `int`, `uint`, `half`, `float`, `double`, and vectors with 2-4 components.
+- Matrix aliases such as `float2x3`, with 2-4 rows and 2-4 columns.
 - One-dimensional arrays with a positive decimal literal size.
 - `StructuredBuffer<T>` and `RWStructuredBuffer<T>` with indexed element access.
 
-Matrices, textures, samplers, constant buffers, pointers, 64-bit integers,
+Textures, samplers, constant buffers, pointers, 64-bit integers,
 user-defined generics, and struct constructors are not implemented.
 
 Supported modifiers are `const/static/uniform/groupshared` for globals,
-`const/static` for locals, and `const/in/out/inout` for parameters. Conflicting
+`const/static` for locals, and `const/in/out/inout/nointerpolation` for parameters.
+Structure fields support semantics and `nointerpolation`. Conflicting
 parameter directions and `const out/inout` are rejected. Global values without
 `static/groupshared` are read-only; RW buffer elements remain writable.
 Complete modifier rules are not yet implemented. Comma-separated declarations,
@@ -46,7 +48,7 @@ default arguments, and aggregate initialization are not supported.
 ## Expressions and statements
 
 Expressions include numeric and boolean literals, names, scalar and vector
-constructors, unary and binary operators, assignment, compound assignment,
+and matrix constructors, unary and binary operators, assignment, compound assignment,
 function calls, fields, swizzles, indexing, conditionals, and increment/decrement.
 
 Statements include blocks, local declarations, expression statements, `return`,
@@ -62,11 +64,33 @@ constant evaluation, uniformity analysis, and capability checking are absent.
 Syntax nesting and expression trees are limited to 128 levels to prevent stack
 overflow on malformed or unusually deep inputs.
 
+## Matrix operations
+
+Matrix aliases specify rows and columns, for example `float2x3`. Constructors
+accept one scalar (splat), a matrix with the same dimensions, or scalar/vector
+arguments containing exactly `R * C` components. Indexing selects a row vector:
+`float2x3 m; m[0]` has type `float3`, and `m[0][1]` selects one component.
+Matrix row indices are not statically bounds-checked. All indexing currently
+requires a scalar `int` or `uint`; upstream also permits some numeric conversions
+with warnings, which this frontend does not yet implement.
+
+Arithmetic operators, including `*`, operate component by component. They accept
+equal matrix dimensions or scalar broadcasting. `mul` performs algebraic
+multiplication: `mul(floatRxK, floatKxC)` returns `floatRxC`; matrix/vector and
+vector/matrix forms contract the matching dimension. A vector on the left is a
+row vector; a vector on the right is a column vector. `transpose` swaps the
+dimensions and `determinant` requires a square floating-point matrix.
+
+One-dimensional matrix aliases, generic `matrix<T,R,C>` syntax, matrix member
+swizzles, and explicit matrix storage-layout options remain unimplemented.
+Row/column vector algebra does not itself define buffer storage layout.
+
 ## Intrinsics
 
 The current built-in signatures cover `abs`, `sin`, `cos`, `tan`, `sqrt`, `rsqrt`,
 `floor`, `ceil`, `frac`, `exp`, `exp2`, `log`, `log2`, `saturate`, `min`, `max`,
-`pow`, `clamp`, `lerp`, `dot`, `length`, `normalize`, `all`, `any`,
+`pow`, `clamp`, `lerp`, `dot`, `length`, `normalize`, `mul`, `transpose`,
+`determinant`, `all`, `any`,
 `GroupMemoryBarrierWithGroupSync`, `DeviceMemoryBarrierWithGroupSync`, and
 `AllMemoryBarrierWithGroupSync`.
 
@@ -89,8 +113,35 @@ void main(uint3 id : SV_DispatchThreadID)
 
 `SV_GroupID` and `SV_GroupThreadID` require `uint3`; `SV_GroupIndex` requires
 `uint`. Validation requires a `void` return, a function body, supported parameter
-semantics, and a valid thread-group size. Other shader stages, semantics, and
-shader attributes have not been implemented.
+semantics, and a valid thread-group size.
+
+## Vertex and fragment entry points
+
+`[shader("vertex")]` and `[shader("fragment")]` identify graphics entry points;
+`"pixel"` is an alias for `"fragment"`. They require a function body and reject
+`numthreads`. Inputs and outputs can be scalar/vector parameters, `out`/`inout`
+parameters, return values, or nested structures with semantics on their leaves.
+Semantics are case-insensitive, with an omitted numeric suffix meaning zero.
+Duplicate semantics within the inputs or within the outputs are rejected.
+
+| Semantic | Implemented stage and direction | Type |
+| --- | --- | --- |
+| `SV_Position` | Vertex output, fragment input | `float4` |
+| `SV_VertexID`, `SV_InstanceID` | Vertex input | `uint` |
+| `SV_IsFrontFace` | Fragment input | `bool` |
+| `SV_PrimitiveID`, `SV_SampleIndex` | Fragment input | `uint` |
+| `SV_Coverage` | Fragment input or output | `uint` |
+| `SV_Target0` through `SV_Target7` | Fragment output | Numeric scalar/vector |
+| `SV_Depth`, `SV_DepthGreaterEqual`, `SV_DepthLessEqual` | Fragment output | `float` |
+| User semantics such as `POSITION`, `TEXCOORD0` | Vertex input/output, fragment input | Numeric scalar/vector |
+
+Vertex outputs require `SV_Position`. Integer fragment varyings require
+`nointerpolation` on the parameter or field. These interface rules describe the
+implemented HLSL subset and can be stricter than upstream's target-independent
+frontend. Matrices/arrays in shader interfaces, whole-structure semantics, other
+interpolation modes, stage capability analysis, and other shader stages remain
+unimplemented. See `examples/vertex-transform.slang` and
+`examples/fragment-color.slang` for a matching pair.
 
 ## Reflection
 
@@ -98,3 +149,5 @@ JSON reflection reports entry points, stages, thread-group sizes, global names
 and type names, and read/read_write access for structured buffers. It does not
 provide binding indices, register spaces, byte offsets, strides, or layout.
 Applications must not treat this JSON as the upstream compiler's ABI reflection.
+Schema version 2 adds graphics stages and omits `thread_group_size` for graphics
+entry points. Compute entries retain their three-element thread-group array.

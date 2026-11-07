@@ -1,11 +1,15 @@
 use crate::{
-    Scalar, Type,
+    Scalar, ShaderStage, Type,
     checker::{Checker, EntryPoint},
 };
-use slang_syntax::{Expr, ExprKind, Function};
+use slang_syntax::{Expr, ExprKind, Function, Module};
 
 impl Checker {
-    pub(crate) fn entry_point(&mut self, function: &Function) -> Option<EntryPoint> {
+    pub(crate) fn entry_point(
+        &mut self,
+        function: &Function,
+        module: &Module,
+    ) -> Option<EntryPoint> {
         let mut stage = None;
         let mut dimensions = None;
         for attribute in &function.attributes {
@@ -21,14 +25,15 @@ impl Checker {
                         },
                     ] = attribute.arguments.as_slice()
                     {
-                        if value != "\"compute\"" {
-                            self.error(
-                                "T006",
-                                attribute.span,
-                                "only the compute shader stage is implemented",
-                            );
-                        }
-                        stage = Some("compute".to_owned());
+                        stage = match value.as_str() {
+                            "\"compute\"" => Some(ShaderStage::Compute),
+                            "\"vertex\"" => Some(ShaderStage::Vertex),
+                            "\"fragment\"" | "\"pixel\"" => Some(ShaderStage::Fragment),
+                            _ => {
+                                self.error("T006", attribute.span, "unsupported shader stage");
+                                None
+                            }
+                        };
                     } else {
                         self.error("T006", attribute.span, "shader requires a stage string");
                     }
@@ -85,8 +90,27 @@ impl Checker {
             self.error(
                 "T006",
                 function.span,
-                "overloaded compute entry points are not implemented",
+                "overloaded shader entry points are not implemented",
             );
+        }
+        if function.body.is_none() {
+            self.error("T006", function.span, "shader entry point must have a body");
+        }
+        let stage = stage.unwrap_or(ShaderStage::Compute);
+        if stage != ShaderStage::Compute {
+            if dimensions.is_some() {
+                self.error(
+                    "T006",
+                    function.span,
+                    "numthreads is only valid for compute shaders",
+                );
+            }
+            self.graphics_interface(function, module, stage);
+            return Some(EntryPoint {
+                name: function.name.clone(),
+                stage,
+                thread_group_size: None,
+            });
         }
         if self.resolve_type(&function.return_type) != Type::Void {
             self.error(
@@ -95,11 +119,11 @@ impl Checker {
                 "compute entry point must return void",
             );
         }
-        if function.body.is_none() {
+        if function.semantic.is_some() {
             self.error(
                 "T006",
                 function.span,
-                "compute entry point must have a body",
+                "compute entry point cannot have a return semantic",
             );
         }
         for parameter in &function.parameters {
@@ -146,8 +170,8 @@ impl Checker {
         });
         Some(EntryPoint {
             name: function.name.clone(),
-            stage: "compute".into(),
-            thread_group_size: dimensions,
+            stage,
+            thread_group_size: Some(dimensions),
         })
     }
 }

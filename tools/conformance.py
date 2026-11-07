@@ -35,7 +35,7 @@ def main():
         validators = []
         if args.dxc and case["accept"] and rust["accepted"] and oracle["accepted"]:
             for output in (rust_output, oracle_output):
-                validation = run([str(args.dxc.resolve()), "-T", "cs_6_0", "-E", case["entry"], "-Fo", str(output.with_suffix(".dxil")), str(output)])
+                validation = run([str(args.dxc.resolve()), "-T", case.get("profile", "cs_6_0"), "-E", case["entry"], "-Fo", str(output.with_suffix(".dxil")), str(output)])
                 validators.append(validation)
                 passed = passed and validation["accepted"]
         results.append({"file": case["file"], "passed": passed, "rust": rust, "oracle": oracle, "validators": validators})

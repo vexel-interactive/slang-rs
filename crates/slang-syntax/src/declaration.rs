@@ -22,6 +22,7 @@ impl Parser {
                     | "extern"
                     | "inline"
                     | "precise"
+                    | "nointerpolation"
             )
         }) {
             result.push(self.current().unwrap().text.clone());

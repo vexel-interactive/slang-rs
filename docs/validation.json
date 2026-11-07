@@ -6,7 +6,7 @@
     "rustfmt": "passed",
     "clippy_all_targets_warnings_denied": "passed",
     "unit_tests": 17,
-    "integration_tests": 7,
+    "integration_tests": 12,
     "doc_tests": 1,
     "rustdoc": "passed",
     "release_build": "passed",
@@ -14,11 +14,21 @@
   },
   "differential_validation": {
     "oracle": "Slang 2026.21",
-    "cases_passed": 14,
-    "cases_total": 14,
-    "dxc_hlsl_artifacts_validated": 14,
+    "cases_passed": 24,
+    "cases_total": 24,
+    "dxc_hlsl_artifacts_validated": 26,
     "gpu_execution_compared": false,
-    "complete_upstream_parity": false
+    "complete_upstream_parity": false,
+    "profiles": [
+      "cs_6_0",
+      "vs_6_0",
+      "ps_6_0"
+    ]
   },
-  "remote_ci_executed": false
+  "remote_ci_executed": true,
+  "remote_ci": {
+    "run_id": 42362617928,
+    "head_sha": "b908542c0fb410595dd723f262e3bb3205f654a5",
+    "conclusion": "success"
+  }
 }

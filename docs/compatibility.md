@@ -10,7 +10,7 @@ subsystem is absent. No subsystem currently claims complete upstream parity.
 | Lexer | slang-lexer | Partial | Lossless tokens; incomplete literal grammar |
 | Preprocessor | slang-preprocessor | Partial | Macros, #, ##, variadics, includes, conditionals; no predefined macros or #line |
 | Parser and AST | slang-syntax | Partial | Functions, globals, structs, expressions, loops |
-| Name and type checking | slang-sema | Partial | Basic types, scopes, overloads, writable locations |
+| Name and type checking | slang-sema | Partial | Scalars, vectors, matrices, scopes, overloads, writable locations |
 | Core module | slang-sema | Partial | Small built-in signature set |
 | Modules and imports | ? | Not ported | Loader, visibility, dependency graph required |
 | Interfaces and generics | ? | Not ported | Constraints, witnesses, specialization required |
@@ -18,7 +18,7 @@ subsystem is absent. No subsystem currently claims complete upstream parity.
 | Automatic differentiation | ? | Not ported | AD passes, JVP/VJP, runtime contracts required |
 | Structured IR | slang-ir | Partial | Typed tree lowering |
 | SSA, linking, optimization | ? | Not ported | CFG, use-def, verifier, passes required |
-| HLSL emitter | slang-codegen | Partial | Compute subset; examples validated by DXC |
+| HLSL emitter | slang-codegen | Partial | Compute, vertex, fragment subset; examples validated by DXC |
 | SPIR-V emitter | ? | Not ported | Native binary emission and spirv-val required |
 | DXIL emitter | ? | Not ported | Textual HLSL output does not implement a native DXIL backend |
 | GLSL, WGSL, Metal | ? | Not ported | Target-specific lowering and validators required |

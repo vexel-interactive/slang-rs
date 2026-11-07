@@ -6,7 +6,7 @@ compilation targets, reflection, and tools. The Rust workspace separates the
 compiler into clearly defined phases.
 
 **The full rewrite is not complete.** The current implementation compiles a
-limited compute-shader subset to HLSL. It includes preprocessing, parsing, type
+limited compute, vertex, and fragment shader subset to HLSL. It includes preprocessing, parsing, type
 checking, typed structured IR, a Rust API, and a command-line compiler. Modules,
 user generics, interfaces, autodiff, most resources and intrinsics, binary
 backends, complete reflection, the upstream C ABI, and LSP remain to be ported.

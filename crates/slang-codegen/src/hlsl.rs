@@ -27,8 +27,9 @@ pub(crate) fn emit(module: &Module) -> String {
     }
     for function in &module.functions {
         if let Some(body) = &function.body {
-            if let Some(entry) = module.entry_points.iter().find(|e| e.name == function.name) {
-                let [x, y, z] = entry.thread_group_size;
+            if let Some(entry) = module.entry_points.iter().find(|e| e.name == function.name)
+                && let Some([x, y, z]) = entry.thread_group_size
+            {
                 emitter.line(&format!("[numthreads({x}, {y}, {z})]"));
             }
             emitter.line(&signature(function));
@@ -195,6 +196,14 @@ fn expression(expr: &Expr) -> String {
         ExprKind::Unary { op, value } => format!("({op}{})", expression(value)),
         ExprKind::Binary { op, left, right } => {
             format!("({} {op} {})", expression(left), expression(right))
+        }
+        ExprKind::Call { name, arguments }
+            if Type::builtin(name).as_ref() == Some(&expr.ty)
+                && arguments.len() == 1
+                && matches!(expr.ty, Type::Vector(..) | Type::Matrix(..))
+                && matches!(arguments[0].ty, Type::Scalar(_)) =>
+        {
+            format!("(({}){})", expr.ty, expression(&arguments[0]))
         }
         ExprKind::Call { name, arguments } => format!(
             "{name}({})",

@@ -1,19 +1,141 @@
 {
   "schema_version": 1,
   "cases": [
-    { "file": "../../examples/vector-add.slang", "accept": true, "entry": "main" },
-    { "file": "../../examples/control-flow.slang", "accept": true, "entry": "main" },
-    { "file": "positive/scopes.slang", "accept": true, "entry": "main" },
-    { "file": "positive/preprocessor.slang", "accept": true, "entry": "main" },
-    { "file": "positive/overloads.slang", "accept": true, "entry": "main" },
-    { "file": "positive/macro-operators.slang", "accept": true, "entry": "main" },
-    { "file": "positive/static-global.slang", "accept": true, "entry": "main" },
-    { "file": "negative/unknown-name.slang", "accept": false, "entry": "main", "rust_code": "T011" },
-    { "file": "negative/const-assignment.slang", "accept": false, "entry": "main", "rust_code": "T015" },
-    { "file": "negative/read-only-buffer.slang", "accept": false, "entry": "main", "rust_code": "T015" },
-    { "file": "negative/swizzle.slang", "accept": false, "entry": "main", "rust_code": "T013" },
-    { "file": "negative/break.slang", "accept": false, "entry": "main", "rust_code": "T007" },
-    { "file": "negative/token-paste.slang", "accept": false, "entry": "main", "rust_code": "P009" },
-    { "file": "negative/uniform-global.slang", "accept": false, "entry": "main", "rust_code": "T015" }
+    {
+      "file": "../../examples/vector-add.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "../../examples/control-flow.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/scopes.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/preprocessor.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/overloads.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/macro-operators.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/static-global.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "negative/unknown-name.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T011"
+    },
+    {
+      "file": "negative/const-assignment.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T015"
+    },
+    {
+      "file": "negative/read-only-buffer.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T015"
+    },
+    {
+      "file": "negative/swizzle.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T013"
+    },
+    {
+      "file": "negative/break.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T007"
+    },
+    {
+      "file": "negative/token-paste.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "P009"
+    },
+    {
+      "file": "negative/uniform-global.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T015"
+    },
+    {
+      "file": "../../examples/matrix-transform.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "../../examples/vertex-transform.slang",
+      "accept": true,
+      "entry": "main",
+      "profile": "vs_6_0"
+    },
+    {
+      "file": "../../examples/fragment-color.slang",
+      "accept": true,
+      "entry": "main",
+      "profile": "ps_6_0"
+    },
+    {
+      "file": "positive/graphics-out.slang",
+      "accept": true,
+      "entry": "main",
+      "profile": "ps_6_0"
+    },
+    {
+      "file": "positive/vertex-id.slang",
+      "accept": true,
+      "entry": "main",
+      "profile": "vs_6_0"
+    },
+    {
+      "file": "negative/matrix-product.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/matrix-constructor.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/matrix-index.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T013"
+    },
+    {
+      "file": "negative/matrix-determinant.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014"
+    },
+    {
+      "file": "positive/fragment-integer.slang",
+      "accept": true,
+      "entry": "main",
+      "profile": "ps_6_0"
+    }
   ]
 }
