@@ -1,9 +1,11 @@
 use crate::{Scalar, Type};
 
 mod atomic;
+mod bitcast;
 mod derivative;
 mod output;
 pub(crate) use atomic::signature as atomic_signature;
+pub(crate) use bitcast::signature as bitcast_signature;
 pub(crate) use derivative::{name as derivative_name, signature as derivative_signature};
 pub(crate) use output::signature as output_signature;
 
@@ -13,6 +15,10 @@ pub fn is_intrinsic_name(name: &str) -> bool {
         || matches!(
             name,
             "abs"
+                | "asint"
+                | "asuint"
+                | "asfloat"
+                | "asdouble"
                 | "sin"
                 | "cos"
                 | "tan"

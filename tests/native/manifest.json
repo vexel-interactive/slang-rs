@@ -24,6 +24,10 @@
       "file": "one-component-derivatives-double.slang",
       "entry": "main",
       "reason": "The installed DXC crashes or reports invalid HLSL when validating the upstream artifact; native validity is checked separately."
+    },
+    {
+      "file": "bitcast-entry-name.slang",
+      "entry": "asfloat"
     }
   ]
 }

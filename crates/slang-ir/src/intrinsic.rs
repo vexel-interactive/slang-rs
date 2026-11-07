@@ -6,7 +6,7 @@ use slang_sema::{Scalar, Type};
 use slang_source::{Diagnostic, Span};
 use std::collections::BTreeMap;
 
-/// Matrix output intrinsics use vector overloads for each row.
+/// Normalize conversion intrinsics and use vector output overloads for matrix rows.
 pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
     let names = crate::visit::names(module);
     let mut prefix = "_slang_math_".to_owned();
@@ -35,6 +35,13 @@ impl Visitor for Lowerer {
         let ExprKind::IntrinsicCall { name, arguments } = &expression.kind else {
             return Ok(());
         };
+        if matches!(name.as_str(), "asint" | "asuint" | "asfloat")
+            && let [argument] = arguments.as_slice()
+            && argument.ty == expression.ty
+        {
+            *expression = argument.clone();
+            return Ok(());
+        }
         if !matches!(name.as_str(), "sincos" | "modf" | "frexp") {
             return Ok(());
         }

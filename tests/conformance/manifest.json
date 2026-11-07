@@ -1389,6 +1389,72 @@
       "entry": "main",
       "accept": false,
       "rust_code": "T008"
+    },
+    {
+      "file": "../../examples/bitcasts.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/bitcasts-bool.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/bitcasts-int.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/bitcasts-uint.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/bitcasts-half.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/bitcasts-float.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "negative/bitcast-double-input.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/bitcast-output-temporary.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T015"
+    },
+    {
+      "file": "negative/bitcast-output-const.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T015"
+    },
+    {
+      "file": "negative/bitcast-output-shape.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/bitcast-output-type.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/bitcast-double-width.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T014"
     }
   ]
 }

@@ -104,6 +104,11 @@ Type aliases resolve through a compilation-local cache with cycle detection.
 They disappear during lowering, leaving canonical scalar, aggregate, and resource
 types. Array types record outer-to-inner dimensions independently of whether
 the source used leading or trailing array declarators.
+Bit reinterpretation signatures record the selected component type and shape.
+Boolean and half inputs lower through explicit casts before reinterpretation;
+identity operations reduce to their input expression. Double word outputs retain
+their writable argument types, including signed integers, instead of receiving
+casts that would turn them into temporary values.
 One-component vectors retain their shape in the type tables and matrix row
 indexing. Overload groups involving these shapes receive distinct target names
 because HLSL may treat a one-component vector as its scalar component. Generated

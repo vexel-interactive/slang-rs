@@ -216,6 +216,23 @@ impl Checker {
                 }
             }
         }
+        if let Some(signature) = crate::intrinsic::bitcast_signature(name, &types) {
+            if let Some(start) = signature.outputs_start {
+                for argument in &arguments[start..] {
+                    self.require_writable(argument);
+                }
+            }
+            // The signature records explicit bool/half promotions. Output integer
+            // signs stay intact: casting an output would destroy its location.
+            self.expression_types.insert(
+                callee.id,
+                Type::Callable {
+                    parameters: signature.parameters,
+                    result: Box::new(signature.result.clone()),
+                },
+            );
+            return signature.result;
+        }
         if let Some(signature) = crate::intrinsic::atomic_signature(name, &types) {
             for (index, ((argument, actual), target)) in arguments
                 .iter()

@@ -20,6 +20,7 @@ subsystem is absent. No subsystem currently claims complete upstream parity.
 | Matrix component selectors | slang-sema, slang-codegen | Partial | Zero/one-based scalar and vector selections, checked bounds, distinct writable components, resource and atomic locations across dimensions 1-4 |
 | Aggregate initialization | slang-syntax, slang-sema, slang-ir | Partial | Struct and fixed-array constructors, copies, defaults, contextual brace lists, nested/flat arrays, numeric padding/splats; user constructors and full generic inference absent |
 | Core module | slang-sema | Partial | Small built-in signature set |
+| Bit reinterpretation | slang-sema, slang-ir | Partial | 32-bit scalar/vector/matrix conversions, bool/half promotions, scalar double splitting, scalar/double2 packing; 16/64-bit integer variants absent |
 | Screen derivatives | slang-sema, slang-ir | Partial | ddx/ddy/fwidth and coarse/fine variants, floating shapes and integer conversion, compute quads; full uniformity analysis absent |
 | Integer atomics | slang-sema, slang-ir | Partial | Global 32-bit Interlocked operations on groupshared and RW locations, checked outputs; float and 64-bit atomics absent |
 | Texture and sampler operations | slang-sema, slang-codegen | Partial | 1D/2D/3D/cube, indexed access, load/sample/bias/gradients/comparison/dimensions; advanced resources absent |

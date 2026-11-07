@@ -465,6 +465,25 @@ const values, temporary expressions, and repeated swizzles are rejected. `sincos
 and `modf` can infer brace-list input types from their outputs. See
 [output-intrinsics.slang](../examples/output-intrinsics.slang).
 
+## Bit reinterpretation
+
+`asint`, `asuint`, and `asfloat` reinterpret 32-bit numeric components while
+preserving scalar, vector, or matrix shape. An input already having the result's
+component type passes through unchanged. Boolean components first convert to
+`int`, and half components first convert to `float`, matching the upstream
+overload selection. These operations differ from numeric casts such as `float(bits)`.
+
+`asuint(doubleValue, low, high)` splits a scalar double into its low and high
+32-bit words. Both outputs must be writable scalar `uint` or `int` locations;
+fields and RW buffer elements are supported. Signed outputs retain the same word
+bits. Vector and matrix splitting overloads are absent from the upstream baseline.
+`asdouble(low, high)` reconstructs a scalar double or `double2` from scalar or
+two-component words, with explicit input conversions. One-component vectors
+select the scalar overload. Wider vectors and matrices are rejected. A single
+double argument to a 32-bit reinterpretation function is also rejected.
+These intrinsics are not executed by the compile-time integer evaluator. See
+[bitcasts.slang](../examples/bitcasts.slang).
+
 ## Integer atomic operations
 
 Global `InterlockedAdd`, `InterlockedAnd`, `InterlockedOr`, `InterlockedXor`,

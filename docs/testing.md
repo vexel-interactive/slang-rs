@@ -95,6 +95,14 @@ and each matrix shape with one row or column, plus float derivatives, using Slan
 and DXC. Native-only fixtures cover floating output functions and half/double
 derivatives where the installed validator fails on upstream's HLSL output.
 
+Bit reinterpretation tests check 315 scalar/vector/matrix signatures, explicit
+bool/half promotions, identity evaluation, double word output locations, signed
+outputs, scalar versus two-component packing, and user functions sharing intrinsic
+names. Differential fixtures validate all implemented source shapes and reject
+invalid double, arity, width, output-type, and writable-location uses. A native
+fixture checks a bitcast-spelled entry through its reflected target name. HLSL
+validation does not compare execution or floating-point payloads on a GPU.
+
 Predefined macro tests cover physical CRLF lines, nested and multiline initiating
 calls, token paste and stringification, escaped file names, included definitions,
 module isolation, user overrides, undef, and source-located redefinition warnings.
