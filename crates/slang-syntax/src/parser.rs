@@ -27,7 +27,7 @@ pub fn parse(tokens: &[Token]) -> Result<Module, Vec<Diagnostic>> {
         };
         match parsed {
             Ok(None) => {}
-            Ok(Some(declaration)) => module.declarations.push(declaration),
+            Ok(Some(declarations)) => module.declarations.extend(declarations),
             Err(error) => {
                 diagnostics.push(error);
                 if diagnostics.len() >= 32 {

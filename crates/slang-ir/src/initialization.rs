@@ -56,6 +56,9 @@ fn local_names(statement: &Stmt, names: &mut BTreeSet<String>) {
         StmtKind::Variable(v) => {
             names.insert(v.name.clone());
         }
+        StmtKind::Variables(variables) => {
+            names.extend(variables.iter().map(|v| v.name.clone()));
+        }
         StmtKind::Block(body) => {
             for s in body {
                 local_names(s, names)
@@ -107,6 +110,13 @@ impl Lowerer {
             StmtKind::Variable(v) => {
                 if let Some(value) = &mut v.initializer {
                     self.expression(value)?;
+                }
+            }
+            StmtKind::Variables(variables) => {
+                for variable in variables {
+                    if let Some(value) = &mut variable.initializer {
+                        self.expression(value)?;
+                    }
                 }
             }
             StmtKind::Expression(value) | StmtKind::Return(Some(value)) => {

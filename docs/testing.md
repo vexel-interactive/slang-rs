@@ -53,6 +53,11 @@ under local variable and function shadowing. Nested structs, brace lists, and
 array defaults exercise declaration-scope evaluation. A differential example
 also validates the generated helper calls with DXC.
 
+Declaration-group tests cover independent array suffixes, sequential bindings,
+const values, field defaults, imported visibility, and loop scope. Differential
+examples exercise both numeric and array declarators in `for` initializers;
+duplicate names and references after the loop must fail in both compilers.
+
 Examples cover vector addition, control flow, matrix algebra, vertex transforms,
 fragment color output, struct construction, and a multi-file module. With DXC
 installed, validate generated HLSL independently:

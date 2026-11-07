@@ -66,6 +66,12 @@ the source used leading or trailing array declarators.
 Lowering checks that this information exists and attaches a type to each IR
 expression.
 
+Global declaration groups are parsed into individual declarations; struct groups
+become ordered fields. Local groups use `Variables` nodes in AST and typed IR
+to retain sequential bindings without introducing a block scope. The HLSL
+backend emits independent declarations, placing grouped `for` initializers in
+an enclosing block that preserves the source loop's lifetime and array types.
+
 `CheckedModule` also records normalized construction plans. The semantic
 checker preserves struct field order, resolves omitted defaults, and makes
 zero-initialized leaves explicit. Typed IR removes field initializers from
@@ -93,7 +99,9 @@ definitions. Selected calls record only the omitted arguments; IR makes the
 full argument list explicit and removes defaults from target parameter
 declarations. Default expressions lower into private functions in declaration
 scope so caller-local names cannot capture global references. Their generated
-names avoid all source bindings. Defaults and aggregate construction share
+names avoid all source bindings. Struct field defaults use the same
+declaration-scope helpers, including defaults inside nested arrays and lists.
+Defaults and aggregate construction share
 cycle, depth, and expansion budgets.
 
 Imported function overloads receive distinct target names when needed. The

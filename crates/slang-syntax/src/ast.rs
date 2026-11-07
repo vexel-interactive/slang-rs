@@ -97,6 +97,8 @@ pub struct Stmt {
 pub enum StmtKind {
     Block(Vec<Stmt>),
     Variable(Variable),
+    /// A declaration group introduces bindings sequentially in the current scope.
+    Variables(Vec<Variable>),
     Expression(Expr),
     Return(Option<Expr>),
     If {

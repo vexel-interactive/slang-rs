@@ -144,10 +144,14 @@ impl Parser {
             let modifiers = self.modifiers();
             let ty = self.ty()?;
             let name = self.identifier()?;
-            let variable = self.variable(ty, name, modifiers)?;
+            let mut variables = self.variables(ty, name, modifiers)?;
             let end = self.expect(";")?;
             return Ok(Stmt {
-                kind: StmtKind::Variable(variable),
+                kind: if variables.len() == 1 {
+                    StmtKind::Variable(variables.pop().unwrap())
+                } else {
+                    StmtKind::Variables(variables)
+                },
                 span: start.join(end),
             });
         }

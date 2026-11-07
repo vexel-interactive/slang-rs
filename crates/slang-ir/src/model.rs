@@ -47,6 +47,8 @@ pub struct Stmt {
 pub enum StmtKind {
     Block(Vec<Stmt>),
     Variable(Variable),
+    /// Consecutive declarations without an additional lexical scope.
+    Variables(Vec<Variable>),
     Expression(Expr),
     Return(Option<Expr>),
     If {

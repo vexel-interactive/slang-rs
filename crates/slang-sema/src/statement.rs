@@ -131,6 +131,13 @@ impl Checker {
                 self.bind(variable, VariableScope::Local);
                 Flow::FALLTHROUGH
             }
+            StmtKind::Variables(variables) => {
+                for variable in variables {
+                    self.initializer(variable);
+                    self.bind(variable, VariableScope::Local);
+                }
+                Flow::FALLTHROUGH
+            }
             StmtKind::Expression(expression) => {
                 if self.expression(expression) == Type::InitializerList {
                     self.error(
@@ -177,7 +184,10 @@ impl Checker {
                 self.scopes.push(BTreeMap::new());
                 if !matches!(
                     initializer.kind,
-                    StmtKind::Variable(_) | StmtKind::Expression(_) | StmtKind::Empty
+                    StmtKind::Variable(_)
+                        | StmtKind::Variables(_)
+                        | StmtKind::Expression(_)
+                        | StmtKind::Empty
                 ) {
                     self.error("T001", initializer.span, "invalid for initializer");
                 }

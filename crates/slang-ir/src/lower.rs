@@ -118,6 +118,12 @@ impl Lowerer<'_> {
                     .collect::<Result<_, _>>()?,
             ),
             ast::StmtKind::Variable(variable) => StmtKind::Variable(self.variable(variable)?),
+            ast::StmtKind::Variables(variables) => StmtKind::Variables(
+                variables
+                    .iter()
+                    .map(|v| self.variable(v))
+                    .collect::<Result<_, _>>()?,
+            ),
             ast::StmtKind::Expression(expr) => StmtKind::Expression(self.expression(expr)?),
             ast::StmtKind::Return(expr) => {
                 StmtKind::Return(expr.as_ref().map(|e| self.expression(e)).transpose()?)

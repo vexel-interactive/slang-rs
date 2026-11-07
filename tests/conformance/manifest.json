@@ -668,6 +668,28 @@
       "file": "../../examples/field-default-scope.slang",
       "entry": "main",
       "accept": true
+    },
+    {
+      "file": "../../examples/multiple-declarations.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/declaration-arrays.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "negative/declaration-duplicate.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T003"
+    },
+    {
+      "file": "negative/declaration-loop-scope.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T011"
     }
   ]
 }

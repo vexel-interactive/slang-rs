@@ -56,8 +56,16 @@ Structure fields support semantics and `nointerpolation`. Conflicting
 parameter directions and `const out/inout` are rejected. Global values without
 `static/groupshared` are read-only; RW buffer elements remain writable.
 Global const declarations with initializers require `static`.
-Complete modifier rules are not yet implemented. Comma-separated declarations
-are not supported.
+Complete modifier rules are not yet implemented.
+
+Comma-separated variable declarations share their leading type and modifiers.
+Each declarator has its own array suffix, semantic, and initializer:
+`float a[2] = {1, 2}, b = a[1], c[3];`. Local initializers can refer to earlier
+declarators in the same group. Fields and globals retain declaration order;
+grouped `for` initializers keep every variable inside the loop scope. Parentheses
+enclose a comma operator inside one initializer. Type alias groups and mixed
+function/variable declaration groups are unsupported. See
+[multiple-declarations.slang](../examples/multiple-declarations.slang).
 
 ## Function default arguments
 

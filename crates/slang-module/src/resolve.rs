@@ -108,6 +108,15 @@ impl<'a> Resolver<'a> {
                     .unwrap()
                     .insert(variable.name.clone());
             }
+            StmtKind::Variables(variables) => {
+                for variable in variables {
+                    self.variable(variable)?;
+                    self.scopes
+                        .last_mut()
+                        .unwrap()
+                        .insert(variable.name.clone());
+                }
+            }
             StmtKind::Expression(value) => self.expression(value)?,
             StmtKind::Return(Some(value)) => self.expression(value)?,
             StmtKind::If {

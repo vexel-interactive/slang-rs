@@ -31,7 +31,7 @@ impl Parser {
         result
     }
 
-    pub(crate) fn declaration(&mut self) -> Result<Declaration, Diagnostic> {
+    pub(crate) fn declaration(&mut self) -> Result<Vec<Declaration>, Diagnostic> {
         let start = self.span();
         let attributes = self.attributes()?;
         let modifiers = self.modifiers();
@@ -56,12 +56,12 @@ impl Parser {
             let trailing = self.array_sizes()?;
             target.arrays.splice(0..0, trailing);
             let end = self.expect(";")?;
-            return Ok(Declaration::TypeAlias(TypeAlias {
+            return Ok(vec![Declaration::TypeAlias(TypeAlias {
                 name,
                 target,
                 modifiers,
                 span: start.join(end),
-            }));
+            })]);
         }
         if self.eat("struct") {
             if !attributes.is_empty()
@@ -78,18 +78,17 @@ impl Parser {
                 let modifiers = self.modifiers();
                 let ty = self.ty()?;
                 let name = self.identifier()?;
-                let field = self.variable(ty, name, modifiers)?;
+                fields.extend(self.variables(ty, name, modifiers)?);
                 self.expect(";")?;
-                fields.push(field);
             }
             let end = self.expect("}")?;
             self.expect(";")?;
-            return Ok(Declaration::Struct(Struct {
+            return Ok(vec![Declaration::Struct(Struct {
                 name,
                 modifiers,
                 fields,
                 span: start.join(end),
-            }));
+            })]);
         }
         if self.current().is_some_and(|t| {
             matches!(
@@ -145,7 +144,7 @@ impl Parser {
                 return Err(self.error("function body must be a block"));
             }
             let span = start.join(body.as_ref().map_or(name.span, |s| s.span));
-            Ok(Declaration::Function(Box::new(Function {
+            Ok(vec![Declaration::Function(Box::new(Function {
                 name: name.text,
                 return_type: ty,
                 parameters,
@@ -154,14 +153,14 @@ impl Parser {
                 semantic,
                 body,
                 span,
-            })))
+            }))])
         } else {
             if !attributes.is_empty() {
                 return Err(self.error("global variable attributes are not implemented"));
             }
-            let variable = self.variable(ty, name, modifiers)?;
+            let variables = self.variables(ty, name, modifiers)?;
             self.expect(";")?;
-            Ok(Declaration::Global(variable))
+            Ok(variables.into_iter().map(Declaration::Global).collect())
         }
     }
 
@@ -230,6 +229,23 @@ impl Parser {
             initializer,
             span,
         })
+    }
+
+    /// Every declarator shares the base type, but owns its suffix and initializer.
+    pub(crate) fn variables(
+        &mut self,
+        ty: TypeRef,
+        mut name: Token,
+        modifiers: Vec<String>,
+    ) -> Result<Vec<Variable>, Diagnostic> {
+        let mut variables = vec![];
+        loop {
+            variables.push(self.variable(ty.clone(), name, modifiers.clone())?);
+            if !self.eat(",") {
+                return Ok(variables);
+            }
+            name = self.identifier()?;
+        }
     }
 
     pub(crate) fn array_sizes(&mut self) -> Result<Vec<u32>, Diagnostic> {

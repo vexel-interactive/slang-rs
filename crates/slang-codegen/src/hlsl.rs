@@ -105,6 +105,11 @@ impl Emitter {
                 self.line("}");
             }
             StmtKind::Variable(value) => self.line(&format!("{};", variable(value))),
+            StmtKind::Variables(variables) => {
+                for value in variables {
+                    self.line(&format!("{};", variable(value)));
+                }
+            }
             StmtKind::Expression(value) => self.line(&format!("{};", expression(value))),
             StmtKind::Return(value) => self.line(&value.as_ref().map_or_else(
                 || "return;".into(),
@@ -155,6 +160,14 @@ impl Emitter {
                 increment,
                 body,
             } => {
+                // Independent declarations preserve mixed array suffixes. Keep
+                // their enclosing scope identical to the source for loop.
+                let group = matches!(initializer.kind, StmtKind::Variables(_));
+                if group {
+                    self.line("{");
+                    self.indent += 1;
+                    self.statement(initializer);
+                }
                 let init = match &initializer.kind {
                     StmtKind::Variable(v) => variable(v),
                     StmtKind::Expression(e) => expression(e),
@@ -164,6 +177,10 @@ impl Emitter {
                 let increment = increment.as_ref().map_or_else(String::new, expression);
                 self.line(&format!("for ({init}; {condition}; {increment})"));
                 self.controlled_body(body);
+                if group {
+                    self.indent -= 1;
+                    self.line("}");
+                }
             }
             StmtKind::Break => self.line("break;"),
             StmtKind::Continue => self.line("continue;"),
