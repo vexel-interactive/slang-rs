@@ -91,6 +91,15 @@ capture an outer target name receive unique canonical names after resolving
 their initializers. Their source names remain in symbol metadata for diagnostics;
 duplicate declarations in one scope still map to the same name and are rejected.
 Semantic checking resolves types into expression and declaration tables.
+Global initializers are checked before function attributes and bodies. Integer
+and boolean global constants then resolve through a reverse-dependency worklist;
+an iterative graph walk diagnoses structural initializer cycles without recursing
+on the native stack. Resolved references use declaration spans, including across
+module boundaries. Function attributes resolve before parameters enter scope.
+`CheckedModule.global_constants` stores the checked scalar values, and IR lowering
+replaces their initializers with typed literals so forward references also produce
+valid HLSL. Floating expressions stay outside the integer cache to preserve their
+fractional values.
 Type aliases resolve through a compilation-local cache with cycle detection.
 They disappear during lowering, leaving canonical scalar, aggregate, and resource
 types. Array types record outer-to-inner dimensions independently of whether

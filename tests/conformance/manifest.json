@@ -1254,6 +1254,72 @@
       "file": "modules/predefined-root.slang",
       "entry": "main",
       "accept": true
+    },
+    {
+      "file": "positive/thread-constant-expressions.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/thread-constant-forwards.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/thread-constant-shadowing.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/thread-constant-conversions.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/fractional-global-constants.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/thread-computed-derivatives.slang",
+      "entry": "main",
+      "accept": true,
+      "profile": "cs_6_6"
+    },
+    {
+      "file": "modules/thread-constant-root.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "negative/thread-runtime-dimension.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T006"
+    },
+    {
+      "file": "negative/thread-called-dimension.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T006"
+    },
+    {
+      "file": "negative/thread-cyclic-constants.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T026"
+    },
+    {
+      "file": "negative/thread-inactive-constant-cycle.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T026"
+    },
+    {
+      "file": "negative/thread-self-constant-cycle.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T026"
     }
   ]
 }

@@ -46,11 +46,17 @@ impl Checker {
                         .arguments
                         .iter()
                         .map(|expr| {
-                            if let ExprKind::Integer(text) = &expr.kind {
-                                text.parse().ok()
-                            } else {
-                                None
-                            }
+                            let ty = self.expression(expr);
+                            let value = match ty {
+                                Type::Scalar(Scalar::Int | Scalar::Uint | Scalar::Bool) => {
+                                    self.integer_constant(expr)
+                                }
+                                Type::Scalar(Scalar::Half | Scalar::Float | Scalar::Double) => {
+                                    self.constant_conversion(expr)
+                                }
+                                _ => None,
+                            }?;
+                            u32::try_from(value).ok().filter(|value| *value > 0)
                         })
                         .collect();
                     if let Some(values) = values.filter(|v| v.len() == 3) {
@@ -68,7 +74,7 @@ impl Checker {
                         self.error(
                             "T006",
                             attribute.span,
-                            "numthreads requires three positive integer literals",
+                            "numthreads requires three positive scalar compile-time constants",
                         );
                     }
                 }

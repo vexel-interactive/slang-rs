@@ -40,6 +40,8 @@ pub struct CheckedModule {
     /// Integer case values after conversion to their switch selector type.
     pub case_values: BTreeMap<ExprId, i64>,
     pub entry_point_requirements: BTreeMap<String, crate::EntryPointRequirements>,
+    /// Checked scalar integer and boolean global constant values.
+    pub global_constants: BTreeMap<SpanKey, i64>,
 }
 
 /// Byte-span key used to distinguish declarations in separate scopes and files.
@@ -157,6 +159,16 @@ fn check_with_metadata(
         case_values: BTreeMap::new(),
     };
     checker.declare(&module);
+    for declaration in &module.declarations {
+        if let Declaration::Global(variable) = declaration {
+            checker.current_module = checker
+                .symbols
+                .get(&variable.name)
+                .map_or(ModuleId(0), |origin| origin.module);
+            checker.initialize_global(variable);
+        }
+    }
+    checker.resolve_global_constants(&module);
     let mut entry_points = vec![];
     for declaration in &module.declarations {
         let name = match declaration {
@@ -171,7 +183,7 @@ fn check_with_metadata(
             .map_or(ModuleId(0), |origin| origin.module);
         match declaration {
             Declaration::TypeAlias(_) => {}
-            Declaration::Global(variable) => checker.initialize_global(variable),
+            Declaration::Global(_) => {}
             Declaration::Function(function) => {
                 if let Some(entry) = checker.entry_point(function, &module) {
                     entry_points.push(entry);
@@ -202,6 +214,23 @@ fn check_with_metadata(
     }
     checker.validate_constant_buffers();
     if checker.diagnostics.is_empty() {
+        let global_constants = checker.scopes[0]
+            .values()
+            .filter_map(|binding| {
+                if let Storage::Global(key) = binding.storage
+                    && matches!(
+                        binding.ty,
+                        Type::Scalar(
+                            crate::Scalar::Int | crate::Scalar::Uint | crate::Scalar::Bool
+                        )
+                    )
+                {
+                    binding.constant.map(|value| (key, value))
+                } else {
+                    None
+                }
+            })
+            .collect();
         let mut checked = CheckedModule {
             module,
             expression_types: checker.expression_types,
@@ -216,6 +245,7 @@ fn check_with_metadata(
             default_arguments: checker.default_arguments,
             case_values: checker.case_values,
             entry_point_requirements: BTreeMap::new(),
+            global_constants,
         };
         checked.entry_point_requirements = crate::capability::validate(&checked)?;
         Ok(checked)

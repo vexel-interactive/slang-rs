@@ -30,7 +30,24 @@ pub fn lower(checked: &CheckedModule) -> Result<Module, Diagnostic> {
                     })
                     .collect::<Result<_, _>>()?,
             }),
-            ast::Declaration::Global(variable) => module.globals.push(lowerer.variable(variable)?),
+            ast::Declaration::Global(variable) => {
+                let mut global = lowerer.variable(variable)?;
+                if let Some(&value) = checked.global_constants.get(&span_key(variable.span)) {
+                    let kind = match global.ty {
+                        Type::Scalar(slang_sema::Scalar::Bool) => ExprKind::Bool(value != 0),
+                        Type::Scalar(slang_sema::Scalar::Uint) => {
+                            ExprKind::Integer(format!("{value}u"))
+                        }
+                        _ => ExprKind::Integer(value.to_string()),
+                    };
+                    global.initializer = Some(Expr {
+                        ty: global.ty.clone(),
+                        kind,
+                        span: variable.initializer.as_ref().unwrap().span,
+                    });
+                }
+                module.globals.push(global);
+            }
             ast::Declaration::Function(function) => module.functions.push(Function {
                 name: checked
                     .function_names

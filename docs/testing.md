@@ -90,6 +90,14 @@ Predefined macro tests cover physical CRLF lines, nested and multiline initiatin
 calls, token paste and stringification, escaped file names, included definitions,
 module isolation, user overrides, undef, and source-located redefinition warnings.
 
+Thread-constant tests cover typed integer arithmetic, forward dependencies,
+transparent aliases, scalar brace initialization, parameter shadowing, imported
+public constants that depend on private values, and computed derivative groups.
+A 512-declaration dependency chain exercises the worklist. Negative cases cover
+runtime dimensions, called functions, size limits, and structural cycles in unused
+or inactive initializers. Fractional globals must retain their original arithmetic.
+The differential corpus validates these behaviors and forward-global HLSL with DXC.
+
 Sampling tests cover bias and explicit gradients for all four texture dimensions,
 element return types, contextual gradient lists, and invalid receivers and shapes.
 Differential fixtures validate fragment bias and compute gradient sampling with DXC.

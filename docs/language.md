@@ -335,7 +335,9 @@ expressions, and scalar integer conversions. The evaluator tracks 32-bit signed
 and unsigned expression types. Duplicate values after selector conversion,
 duplicate defaults, and nonconstant labels are rejected. Function calls in
 constant expressions and the complete upstream constant evaluator remain absent.
-Global const expressions are currently processed in declaration order.
+Scalar integer and boolean global constants resolve forward references through
+their checked dependencies, including imported declarations. Cyclic integer
+initializers are rejected even when the reference occurs in an inactive branch.
 Checked case labels are emitted as integer literals after selector conversion,
 including labels derived from local static const bindings.
 
@@ -557,6 +559,19 @@ void main(uint3 id : SV_DispatchThreadID)
 `SV_GroupID` and `SV_GroupThreadID` require `uint3`; `SV_GroupIndex` requires
 `uint`. Validation requires a `void` return, a function body, supported parameter
 semantics, and a valid thread-group size.
+
+`numthreads` accepts scalar integer/boolean constants and integer expressions,
+including shifts, conditional expressions, integer constructors, and direct
+floating literals converted by truncation. Global constants may refer to later
+declarations. Attributes resolve in global scope before parameters, so a parameter
+with the same name does not hide a size constant. Dimensions must be positive;
+x and y cannot exceed 1024, z cannot exceed 64, and the product cannot exceed 1024.
+The computed dimensions also determine whether compute derivatives have valid
+quad groups. Runtime values and ordinary function calls are rejected.
+
+The constant cache currently covers scalar `int`, `uint`, and `bool`. General
+floating constant arithmetic remains unsupported for attributes and switch labels;
+fractional expressions retain their original values in emitted shader code.
 
 ## Vertex and fragment entry points
 

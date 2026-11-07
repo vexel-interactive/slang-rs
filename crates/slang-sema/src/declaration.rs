@@ -451,6 +451,12 @@ impl Checker {
         let constant = variable
             .initializer
             .as_ref()
+            .filter(|_| {
+                matches!(
+                    ty,
+                    Type::Scalar(crate::Scalar::Int | crate::Scalar::Uint | crate::Scalar::Bool)
+                )
+            })
             .filter(|_| variable.modifiers.iter().any(|m| m == "const"))
             .filter(|_| !matches!(context, VariableScope::Parameter))
             .and_then(|expr| self.integer_constant(expr));

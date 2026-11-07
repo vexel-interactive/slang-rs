@@ -48,6 +48,14 @@ impl Checker {
             let value = variable
                 .initializer
                 .as_ref()
+                .filter(|_| {
+                    matches!(
+                        self.declaration_types.get(&crate::span_key(variable.span)),
+                        Some(Type::Scalar(
+                            crate::Scalar::Int | crate::Scalar::Uint | crate::Scalar::Bool
+                        ))
+                    )
+                })
                 .and_then(|expr| self.integer_constant(expr));
             if let Some(binding) = self.scopes[0].get_mut(&variable.name) {
                 binding.constant =

@@ -128,17 +128,17 @@ impl<'a> Resolver<'a> {
             Declaration::Function(function) => {
                 function.name = self.symbol(&function.name, false, function.span)?;
                 self.ty(&mut function.return_type)?;
+                for attribute in &mut function.attributes {
+                    for argument in &mut attribute.arguments {
+                        self.expression(argument)?;
+                    }
+                }
                 self.scopes.push(BTreeMap::new());
                 for parameter in &mut function.parameters {
                     self.bind_local(parameter);
                 }
                 for parameter in &mut function.parameters {
                     self.variable(parameter)?;
-                }
-                for attribute in &mut function.attributes {
-                    for argument in &mut attribute.arguments {
-                        self.expression(argument)?;
-                    }
                 }
                 if let Some(body) = &mut function.body {
                     self.statement(body)?;

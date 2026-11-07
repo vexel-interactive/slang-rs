@@ -13,6 +13,7 @@ subsystem is absent. No subsystem currently claims complete upstream parity.
 | Name and type checking | slang-sema | Partial | Scalars, vectors, matrices, fixed arrays, aliases, scopes, overloads, writable locations |
 | Local storage and declaration scopes | slang-module, slang-sema, slang-ir | Partial | Lexical unbraced declarations, loop scopes, guarded local static initialization; definite-assignment analysis absent |
 | Function default arguments | slang-sema, slang-ir | Partial | Trailing input defaults, first-declaration prototype rules, declaration-scope evaluation; parameter-dependent defaults absent |
+| Compile-time scalar constants | slang-sema, slang-ir | Partial | Typed 32-bit integer and boolean expressions, forward globals, initializer cycle diagnostics, computed thread sizes; general floating evaluation and constant function execution absent |
 | Type aliases | slang-syntax, slang-sema | Partial | Transparent global typedef/typealias, forwards, cycles, imports; local/nested and generic aliases absent |
 | Numeric type applications | slang-syntax, slang-sema | Partial | vector/matrix type and literal shape arguments, core defaults, constructors, nested resource arguments; expression dimensions and layout arguments absent |
 | Explicit numeric casts | slang-syntax, slang-sema, slang-ir | Partial | Scalar splats, same-width vectors, matrix component conversions and truncation, boolean conversions; standalone alias and aggregate cast syntax absent |
