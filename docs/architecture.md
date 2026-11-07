@@ -68,6 +68,13 @@ locations use one-based lines and Unicode scalar columns. Include diagnostics
 retain the included file's source ID. Macro body tokens receive the invocation
 span; a complete macro origin stack remains to be implemented.
 
+Location macros retain a separate initiating span through expansion queues and
+argument rescanning. This gives nested `__LINE__` and `__FILE__` the outer source
+call's location while preserving the emitted token's diagnostic span. Builtins
+are entries in the preprocessing environment, so normal redefinition and undef
+operations affect them. The compiler adds the default Slang language define
+before loading modules; imported preprocessing environments remain isolated.
+
 `Diagnostic` contains severity, code, message, span, and notes. Internal codes
 are independent of upstream's numeric diagnostic IDs. The public pipeline never
 reports successful compilation after an error. `--check` runs through IR

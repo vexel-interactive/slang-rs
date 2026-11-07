@@ -1,18 +1,32 @@
-use crate::{macros::Macro, substitute::substitute};
+use crate::{
+    macros::{Builtin, Macro},
+    substitute::substitute,
+};
 use slang_lexer::{Token, TokenKind};
-use slang_source::{Diagnostic, Span};
+use slang_source::{Diagnostic, SourceMap, Span};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 #[derive(Clone)]
 struct Item {
     token: Token,
     hidden: BTreeSet<String>,
+    initiating: Option<Span>,
 }
 
 pub(crate) fn expand(
     tokens: &[Token],
     macros: &BTreeMap<String, Macro>,
+    sources: &SourceMap,
+) -> Result<Vec<Token>, Diagnostic> {
+    expand_at(tokens, macros, sources, 0, None)
+}
+
+fn expand_at(
+    tokens: &[Token],
+    macros: &BTreeMap<String, Macro>,
+    sources: &SourceMap,
     depth: usize,
+    initiating: Option<Span>,
 ) -> Result<Vec<Token>, Diagnostic> {
     if depth > 128 {
         return Err(Diagnostic::error(
@@ -26,6 +40,7 @@ pub(crate) fn expand(
         .map(|t| Item {
             token: t.clone(),
             hidden: BTreeSet::new(),
+            initiating,
         })
         .collect();
     let mut output = vec![];
@@ -47,6 +62,28 @@ pub(crate) fn expand(
             output.push(item.token);
             continue;
         };
+        let initiating = item.initiating.unwrap_or(item.token.span);
+        if let Some(builtin) = definition.builtin {
+            if let Some(file) = sources.get(initiating.source) {
+                output.push(Token {
+                    kind: match builtin {
+                        Builtin::Line => TokenKind::Integer,
+                        Builtin::File => TokenKind::String,
+                    },
+                    text: match builtin {
+                        Builtin::Line => file.location(initiating.start).0.to_string(),
+                        Builtin::File => format!(
+                            "\"{}\"",
+                            file.name.replace('\\', "\\\\").replace('"', "\\\"")
+                        ),
+                    },
+                    span: item.token.span,
+                });
+            } else {
+                output.push(item.token);
+            }
+            continue;
+        }
         let mut arguments = BTreeMap::new();
         let mut raw_arguments = BTreeMap::new();
         if let Some(params) = &definition.params {
@@ -120,7 +157,10 @@ pub(crate) fn expand(
                         && !definition.body.get(i + 1).is_some_and(|t| t.is("##"))
                 });
                 if expanded_use {
-                    arguments.insert(param.clone(), expand(&argument, macros, depth + 1)?);
+                    arguments.insert(
+                        param.clone(),
+                        expand_at(&argument, macros, sources, depth + 1, Some(initiating))?,
+                    );
                 }
                 raw_arguments.insert(param.clone(), argument);
             }
@@ -132,6 +172,7 @@ pub(crate) fn expand(
             queue.push_front(Item {
                 token,
                 hidden: hidden.clone(),
+                initiating: Some(initiating),
             });
         }
     }

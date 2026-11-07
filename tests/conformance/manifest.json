@@ -1222,6 +1222,38 @@
       "entry": "main",
       "accept": false,
       "rust_code": "T015"
+    },
+    {
+      "file": "../../examples/source-locations.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/predefined-conditions.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/predefined-redefinition.slang",
+      "entry": "main",
+      "accept": true,
+      "rust_warning": "P010"
+    },
+    {
+      "file": "positive/file-self-include.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "negative/predefined-undef.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T011"
+    },
+    {
+      "file": "modules/predefined-root.slang",
+      "entry": "main",
+      "accept": true
     }
   ]
 }

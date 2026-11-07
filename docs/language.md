@@ -60,7 +60,17 @@ are not expanded.
 
 Quoted includes search the current file's directory before `-I` paths. Angle
 includes search `-I` paths. `MemoryIncludes` resolves exact names from a map.
-`__VA_OPT__`, GNU comma elision, predefined macros, `#line`, full redefinition
+`__LINE__` and `__FILE__` are predefined location macros. They use the physical
+line and file of the initiating macro call, including nested calls, multiline
+arguments, token-pasted names, and definitions originating in an included file.
+File names produce quoted strings with escaped backslashes and quotation marks.
+Both names participate in `defined`; `#undef` removes them. A user definition
+replaces a builtin with warning `P010`, and removing that definition does not
+restore the builtin. `compile_source` and `compile_file` also supply `__SLANG__`
+as one unless the caller supplies a definition. Imported modules start with
+fresh location macros and the same caller definitions.
+
+`__VA_OPT__`, GNU comma elision, other predefined macros, `#line`, full redefinition
 rules, and macro expansion stacks remain to be ported.
 
 Limits: 64 include levels, 128 macro nesting levels, and 100000 steps per

@@ -1,6 +1,6 @@
 use crate::{
     condition, expand,
-    macros::{self, Macro},
+    macros::{self, Builtin, Macro},
 };
 use slang_lexer::{Token, TokenKind, lex};
 use slang_source::{Diagnostic, Severity, SourceId, SourceMap, Span};
@@ -60,18 +60,31 @@ pub fn preprocess(
         once: BTreeSet::new(),
         diagnostics: vec![],
     };
+    for (name, builtin) in [("__LINE__", Builtin::Line), ("__FILE__", Builtin::File)] {
+        processor.macros.insert(
+            name.into(),
+            Macro {
+                params: None,
+                variadic: false,
+                body: vec![],
+                builtin: Some(builtin),
+            },
+        );
+    }
     for (name, value) in &options.defines {
         let body = lex(root, value)
             .tokens
             .into_iter()
             .filter(|t| !t.is_trivia() && t.kind != TokenKind::Eof)
             .collect();
+        processor.builtin_redefinition(name, Span::new(root, 0, 0));
         processor.macros.insert(
             name.clone(),
             Macro {
                 params: None,
                 variadic: false,
                 body,
+                builtin: None,
             },
         );
     }
@@ -276,7 +289,7 @@ impl Processor<'_> {
     }
 
     fn expand(&mut self, tokens: &[Token]) -> Vec<Token> {
-        match expand::expand(tokens, &self.macros, 0) {
+        match expand::expand(tokens, &self.macros, self.sources) {
             Ok(tokens) => tokens,
             Err(diagnostic) => {
                 self.diagnostics.push(diagnostic);
@@ -332,9 +345,24 @@ impl Processor<'_> {
     fn define(&mut self, args: &[Token]) {
         match macros::parse(args) {
             Ok((name, definition)) => {
+                self.builtin_redefinition(&name, args[0].span);
                 self.macros.insert(name, definition);
             }
             Err(diagnostic) => self.diagnostics.push(diagnostic),
+        }
+    }
+
+    fn builtin_redefinition(&mut self, name: &str, span: Span) {
+        if self
+            .macros
+            .get(name)
+            .is_some_and(|definition| definition.builtin.is_some())
+        {
+            self.diagnostics.push(Diagnostic::warning(
+                "P010",
+                span,
+                format!("redefinition of builtin macro '{name}'"),
+            ));
         }
     }
 }
@@ -417,6 +445,54 @@ mod tests {
         assert!(result.diagnostics.is_empty(), "{:?}", result.diagnostics);
         assert_eq!(result.tokens[0].text, "\"BAD(1)\"");
         assert_eq!(result.tokens[1].text, "1");
+    }
+
+    #[test]
+    fn builtin_lines_follow_initiating_calls_and_physical_crlf_lines() {
+        let result = run(
+            "#define HERE __LINE__\r\n#define ID(x) x\r\nHERE ID(\r\n__LINE__\r\n) __LINE__\r\n",
+        );
+        assert!(result.diagnostics.is_empty(), "{:?}", result.diagnostics);
+        let values: Vec<_> = result
+            .tokens
+            .iter()
+            .filter(|t| t.kind != TokenKind::Eof)
+            .map(|t| t.text.as_str())
+            .collect();
+        assert_eq!(values, ["3", "3", "5"]);
+        let result = run(
+            "#define STR(x) #x\n#define EXPAND(x) STR(x)\n#define CAT(a,b) a##b\nSTR(__LINE__) EXPAND(__LINE__) CAT(__LI,NE__)",
+        );
+        assert!(result.diagnostics.is_empty(), "{:?}", result.diagnostics);
+        assert_eq!(result.tokens[0].text, "\"__LINE__\"");
+        assert_eq!(result.tokens[1].text, "\"4\"");
+        assert_eq!(result.tokens[2].text, "4");
+    }
+
+    #[test]
+    fn builtin_file_literals_escape_names_and_keep_invocation_spans() {
+        let mut sources = SourceMap::default();
+        let id = sources.add("C:\\shaders\\\"quoted\"\\shader.slang", "__FILE__");
+        let result = preprocess(&mut sources, id, &NoIncludes, &Options::default());
+        assert!(result.diagnostics.is_empty());
+        assert_eq!(result.tokens[0].kind, TokenKind::String);
+        assert_eq!(
+            result.tokens[0].text,
+            r#""C:\\shaders\\\"quoted\"\\shader.slang""#
+        );
+        assert_eq!(result.tokens[0].span, Span::new(id, 0, 8));
+    }
+
+    #[test]
+    fn builtin_redefinition_and_undef_use_the_current_macro_environment() {
+        let result = run(
+            "#if !defined(__LINE__) || !defined(__FILE__)\n#error missing builtins\n#endif\n#define __LINE__ 17\n__LINE__\n#undef __LINE__\n#ifdef __LINE__\n#error undef failed\n#endif\n__LINE__",
+        );
+        assert_eq!(result.diagnostics.len(), 1);
+        assert_eq!(result.diagnostics[0].code, "P010");
+        assert_eq!(result.diagnostics[0].severity, Severity::Warning);
+        assert_eq!(result.tokens[0].text, "17");
+        assert_eq!(result.tokens[1].text, "__LINE__");
     }
 
     #[test]

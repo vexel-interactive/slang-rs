@@ -34,10 +34,24 @@ impl IncludeResolver for FileIncludes {
                     .map_err(|e| format!("{}: {e}", candidate.display()))?;
                 let text =
                     fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;
-                return Ok((path.to_string_lossy().into_owned(), text));
+                return Ok((source_name(&path), text));
             }
         }
         Err(format!("include file '{requested}' was not found"))
+    }
+}
+
+/// Keep canonical identities readable and usable in source-level file macros.
+pub(crate) fn source_name(path: &Path) -> String {
+    let name = path.to_string_lossy();
+    if let Some(unc) = name.strip_prefix(r"\\?\UNC\") {
+        format!(r"\\{unc}")
+    } else if let Some(disk) = name.strip_prefix(r"\\?\")
+        && disk.as_bytes().get(1) == Some(&b':')
+    {
+        disk.into()
+    } else {
+        name.into_owned()
     }
 }
 

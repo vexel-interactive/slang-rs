@@ -55,12 +55,16 @@ pub fn compile_source(
 ) -> Result<Compilation, CompileError> {
     let mut sources = SourceMap::default();
     let root = sources.add(name, text.to_owned());
+    let mut defines = options.defines.clone();
+    defines
+        .entry("__SLANG__".into())
+        .or_insert_with(|| "1".into());
     let program = slang_module::load(
         root,
         &mut sources,
         includes,
         &Options {
-            defines: options.defines.clone(),
+            defines,
             ..Options::default()
         },
     )
@@ -123,7 +127,7 @@ pub fn compile_file(
     let path = path.canonicalize().map_err(|e| io_error(path, e))?;
     let text = fs::read_to_string(&path).map_err(|e| io_error(&path, e))?;
     compile_source(
-        &path.to_string_lossy(),
+        &crate::include::source_name(&path),
         &text,
         options,
         &FileIncludes {

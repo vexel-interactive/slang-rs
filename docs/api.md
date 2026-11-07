@@ -44,6 +44,11 @@ Its `include_paths` option controls include, import, and module-member lookup. `
 resolver supplied by the caller; it does not override that resolver with the
 `include_paths` field.
 
+The native API defaults `__SLANG__` to one and preserves an explicit caller
+definition. `slang-preprocessor` supplies `__LINE__` and `__FILE__` from the
+initiating source location. Those builtins can be redefined or removed within
+the current preprocessing environment; redefining one emits warning `P010`.
+
 ```rust
 use slang_compiler::{CompileOptions, compile_file};
 

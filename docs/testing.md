@@ -86,6 +86,10 @@ write and output rejection, bounds, resource locations, atomics, struct field
 names, and imported code. Differential cases also validate the emitted HLSL for
 all six scalar component types.
 
+Predefined macro tests cover physical CRLF lines, nested and multiline initiating
+calls, token paste and stringification, escaped file names, included definitions,
+module isolation, user overrides, undef, and source-located redefinition warnings.
+
 Sampling tests cover bias and explicit gradients for all four texture dimensions,
 element return types, contextual gradient lists, and invalid receivers and shapes.
 Differential fixtures validate fragment bias and compute gradient sampling with DXC.

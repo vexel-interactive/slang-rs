@@ -6,6 +6,13 @@ pub(crate) struct Macro {
     pub params: Option<Vec<String>>,
     pub variadic: bool,
     pub body: Vec<Token>,
+    pub builtin: Option<Builtin>,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub(crate) enum Builtin {
+    Line,
+    File,
 }
 
 pub(crate) fn parse(tokens: &[Token]) -> Result<(String, Macro), Diagnostic> {
@@ -83,6 +90,7 @@ pub(crate) fn parse(tokens: &[Token]) -> Result<(String, Macro), Diagnostic> {
             params,
             variadic,
             body,
+            builtin: None,
         },
     ))
 }
