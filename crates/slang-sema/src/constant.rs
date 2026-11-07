@@ -151,12 +151,12 @@ impl Checker {
             } else {
                 else_value
             })?,
-            ExprKind::Cast { value, .. } => self.constant_cast(expr, value)?,
+            ExprKind::Cast { value, .. } => self.constant_conversion(value)?,
             ExprKind::Call { callee, arguments }
                 if arguments.len() == 1
                     && matches!(self.expression_types.get(&callee.id), Some(Type::Meta(target)) if matches!(target.as_ref(), Type::Scalar(Scalar::Int | Scalar::Uint | Scalar::Bool))) =>
             {
-                self.constant_cast(expr, &arguments[0])?
+                self.constant_conversion(&arguments[0])?
             }
             _ => return None,
         };
@@ -175,17 +175,6 @@ impl Checker {
         } else {
             self.integer_constant(expr)
         }
-    }
-
-    fn constant_cast(&self, expr: &Expr, value: &Expr) -> Option<i64> {
-        if matches!(
-            self.expression_types.get(&expr.id),
-            Some(Type::Scalar(Scalar::Bool))
-        ) && let ExprKind::Float(text) = &value.kind
-        {
-            return Some(i64::from(floating(text)? != 0.0));
-        }
-        self.constant_conversion(value)
     }
 }
 

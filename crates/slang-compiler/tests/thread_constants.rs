@@ -45,7 +45,7 @@ fn thread_dimensions_fold_typed_integer_expressions_and_literals() {
         Some([4, 1, 1])
     );
     let compiled =
-        compile("[shader(\"compute\")][numthreads(4,(bool)0.5,bool(0.25))]void main(){}");
+        compile("[shader(\"compute\")][numthreads(4,(bool)1.5,bool(2.25))]void main(){}");
     assert_eq!(
         compiled.reflection.entry_points[0].thread_group_size,
         Some([4, 1, 1])
@@ -120,6 +120,8 @@ fn unresolved_or_invalid_dimensions_are_diagnostics() {
         "[shader(\"compute\")][numthreads(uint2(4),1,1)]void main(){}",
         "[shader(\"compute\")][numthreads(32*64,1,1)]void main(){}",
         "[shader(\"compute\")][numthreads(32,64,1)]void main(){}",
+        "[shader(\"compute\")][numthreads((bool)0.5,1,1)]void main(){}",
+        "[shader(\"compute\")][numthreads((int)(1.5*2),1,1)]void main(){}",
     ] {
         fails(source, "T006");
     }
