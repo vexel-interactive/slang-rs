@@ -4,7 +4,7 @@ use slang_ir::Module;
 use slang_sema::{ShaderStage, Type};
 use std::collections::{BTreeMap, BTreeSet};
 
-/// Declaration and explicit binding reflection. Automatic allocation and byte layout are not yet implemented.
+/// Declaration and resource binding reflection. Uniform byte layout is not yet implemented.
 #[derive(Clone, Debug, Serialize)]
 pub struct Reflection {
     pub schema_version: u32,
@@ -32,7 +32,7 @@ pub struct GlobalInfo {
     pub target_name: String,
     pub type_name: String,
     pub resource_access: Option<String>,
-    /// Explicit source binding; absent when automatic allocation would be needed.
+    /// Checked binding for a global shader resource; absent for ordinary values and private storage.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub binding: Option<slang_layout::ResourceBinding>,
     /// Source module for imported globals; absent for root-module globals.
@@ -60,7 +60,7 @@ impl Reflection {
             })
             .collect();
         Self {
-            schema_version: 6,
+            schema_version: 7,
             modules: checked.modules.clone(),
             entry_points: module
                 .entry_points

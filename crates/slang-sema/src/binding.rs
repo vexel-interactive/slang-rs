@@ -1,6 +1,8 @@
 use crate::{Type, checker::Checker, declaration::VariableScope, span_key};
-use slang_layout::{MAX_REGISTER_INDEX, RegisterClass, ResourceBinding};
-use slang_source::Diagnostic;
+use slang_layout::{
+    AllocationError, MAX_REGISTER_INDEX, RegisterAllocator, RegisterClass, ResourceBinding,
+};
+use slang_source::{Diagnostic, Severity};
 use slang_syntax::{Declaration, Module, Variable};
 
 impl Checker {
@@ -21,39 +23,19 @@ impl Checker {
             );
             return;
         }
-        let mut element = ty;
-        let mut count = 1_u32;
-        while let Type::Array(inner, size) = element {
-            let Some(total) = count.checked_mul(*size) else {
-                self.error(
-                    "T022",
-                    annotation.span,
-                    "resource register range is too large",
-                );
-                return;
-            };
-            count = total;
-            element = inner;
-        }
-        let class = match element {
-            Type::ConstantBuffer(_) => RegisterClass::ConstantBuffer,
-            Type::ByteBuffer { writable }
-            | Type::Buffer { writable, .. }
-            | Type::Texture { writable, .. } => {
-                if *writable {
-                    RegisterClass::UnorderedAccess
-                } else {
-                    RegisterClass::ShaderResource
-                }
-            }
-            Type::Sampler { .. } => RegisterClass::Sampler,
-            Type::Error => return,
-            _ => {
+        let (class, count) = match resource_range(ty) {
+            Ok(Some(range)) => range,
+            Ok(None) if *ty == Type::Error => return,
+            Ok(None) => {
                 self.error(
                     "T022",
                     annotation.span,
                     "register annotations on numeric or aggregate uniforms are not implemented",
                 );
+                return;
+            }
+            Err(error) => {
+                self.error("T022", annotation.span, error.to_string());
                 return;
             }
         };
@@ -68,6 +50,7 @@ impl Checker {
         let binding = ResourceBinding {
             register: annotation.binding,
             count,
+            explicit: true,
         };
         if binding.end() > u64::from(MAX_REGISTER_INDEX) + 1 {
             self.error(
@@ -125,5 +108,111 @@ impl Checker {
             }
             previous = Some((binding, variable));
         }
+    }
+
+    pub(crate) fn allocate_resource_bindings(&mut self, module: &Module) {
+        if self
+            .diagnostics
+            .iter()
+            .any(|d| d.severity == Severity::Error)
+        {
+            return;
+        }
+        let mut globals: Vec<_> = module
+            .declarations
+            .iter()
+            .filter_map(|declaration| {
+                let Declaration::Global(variable) = declaration else {
+                    return None;
+                };
+                (!variable
+                    .modifiers
+                    .iter()
+                    .any(|m| matches!(m.as_str(), "static" | "groupshared")))
+                .then_some(variable)
+            })
+            .collect();
+        // Linking emits dependencies first. Parameter layout instead starts
+        // with the root module, then follows module discovery order.
+        globals.sort_by_key(|v| self.symbols.get(&v.name).map_or(0, |o| o.module.0));
+        let mut allocator = RegisterAllocator::default();
+        for binding in self.resource_bindings.values() {
+            // Every explicit range has already passed the same range bounds.
+            if let Err(error) = allocator.reserve(*binding) {
+                self.error(
+                    "T022",
+                    module.declarations.first().map_or_default(declaration_span),
+                    error.to_string(),
+                );
+                return;
+            }
+        }
+        if let Some(uniform) = globals
+            .iter()
+            .find(|v| !self.declaration_types[&span_key(v.span)].is_resource())
+        {
+            // Ordinary global uniforms share the target's implicit constant
+            // buffer. Reserve its first free b slot before resource allocation.
+            // Byte offsets and uniform reflection remain a separate phase.
+            if let Err(error) = allocator.allocate(RegisterClass::ConstantBuffer, 1, 0) {
+                self.error("T022", uniform.span, error.to_string());
+                return;
+            }
+        }
+        for global in globals {
+            let key = span_key(global.span);
+            if self.resource_bindings.contains_key(&key) {
+                continue;
+            }
+            let range = match resource_range(&self.declaration_types[&key]) {
+                Ok(Some(range)) => range,
+                Ok(None) => continue,
+                Err(error) => {
+                    self.error("T022", global.span, error.to_string());
+                    continue;
+                }
+            };
+            match allocator.allocate(range.0, range.1, 0) {
+                Ok(binding) => {
+                    self.resource_bindings.insert(key, binding);
+                }
+                Err(error) => self.error("T022", global.span, error.to_string()),
+            }
+        }
+    }
+}
+
+fn resource_range(mut ty: &Type) -> Result<Option<(RegisterClass, u32)>, AllocationError> {
+    let mut dimensions = vec![];
+    while let Type::Array(element, size) = ty {
+        dimensions.push(*size);
+        ty = element;
+    }
+    let class = match ty {
+        Type::ConstantBuffer(_) => RegisterClass::ConstantBuffer,
+        Type::ByteBuffer { writable }
+        | Type::Buffer { writable, .. }
+        | Type::Texture { writable, .. } => {
+            if *writable {
+                RegisterClass::UnorderedAccess
+            } else {
+                RegisterClass::ShaderResource
+            }
+        }
+        Type::Sampler { .. } => RegisterClass::Sampler,
+        _ => return Ok(None),
+    };
+    let count = dimensions.into_iter().try_fold(1_u32, |count, size| {
+        count.checked_mul(size).ok_or(AllocationError::InvalidRange)
+    })?;
+    Ok(Some((class, count)))
+}
+
+fn declaration_span(declaration: &Declaration) -> slang_source::Span {
+    match declaration {
+        Declaration::Global(v) => v.span,
+        Declaration::Struct(s) => s.span,
+        Declaration::Function(f) => f.span,
+        Declaration::TypeAlias(a) => a.span,
     }
 }

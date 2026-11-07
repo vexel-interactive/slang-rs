@@ -63,6 +63,8 @@ pub struct ResourceBinding {
     #[serde(flatten)]
     pub register: RegisterBinding,
     pub count: u32,
+    /// Whether the source selected this range with a register annotation.
+    pub explicit: bool,
 }
 
 impl ResourceBinding {

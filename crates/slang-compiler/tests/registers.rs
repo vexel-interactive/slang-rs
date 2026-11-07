@@ -73,7 +73,8 @@ fn annotations_belong_to_each_declarator_and_normalize_decimal_spelling() {
     assert_eq!(globals[0].binding.unwrap().register.space, 2);
     assert_eq!(globals[1].binding.unwrap().register.index, 3);
     assert_eq!(globals[1].binding.unwrap().register.space, 0);
-    assert!(globals[2].binding.is_none());
+    assert!(!globals[2].binding.unwrap().explicit);
+    assert_eq!(globals[2].binding.unwrap().register.index, 0);
     let code = compiled.artifact.unwrap();
     assert!(code.contains("a : register(t1, space2)"));
     assert!(code.contains("b : register(t3)"));
@@ -274,17 +275,20 @@ fn imports_includes_macros_and_target_renaming_preserve_binding_identity() {
 }
 
 #[test]
-fn reflection_serializes_explicit_ranges_and_omits_unallocated_bindings() {
+fn reflection_serializes_binding_origins_and_omits_private_storage_bindings() {
     let compiled = compile(
         "Texture2D<float> a[2]:register(t3,space4),b;static float value=1;float f(){static float cache=value;return cache;}",
     );
     let reflection = serde_json::to_value(&compiled.reflection).unwrap();
-    assert_eq!(reflection["schema_version"], 6);
+    assert_eq!(reflection["schema_version"], 7);
     assert_eq!(
         reflection["globals"][0]["binding"],
-        serde_json::json!({"class":"t","index":3,"space":4,"count":2})
+        serde_json::json!({"class":"t","index":3,"space":4,"count":2,"explicit":true})
     );
-    assert!(reflection["globals"][1].get("binding").is_none());
+    assert_eq!(
+        reflection["globals"][1]["binding"],
+        serde_json::json!({"class":"t","index":0,"space":0,"count":1,"explicit":false})
+    );
     assert!(reflection["globals"][2].get("binding").is_none());
     assert_eq!(compiled.reflection.globals.len(), 3);
     assert!(compiled.ir.globals.len() > 3);

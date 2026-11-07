@@ -441,6 +441,9 @@ imports, and macros preserve each resource's explicit binding. Resource arrays
 occupy a contiguous range with one slot per element. Overlaps produce warning
 `T023`; class mismatches and unsupported binding contexts produce error `T022`.
 See [resources.md](resources.md) for syntax, reflected ranges, and current limits.
+Resources without an annotation receive the first contiguous free range in
+space zero, after reserving all explicit ranges and an implicit constant-buffer
+slot for ordinary global uniforms. Unused resources still occupy their ranges.
 
 Byte-address buffers support `Load`, `Load2`, `Load3`, and `Load4`, returning
 one to four `uint` components. Writable buffers provide matching `Store` methods.
@@ -669,7 +672,7 @@ Without `-entry`, it applies to every entry, so their stages must match. The CLI
 accepts shader model 6.0 through 6.9 profiles for compute, vertex, and fragment.
 Absent a supplied profile, the compiler starts at 6.0 and chooses 6.6 for compute
 derivatives. An explicitly lower compute profile is upgraded with warning `C003`.
-Reflection schema version 5 reports the resulting `target_profile`; use that
+Reflection schema version 5 introduced the resulting `target_profile`; use that
 profile when compiling the HLSL. A profile selection does not yet validate the
 complete target capability set. Unsupported stages and older models are rejected.
 
@@ -741,10 +744,11 @@ unimplemented. See `examples/vertex-transform.slang` and
 JSON reflection reports entry points, stages, thread-group sizes, global names
 and type names, and read/read_write access for constant, structured, byte-address
 buffers, and textures, including arrays of those resource handles. Schema
-version 6 adds an optional `binding` object for explicitly bound globals, with
-register `class`, `index`, `space`, and `count`. Unbound globals omit that field.
-Automatic allocation, byte offsets, strides, and complete target layout remain
-unimplemented.
+version 7 reports a `binding` object for global shader resources, with register
+`class`, `index`, `space`, `count`, and an `explicit` origin flag. Numeric uniforms
+and private storage omit that field. Schema version 6 introduced explicit ranges;
+version 7 adds automatic allocation and origin flags. Byte offsets, strides, and
+complete target layout remain unimplemented.
 Applications must not treat this JSON as the upstream compiler's ABI reflection.
 Schema version 5 added `target_profile` for HLSL entries, including any required
 shader model upgrade. Pass `target_name` and `target_profile` to DXC's `-E` and

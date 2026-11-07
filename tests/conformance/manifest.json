@@ -1794,37 +1794,231 @@
     {
       "file": "positive/register-resources.slang",
       "accept": true,
-      "entry": "main"
+      "entry": "main",
+      "bindings": {
+        "params": {
+          "class": "b",
+          "index": 2,
+          "space": 3,
+          "count": 1
+        },
+        "image": {
+          "class": "t",
+          "index": 4,
+          "space": 1,
+          "count": 1
+        },
+        "cube": {
+          "class": "t",
+          "index": 5,
+          "space": 1,
+          "count": 1
+        },
+        "input": {
+          "class": "t",
+          "index": 6,
+          "space": 0,
+          "count": 1
+        },
+        "bytes": {
+          "class": "t",
+          "index": 8,
+          "space": 2,
+          "count": 1
+        },
+        "rwBytes": {
+          "class": "u",
+          "index": 9,
+          "space": 2,
+          "count": 1
+        },
+        "sampler": {
+          "class": "s",
+          "index": 10,
+          "space": 0,
+          "count": 1
+        },
+        "comparison": {
+          "class": "s",
+          "index": 11,
+          "space": 4,
+          "count": 1
+        },
+        "depth": {
+          "class": "t",
+          "index": 12,
+          "space": 0,
+          "count": 1
+        },
+        "writable": {
+          "class": "u",
+          "index": 5,
+          "space": 1,
+          "count": 1
+        },
+        "output": {
+          "class": "u",
+          "index": 7,
+          "space": 0,
+          "count": 1
+        }
+      }
     },
     {
       "file": "positive/register-arrays.slang",
       "accept": true,
-      "entry": "main"
+      "entry": "main",
+      "bindings": {
+        "images": {
+          "class": "t",
+          "index": 2,
+          "space": 4,
+          "count": 6
+        },
+        "params": {
+          "class": "b",
+          "index": 3,
+          "space": 0,
+          "count": 2
+        },
+        "outputs": {
+          "class": "u",
+          "index": 0,
+          "space": 0,
+          "count": 2
+        },
+        "bytes": {
+          "class": "t",
+          "index": 0,
+          "space": 1,
+          "count": 2
+        },
+        "rwBytes": {
+          "class": "u",
+          "index": 2,
+          "space": 0,
+          "count": 2
+        },
+        "samplers": {
+          "class": "s",
+          "index": 5,
+          "space": 0,
+          "count": 2
+        }
+      }
     },
     {
       "file": "positive/register-declaration-groups.slang",
       "accept": true,
-      "entry": "main"
+      "entry": "main",
+      "bindings": {
+        "first": {
+          "class": "t",
+          "index": 1,
+          "space": 2,
+          "count": 1
+        },
+        "second": {
+          "class": "t",
+          "index": 3,
+          "space": 0,
+          "count": 1
+        },
+        "output": {
+          "class": "u",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        }
+      }
     },
     {
       "file": "positive/register-aliases.slang",
       "accept": true,
-      "entry": "main"
+      "entry": "main",
+      "bindings": {
+        "image": {
+          "class": "t",
+          "index": 4,
+          "space": 3,
+          "count": 1
+        },
+        "outputs": {
+          "class": "u",
+          "index": 6,
+          "space": 3,
+          "count": 2
+        }
+      }
     },
     {
       "file": "positive/register-modules.slang",
       "accept": true,
-      "entry": "main"
+      "entry": "main",
+      "bindings": {
+        "image": {
+          "class": "t",
+          "index": 3,
+          "space": 5,
+          "count": 1
+        },
+        "output": {
+          "class": "u",
+          "index": 4,
+          "space": 5,
+          "count": 1
+        }
+      }
     },
     {
       "file": "positive/register-spaces.slang",
       "accept": true,
-      "entry": "main"
+      "entry": "main",
+      "bindings": {
+        "first": {
+          "class": "t",
+          "index": 0,
+          "space": 1,
+          "count": 1
+        },
+        "second": {
+          "class": "t",
+          "index": 0,
+          "space": 2,
+          "count": 1
+        },
+        "third": {
+          "class": "t",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        },
+        "output": {
+          "class": "u",
+          "index": 0,
+          "space": 1,
+          "count": 1
+        }
+      }
     },
     {
       "file": "positive/register-identical.slang",
       "accept": true,
-      "entry": "main"
+      "entry": "main",
+      "bindings": {
+        "image": {
+          "class": "t",
+          "index": 1,
+          "space": 0,
+          "count": 1
+        },
+        "output": {
+          "class": "u",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        }
+      }
     },
     {
       "file": "positive/register-overlap.slang",
@@ -1836,7 +2030,27 @@
       ],
       "rust_validation_accept": false,
       "oracle_validation_accept": false,
-      "reason": "Both compilers preserve overlapping explicit resource ranges with a warning; DXC rejects the overlapping HLSL declarations."
+      "reason": "Both compilers preserve overlapping explicit resource ranges with a warning; DXC rejects the overlapping HLSL declarations.",
+      "bindings": {
+        "first": {
+          "class": "t",
+          "index": 2,
+          "space": 1,
+          "count": 3
+        },
+        "second": {
+          "class": "t",
+          "index": 4,
+          "space": 1,
+          "count": 1
+        },
+        "output": {
+          "class": "u",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        }
+      }
     },
     {
       "file": "negative/register-readonly-class.slang",
@@ -1944,6 +2158,254 @@
       "entry": "main",
       "rust_code": "S001",
       "reason": "Native register indices and spaces are checked against the nonnegative signed 32-bit range. Slang wraps overflowing indices and emits an invalid HLSL register number."
+    },
+    {
+      "file": "positive/register-auto-reserved.slang",
+      "accept": true,
+      "entry": "main",
+      "bindings": {
+        "first": {
+          "class": "t",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        },
+        "fixed": {
+          "class": "t",
+          "index": 1,
+          "space": 0,
+          "count": 1
+        },
+        "second": {
+          "class": "t",
+          "index": 2,
+          "space": 0,
+          "count": 1
+        },
+        "output": {
+          "class": "u",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        }
+      }
+    },
+    {
+      "file": "positive/register-auto-arrays.slang",
+      "accept": true,
+      "entry": "main",
+      "bindings": {
+        "first": {
+          "class": "t",
+          "index": 2,
+          "space": 0,
+          "count": 2
+        },
+        "fixed": {
+          "class": "t",
+          "index": 1,
+          "space": 0,
+          "count": 1
+        },
+        "second": {
+          "class": "t",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        },
+        "output": {
+          "class": "u",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        }
+      }
+    },
+    {
+      "file": "positive/register-auto-spaces.slang",
+      "accept": true,
+      "entry": "main",
+      "bindings": {
+        "first": {
+          "class": "t",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        },
+        "fixed": {
+          "class": "t",
+          "index": 0,
+          "space": 3,
+          "count": 1
+        },
+        "second": {
+          "class": "t",
+          "index": 1,
+          "space": 0,
+          "count": 1
+        },
+        "output": {
+          "class": "u",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        }
+      }
+    },
+    {
+      "file": "positive/register-auto-uniforms.slang",
+      "accept": true,
+      "entry": "main",
+      "bindings": {
+        "first": {
+          "class": "b",
+          "index": 1,
+          "space": 0,
+          "count": 1
+        },
+        "second": {
+          "class": "b",
+          "index": 2,
+          "space": 0,
+          "count": 1
+        },
+        "output": {
+          "class": "u",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        }
+      }
+    },
+    {
+      "file": "positive/register-auto-uniform-reserved.slang",
+      "accept": true,
+      "entry": "main",
+      "bindings": {
+        "first": {
+          "class": "b",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        },
+        "second": {
+          "class": "b",
+          "index": 2,
+          "space": 0,
+          "count": 1
+        },
+        "output": {
+          "class": "u",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        }
+      }
+    },
+    {
+      "file": "positive/register-auto-unused.slang",
+      "accept": true,
+      "entry": "main",
+      "bindings": {
+        "unused": {
+          "class": "t",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        },
+        "image": {
+          "class": "t",
+          "index": 1,
+          "space": 0,
+          "count": 1
+        },
+        "output": {
+          "class": "u",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        }
+      }
+    },
+    {
+      "file": "positive/register-auto-modules.slang",
+      "accept": true,
+      "entry": "main",
+      "bindings": {
+        "image": {
+          "class": "t",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        },
+        "imported": {
+          "class": "t",
+          "index": 1,
+          "space": 0,
+          "count": 1
+        },
+        "output": {
+          "class": "u",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        }
+      }
+    },
+    {
+      "file": "positive/register-auto-families.slang",
+      "accept": true,
+      "entry": "main",
+      "bindings": {
+        "params": {
+          "class": "b",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        },
+        "image": {
+          "class": "t",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        },
+        "input": {
+          "class": "t",
+          "index": 1,
+          "space": 0,
+          "count": 1
+        },
+        "bytes": {
+          "class": "t",
+          "index": 2,
+          "space": 0,
+          "count": 1
+        },
+        "sampler": {
+          "class": "s",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        },
+        "writable": {
+          "class": "u",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        },
+        "rwBytes": {
+          "class": "u",
+          "index": 1,
+          "space": 0,
+          "count": 1
+        },
+        "output": {
+          "class": "u",
+          "index": 2,
+          "space": 0,
+          "count": 1
+        }
+      }
     }
   ]
 }

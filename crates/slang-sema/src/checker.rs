@@ -226,6 +226,7 @@ fn check_with_metadata(
     }
     checker.validate_constant_buffers();
     checker.check_binding_overlaps(&module);
+    checker.allocate_resource_bindings(&module);
     if !checker
         .diagnostics
         .iter()

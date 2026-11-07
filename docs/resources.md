@@ -49,7 +49,7 @@ also accepts these source declarations with a warning.
 
 ## Reflection
 
-Reflection schema version 6 includes the explicit binding on each bound global:
+Reflection schema version 7 includes the allocated binding on each global shader resource:
 
 ```json
 {
@@ -57,19 +57,46 @@ Reflection schema version 6 includes the explicit binding on each bound global:
   "target_name": "images",
   "type_name": "Texture2D<float4>[2]",
   "resource_access": "read",
-  "binding": { "class": "t", "index": 0, "space": 1, "count": 2 }
+  "binding": { "class": "t", "index": 0, "space": 1, "count": 2, "explicit": true }
 }
 ```
 
-Unbound globals omit `binding`; their slots still require automatic allocation
-by the target compiler. This reflection does not describe those allocated slots.
+The `explicit` flag is true for a source annotation and false for automatic
+assignment. Numeric/aggregate uniforms and private storage omit `binding`;
+their byte layout is not reflected yet.
 Generated constructor helpers and private local-static storage do not appear
 as source globals. [resource-bindings.slang](../examples/resource-bindings.slang)
 provides a complete shader example.
 
+## Automatic allocation
+
+Resources without register annotations receive the first contiguous free range
+in space zero. All explicit ranges are reserved before any automatic assignment.
+Classes and spaces have independent occupied intervals. An array requires one
+contiguous interval; a later smaller resource can use a gap the array skipped.
+
+```slang
+Texture2D<float> images[2];             // t2 through t3
+Texture2D<float> fixed : register(t1);  // t1
+Texture2D<float> image;                 // t0
+```
+
+Allocation follows declaration order within the root module, then module
+discovery order for imports. Unused resources still receive slots, matching
+upstream parameter layout. Ordinary global uniforms reserve one implicit
+constant-buffer slot before resource allocation. This reservation keeps
+automatically assigned `ConstantBuffer` resources clear of that slot; the target
+compiler still supplies uniform byte packing. Static and groupshared variables
+do not consume shader resource bindings or implicit uniform slots. Allocation
+state belongs to one compilation and does not persist across API calls.
+
+The HLSL emitter writes every selected resource register explicitly, so target
+compilation preserves the indices reported by reflection. Exhausted or
+overflowing contiguous ranges produce `T022` without expanding array elements.
+
 ## Current limits
 
-Automatic allocation, default-space options, Vulkan binding attributes, direct
+Default-space options, Vulkan binding attributes, direct
 `cbuffer` declarations, uniform byte offsets, packing, strides, and the upstream
 reflection API remain to be implemented. Register annotations currently require
 global resources. Numeric/aggregate uniforms, struct fields, parameters, local

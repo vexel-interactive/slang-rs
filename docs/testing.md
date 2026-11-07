@@ -64,13 +64,21 @@ generated prefix collisions, source names in diagnostics, and global reflection.
 
 Register tests cover all implemented resource families, class mismatches, spaces,
 decimal normalization, declaration groups, aliases, imports, macros, target-name
-rewriting, and reflection schema 6. Resource arrays exercise multiplied counts,
+rewriting, and reflection schema 7. Resource arrays exercise multiplied counts,
 read-only contents, constant-buffer validation, and bounded register ranges.
 Nested overlaps produce warnings without hiding errors or failing check-only
 compilation. Source remapping remains visible in binding warnings. Differential
 fixtures validate the HLSL with DXC; explicit overlaps are accepted with warnings
 by both frontends and rejected by DXC. Numeric uniform bindings and overflowing
 indices are documented compiler-acceptance differences.
+Allocator tests cover merged overlaps, adjacent intervals, smaller holes after
+array allocation, separate classes/spaces, and exhaustion at the final slot.
+Compiler tests verify explicit reservation before automatic assignment, implicit
+uniform slots, root-before-import ordering, unused resources, and independent
+compilations. Selected differential cases compare normalized resource bindings
+from both reflection outputs against declared golden ranges as well as validating
+HLSL. They compare class, index, space, and count; uniform byte layout remains
+outside these checks.
 
 Discard tests cover fragment HLSL, clip signatures, selected overloads, unused
 defaults, imported source locations, and stage propagation through calls,
@@ -211,6 +219,12 @@ The optional case `compile_profile` supplies a compiler profile independently of
 the DXC `profile`, allowing an automatic upgrade to be checked. `rust_warning`
 requires the corresponding warning code in the native compiler's output.
 Reports distinguish valid artifacts from rejected artifacts.
+An optional `bindings` map specifies expected direct resource ranges by source
+name. The runner requests JSON reflection from both compilers, normalizes the
+four range fields, and requires every named range to match. Native origin flags
+are checked by workspace tests. Reports record the selected binding checks and
+their case count. Sources with ambiguous repeated resource names require a
+future module-qualified comparison model.
 Optional `rust_stderr_contains` and `oracle_stderr_contains` lists require every
 declared diagnostic fragment from the corresponding compiler. Source-line cases
 use them to compare displayed filenames and line numbers, including negative

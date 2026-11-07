@@ -15,7 +15,7 @@ fn compute_pipeline_and_reflection() {
     .unwrap();
     let code = compilation.artifact.unwrap();
     assert!(code.contains("[numthreads(64, 1, 1)]"));
-    assert!(code.contains("RWStructuredBuffer<float> result;"));
+    assert!(code.contains("RWStructuredBuffer<float> result : register(u0);"));
     assert!(code.contains("(result)[(id).x] = ((left)[(id).x] + (right)[(id).x])"));
     assert_eq!(compilation.reflection.globals.len(), 3);
     assert_eq!(compilation.reflection.entry_points[0].name, "main");

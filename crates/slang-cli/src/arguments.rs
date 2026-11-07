@@ -13,7 +13,7 @@ Usage: slangc-rs <file.slang> [options]
   -D <NAME[=value]>    Define macro (also -DNAME=value)
   --check              Check without generating code
   --dump-ir            Emit typed structured IR as JSON
-  --reflection <path>  Write declaration and explicit binding reflection as JSON
+  --reflection <path>  Write declaration and resource binding reflection as JSON
   --diagnostics-json   Emit compilation errors as JSON
   --help, -h           Display this help
   --version            Display version

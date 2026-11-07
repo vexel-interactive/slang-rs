@@ -39,7 +39,7 @@ flowchart LR
     Checked --> IR[slang-ir: typed structured IR]
     IR --> Gen[slang-codegen]
     Gen --> HLSL[HLSL]
-    IR --> Reflection[Declaration reflection]
+    IR --> Reflection[Declaration and resource reflection]
 ```
 
 All phases share `slang-source`. The diagram shows the main data flow; each
@@ -125,8 +125,13 @@ records the result in `CheckedModule.resource_bindings`. A sorted range sweep
 diagnoses overlaps without expanding arrays or enumerating all pairs. Successful
 checked modules retain warnings separately from errors. IR variables receive
 the checked range, which HLSL emission and reflection both use. Generated
-variables have no resource binding. Automatic allocation and byte layout remain
-unimplemented.
+variables have no resource binding. `RegisterAllocator` merges occupied ranges
+and selects the first contiguous free range without expanding arrays. Explicit
+annotations reserve their ranges before automatic allocation. Ordinary global
+uniforms reserve an implicit constant-buffer slot; resource allocation then
+follows root-module declarations and module discovery order, independent of
+the linker's dependency-first emission order. Every allocated source resource
+keeps its range even if unused. Byte layout remains unimplemented.
 Bit reinterpretation signatures record the selected component type and shape.
 Boolean and half inputs lower through explicit casts before reinterpretation;
 identity operations reduce to their input expression. Double word outputs retain

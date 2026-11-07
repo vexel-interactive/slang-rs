@@ -20,7 +20,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 Compilation returns `Result<Compilation, CompileError>`. `Compilation` contains
 a text artifact, typed IR, declaration reflection, a source map, and warnings.
-Reflection schema version 6 reports `compute`, `vertex`, or `fragment` stages;
+Reflection schema version 7 reports `compute`, `vertex`, or `fragment` stages;
 `thread_group_size` is present only for compute entries. The Rust model uses
 `slang_sema::ShaderStage` and `Option<[u32; 3]>` for these fields.
 `EntryPointInfo` and `GlobalInfo` retain the source `name` and add `target_name`
@@ -36,11 +36,12 @@ of that shader model; only implemented requirements are checked.
 `Reflection.modules` describes each loaded module's identity, imports, and
 member source IDs. `GlobalInfo.module` identifies imported globals' owner;
 root globals omit it. Imported struct type names are canonical linked names.
-`GlobalInfo.binding: Option<ResourceBinding>` reports explicitly bound resources.
+`GlobalInfo.binding: Option<ResourceBinding>` reports global shader resources.
 Its JSON object contains `class` (`b`, `t`, `u`, or `s`), `index`, `space`, and
-`count`. Array dimensions multiply into `count`; an omitted register space is
-zero. Unbound globals omit `binding` because automatic allocation is not yet
-implemented. The binding types are reexported from `slang-compiler` and defined
+`count`, and `explicit`. Array dimensions multiply into `count`; automatic
+bindings use space zero. `explicit` distinguishes source annotations from
+automatic assignment. Numeric uniforms and private storage omit `binding`.
+The binding types are reexported from `slang-compiler` and defined
 in `slang-layout`. See [resources.md](resources.md) for the checked limits.
 Overlapping explicit ranges produce warning `T023` in `Compilation.diagnostics`;
 compilation and `check_only` still succeed. Such HLSL may fail target validation.
@@ -126,7 +127,7 @@ It returns a linked `Program`; pass that to `slang_sema::check_program`.
 Direct `slang_sema::check` handles a single resolved AST and rejects unresolved
 imports or member directives. Loading a program owns no process-wide cache.
 Successful `CheckedModule` values expose semantic warnings in `diagnostics` and
-explicit ranges in `resource_bindings`, keyed by declaration byte spans.
+resource ranges in `resource_bindings`, keyed by declaration byte spans.
 
 ## API compatibility
 

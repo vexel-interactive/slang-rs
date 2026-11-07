@@ -133,6 +133,7 @@ Import depth and member depth are each limited to 32. A compilation accepts at
 most 1024 modules and 1024 primary/member file identities. Excessive graphs
 produce `M002`, including in the Windows debug CLI.
 
-Reflection schema 4 records the graph and original global names. Imported
-struct type strings still expose canonical linked names; GPU layouts and
-resource binding allocation are not implemented.
+Reflection schema 4 introduced the graph and original global names. Imported
+struct type strings still expose canonical linked names. Schema 7 records
+explicit and automatic resource ranges, allocating root resources before
+imported resources. Complete GPU layouts remain unimplemented.

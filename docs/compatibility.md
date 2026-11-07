@@ -40,9 +40,9 @@ subsystem is absent. No subsystem currently claims complete upstream parity.
 | DXIL emitter | ? | Not ported | Textual HLSL output does not implement a native DXIL backend |
 | GLSL, WGSL, Metal | ? | Not ported | Target-specific lowering and validators required |
 | CUDA, C++, CPU targets | ? | Not ported | ABI lowering and runtime required |
-| Resource binding and layout | slang-layout, slang-sema | Partial | Explicit HLSL register classes/spaces, resource arrays, overlap warnings; automatic allocation, uniform byte layout and other target rules absent |
-| Declaration reflection | slang-compiler | Partial | Source/target names, types, stages, group sizes, module graph, explicit resource ranges |
-| Complete reflection API | ? | Not ported | Automatic bindings, byte layouts, specialization absent |
+| Resource binding and layout | slang-layout, slang-sema | Partial | Explicit HLSL classes/spaces, automatic first-fit allocation, resource arrays, overlap warnings; uniform byte layout and other target rules absent |
+| Declaration reflection | slang-compiler | Partial | Source/target names, types, stages, group sizes, module graph, allocated resource ranges and binding origins |
+| Complete reflection API | ? | Not ported | Byte layouts, nested resource aggregates, specialization absent |
 | Native Rust API | slang-compiler | Partial | Own API for the implemented pipeline |
 | Upstream C ABI and API | ? | Not ported | API/ABI compatibility suite required |
 | slangc CLI | slang-cli | Partial | Limited option set |
