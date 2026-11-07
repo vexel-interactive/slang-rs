@@ -67,6 +67,10 @@ defaults, imported source locations, and stage propagation through calls,
 globals, and aggregate defaults. Long chains and cyclic call graphs check that
 requirement propagation does not recurse on the native stack.
 
+Sampling tests cover bias and explicit gradients for all four texture dimensions,
+element return types, contextual gradient lists, and invalid receivers and shapes.
+Differential fixtures validate fragment bias and compute gradient sampling with DXC.
+
 Examples cover vector addition, control flow, matrix algebra, vertex transforms,
 fragment color output, struct construction, and a multi-file module. With DXC
 installed, validate generated HLSL independently:

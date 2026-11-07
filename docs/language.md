@@ -322,16 +322,24 @@ support sampling with a three-component direction.
 | `Load` | Structured buffer: scalar index; read texture: integer coordinates plus mip; RW texture: integer coordinates |
 | `Sample` | Floating-point read texture: `SamplerState`, floating-point coordinates |
 | `SampleLevel` | Floating-point read texture: sampler, coordinates, explicit float LOD |
+| `SampleBias` | Floating-point read texture: sampler, coordinates, float LOD bias |
+| `SampleGrad` | Floating-point read texture: sampler, coordinates, two gradients of the coordinate type |
 | `SampleCmp`, `SampleCmpLevelZero` | Floating-point 1D/2D/cube read texture: `SamplerComparisonState`, coordinates, float comparison value; returns float |
 | `GetDimensions` | Structured buffer: uint count and stride outputs; texture: uint/float dimensions; read texture also accepts uint mip input and a level-count output |
 
 Dimension outputs must be writable and use matching types. `Load` is unavailable
-on cube textures. Resource methods lower to typed method calls in IR and native
-HLSL calls. Texture arrays, multisampling, gather/gradient/bias/offset/status
+on cube textures. `SampleGrad` supports 1D/2D/3D/cube textures; gradients use
+float, float2, or float3 to match their coordinates. Explicit gradients work in
+compute shaders without implicit derivative instructions. Resource methods
+lower to typed method calls in IR and native HLSL calls. Texture arrays,
+multisampling, gather/offset/status
 overloads, other atomic overloads, resource binding declarations, and
 target capability checks remain unimplemented. Implicit-LOD sampling must be
 validated for the chosen target stage/profile; this frontend does not yet
 perform a complete stage capability analysis.
+`SampleBias`, like implicit-LOD sampling, requires a compatible target profile
+when used outside fragment shaders. See
+[texture-gradients.slang](../examples/texture-gradients.slang).
 
 ## Intrinsics
 

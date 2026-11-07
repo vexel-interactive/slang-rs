@@ -733,6 +733,29 @@
       "entry": "main",
       "accept": false,
       "rust_code": "T014"
+    },
+    {
+      "file": "../../examples/texture-gradients.slang",
+      "entry": "main",
+      "accept": true,
+      "profile": "ps_6_0"
+    },
+    {
+      "file": "positive/texture-gradients-compute.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "negative/texture-gradient-shape.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T008"
+    },
+    {
+      "file": "negative/texture-gradient-element.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T014"
     }
   ]
 }

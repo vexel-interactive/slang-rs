@@ -98,8 +98,12 @@ fn signature(receiver: &Type, name: &str, types: &[Type]) -> Option<Method> {
                 "Sample" if !writable && floating => {
                     input(vec![sampler, coordinate], *element.clone())
                 }
-                "SampleLevel" if !writable && floating => input(
+                "SampleLevel" | "SampleBias" if !writable && floating => input(
                     vec![sampler, coordinate, Type::Scalar(Scalar::Float)],
+                    *element.clone(),
+                ),
+                "SampleGrad" if !writable && floating => input(
+                    vec![sampler, coordinate.clone(), coordinate.clone(), coordinate],
                     *element.clone(),
                 ),
                 "SampleCmp" | "SampleCmpLevelZero"
