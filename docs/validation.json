@@ -1,0 +1,24 @@
+{
+  "date": "2026-11-07",
+  "platform": "windows-x86_64-msvc",
+  "rust_toolchain": "1.99.1",
+  "checks": {
+    "rustfmt": "passed",
+    "clippy_all_targets_warnings_denied": "passed",
+    "unit_tests": 17,
+    "integration_tests": 7,
+    "doc_tests": 1,
+    "rustdoc": "passed",
+    "release_build": "passed",
+    "english_documentation_and_links": "passed"
+  },
+  "differential_validation": {
+    "oracle": "Slang 2026.21",
+    "cases_passed": 14,
+    "cases_total": 14,
+    "dxc_hlsl_artifacts_validated": 14,
+    "gpu_execution_compared": false,
+    "complete_upstream_parity": false
+  },
+  "remote_ci_executed": false
+}

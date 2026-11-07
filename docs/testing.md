@@ -1,0 +1,53 @@
+# Testing
+
+## Workspace checks
+
+`tools/check.ps1` runs rustfmt, Clippy, workspace tests, and rustdoc using Rust
+1.99.1. Tests cover precedence, scopes, const/read-only locations, overloads,
+macro recursion and operators, include guards, diagnostic locations, IR lowering,
+and output preservation after a compilation error.
+
+The example shaders are `vector-add.slang` and `control-flow.slang`. With DXC
+installed, validate generated HLSL independently:
+
+```text
+slangc-rs examples/vector-add.slang -entry main -o vector-add.hlsl
+dxc -T cs_6_0 -E main -Fo vector-add.dxil vector-add.hlsl
+```
+
+This confirms HLSL validity for DXC. It does not verify GPU execution or complete
+language compatibility.
+
+## Differential comparison
+
+`tests/conformance/manifest.json` lists a small positive and negative corpus.
+Each source is compiled by both the Rust compiler and a standalone upstream
+`slangc`, and their acceptance statuses are compared. Positive HLSL artifacts
+are additionally checked with DXC when its executable path is supplied.
+
+```text
+python tools/conformance.py --rust target/debug/slangc-rs.exe --oracle path/to/slangc.exe --dxc path/to/dxc.exe
+```
+
+The runner checks only explicitly listed cases. Execution comparisons still
+need a separate runner; matching exit codes do not establish semantic
+execution equivalence. Reports are written to `out/conformance.json`.
+
+The oracle is published release `v2026.21`; it may differ from the pinned master
+source revision. This distinction is recorded in `upstream.lock.json`.
+Strict revision parity requires building an oracle from the pinned commit.
+
+## Complete upstream corpus
+
+The inventory contains 6723 upstream test files, not 6723 executed test cases.
+Many files are includes, expected outputs, fixtures, or platform-specific inputs.
+Before enabling a category, port its upstream test directives, dependencies,
+profiles, and comparison methods. Unsupported categories must remain visible
+in coverage reports.
+
+## Recorded local validation
+
+[validation.json](validation.json) records the Windows validation run for this
+checkpoint. It includes the pinned compiler version, workspace checks, and
+differential corpus counts. It is a snapshot of that run, not a promise of
+complete Slang compatibility or validation on other operating systems.
