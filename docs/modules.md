@@ -106,6 +106,11 @@ each overload: an internal overload is unavailable to importers even if a
 public overload has the same name. Linking preserves parameter and local
 shadowing, including loop and switch scopes.
 
+An imported module cannot access the root source's declarations without an
+import. This also applies during alias resolution and struct field checking.
+Builtin calls remain distinct from same-name functions in other modules;
+generated HLSL cannot accidentally select those user functions.
+
 A legacy source with no module declaration, no `__include`, and no access
 modifiers exports all its declarations and fields. Reflection records whether
 this compatibility mode was used.

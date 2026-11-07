@@ -2,6 +2,11 @@ use crate::{Type, checker::Checker};
 use slang_source::Span;
 
 impl Checker {
+    /// Imported modules cannot see declarations from the root without an import.
+    pub(crate) fn module_symbol_visible(&self, name: &str) -> bool {
+        self.current_module.0 == 0 || self.symbols.get(name).is_none_or(|o| o.module.0 != 0)
+    }
+
     pub(crate) fn source_name<'a>(&'a self, name: &'a str) -> &'a str {
         self.symbols.get(name).map_or(name, |origin| &origin.name)
     }

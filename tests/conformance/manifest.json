@@ -778,6 +778,23 @@
       "entry": "main",
       "accept": false,
       "rust_code": "T015"
+    },
+    {
+      "file": "modules/intrinsic-root.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "modules/root-leak.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T011"
+    },
+    {
+      "file": "modules/root-type-leak.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T002"
     }
   ]
 }

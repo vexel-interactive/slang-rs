@@ -280,6 +280,14 @@ fn expression(expr: &Expr) -> String {
                 .collect::<Vec<_>>()
                 .join(", ")
         ),
+        ExprKind::IntrinsicCall { name, arguments } => format!(
+            "{name}({})",
+            arguments
+                .iter()
+                .map(expression)
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
         ExprKind::Member { base, name } => format!("({}).{}", expression(base), identifier(name)),
         ExprKind::MethodCall {
             receiver,

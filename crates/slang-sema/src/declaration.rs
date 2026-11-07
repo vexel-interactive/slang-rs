@@ -106,9 +106,13 @@ impl Checker {
             Type::Error
         } else if let Some(ty) = Type::builtin(&reference.name) {
             ty
-        } else if self.aliases.contains_key(&reference.name) {
+        } else if self.aliases.contains_key(&reference.name)
+            && self.module_symbol_visible(&reference.name)
+        {
             self.resolve_alias(&reference.name, reference.span)
-        } else if self.structures.contains_key(&reference.name) {
+        } else if self.structures.contains_key(&reference.name)
+            && self.module_symbol_visible(&reference.name)
+        {
             Type::Struct(reference.name.clone())
         } else {
             self.error(
@@ -140,6 +144,16 @@ impl Checker {
     pub(crate) fn declare(&mut self, module: &Module) {
         let names = self.declare_types(module);
         for declaration in &module.declarations {
+            let name = match declaration {
+                Declaration::TypeAlias(a) => &a.name,
+                Declaration::Struct(s) => &s.name,
+                Declaration::Global(v) => &v.name,
+                Declaration::Function(f) => &f.name,
+            };
+            self.current_module = self
+                .symbols
+                .get(name)
+                .map_or(slang_module::ModuleId(0), |o| o.module);
             match declaration {
                 Declaration::TypeAlias(_) => {}
                 Declaration::Struct(structure) => {
@@ -170,20 +184,12 @@ impl Checker {
                     self.structures.insert(structure.name.clone(), fields);
                 }
                 Declaration::Global(variable) => {
-                    self.current_module = self
-                        .symbols
-                        .get(&variable.name)
-                        .map_or(slang_module::ModuleId(0), |o| o.module);
                     if names.contains(&variable.name) {
                         self.error("T003", variable.span, "value name conflicts with a type");
                     }
                     self.bind(variable, VariableScope::Global);
                 }
                 Declaration::Function(function) => {
-                    self.current_module = self
-                        .symbols
-                        .get(&function.name)
-                        .map_or(slang_module::ModuleId(0), |o| o.module);
                     if self.scopes[0].contains_key(&function.name)
                         || names.contains(&function.name)
                         || Type::builtin(self.source_name(&function.name)).is_some()

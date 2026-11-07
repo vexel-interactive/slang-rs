@@ -59,6 +59,7 @@ pub fn lower(checked: &CheckedModule) -> Result<Module, Diagnostic> {
         }
     }
     crate::initialization::lower(&mut module)?;
+    crate::intrinsic::lower(&mut module)?;
     Ok(module)
 }
 
@@ -259,6 +260,14 @@ impl Lowerer<'_> {
                     }
                 }
                 match &callee.kind {
+                    ast::ExprKind::Name(name)
+                        if !self.checked.call_names.contains_key(&callee.id) =>
+                    {
+                        ExprKind::IntrinsicCall {
+                            name: name.clone(),
+                            arguments,
+                        }
+                    }
                     ast::ExprKind::Name(name) => ExprKind::Call {
                         name: self
                             .checked

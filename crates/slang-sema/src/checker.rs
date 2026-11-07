@@ -228,7 +228,17 @@ impl Checker {
     }
 
     pub fn lookup(&self, name: &str) -> Option<&Binding> {
-        self.scopes.iter().rev().find_map(|s| s.get(name))
+        self.scopes
+            .iter()
+            .enumerate()
+            .rev()
+            .find_map(|(index, scope)| {
+                if index == 0 && !self.module_symbol_visible(name) {
+                    None
+                } else {
+                    scope.get(name)
+                }
+            })
     }
 }
 

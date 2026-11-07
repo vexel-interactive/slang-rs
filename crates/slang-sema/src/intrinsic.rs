@@ -3,6 +3,47 @@ use crate::{Scalar, Type};
 mod output;
 pub(crate) use output::signature as output_signature;
 
+/// Names implemented by the native builtin signature set.
+pub fn is_intrinsic_name(name: &str) -> bool {
+    matches!(
+        name,
+        "abs"
+            | "sin"
+            | "cos"
+            | "tan"
+            | "sqrt"
+            | "rsqrt"
+            | "floor"
+            | "ceil"
+            | "frac"
+            | "exp"
+            | "exp2"
+            | "log"
+            | "log2"
+            | "saturate"
+            | "min"
+            | "max"
+            | "pow"
+            | "clamp"
+            | "lerp"
+            | "dot"
+            | "length"
+            | "normalize"
+            | "mul"
+            | "transpose"
+            | "determinant"
+            | "all"
+            | "any"
+            | "clip"
+            | "sincos"
+            | "modf"
+            | "frexp"
+            | "GroupMemoryBarrierWithGroupSync"
+            | "DeviceMemoryBarrierWithGroupSync"
+            | "AllMemoryBarrierWithGroupSync"
+    )
+}
+
 pub(crate) fn intrinsic(name: &str, types: &[Type]) -> Option<Type> {
     match (name, types) {
         ("mul", [a, b]) if a.numeric() && b.numeric() => product(a, b),

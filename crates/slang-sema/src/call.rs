@@ -103,7 +103,12 @@ impl Checker {
             self.error("T014", span, format!("value '{name}' is not callable"));
             return Type::Error;
         }
-        if let Some(overloads) = self.functions.get(name).cloned() {
+        if let Some(overloads) = self
+            .functions
+            .get(name)
+            .filter(|_| self.module_symbol_visible(name))
+            .cloned()
+        {
             let owner = self
                 .symbols
                 .get(name)
@@ -250,10 +255,13 @@ impl Checker {
     fn constructor_target(&self, callee: &Expr) -> Result<Option<Type>, Diagnostic> {
         match &callee.kind {
             ExprKind::Name(name) if self.lookup(name).is_none() => Ok(Type::builtin(name)
-                .or_else(|| self.alias_types.get(name).cloned())
                 .or_else(|| {
-                    self.structures
-                        .contains_key(name)
+                    self.module_symbol_visible(name)
+                        .then(|| self.alias_types.get(name).cloned())
+                        .flatten()
+                })
+                .or_else(|| {
+                    (self.module_symbol_visible(name) && self.structures.contains_key(name))
                         .then(|| Type::Struct(name.clone()))
                 })),
             ExprKind::Index { base, index } => {

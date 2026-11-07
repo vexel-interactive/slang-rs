@@ -42,7 +42,7 @@ fn output_shapes_and_types_determine_explicit_input_conversions() {
     let StmtKind::Expression(value) = &body[2].kind else {
         panic!()
     };
-    let ExprKind::Call { arguments, .. } = &value.kind else {
+    let ExprKind::IntrinsicCall { arguments, .. } = &value.kind else {
         panic!()
     };
     assert_eq!(arguments[0].ty.to_string(), "float2");
@@ -94,10 +94,6 @@ fn output_arguments_require_exact_types_and_distinct_writable_locations() {
         ),
         ("void run(){float s;float c;sincos(true,s,c);}", "T014"),
         ("void run(){float s;sincos(1.0,s);}", "T014"),
-        (
-            "void run(){float2x2 s;float2x2 c;sincos(float2x2(1),s,c);}",
-            "T014",
-        ),
     ] {
         let error = compile_source(
             "bad.slang",

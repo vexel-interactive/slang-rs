@@ -28,7 +28,7 @@ pub(crate) fn signature(name: &str, types: &[Type]) -> Option<Signature> {
             };
         }
     }
-    if !target.numeric() || (matches!(target, Type::Matrix(..)) && name != "modf") {
+    if !target.numeric() {
         return None;
     }
     let scalar = target.scalar()?;

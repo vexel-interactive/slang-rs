@@ -356,9 +356,11 @@ validation.
 
 `sincos(x, out sine, out cosine)` returns void. `modf(x, out integral)` returns
 the fractional part. `frexp(x, out exponent)` returns the mantissa and writes an
-`int` exponent with the same shape. Scalar and vector forms support half, float,
-and double; integer inputs promote to float. `modf` also supports matrices.
-Matrix `sincos/frexp` forms remain unimplemented.
+`int` exponent with the same shape. Scalar, vector, and matrix forms support
+half, float, and double; integer inputs promote to float. Matrix output functions
+lower to row operations with reusable helpers; supplied matrix expressions
+evaluate once. See
+[matrix-output-intrinsics.slang](../examples/matrix-output-intrinsics.slang).
 
 Output arguments participate in numeric type and shape inference. Selected input
 conversions become explicit in IR, including scalar splats inferred from vector

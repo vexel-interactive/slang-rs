@@ -120,6 +120,13 @@ then require exact writable outputs. IR makes the selected intrinsic and resourc
 input conversions explicit so backend overload resolution preserves the checked
 type and shape, including scalar splats.
 
+`IntrinsicCall` nodes keep selected builtins separate from user calls. HLSL
+renames user declarations that share builtin spellings while preserving native
+intrinsic calls. Matrix sincos, modf, and frexp use generated functions that call
+vector overloads row by row. Helpers are cached by intrinsic, scalar type, and
+matrix dimensions. Typed passes share a visitor and iterative binding-name
+collection; aggregate normalization runs before matrix intrinsic lowering.
+
 Imported function overloads receive distinct target names when needed. The
 checker records the selected callable in `CheckedModule`; lowering uses that
 selection so target compilation cannot select an internal overload by mistake.

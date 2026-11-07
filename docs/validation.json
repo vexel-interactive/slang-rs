@@ -6,7 +6,7 @@
     "rustfmt": "passed",
     "clippy_all_targets_warnings_denied": "passed",
     "unit_tests": 17,
-    "integration_tests": 97,
+    "integration_tests": 101,
     "doc_tests": 1,
     "conformance_comparison_tests": 3,
     "rustdoc": "passed",
@@ -15,11 +15,11 @@
   },
   "differential_validation": {
     "oracle": "Slang 2026.21",
-    "cases_passed": 139,
-    "cases_total": 139,
-    "matching_acceptance_cases": 138,
+    "cases_passed": 142,
+    "cases_total": 142,
+    "matching_acceptance_cases": 141,
     "documented_oracle_differences": 1,
-    "dxc_hlsl_artifacts_validated": 138,
+    "dxc_hlsl_artifacts_validated": 140,
     "dxc_invalid_hlsl_artifacts_rejected": 1,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
@@ -31,6 +31,16 @@
   },
   "remote_ci_executed": true,
   "remote_ci": {
+    "run_id": 42388014594,
+    "head_sha": "6c73deac5da9be38000360f9338c043b3ca490f7",
+    "conclusion": "success",
+    "platforms": [
+      "ubuntu-latest",
+      "windows-latest",
+      "macos-latest"
+    ]
+  },
+  "previous_remote_ci": {
     "run_id": 42387482937,
     "head_sha": "3ca287ad4e592a1e73b7ec971d3b1876618f81bd",
     "conclusion": "success",
@@ -40,12 +50,12 @@
       "macos-latest"
     ]
   },
-  "previous_remote_ci": {
-    "run_id": 42387198673,
-    "head_sha": "4da5d05cb428a1b9a8e251b3c463a3645a85c112",
-    "conclusion": "success"
-  },
   "earlier_remote_ci": [
+    {
+      "run_id": 42387198673,
+      "head_sha": "4da5d05cb428a1b9a8e251b3c463a3645a85c112",
+      "conclusion": "success"
+    },
     {
       "run_id": 42386381233,
       "head_sha": "6c6e5105b122f7a5e013094691ffb3eab1bd0fec",
@@ -104,5 +114,20 @@
   ],
   "additional_dxc_checks": [
     "HLSL reserved entry name through reflection target_name"
-  ]
+  ],
+  "native_validation": {
+    "dxc_hlsl_artifacts_validated": 4,
+    "matrix_shapes": 27,
+    "matrix_output_intrinsic_signatures": 81,
+    "cases": [
+      "All half, float, and double matrix shapes for sincos, modf, and frexp",
+      "Matrix field default with a writable global output",
+      "Intrinsic-spelled shader entry through reflection target_name",
+      "examples/matrix-output-intrinsics.slang"
+    ],
+    "profiles": [
+      "cs_6_0"
+    ],
+    "gpu_execution_compared": false
+  }
 }

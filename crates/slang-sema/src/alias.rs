@@ -68,7 +68,13 @@ impl Checker {
             return Type::Error;
         }
         let target = self.aliases[name].clone();
+        let previous_module = self.current_module;
+        self.current_module = self
+            .symbols
+            .get(name)
+            .map_or(slang_module::ModuleId(0), |o| o.module);
         let ty = self.resolve_type(&target);
+        self.current_module = previous_module;
         self.resolving_aliases.remove(name);
         self.alias_types.insert(name.into(), ty.clone());
         ty

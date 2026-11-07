@@ -76,6 +76,13 @@ numeric and shape inference; exact output types; const and temporary rejection;
 and user functions with intrinsic names. Differential examples check scalar and
 vector sincos/frexp, matrix modf, and invalid output arguments with DXC.
 
+Matrix-output tests check row types, exact exponent types, single input evaluation,
+helper reuse, defaults, and name collisions. The matrix output example is also
+checked directly with DXC. In the installed DXC, upstream's direct matrix sincos
+and frexp output crashes the validator; native row lowering avoids those calls.
+Module regressions cover builtin isolation and unimported root globals, aliases,
+struct fields, and functions.
+
 Examples cover vector addition, control flow, matrix algebra, vertex transforms,
 fragment color output, struct construction, and a multi-file module. With DXC
 installed, validate generated HLSL independently:

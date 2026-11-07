@@ -3,25 +3,11 @@ mod declaration_default;
 use crate::*;
 use slang_sema::{Scalar, Type};
 use slang_source::Diagnostic;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 /// Lower aggregate construction to ordinary typed functions and field writes.
 pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
-    let mut names = BTreeSet::new();
-    for structure in &module.structures {
-        names.insert(structure.name.clone());
-        names.extend(structure.fields.iter().map(|f| f.name.clone()));
-    }
-    for global in &module.globals {
-        names.insert(global.name.clone());
-    }
-    for function in &module.functions {
-        names.insert(function.name.clone());
-        names.extend(function.parameters.iter().map(|p| p.name.clone()));
-        if let Some(body) = &function.body {
-            local_names(body, &mut names);
-        }
-    }
+    let names = crate::visit::names(module);
     let mut prefix = "_slang_init_".to_owned();
     while names.iter().any(|n| n.starts_with(&prefix)) {
         prefix.push('_');
@@ -49,47 +35,6 @@ pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
     module.functions.extend(lowerer.functions);
     module.structures.extend(lowerer.generated_structures);
     Ok(())
-}
-
-fn local_names(statement: &Stmt, names: &mut BTreeSet<String>) {
-    match &statement.kind {
-        StmtKind::Variable(v) => {
-            names.insert(v.name.clone());
-        }
-        StmtKind::Variables(variables) => {
-            names.extend(variables.iter().map(|v| v.name.clone()));
-        }
-        StmtKind::Block(body) => {
-            for s in body {
-                local_names(s, names)
-            }
-        }
-        StmtKind::If {
-            then_branch,
-            else_branch,
-            ..
-        } => {
-            local_names(then_branch, names);
-            if let Some(s) = else_branch {
-                local_names(s, names);
-            }
-        }
-        StmtKind::While { body, .. } | StmtKind::DoWhile { body, .. } => local_names(body, names),
-        StmtKind::For {
-            initializer, body, ..
-        } => {
-            local_names(initializer, names);
-            local_names(body, names);
-        }
-        StmtKind::Switch { cases, .. } => {
-            for case in cases {
-                for s in &case.statements {
-                    local_names(s, names)
-                }
-            }
-        }
-        _ => {}
-    }
 }
 
 struct Lowerer {
@@ -172,6 +117,9 @@ impl Lowerer {
         match &mut expression.kind {
             ExprKind::Construct(values)
             | ExprKind::Call {
+                arguments: values, ..
+            }
+            | ExprKind::IntrinsicCall {
                 arguments: values, ..
             } => {
                 for v in values {

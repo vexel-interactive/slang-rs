@@ -3,7 +3,11 @@ use slang_sema::Type;
 /// HLSL reserves words that remain valid identifiers in the Slang frontend.
 /// Prefixing existing generated-name prefixes keeps this mapping injective.
 pub(crate) fn identifier(name: &str) -> String {
-    if name.starts_with("_slang_") || Type::builtin(name).is_some() || reserved(name) {
+    if name.starts_with("_slang_")
+        || Type::builtin(name).is_some()
+        || slang_sema::is_intrinsic_name(name)
+        || reserved(name)
+    {
         format!("_slang_{name}")
     } else {
         name.into()

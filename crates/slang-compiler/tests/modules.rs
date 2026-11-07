@@ -313,3 +313,53 @@ fn legacy_visibility_and_module_path_spellings_follow_slang() {
         "T014",
     );
 }
+
+#[test]
+fn imported_modules_cannot_read_unimported_root_declarations() {
+    for (source, library, code) in [
+        (
+            "static float value=3;",
+            "module lib;public float read(){return value;}",
+            "T011",
+        ),
+        (
+            "float hidden(){return 3;}",
+            "module lib;public float read(){return hidden();}",
+            "T014",
+        ),
+        (
+            "struct Root{float x;};",
+            "module lib;public float read(){Root r;return r.x;}",
+            "T002",
+        ),
+        (
+            "typealias Root=float;",
+            "module lib;public float read(){Root r=2;return r;}",
+            "T002",
+        ),
+        (
+            "struct Root{float x;};",
+            "module lib;public struct Foreign{public Root value;};public float read(){return 1;}",
+            "T002",
+        ),
+        (
+            "typealias Root=float;",
+            "module lib;typealias Foreign=Root;public float read(){Foreign r=2;return r;}",
+            "T002",
+        ),
+    ] {
+        fails(
+            &format!("import lib;{source}float run(){{return read();}}"),
+            &[("lib.slang", library)],
+            code,
+        );
+    }
+    compile(
+        "import lib;static float value=3;float run(){return read(2);}",
+        &[(
+            "lib.slang",
+            "module lib;public float read(float value){return value;}",
+        )],
+    )
+    .unwrap();
+}

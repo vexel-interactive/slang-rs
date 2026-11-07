@@ -22,4 +22,5 @@ mod visibility;
 
 pub use checker::{CheckedModule, EntryPoint, ShaderStage, check, check_program, span_key};
 pub use initialization::{Initialization, InitializationKind};
+pub use intrinsic::is_intrinsic_name;
 pub use types::{Scalar, TextureDimension, Type};

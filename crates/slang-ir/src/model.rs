@@ -119,6 +119,11 @@ pub enum ExprKind {
         name: String,
         arguments: Vec<Expr>,
     },
+    /// A selected builtin; user declarations cannot capture its target spelling.
+    IntrinsicCall {
+        name: String,
+        arguments: Vec<Expr>,
+    },
     MethodCall {
         receiver: Box<Expr>,
         name: String,
