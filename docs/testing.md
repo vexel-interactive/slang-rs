@@ -243,6 +243,15 @@ from preprocessing, lexing, syntax, semantics, and profile diagnostics. Differen
 fixtures compare line conversion, initiating calls, continuations, physical file
 resolution, and upstream's rejection of negative location tokens in typed expressions.
 
+Geometric regressions check scalar and vector shapes, integer promotion, mixed
+precision, scalar splats, boolean cross-product selection, and single evaluation
+of integer helper arguments. Default and imported bindings, generated name
+collisions, contextual lists, and explicit double-to-float HLSL conversions are
+checked independently. Differential fixtures validate all implemented component
+types with DXC and reject invalid dimensions, matrices, boolean distance inputs,
+and non-scalar or brace-list refraction indices. These checks do not compare GPU
+results or establish full floating-point execution equivalence.
+
 [validation.json](validation.json) records the Windows validation run for this
 checkpoint. It includes the pinned compiler version, workspace checks, and
 differential corpus counts. It is a snapshot of that run, not a promise of

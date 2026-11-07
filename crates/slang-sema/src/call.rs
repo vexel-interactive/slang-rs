@@ -198,9 +198,20 @@ impl Checker {
             return Type::Error;
         }
         if types.contains(&Type::InitializerList)
+            && (name != "refract" || types.get(2) != Some(&Type::InitializerList))
             && matches!(
                 name.as_str(),
-                "dot" | "min" | "max" | "pow" | "clamp" | "lerp"
+                "dot"
+                    | "min"
+                    | "max"
+                    | "pow"
+                    | "clamp"
+                    | "lerp"
+                    | "cross"
+                    | "distance"
+                    | "reflect"
+                    | "refract"
+                    | "faceforward"
             )
             && let Some(context) = types
                 .iter()
@@ -218,13 +229,14 @@ impl Checker {
         }
         if let Some(signature) = crate::intrinsic::bitcast_signature(name, &types)
             .or_else(|| crate::intrinsic::bitops_signature(name, &types))
+            .or_else(|| crate::intrinsic::geometric_signature(name, &types))
         {
             if let Some(start) = signature.outputs_start {
                 for argument in &arguments[start..] {
                     self.require_writable(argument);
                 }
             }
-            // The signature records explicit bool/half promotions. Output integer
+            // The signature records explicit input conversions. Output integer
             // signs stay intact: casting an output would destroy its location.
             self.expression_types.insert(
                 callee.id,

@@ -4,11 +4,13 @@ mod atomic;
 mod bitcast;
 mod bitops;
 mod derivative;
+mod geometric;
 mod output;
 pub(crate) use atomic::signature as atomic_signature;
 pub(crate) use bitcast::signature as bitcast_signature;
 pub(crate) use bitops::signature as bitops_signature;
 pub(crate) use derivative::{name as derivative_name, signature as derivative_signature};
+pub(crate) use geometric::signature as geometric_signature;
 pub(crate) use output::signature as output_signature;
 
 pub(crate) struct Signature {
@@ -52,6 +54,11 @@ pub fn is_intrinsic_name(name: &str) -> bool {
                 | "dot"
                 | "length"
                 | "normalize"
+                | "cross"
+                | "distance"
+                | "reflect"
+                | "refract"
+                | "faceforward"
                 | "mul"
                 | "transpose"
                 | "determinant"
@@ -116,22 +123,6 @@ pub(crate) fn intrinsic(name: &str, types: &[Type]) -> Option<Type> {
                 ) =>
         {
             Some(Type::Scalar(a.scalar()?))
-        }
-        ("length", [a])
-            if matches!(
-                a,
-                Type::Vector(Scalar::Half | Scalar::Float | Scalar::Double, _)
-            ) =>
-        {
-            Some(Type::Scalar(a.scalar()?))
-        }
-        ("normalize", [a])
-            if matches!(
-                a,
-                Type::Vector(Scalar::Half | Scalar::Float | Scalar::Double, _)
-            ) =>
-        {
-            Some(a.clone())
         }
         ("all" | "any", [a]) if a.scalar().is_some() => Some(Type::Scalar(Scalar::Bool)),
         (

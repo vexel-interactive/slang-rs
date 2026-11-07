@@ -1626,6 +1626,104 @@
         "generated.slang:-1:",
         "invalid suffix"
       ]
+    },
+    {
+      "file": "positive/geometric-half.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/geometric-float.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/geometric-double.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/geometric-int.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/geometric-uint.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/geometric-boolean-cross.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/geometric-mixed.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/geometric-defaults.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "negative/geometric-width.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/geometric-boolean-one.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/geometric-matrix.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/geometric-boolean-distance.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/geometric-refraction-index.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/geometric-dimensions.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/geometric-arity.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014"
+    },
+    {
+      "file": "positive/geometric-initializers.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/geometric-cross-splats.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "negative/geometric-refraction-list.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014"
     }
   ]
 }

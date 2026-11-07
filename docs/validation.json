@@ -6,7 +6,7 @@
     "rustfmt": "passed",
     "clippy_all_targets_warnings_denied": "passed",
     "unit_tests": 24,
-    "integration_tests": 194,
+    "integration_tests": 203,
     "doc_tests": 1,
     "conformance_comparison_tests": 5,
     "rustdoc": "passed",
@@ -15,11 +15,11 @@
   },
   "differential_validation": {
     "oracle": "Slang 2026.21",
-    "cases_passed": 278,
-    "cases_total": 278,
-    "matching_acceptance_cases": 270,
+    "cases_passed": 296,
+    "cases_total": 296,
+    "matching_acceptance_cases": 288,
     "documented_oracle_differences": 8,
-    "dxc_hlsl_artifacts_validated": 286,
+    "dxc_hlsl_artifacts_validated": 306,
     "dxc_invalid_hlsl_artifacts_rejected": 8,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
@@ -32,6 +32,16 @@
   },
   "remote_ci_executed": true,
   "remote_ci": {
+    "run_id": 42415292766,
+    "head_sha": "08409413c8629307f653306042477030372bdd1e",
+    "conclusion": "success",
+    "platforms": [
+      "ubuntu-latest",
+      "windows-latest",
+      "macos-latest"
+    ]
+  },
+  "previous_remote_ci": {
     "run_id": 42398733846,
     "head_sha": "481afa17b1e01948598bb4102dab4174c5cbdb3c",
     "conclusion": "success",
@@ -41,17 +51,17 @@
       "macos-latest"
     ]
   },
-  "previous_remote_ci": {
-    "run_id": 42398412972,
-    "head_sha": "193d7e4cba142c2780131060d7170c63e68de160",
-    "conclusion": "success",
-    "platforms": [
-      "ubuntu-latest",
-      "windows-latest",
-      "macos-latest"
-    ]
-  },
   "earlier_remote_ci": [
+    {
+      "run_id": 42398412972,
+      "head_sha": "193d7e4cba142c2780131060d7170c63e68de160",
+      "conclusion": "success",
+      "platforms": [
+        "ubuntu-latest",
+        "windows-latest",
+        "macos-latest"
+      ]
+    },
     {
       "run_id": 42397854941,
       "head_sha": "87323245902d92f518155d0678ff98b9be819b17",

@@ -475,7 +475,8 @@ when used outside fragment shaders. See
 
 The current built-in signatures cover `abs`, `sin`, `cos`, `tan`, `sqrt`, `rsqrt`,
 `floor`, `ceil`, `frac`, `exp`, `exp2`, `log`, `log2`, `saturate`, `min`, `max`,
-`pow`, `clamp`, `lerp`, `dot`, `length`, `normalize`, `mul`, `transpose`,
+`pow`, `clamp`, `lerp`, `dot`, `length`, `normalize`, `cross`, `distance`,
+`reflect`, `refract`, `faceforward`, `mul`, `transpose`,
 `determinant`, `all`, `any`, `clip`, `sincos`, `modf`, `frexp`,
 `GroupMemoryBarrier`, `DeviceMemoryBarrier`, `AllMemoryBarrier`, and their
 `WithGroupSync` variants.
@@ -501,6 +502,38 @@ outputs. Outputs must have exactly the selected type and be writable locations;
 const values, temporary expressions, and repeated swizzles are rejected. `sincos`
 and `modf` can infer brace-list input types from their outputs. See
 [output-intrinsics.slang](../examples/output-intrinsics.slang).
+
+## Geometric functions
+
+`length`, `distance`, `normalize`, `reflect`, and `refract` accept scalars and
+vectors with one through four components. Integer inputs promote to float;
+mixed numeric components select half, float, or double from the supplied types.
+`length` and `distance` return a scalar. `normalize`, `reflect`, and `refract`
+retain the selected shape. `faceforward` returns a vector, including a
+one-component vector for scalar inputs. Matrices and boolean inputs are rejected
+by these functions.
+
+Vector operands must have matching dimensions; ordinary scalars can splat to
+the vector dimension. A one-component vector does not splat to a different
+dimension in these generic signatures. `refract` requires a scalar refraction
+index, with a one-component vector convertible to that scalar. A brace list
+cannot supply the index. Other geometric operands can use contextual brace
+lists when a supplied operand establishes a concrete shape.
+
+`cross` returns a three-component vector and accepts scalar splats,
+one-component numeric vectors, and three-component vectors. It retains integer
+components for integer inputs. Boolean scalars and three-component boolean
+vectors select an integer overload; one-component boolean vectors are rejected.
+When bool participates, floating arguments convert to the selected integer type.
+Native integer cross products lower to cached functions using integer component
+multiplication and subtraction. Each supplied expression is evaluated once.
+
+The HLSL backend uses float geometric instructions for double inputs and converts
+results back to the checked double shape. This preserves the source signature,
+with the precision limits of those HLSL operations. Full floating-point execution
+equivalence and automatic differentiation remain unverified. See
+[geometric-float.slang](../tests/conformance/positive/geometric-float.slang) and
+[geometric-int.slang](../tests/conformance/positive/geometric-int.slang).
 
 ## Integer bit operations
 

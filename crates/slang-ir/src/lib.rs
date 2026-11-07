@@ -2,6 +2,7 @@
 
 mod atomic;
 mod derivative;
+mod geometric;
 mod initialization;
 mod intrinsic;
 mod lower;
