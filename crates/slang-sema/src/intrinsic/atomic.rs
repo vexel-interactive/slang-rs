@@ -1,4 +1,7 @@
-use crate::{Scalar, Type, checker::Checker};
+use crate::{
+    Scalar, Type,
+    checker::{Checker, Storage},
+};
 use slang_syntax::{Expr, ExprKind};
 
 pub(crate) struct Signature {
@@ -47,7 +50,9 @@ impl Checker {
 
     fn atomic_destination(&self, value: &Expr) -> bool {
         match &value.kind {
-            ExprKind::Name(name) => self.lookup(name).is_some_and(|binding| binding.groupshared),
+            ExprKind::Name(name) => self
+                .lookup(name)
+                .is_some_and(|binding| matches!(binding.storage, Storage::GroupShared(_))),
             ExprKind::Member { base, .. } => self.atomic_destination(base),
             ExprKind::Index { base, .. } => {
                 if matches!(

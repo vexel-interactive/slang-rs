@@ -52,6 +52,9 @@ pub fn is_intrinsic_name(name: &str) -> bool {
             | "GroupMemoryBarrierWithGroupSync"
             | "DeviceMemoryBarrierWithGroupSync"
             | "AllMemoryBarrierWithGroupSync"
+            | "GroupMemoryBarrier"
+            | "DeviceMemoryBarrier"
+            | "AllMemoryBarrier"
     )
 }
 
@@ -113,7 +116,10 @@ pub(crate) fn intrinsic(name: &str, types: &[Type]) -> Option<Type> {
         (
             "GroupMemoryBarrierWithGroupSync"
             | "DeviceMemoryBarrierWithGroupSync"
-            | "AllMemoryBarrierWithGroupSync",
+            | "AllMemoryBarrierWithGroupSync"
+            | "GroupMemoryBarrier"
+            | "DeviceMemoryBarrier"
+            | "AllMemoryBarrier",
             [],
         ) => Some(Type::Void),
         _ => None,

@@ -1,17 +1,48 @@
-use crate::{CheckedModule, Initialization, InitializationKind, ShaderStage, Type, span_key};
+use crate::{
+    CheckedModule, Initialization, InitializationKind, ShaderStage, Type, checker::SpanKey,
+    span_key,
+};
 use slang_source::{Diagnostic, Span};
-use slang_syntax::{Declaration, Expr, ExprKind, Stmt, StmtKind};
+use slang_syntax::{Declaration, Expr, ExprKind, Stmt, StmtKind, Variable};
 use std::collections::{BTreeMap, BTreeSet};
 
 type Functions = BTreeMap<String, Vec<(Vec<Type>, usize)>>;
 
-/// Propagate fragment-only operations through selected overloads without recursion.
+#[derive(Clone, Copy)]
+struct Operation {
+    name: &'static str,
+    span: Span,
+}
+
+#[derive(Clone, Copy, Default)]
+struct Requirements {
+    fragment: Option<Operation>,
+    compute: Option<Operation>,
+}
+
+impl Requirements {
+    fn any(self) -> bool {
+        self.fragment.is_some() || self.compute.is_some()
+    }
+
+    /// Requirements only grow, including when the call graph contains cycles.
+    fn merge(&mut self, other: Self) -> bool {
+        let mut changed = false;
+        if self.fragment.is_none() && other.fragment.is_some() {
+            self.fragment = other.fragment;
+            changed = true;
+        }
+        if self.compute.is_none() && other.compute.is_some() {
+            self.compute = other.compute;
+            changed = true;
+        }
+        changed
+    }
+}
+
+/// Propagate stage requirements through selected overloads without recursion.
 pub(crate) fn validate(checked: &CheckedModule) -> Result<(), Vec<Diagnostic>> {
-    if checked
-        .entry_points
-        .iter()
-        .all(|e| e.stage == ShaderStage::Fragment)
-    {
+    if checked.entry_points.is_empty() {
         return Ok(());
     }
     let functions: Vec<_> = checked
@@ -50,13 +81,13 @@ pub(crate) fn validate(checked: &CheckedModule) -> Result<(), Vec<Diagnostic>> {
         .iter()
         .filter_map(|d| {
             if let Declaration::Global(v) = d {
-                v.initializer.as_ref().map(|e| (v.name.clone(), e))
+                Some((span_key(v.span), v))
             } else {
                 None
             }
         })
         .collect();
-    let mut requirements = vec![None; functions.len()];
+    let mut requirements = vec![Requirements::default(); functions.len()];
     let mut callers = vec![vec![]; functions.len()];
     for (index, function) in functions.iter().enumerate() {
         let mut scanner = Scanner {
@@ -66,10 +97,10 @@ pub(crate) fn validate(checked: &CheckedModule) -> Result<(), Vec<Diagnostic>> {
             work: vec![Work::Statement(function.body.as_ref().unwrap())],
             expressions: BTreeSet::new(),
             calls: BTreeSet::new(),
-            fragment: None,
+            requirements: Requirements::default(),
         };
         scanner.scan();
-        requirements[index] = scanner.fragment;
+        requirements[index] = scanner.requirements;
         for callee in scanner.calls {
             callers[callee].push(index);
         }
@@ -77,36 +108,37 @@ pub(crate) fn validate(checked: &CheckedModule) -> Result<(), Vec<Diagnostic>> {
     let mut pending: Vec<_> = requirements
         .iter()
         .enumerate()
-        .filter_map(|(i, r)| r.map(|_| i))
+        .filter_map(|(i, r)| r.any().then_some(i))
         .collect();
     while let Some(callee) = pending.pop() {
+        let inherited = requirements[callee];
         for &caller in &callers[callee] {
-            if requirements[caller].is_none() {
-                requirements[caller] = requirements[callee];
+            if requirements[caller].merge(inherited) {
                 pending.push(caller);
             }
         }
     }
     let mut diagnostics = vec![];
     for entry in &checked.entry_points {
-        if entry.stage == ShaderStage::Fragment {
-            continue;
-        }
         let Some(index) = functions.iter().position(|f| f.name == entry.name) else {
             continue;
         };
-        if let Some((operation, span)) = requirements[index] {
-            let stage = match entry.stage {
-                ShaderStage::Compute => "compute",
-                ShaderStage::Vertex => "vertex",
-                ShaderStage::Fragment => unreachable!(),
+        for (required, operation) in [
+            (ShaderStage::Fragment, requirements[index].fragment),
+            (ShaderStage::Compute, requirements[index].compute),
+        ] {
+            let Some(operation) = operation.filter(|_| entry.stage != required) else {
+                continue;
             };
             diagnostics.push(Diagnostic::error(
                 "T023",
-                span,
+                operation.span,
                 format!(
-                    "{stage} entry point '{}' reaches '{operation}', which requires fragment stage",
-                    entry.name
+                    "{} entry point '{}' reaches '{}', which requires {} stage",
+                    stage_name(entry.stage),
+                    entry.name,
+                    operation.name,
+                    stage_name(required)
                 ),
             ));
         }
@@ -115,6 +147,14 @@ pub(crate) fn validate(checked: &CheckedModule) -> Result<(), Vec<Diagnostic>> {
         Ok(())
     } else {
         Err(diagnostics)
+    }
+}
+
+fn stage_name(stage: ShaderStage) -> &'static str {
+    match stage {
+        ShaderStage::Compute => "compute",
+        ShaderStage::Vertex => "vertex",
+        ShaderStage::Fragment => "fragment",
     }
 }
 
@@ -127,11 +167,11 @@ enum Work<'a> {
 struct Scanner<'a> {
     checked: &'a CheckedModule,
     indices: &'a Functions,
-    globals: &'a BTreeMap<String, &'a Expr>,
+    globals: &'a BTreeMap<SpanKey, &'a Variable>,
     work: Vec<Work<'a>>,
     expressions: BTreeSet<slang_syntax::ExprId>,
     calls: BTreeSet<usize>,
-    fragment: Option<(&'static str, Span)>,
+    requirements: Requirements,
 }
 
 impl<'a> Scanner<'a> {
@@ -213,7 +253,10 @@ impl<'a> Scanner<'a> {
                 }
             }
             StmtKind::Discard => {
-                self.fragment.get_or_insert(("discard", statement.span));
+                self.requirements.fragment.get_or_insert(Operation {
+                    name: "discard",
+                    span: statement.span,
+                });
             }
             _ => {}
         }
@@ -227,9 +270,19 @@ impl<'a> Scanner<'a> {
             self.work.push(Work::Initialization(plan));
         }
         match &expression.kind {
-            ExprKind::Name(name) => {
-                if let Some(e) = self.globals.get(name) {
-                    self.work.push(Work::Expression(e));
+            ExprKind::Name(_) => {
+                if let Some(declaration) = self.checked.global_references.get(&expression.id)
+                    && let Some(global) = self.globals.get(declaration)
+                {
+                    if global.modifiers.iter().any(|m| m == "groupshared") {
+                        self.requirements.compute.get_or_insert(Operation {
+                            name: "groupshared",
+                            span: expression.span,
+                        });
+                    }
+                    if let Some(value) = &global.initializer {
+                        self.work.push(Work::Expression(value));
+                    }
                 }
             }
             ExprKind::InitializerList(values) => {
@@ -257,13 +310,40 @@ impl<'a> Scanner<'a> {
                     {
                         self.calls.insert(*index);
                     }
-                } else if matches!(&callee.kind, ExprKind::Name(n) if n == "clip")
+                } else if let ExprKind::Name(name) = &callee.kind
                     && matches!(
                         self.checked.expression_types.get(&callee.id),
                         Some(Type::Callable { .. })
                     )
                 {
-                    self.fragment.get_or_insert(("clip", expression.span));
+                    let operation = match name.as_str() {
+                        "clip" => Some((&mut self.requirements.fragment, "clip")),
+                        "GroupMemoryBarrier" => {
+                            Some((&mut self.requirements.compute, "GroupMemoryBarrier"))
+                        }
+                        "AllMemoryBarrier" => {
+                            Some((&mut self.requirements.compute, "AllMemoryBarrier"))
+                        }
+                        "GroupMemoryBarrierWithGroupSync" => Some((
+                            &mut self.requirements.compute,
+                            "GroupMemoryBarrierWithGroupSync",
+                        )),
+                        "DeviceMemoryBarrierWithGroupSync" => Some((
+                            &mut self.requirements.compute,
+                            "DeviceMemoryBarrierWithGroupSync",
+                        )),
+                        "AllMemoryBarrierWithGroupSync" => Some((
+                            &mut self.requirements.compute,
+                            "AllMemoryBarrierWithGroupSync",
+                        )),
+                        _ => None,
+                    };
+                    if let Some((requirement, name)) = operation {
+                        requirement.get_or_insert(Operation {
+                            name,
+                            span: expression.span,
+                        });
+                    }
                 }
             }
             ExprKind::Member { base, .. } => self.work.push(Work::Expression(base)),

@@ -990,6 +990,91 @@
       "file": "positive/atomic-global-initializer.slang",
       "entry": "main",
       "accept": true
+    },
+    {
+      "file": "../../examples/memory-barriers.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/graphics-device-barrier.slang",
+      "entry": "main",
+      "accept": true,
+      "profile": "ps_6_0"
+    },
+    {
+      "file": "positive/barrier-overloads.slang",
+      "entry": "main",
+      "accept": true,
+      "profile": "ps_6_0"
+    },
+    {
+      "file": "positive/barrier-supplied-defaults.slang",
+      "entry": "main",
+      "accept": true,
+      "profile": "ps_6_0"
+    },
+    {
+      "file": "positive/shared-shadow.slang",
+      "entry": "main",
+      "accept": true,
+      "profile": "ps_6_0"
+    },
+    {
+      "file": "negative/group-barrier-fragment.slang",
+      "entry": "main",
+      "accept": false,
+      "profile": "ps_6_0",
+      "rust_code": "T023",
+      "oracle_accept": true,
+      "oracle_validation_accept": false,
+      "reason": "Slang 2026.21 accepts graphics use of group memory or synchronization and emits HLSL rejected by DXC"
+    },
+    {
+      "file": "negative/device-sync-vertex.slang",
+      "entry": "main",
+      "accept": false,
+      "profile": "vs_6_0",
+      "rust_code": "T023",
+      "oracle_accept": true,
+      "oracle_validation_accept": false,
+      "reason": "Slang 2026.21 accepts graphics use of group memory or synchronization and emits HLSL rejected by DXC"
+    },
+    {
+      "file": "negative/all-barrier-fragment.slang",
+      "entry": "main",
+      "accept": false,
+      "profile": "ps_6_0",
+      "rust_code": "T023",
+      "oracle_accept": true,
+      "oracle_validation_accept": false,
+      "reason": "Slang 2026.21 accepts graphics use of group memory or synchronization and emits HLSL rejected by DXC"
+    },
+    {
+      "file": "negative/barrier-default-fragment.slang",
+      "entry": "main",
+      "accept": false,
+      "profile": "ps_6_0",
+      "rust_code": "T023",
+      "oracle_accept": true,
+      "oracle_validation_accept": false,
+      "reason": "Slang 2026.21 accepts graphics use of group memory or synchronization and emits HLSL rejected by DXC"
+    },
+    {
+      "file": "negative/shared-fragment.slang",
+      "entry": "main",
+      "accept": false,
+      "profile": "ps_6_0",
+      "rust_code": "T023",
+      "oracle_accept": true,
+      "oracle_validation_accept": false,
+      "reason": "Slang 2026.21 accepts graphics use of group memory or synchronization and emits HLSL rejected by DXC"
+    },
+    {
+      "file": "negative/barrier-arity.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T014"
     }
   ]
 }

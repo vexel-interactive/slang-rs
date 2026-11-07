@@ -1,4 +1,7 @@
-use crate::{Scalar, TextureDimension, Type, checker::Checker};
+use crate::{
+    Scalar, TextureDimension, Type,
+    checker::{Checker, Storage},
+};
 use slang_source::Span;
 use slang_syntax::{Expr, ExprKind};
 
@@ -91,8 +94,13 @@ impl Checker {
                 Type::Error
             }
             ExprKind::Name(name) => {
-                if let Some(binding) = self.lookup(name) {
-                    binding.ty.clone()
+                if let Some(binding) = self.lookup(name).cloned() {
+                    if let Storage::Global(declaration) | Storage::GroupShared(declaration) =
+                        binding.storage
+                    {
+                        self.global_references.insert(expression.id, declaration);
+                    }
+                    binding.ty
                 } else {
                     self.error("T011", expression.span, format!("unknown value '{name}'"));
                     Type::Error

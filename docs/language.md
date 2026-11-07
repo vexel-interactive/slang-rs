@@ -277,7 +277,7 @@ and tracks writable locations. It rejects writes to const values, read-only
 buffers, and swizzles with repeated components. Overload conversions currently
 have equal cost after exact matches. Full overload ranking, definite assignment,
 general constant evaluation, and uniformity analysis are absent. Stage requirement
-checking currently covers only the fragment operations described below.
+checking covers the fragment and compute operations described below.
 
 A local initializer resolves names before introducing that local. For example,
 `float value = value + 1;` inside a nested scope reads an existing outer `value`.
@@ -402,8 +402,8 @@ The current built-in signatures cover `abs`, `sin`, `cos`, `tan`, `sqrt`, `rsqrt
 `floor`, `ceil`, `frac`, `exp`, `exp2`, `log`, `log2`, `saturate`, `min`, `max`,
 `pow`, `clamp`, `lerp`, `dot`, `length`, `normalize`, `mul`, `transpose`,
 `determinant`, `all`, `any`, `clip`, `sincos`, `modf`, `frexp`,
-`GroupMemoryBarrierWithGroupSync`, `DeviceMemoryBarrierWithGroupSync`, and
-`AllMemoryBarrierWithGroupSync`.
+`GroupMemoryBarrier`, `DeviceMemoryBarrier`, `AllMemoryBarrier`, and their
+`WithGroupSync` variants.
 
 These are limited signature rules rather than a port of the complete core
 module. They do not provide full intrinsic overload compatibility or capability
@@ -454,10 +454,32 @@ propagates fragment requirements through the selected function overloads,
 imports, used global initializers, and omitted function or struct field defaults.
 Unused helpers and explicitly supplied arguments do not impose their defaults'
 requirements. This analysis handles recursive call graphs without stack recursion.
-It is the first capability check; complete target, profile, and stage analysis
-remains unimplemented. Nonvoid functions still require return paths even when
+Complete target, profile, and stage analysis remains unimplemented. Nonvoid
+functions still require return paths even when
 they contain a discard. See
 [fragment-discard.slang](../examples/fragment-discard.slang).
+
+## Shared memory and barriers
+
+All six supported memory barriers take no arguments and return void.
+`GroupMemoryBarrier` orders group memory, `DeviceMemoryBarrier` orders device
+memory, and `AllMemoryBarrier` orders both. Their `WithGroupSync` variants also
+synchronize threads in the group. Barriers do not make divergent group
+synchronization safe; uniformity analysis remains unimplemented.
+
+The native shader subset requires compute stage for reachable groupshared
+storage, group/all memory barriers, and every `WithGroupSync` variant.
+`DeviceMemoryBarrier` without synchronization is also allowed in graphics
+shaders. These requirements propagate through selected overloads, used global
+initializers, and omitted defaults. Local names that shadow shared globals and
+explicitly supplied defaults do not inherit the hidden declaration's requirement.
+Unused shared declarations do not restrict an entry point.
+
+Slang 2026.21 accepts some graphics uses of shared memory and group barriers
+while emitting HLSL that DXC rejects. The native frontend reports `T023` before
+emission. It also requires compute for shared reads that an optimizing backend
+could eliminate. Mesh, amplification, and node stages are not implemented. See
+[memory-barriers.slang](../examples/memory-barriers.slang).
 
 ## Compute entry points
 

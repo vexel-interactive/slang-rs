@@ -67,6 +67,12 @@ defaults, imported source locations, and stage propagation through calls,
 globals, and aggregate defaults. Long chains and cyclic call graphs check that
 requirement propagation does not recurse on the native stack.
 
+Compute requirement tests cover all six memory barriers, graphics device-only
+barriers, used shared globals, local shadowing without module linking, selected
+overloads, omitted defaults, and imported source locations. Cyclic graphs merge
+independent fragment and compute requirements rather than retaining only the
+first one discovered.
+
 Sampling tests cover bias and explicit gradients for all four texture dimensions,
 element return types, contextual gradient lists, and invalid receivers and shapes.
 Differential fixtures validate fragment bias and compute gradient sampling with DXC.
@@ -118,7 +124,10 @@ should accept its output. Slang 2026.21 misses the stage requirement of a discar
 inside an omitted default argument: it accepts a compute shader whose HLSL DXC
 rejects. The native compiler diagnoses this before emission. This case requires
 both the acceptance difference and DXC's rejection; it is not counted as matching
-compiler acceptance. Reports distinguish valid artifacts from rejected artifacts.
+compiler acceptance. The corpus also records graphics group-barrier and shared
+atomic uses accepted by Slang 2026.21 whose HLSL DXC rejects. Each difference
+requires the expected native diagnostic and the oracle artifact's rejection.
+Reports distinguish valid artifacts from rejected artifacts.
 Test the comparison rules with `python -m unittest discover -s tools/tests`.
 
 The oracle is published release `v2026.21`; it may differ from the pinned master

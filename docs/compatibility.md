@@ -24,7 +24,7 @@ subsystem is absent. No subsystem currently claims complete upstream parity.
 | Byte-address buffers | slang-sema, slang-codegen | Partial | Load/store widths, byte count, uint atomic operations with explicit outputs; typed access and advanced atomics absent |
 | Modules and imports | slang-module, slang-sema | Partial | Imports, reexports, member files, isolated preprocessing, public/internal, legacy visibility; session API and cross-module overload merging absent |
 | Interfaces and generics | ? | Not ported | Constraints, witnesses, specialization required |
-| Capability system | slang-sema | Partial | Fragment requirements for discard/clip through selected overloads and defaults; complete profile and target requirements absent |
+| Capability system | slang-sema | Partial | Fragment operations and compute storage/barriers through selected overloads, resolved globals and defaults; complete profile and target requirements absent |
 | Automatic differentiation | ? | Not ported | AD passes, JVP/VJP, runtime contracts required |
 | Structured IR | slang-ir | Partial | Typed tree lowering |
 | SSA, linking, optimization | ? | Not ported | CFG, use-def, verifier, passes required |

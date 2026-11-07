@@ -1,6 +1,6 @@
 use crate::{
     Type,
-    checker::{Binding, Checker, Signature, span_key},
+    checker::{Binding, Checker, Signature, Storage, span_key},
 };
 use slang_syntax::{Declaration, Module, TypeArgument, TypeRef, Variable};
 use std::collections::{BTreeMap, BTreeSet};
@@ -464,8 +464,15 @@ impl Checker {
                     ty,
                     writable,
                     constant,
-                    groupshared: matches!(context, VariableScope::Global)
-                        && variable.modifiers.iter().any(|m| m == "groupshared"),
+                    storage: match context {
+                        VariableScope::Global
+                            if variable.modifiers.iter().any(|m| m == "groupshared") =>
+                        {
+                            Storage::GroupShared(span_key(variable.span))
+                        }
+                        VariableScope::Global => Storage::Global(span_key(variable.span)),
+                        VariableScope::Local | VariableScope::Parameter => Storage::Local,
+                    },
                 },
             )
             .is_some()

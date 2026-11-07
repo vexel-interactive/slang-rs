@@ -129,12 +129,18 @@ declaration-scope helpers, including defaults inside nested arrays and lists.
 Defaults and aggregate construction share
 cycle, depth, and expansion budgets.
 
-Fragment requirements are discovered in checked expressions and propagated over
+Stage requirements are discovered in checked expressions and propagated over
 the selected overload graph using reverse edges and a worklist. Scanning also
 follows used globals and normalized omitted defaults, with expression IDs
-preventing recursive default traversal. Compute and vertex entries receive
-diagnostics at the original fragment operation, including imported source spans.
-The current requirement set covers `discard` and `clip`.
+preventing recursive default traversal. Resolved global references identify their
+declarations by span rather than spelling, preserving local shadowing even when
+using the semantic checker directly without the module linker. Globals without
+initializers still carry their storage requirements. Independent fragment and
+compute requirements merge monotonically through cyclic call graphs. Invalid
+entries receive diagnostics at the original operation, including imported source
+spans. The current set covers `discard`, `clip`, groupshared storage, and memory
+barriers that use a thread group; a device barrier without group synchronization
+does not impose a compute requirement.
 
 Output intrinsic signatures infer input conversions from supplied output types,
 then require exact writable outputs. IR makes the selected intrinsic and resource

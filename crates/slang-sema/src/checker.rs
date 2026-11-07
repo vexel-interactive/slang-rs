@@ -33,6 +33,8 @@ pub struct CheckedModule {
     pub symbols: BTreeMap<String, SymbolOrigin>,
     pub function_names: BTreeMap<SpanKey, String>,
     pub call_names: BTreeMap<ExprId, String>,
+    /// Resolved global variable declarations, independent of lexical spelling.
+    pub global_references: BTreeMap<ExprId, SpanKey>,
     pub initializations: BTreeMap<ExprId, crate::Initialization>,
     pub default_arguments: BTreeMap<ExprId, Vec<crate::Initialization>>,
     /// Integer case values after conversion to their switch selector type.
@@ -50,7 +52,14 @@ pub(crate) struct Binding {
     pub ty: Type,
     pub writable: bool,
     pub constant: Option<i64>,
-    pub groupshared: bool,
+    pub storage: Storage,
+}
+
+#[derive(Clone, Copy)]
+pub(crate) enum Storage {
+    Local,
+    Global(SpanKey),
+    GroupShared(SpanKey),
 }
 
 #[derive(Clone)]
@@ -81,6 +90,7 @@ pub(crate) struct Checker {
     pub source_types: BTreeSet<(ModuleId, String)>,
     pub function_names: BTreeMap<SpanKey, String>,
     pub call_names: BTreeMap<ExprId, String>,
+    pub global_references: BTreeMap<ExprId, SpanKey>,
     pub aliases: BTreeMap<String, TypeRef>,
     pub alias_types: BTreeMap<String, Type>,
     pub resolving_aliases: BTreeSet<String>,
@@ -136,6 +146,7 @@ fn check_with_metadata(
         source_types: BTreeSet::new(),
         function_names: BTreeMap::new(),
         call_names: BTreeMap::new(),
+        global_references: BTreeMap::new(),
         aliases: BTreeMap::new(),
         alias_types: BTreeMap::new(),
         resolving_aliases: BTreeSet::new(),
@@ -199,6 +210,7 @@ fn check_with_metadata(
             symbols: checker.symbols,
             function_names: checker.function_names,
             call_names: checker.call_names,
+            global_references: checker.global_references,
             initializations: checker.initializations,
             default_arguments: checker.default_arguments,
             case_values: checker.case_values,
@@ -293,5 +305,19 @@ mod tests {
             slang_syntax::parse(&slang_lexer::lex(SourceId(0), "void f(){int return;}").tokens)
                 .is_err()
         );
+    }
+
+    #[test]
+    fn resolved_global_references_preserve_shadowing_without_module_linking() {
+        for text in [
+            "groupshared int value;[shader(\"fragment\")]float4 main():SV_Target{int value=1;return float4(value);}",
+            "float read(){discard;return 1;}static float value=read();[shader(\"compute\")][numthreads(1,1,1)]void main(){float value=2;float copy=value;}",
+        ] {
+            let checked = run(text).unwrap();
+            assert!(checked.global_references.is_empty());
+        }
+        let checked = run("groupshared int value;[shader(\"compute\")][numthreads(1,1,1)]void main(){int copy=value;}").unwrap();
+        assert_eq!(checked.global_references.len(), 1);
+        assert!(run("groupshared int value;[shader(\"fragment\")]float4 main():SV_Target{return float4(value);}").is_err());
     }
 }
