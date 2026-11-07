@@ -62,6 +62,11 @@ Binding regressions inspect initializer references under global, parameter, and
 nested local shadowing. They also cover const evaluation, declaration groups,
 generated prefix collisions, source names in diagnostics, and global reflection.
 
+Discard tests cover fragment HLSL, clip signatures, selected overloads, unused
+defaults, imported source locations, and stage propagation through calls,
+globals, and aggregate defaults. Long chains and cyclic call graphs check that
+requirement propagation does not recurse on the native stack.
+
 Examples cover vector addition, control flow, matrix algebra, vertex transforms,
 fragment color output, struct construction, and a multi-file module. With DXC
 installed, validate generated HLSL independently:
@@ -90,6 +95,15 @@ python tools/conformance.py --rust target/debug/slangc-rs.exe --oracle path/to/s
 The runner checks only explicitly listed cases. Execution comparisons still
 need a separate runner; matching exit codes do not establish semantic
 execution equivalence. Reports are written to `out/conformance.json`.
+
+Cases normally require both compilers to match `accept`. Documented differences
+can set `oracle_accept`, with `oracle_validation_accept` recording whether DXC
+should accept its output. Slang 2026.21 misses the stage requirement of a discard
+inside an omitted default argument: it accepts a compute shader whose HLSL DXC
+rejects. The native compiler diagnoses this before emission. This case requires
+both the acceptance difference and DXC's rejection; it is not counted as matching
+compiler acceptance. Reports distinguish valid artifacts from rejected artifacts.
+Test the comparison rules with `python -m unittest discover -s tools/tests`.
 
 The oracle is published release `v2026.21`; it may differ from the pinned master
 source revision. This distinction is recorded in `upstream.lock.json`.

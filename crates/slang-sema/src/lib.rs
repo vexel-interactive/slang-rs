@@ -2,6 +2,7 @@
 
 mod alias;
 mod call;
+mod capability;
 mod checker;
 mod constant;
 mod constant_buffer;

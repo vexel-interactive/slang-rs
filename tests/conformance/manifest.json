@@ -695,6 +695,44 @@
       "file": "../../examples/lexical-bindings.slang",
       "entry": "main",
       "accept": true
+    },
+    {
+      "file": "../../examples/fragment-discard.slang",
+      "entry": "main",
+      "accept": true,
+      "profile": "ps_6_0"
+    },
+    {
+      "file": "positive/discard-overloads.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "negative/discard-stage.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T023"
+    },
+    {
+      "file": "negative/clip-stage.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T023"
+    },
+    {
+      "file": "negative/discard-default.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T023",
+      "oracle_accept": true,
+      "oracle_validation_accept": false,
+      "reason": "Slang 2026.21 misses discard stage requirements through omitted defaults and emits HLSL rejected by DXC"
+    },
+    {
+      "file": "negative/clip-type.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T014"
     }
   ]
 }

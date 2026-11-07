@@ -220,7 +220,11 @@ impl<'a> Resolver<'a> {
                 }
                 self.scopes.pop();
             }
-            StmtKind::Break | StmtKind::Continue | StmtKind::Return(None) | StmtKind::Empty => {}
+            StmtKind::Break
+            | StmtKind::Continue
+            | StmtKind::Discard
+            | StmtKind::Return(None)
+            | StmtKind::Empty => {}
         }
         Ok(())
     }

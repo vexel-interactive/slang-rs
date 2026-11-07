@@ -13,6 +13,7 @@ pub(crate) fn intrinsic(name: &str, types: &[Type]) -> Option<Type> {
             Some(Type::Scalar(*scalar))
         }
         ("abs", [a]) if a.numeric() => Some(a.clone()),
+        ("clip", [a]) if a.numeric() => Some(Type::Void),
         (
             "sin" | "cos" | "tan" | "sqrt" | "rsqrt" | "floor" | "ceil" | "frac" | "exp" | "exp2"
             | "log" | "log2" | "saturate",

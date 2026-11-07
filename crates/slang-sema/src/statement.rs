@@ -285,7 +285,7 @@ impl Checker {
                 }
                 Flow::CONTINUE
             }
-            StmtKind::Empty => Flow::FALLTHROUGH,
+            StmtKind::Discard | StmtKind::Empty => Flow::FALLTHROUGH,
         }
     }
 }

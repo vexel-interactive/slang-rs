@@ -2,3 +2,4 @@
 /.upstream/
 /out/
 *.tmp
+__pycache__/

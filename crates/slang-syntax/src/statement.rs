@@ -119,6 +119,9 @@ impl Parser {
         } else if self.eat("continue") {
             self.expect(";")?;
             StmtKind::Continue
+        } else if self.eat("discard") {
+            self.expect(";")?;
+            StmtKind::Discard
         } else {
             return self.simple_statement();
         };

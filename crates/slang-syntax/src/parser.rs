@@ -103,6 +103,7 @@ impl Parser {
                 | "return"
                 | "break"
                 | "continue"
+                | "discard"
                 | "do"
                 | "true"
                 | "false"

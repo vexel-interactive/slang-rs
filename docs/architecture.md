@@ -108,6 +108,13 @@ declaration-scope helpers, including defaults inside nested arrays and lists.
 Defaults and aggregate construction share
 cycle, depth, and expansion budgets.
 
+Fragment requirements are discovered in checked expressions and propagated over
+the selected overload graph using reverse edges and a worklist. Scanning also
+follows used globals and normalized omitted defaults, with expression IDs
+preventing recursive default traversal. Compute and vertex entries receive
+diagnostics at the original fragment operation, including imported source spans.
+The current requirement set covers `discard` and `clip`.
+
 Imported function overloads receive distinct target names when needed. The
 checker records the selected callable in `CheckedModule`; lowering uses that
 selection so target compilation cannot select an internal overload by mistake.

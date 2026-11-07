@@ -126,6 +126,7 @@ pub enum StmtKind {
     },
     Break,
     Continue,
+    Discard,
     Empty,
 }
 

@@ -9,7 +9,7 @@ subsystem is absent. No subsystem currently claims complete upstream parity.
 | Source manager and diagnostics | slang-source | Partial | UTF-8, CRLF, spans; upstream diagnostic IDs absent |
 | Lexer | slang-lexer | Partial | Lossless tokens; incomplete literal grammar |
 | Preprocessor | slang-preprocessor | Partial | Macros, #, ##, variadics, includes, conditionals; no predefined macros or #line |
-| Parser and AST | slang-syntax | Partial | Functions, globals, structs, expressions, casts, loops, switches |
+| Parser and AST | slang-syntax | Partial | Functions, globals, structs, declaration groups, expressions, casts, loops, switches, discard |
 | Name and type checking | slang-sema | Partial | Scalars, vectors, matrices, fixed arrays, aliases, scopes, overloads, writable locations |
 | Function default arguments | slang-sema, slang-ir | Partial | Trailing input defaults, first-declaration prototype rules, declaration-scope evaluation; parameter-dependent defaults absent |
 | Type aliases | slang-syntax, slang-sema | Partial | Transparent global typedef/typealias, forwards, cycles, imports; local/nested and generic aliases absent |
@@ -20,7 +20,7 @@ subsystem is absent. No subsystem currently claims complete upstream parity.
 | Byte-address buffers | slang-sema, slang-codegen | Partial | Load/store widths, byte count, uint atomic operations with explicit outputs; typed access and advanced atomics absent |
 | Modules and imports | slang-module, slang-sema | Partial | Imports, reexports, member files, isolated preprocessing, public/internal, legacy visibility; session API and cross-module overload merging absent |
 | Interfaces and generics | ? | Not ported | Constraints, witnesses, specialization required |
-| Capability system | ? | Not ported | Profiles and target requirements required |
+| Capability system | slang-sema | Partial | Fragment requirements for discard/clip through selected overloads and defaults; complete profile and target requirements absent |
 | Automatic differentiation | ? | Not ported | AD passes, JVP/VJP, runtime contracts required |
 | Structured IR | slang-ir | Partial | Typed tree lowering |
 | SSA, linking, optimization | ? | Not ported | CFG, use-def, verifier, passes required |

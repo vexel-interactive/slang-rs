@@ -6,17 +6,21 @@
     "rustfmt": "passed",
     "clippy_all_targets_warnings_denied": "passed",
     "unit_tests": 17,
-    "integration_tests": 84,
+    "integration_tests": 90,
     "doc_tests": 1,
+    "conformance_comparison_tests": 3,
     "rustdoc": "passed",
     "release_build": "passed",
     "english_documentation_and_links": "passed"
   },
   "differential_validation": {
     "oracle": "Slang 2026.21",
-    "cases_passed": 125,
-    "cases_total": 125,
-    "dxc_hlsl_artifacts_validated": 126,
+    "cases_passed": 131,
+    "cases_total": 131,
+    "matching_acceptance_cases": 130,
+    "documented_oracle_differences": 1,
+    "dxc_hlsl_artifacts_validated": 130,
+    "dxc_invalid_hlsl_artifacts_rejected": 1,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
     "profiles": [
@@ -27,8 +31,8 @@
   },
   "remote_ci_executed": true,
   "remote_ci": {
-    "run_id": 42386077300,
-    "head_sha": "bd136cc6fcc6b51a2cf366db38eccc1d1b03dff0",
+    "run_id": 42386381233,
+    "head_sha": "6c6e5105b122f7a5e013094691ffb3eab1bd0fec",
     "conclusion": "success",
     "platforms": [
       "ubuntu-latest",
@@ -37,11 +41,16 @@
     ]
   },
   "previous_remote_ci": {
-    "run_id": 42385715686,
-    "head_sha": "01912cdd28bbab03d4902ac727565b37cbf80de4",
+    "run_id": 42386077300,
+    "head_sha": "bd136cc6fcc6b51a2cf366db38eccc1d1b03dff0",
     "conclusion": "success"
   },
   "earlier_remote_ci": [
+    {
+      "run_id": 42385715686,
+      "head_sha": "01912cdd28bbab03d4902ac727565b37cbf80de4",
+      "conclusion": "success"
+    },
     {
       "run_id": 42385444500,
       "head_sha": "16fcbbb778cdc4fc3d7891d2c44850d422c2e5ae",

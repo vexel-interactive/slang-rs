@@ -216,7 +216,7 @@ matrix and struct constructors, unary and binary operators, assignment, compound
 function calls, fields, swizzles, indexing, conditionals, and increment/decrement.
 
 Statements include blocks, local declarations, expression statements, `return`,
-`if/else`, `while`, `for`, `do/while`, `switch`, `break`, and `continue`.
+`if/else`, `while`, `for`, `do/while`, `switch`, `break`, `continue`, and `discard`.
 C-style casts support scalar-to-scalar conversions. Use constructors for vector
 and matrix values. Statement attributes remain to be ported.
 
@@ -234,7 +234,8 @@ The checker resolves nested scopes, validates conversions and scalar conditions,
 and tracks writable locations. It rejects writes to const values, read-only
 buffers, and swizzles with repeated components. Overload conversions currently
 have equal cost after exact matches. Full overload ranking, definite assignment,
-general constant evaluation, uniformity analysis, and capability checking are absent.
+general constant evaluation, and uniformity analysis are absent. Stage requirement
+checking currently covers only the fragment operations described below.
 
 A local initializer resolves names before introducing that local. For example,
 `float value = value + 1;` inside a nested scope reads an existing outer `value`.
@@ -337,13 +338,30 @@ perform a complete stage capability analysis.
 The current built-in signatures cover `abs`, `sin`, `cos`, `tan`, `sqrt`, `rsqrt`,
 `floor`, `ceil`, `frac`, `exp`, `exp2`, `log`, `log2`, `saturate`, `min`, `max`,
 `pow`, `clamp`, `lerp`, `dot`, `length`, `normalize`, `mul`, `transpose`,
-`determinant`, `all`, `any`,
+`determinant`, `all`, `any`, `clip`,
 `GroupMemoryBarrierWithGroupSync`, `DeviceMemoryBarrierWithGroupSync`, and
 `AllMemoryBarrierWithGroupSync`.
 
 These are limited signature rules rather than a port of the complete core
 module. They do not provide full intrinsic overload compatibility or capability
 validation.
+
+## Fragment discard and stage requirements
+
+`discard;` rejects the current fragment. `clip(value)` rejects it when any
+component is negative; the supported signature accepts one numeric scalar,
+vector, or matrix and returns void. Boolean values and initializer lists without
+a concrete inferred type are rejected.
+
+Compute and vertex entry points cannot reach either operation. The checker
+propagates fragment requirements through the selected function overloads,
+imports, used global initializers, and omitted function or struct field defaults.
+Unused helpers and explicitly supplied arguments do not impose their defaults'
+requirements. This analysis handles recursive call graphs without stack recursion.
+It is the first capability check; complete target, profile, and stage analysis
+remains unimplemented. Nonvoid functions still require return paths even when
+they contain a discard. See
+[fragment-discard.slang](../examples/fragment-discard.slang).
 
 ## Compute entry points
 
@@ -386,7 +404,7 @@ Vertex outputs require `SV_Position`. Integer fragment varyings require
 `nointerpolation` on the parameter or field. These interface rules describe the
 implemented HLSL subset and can be stricter than upstream's target-independent
 frontend. Matrices/arrays in shader interfaces, whole-structure semantics, other
-interpolation modes, stage capability analysis, and other shader stages remain
+interpolation modes, complete stage capability analysis, and other shader stages remain
 unimplemented. See `examples/vertex-transform.slang` and
 `examples/fragment-color.slang` for a matching pair.
 

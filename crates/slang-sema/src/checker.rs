@@ -185,7 +185,7 @@ fn check_with_metadata(
     }
     checker.validate_constant_buffers();
     if checker.diagnostics.is_empty() {
-        Ok(CheckedModule {
+        let checked = CheckedModule {
             module,
             expression_types: checker.expression_types,
             declaration_types: checker.declaration_types,
@@ -196,7 +196,9 @@ fn check_with_metadata(
             call_names: checker.call_names,
             initializations: checker.initializations,
             default_arguments: checker.default_arguments,
-        })
+        };
+        crate::capability::validate(&checked)?;
+        Ok(checked)
     } else {
         Err(checker.diagnostics)
     }

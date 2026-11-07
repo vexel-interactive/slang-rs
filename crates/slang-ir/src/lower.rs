@@ -181,6 +181,7 @@ impl Lowerer<'_> {
             },
             ast::StmtKind::Break => StmtKind::Break,
             ast::StmtKind::Continue => StmtKind::Continue,
+            ast::StmtKind::Discard => StmtKind::Discard,
             ast::StmtKind::Empty => StmtKind::Empty,
         };
         Ok(Stmt {

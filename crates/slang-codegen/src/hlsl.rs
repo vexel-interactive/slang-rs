@@ -184,6 +184,7 @@ impl Emitter {
             }
             StmtKind::Break => self.line("break;"),
             StmtKind::Continue => self.line("continue;"),
+            StmtKind::Discard => self.line("discard;"),
             StmtKind::Empty => self.line(";"),
         }
     }
