@@ -200,6 +200,35 @@ impl Checker {
                 }
             }
         }
+        if let Some(signature) = crate::intrinsic::output_signature(name, &types) {
+            for (index, ((argument, actual), target)) in arguments
+                .iter()
+                .zip(&types)
+                .zip(&signature.parameters)
+                .enumerate()
+            {
+                if index == 0 {
+                    self.coerce_value(argument, target);
+                } else {
+                    self.require_writable(argument);
+                    if actual != target {
+                        self.error(
+                            "T014",
+                            argument.span,
+                            format!("output argument requires {target}, found {actual}"),
+                        );
+                    }
+                }
+            }
+            self.expression_types.insert(
+                callee.id,
+                Type::Callable {
+                    parameters: signature.parameters,
+                    result: Box::new(signature.result.clone()),
+                },
+            );
+            return signature.result;
+        }
         if let Some(result) = intrinsic(name, &types) {
             self.expression_types.insert(
                 callee.id,

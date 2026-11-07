@@ -71,6 +71,11 @@ Sampling tests cover bias and explicit gradients for all four texture dimensions
 element return types, contextual gradient lists, and invalid receivers and shapes.
 Differential fixtures validate fragment bias and compute gradient sampling with DXC.
 
+Output-intrinsic tests exercise writable fields, swizzles, arrays, and resources;
+numeric and shape inference; exact output types; const and temporary rejection;
+and user functions with intrinsic names. Differential examples check scalar and
+vector sincos/frexp, matrix modf, and invalid output arguments with DXC.
+
 Examples cover vector addition, control flow, matrix algebra, vertex transforms,
 fragment color output, struct construction, and a multi-file module. With DXC
 installed, validate generated HLSL independently:

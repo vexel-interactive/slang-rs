@@ -1,5 +1,8 @@
 use crate::{Scalar, Type};
 
+mod output;
+pub(crate) use output::signature as output_signature;
+
 pub(crate) fn intrinsic(name: &str, types: &[Type]) -> Option<Type> {
     match (name, types) {
         ("mul", [a, b]) if a.numeric() && b.numeric() => product(a, b),

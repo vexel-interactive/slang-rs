@@ -756,6 +756,28 @@
       "entry": "main",
       "accept": false,
       "rust_code": "T014"
+    },
+    {
+      "file": "../../examples/output-intrinsics.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/output-intrinsic-matrix.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "negative/output-intrinsic-type.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/output-intrinsic-location.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T015"
     }
   ]
 }

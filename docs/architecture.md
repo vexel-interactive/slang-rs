@@ -115,6 +115,11 @@ preventing recursive default traversal. Compute and vertex entries receive
 diagnostics at the original fragment operation, including imported source spans.
 The current requirement set covers `discard` and `clip`.
 
+Output intrinsic signatures infer input conversions from supplied output types,
+then require exact writable outputs. IR makes the selected intrinsic and resource
+input conversions explicit so backend overload resolution preserves the checked
+type and shape, including scalar splats.
+
 Imported function overloads receive distinct target names when needed. The
 checker records the selected callable in `CheckedModule`; lowering uses that
 selection so target compilation cannot select an internal overload by mistake.

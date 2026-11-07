@@ -346,13 +346,26 @@ when used outside fragment shaders. See
 The current built-in signatures cover `abs`, `sin`, `cos`, `tan`, `sqrt`, `rsqrt`,
 `floor`, `ceil`, `frac`, `exp`, `exp2`, `log`, `log2`, `saturate`, `min`, `max`,
 `pow`, `clamp`, `lerp`, `dot`, `length`, `normalize`, `mul`, `transpose`,
-`determinant`, `all`, `any`, `clip`,
+`determinant`, `all`, `any`, `clip`, `sincos`, `modf`, `frexp`,
 `GroupMemoryBarrierWithGroupSync`, `DeviceMemoryBarrierWithGroupSync`, and
 `AllMemoryBarrierWithGroupSync`.
 
 These are limited signature rules rather than a port of the complete core
 module. They do not provide full intrinsic overload compatibility or capability
 validation.
+
+`sincos(x, out sine, out cosine)` returns void. `modf(x, out integral)` returns
+the fractional part. `frexp(x, out exponent)` returns the mantissa and writes an
+`int` exponent with the same shape. Scalar and vector forms support half, float,
+and double; integer inputs promote to float. `modf` also supports matrices.
+Matrix `sincos/frexp` forms remain unimplemented.
+
+Output arguments participate in numeric type and shape inference. Selected input
+conversions become explicit in IR, including scalar splats inferred from vector
+outputs. Outputs must have exactly the selected type and be writable locations;
+const values, temporary expressions, and repeated swizzles are rejected. `sincos`
+and `modf` can infer brace-list input types from their outputs. See
+[output-intrinsics.slang](../examples/output-intrinsics.slang).
 
 ## Fragment discard and stage requirements
 

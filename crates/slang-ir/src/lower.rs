@@ -240,6 +240,24 @@ impl Lowerer<'_> {
                     self.initializing.borrow_mut().pop();
                     arguments.extend(result?);
                 }
+                // Intrinsic and resource signatures can infer a wider input type
+                // from output parameters. Preserve that choice in target code.
+                if !self.checked.call_names.contains_key(&callee.id)
+                    && let Some(Type::Callable { parameters, .. }) =
+                        self.checked.expression_types.get(&callee.id)
+                {
+                    for (argument, target) in arguments.iter_mut().zip(parameters) {
+                        if &argument.ty != target {
+                            *argument = Expr {
+                                ty: target.clone(),
+                                span: argument.span,
+                                kind: ExprKind::Cast {
+                                    value: Box::new(argument.clone()),
+                                },
+                            };
+                        }
+                    }
+                }
                 match &callee.kind {
                     ast::ExprKind::Name(name) => ExprKind::Call {
                         name: self
