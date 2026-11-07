@@ -124,13 +124,17 @@ names reserve global, parameter, and local declarations to avoid lexical capture
 Lowering checks that this information exists and attaches a type to each IR
 expression.
 
-Geometric signatures infer floating components and matching vector dimensions
+Geometric signatures infer components and matching vector dimensions
 before lowering. Cross-product signatures additionally select integer overloads
 and fixed three-component parameters. `slang-ir::geometric` caches integer cross
 helpers by component type, reserving generated names against existing bindings.
 Their vector swizzles multiply and subtract without passing through HLSL's
-floating cross intrinsic. Double geometric calls explicitly narrow their inputs
+floating cross intrinsic. Other double geometric calls explicitly narrow their inputs
 to the target float instructions and convert results back to the checked shape.
+Integer and double dot products use typed component reductions in cached helpers
+keyed by operation and parameter shape. The supplied expressions remain call
+arguments, while helper parameters supply the component products and ordered sums.
+These reductions retain integer or double arithmetic instead of HLSL dot instructions.
 
 Global declaration groups are parsed into individual declarations; struct groups
 become ordered fields. Local groups use `Variables` nodes in AST and typed IR

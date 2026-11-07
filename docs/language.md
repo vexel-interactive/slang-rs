@@ -528,8 +528,17 @@ When bool participates, floating arguments convert to the selected integer type.
 Native integer cross products lower to cached functions using integer component
 multiplication and subtraction. Each supplied expression is evaluated once.
 
-The HLSL backend uses float geometric instructions for double inputs and converts
-results back to the checked double shape. This preserves the source signature,
+`dot` accepts numeric scalars and vectors with one through four components and
+returns the selected scalar component type. Integer products retain int/uint;
+bool selects an integer overload as for `cross`. Mixed numeric components and
+scalar splats follow the same shape checks. Integer and double dot products use
+cached component arithmetic helpers, preserving each input evaluation once and
+avoiding HLSL float conversion or unsupported double dot instructions. Matrices
+remain unsupported, and these calls are not evaluated by the integer constant
+evaluator. See [dot-int.slang](../tests/conformance/positive/dot-int.slang).
+
+The HLSL backend uses float instructions for the other double geometric calls
+and converts results back to the checked double shape. This preserves the source signature,
 with the precision limits of those HLSL operations. Full floating-point execution
 equivalence and automatic differentiation remain unverified. See
 [geometric-float.slang](../tests/conformance/positive/geometric-float.slang) and

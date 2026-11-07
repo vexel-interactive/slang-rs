@@ -3,10 +3,10 @@ use crate::{
     *,
 };
 use slang_sema::{Scalar, Type};
-use slang_source::Diagnostic;
+use slang_source::{Diagnostic, Span};
 use std::collections::BTreeMap;
 
-/// Keep integer cross products in integer arithmetic and select HLSL float operations.
+/// Preserve arithmetic reductions and select HLSL float geometric operations.
 pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
     let names = crate::visit::names(module);
     let mut prefix = "_slang_geometric_".to_owned();
@@ -25,7 +25,7 @@ pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
 
 struct Lowerer {
     prefix: String,
-    helpers: BTreeMap<Scalar, String>,
+    helpers: BTreeMap<(String, String), String>,
     functions: Vec<Function>,
 }
 
@@ -35,15 +35,26 @@ impl Visitor for Lowerer {
         let ExprKind::IntrinsicCall { name, arguments } = &expression.kind else {
             return Ok(());
         };
-        if name == "cross" && expression.ty.integral() {
-            let scalar = expression.ty.scalar().unwrap();
-            let helper = if let Some(helper) = self.helpers.get(&scalar) {
+        if name == "cross" && expression.ty.integral()
+            || name == "dot"
+                && matches!(
+                    expression.ty.scalar(),
+                    Some(Scalar::Int | Scalar::Uint | Scalar::Double)
+                )
+        {
+            let parameter = &arguments[0].ty;
+            let key = (name.clone(), parameter.to_string());
+            let helper = if let Some(helper) = self.helpers.get(&key) {
                 helper.clone()
             } else {
-                let helper = format!("{}cross_{}", self.prefix, self.functions.len());
-                self.functions
-                    .push(integer_cross(&helper, &expression.ty, expression.span));
-                self.helpers.insert(scalar, helper.clone());
+                let helper = format!("{}{name}_{}", self.prefix, self.functions.len());
+                let function = if name == "cross" {
+                    integer_cross(&helper, parameter, expression.span)
+                } else {
+                    dot(&helper, parameter, expression.span)
+                };
+                self.functions.push(function);
+                self.helpers.insert(key, helper.clone());
                 helper
             };
             expression.kind = ExprKind::Call {
@@ -80,7 +91,7 @@ impl Visitor for Lowerer {
     }
 }
 
-fn integer_cross(name: &str, ty: &Type, span: slang_source::Span) -> Function {
+fn integer_cross(name: &str, ty: &Type, span: Span) -> Function {
     let component_product = |left: &str, right: &str| Expr {
         ty: ty.clone(),
         span,
@@ -130,6 +141,76 @@ fn integer_cross(name: &str, ty: &Type, span: slang_source::Span) -> Function {
             .map(|name| Variable {
                 name: name.into(),
                 ty: ty.clone(),
+                modifiers: vec![],
+                semantic: None,
+                initializer: None,
+                span,
+            })
+            .collect(),
+        modifiers: vec![],
+        semantic: None,
+        body: Some(Stmt {
+            span,
+            kind: StmtKind::Block(vec![Stmt {
+                span,
+                kind: StmtKind::Return(Some(result)),
+            }]),
+        }),
+    }
+}
+
+/// A scalar reduction keeps the selected integer or double arithmetic in every component.
+fn dot(name: &str, parameter: &Type, span: Span) -> Function {
+    let result_type = Type::Scalar(parameter.scalar().unwrap());
+    let component = |binding: &str, index: usize| {
+        let value = Expr {
+            ty: parameter.clone(),
+            span,
+            kind: ExprKind::Name(binding.into()),
+        };
+        if matches!(parameter, Type::Vector(..)) {
+            Expr {
+                ty: result_type.clone(),
+                span,
+                kind: ExprKind::Member {
+                    base: Box::new(value),
+                    name: ["x", "y", "z", "w"][index].into(),
+                },
+            }
+        } else {
+            value
+        }
+    };
+    let mut products = (0..usize::from(parameter.width().unwrap())).map(|index| Expr {
+        ty: result_type.clone(),
+        span,
+        kind: ExprKind::Binary {
+            op: "*".into(),
+            left: Box::new(component("_left", index)),
+            right: Box::new(component("_right", index)),
+        },
+    });
+    let mut result = products.next().unwrap();
+    for product in products {
+        result = Expr {
+            ty: result_type.clone(),
+            span,
+            kind: ExprKind::Binary {
+                op: "+".into(),
+                left: Box::new(result),
+                right: Box::new(product),
+            },
+        };
+    }
+    Function {
+        name: name.into(),
+        return_type: result_type,
+        span,
+        parameters: ["_left", "_right"]
+            .into_iter()
+            .map(|name| Variable {
+                name: name.into(),
+                ty: parameter.clone(),
                 modifiers: vec![],
                 semantic: None,
                 initializer: None,

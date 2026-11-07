@@ -1724,6 +1724,72 @@
       "accept": false,
       "entry": "main",
       "rust_code": "T014"
+    },
+    {
+      "file": "positive/dot-bool.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/dot-int.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/dot-uint.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/dot-half.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/dot-float.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/dot-double.slang",
+      "accept": true,
+      "entry": "main",
+      "oracle_validation_accept": false,
+      "reason": "Slang 2026.21 emits double dot DXIL instructions rejected by DXC; native typed component reductions produce valid HLSL."
+    },
+    {
+      "file": "positive/dot-mixed.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/dot-defaults.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "negative/dot-matrix.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/dot-one-component.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/dot-dimensions.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/dot-arity.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014"
     }
   ]
 }

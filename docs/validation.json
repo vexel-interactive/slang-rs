@@ -6,21 +6,21 @@
     "rustfmt": "passed",
     "clippy_all_targets_warnings_denied": "passed",
     "unit_tests": 24,
-    "integration_tests": 203,
+    "integration_tests": 208,
     "doc_tests": 1,
-    "conformance_comparison_tests": 5,
+    "conformance_comparison_tests": 6,
     "rustdoc": "passed",
     "release_build": "passed",
     "english_documentation_and_links": "passed"
   },
   "differential_validation": {
     "oracle": "Slang 2026.21",
-    "cases_passed": 296,
-    "cases_total": 296,
-    "matching_acceptance_cases": 288,
+    "cases_passed": 308,
+    "cases_total": 308,
+    "matching_acceptance_cases": 300,
     "documented_oracle_differences": 8,
-    "dxc_hlsl_artifacts_validated": 306,
-    "dxc_invalid_hlsl_artifacts_rejected": 8,
+    "dxc_hlsl_artifacts_validated": 321,
+    "dxc_invalid_hlsl_artifacts_rejected": 9,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
     "profiles": [
@@ -28,10 +28,21 @@
       "cs_6_6",
       "ps_6_0",
       "vs_6_0"
-    ]
+    ],
+    "documented_oracle_artifact_differences": 1
   },
   "remote_ci_executed": true,
   "remote_ci": {
+    "run_id": 42416274794,
+    "head_sha": "6aaa089479d7c3317573dd394ac679d86c085a06",
+    "conclusion": "success",
+    "platforms": [
+      "ubuntu-latest",
+      "windows-latest",
+      "macos-latest"
+    ]
+  },
+  "previous_remote_ci": {
     "run_id": 42415292766,
     "head_sha": "08409413c8629307f653306042477030372bdd1e",
     "conclusion": "success",
@@ -41,17 +52,17 @@
       "macos-latest"
     ]
   },
-  "previous_remote_ci": {
-    "run_id": 42398733846,
-    "head_sha": "481afa17b1e01948598bb4102dab4174c5cbdb3c",
-    "conclusion": "success",
-    "platforms": [
-      "ubuntu-latest",
-      "windows-latest",
-      "macos-latest"
-    ]
-  },
   "earlier_remote_ci": [
+    {
+      "run_id": 42398733846,
+      "head_sha": "481afa17b1e01948598bb4102dab4174c5cbdb3c",
+      "conclusion": "success",
+      "platforms": [
+        "ubuntu-latest",
+        "windows-latest",
+        "macos-latest"
+      ]
+    },
     {
       "run_id": 42398412972,
       "head_sha": "193d7e4cba142c2780131060d7170c63e68de160",

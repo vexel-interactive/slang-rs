@@ -22,7 +22,7 @@ subsystem is absent. No subsystem currently claims complete upstream parity.
 | Core module | slang-sema | Partial | Small built-in signature set |
 | Bit reinterpretation | slang-sema, slang-ir | Partial | 32-bit scalar/vector/matrix conversions, bool/half promotions, scalar double splitting, scalar/double2 packing; 16/64-bit integer variants absent |
 | Integer bit operations | slang-sema | Partial | 32-bit scalar/vector count, reverse, and first-bit searches with signed inputs and bool promotion; wider integer types absent |
-| Geometric functions | slang-sema, slang-ir | Partial | Scalar/vector length, distance, normalize, reflect, refract, faceforward and integer/floating cross products; double HLSL operations use float precision, complete execution parity and AD absent |
+| Geometric functions | slang-sema, slang-ir | Partial | Scalar/vector dot, length, distance, normalize, reflect, refract, faceforward and cross; integer/double dot uses component arithmetic, other double HLSL geometry uses float precision; complete execution parity and AD absent |
 | Screen derivatives | slang-sema, slang-ir | Partial | ddx/ddy/fwidth and coarse/fine variants, floating shapes and integer conversion, compute quads; full uniformity analysis absent |
 | Integer atomics | slang-sema, slang-ir | Partial | Global 32-bit Interlocked operations on groupshared and RW locations, checked outputs; float and 64-bit atomics absent |
 | Texture and sampler operations | slang-sema, slang-codegen | Partial | 1D/2D/3D/cube, indexed access, load/sample/bias/gradients/comparison/dimensions; advanced resources absent |

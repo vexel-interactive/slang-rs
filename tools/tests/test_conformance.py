@@ -13,6 +13,14 @@ def result(accepted, stderr=""):
 
 
 class ConformanceComparison(unittest.TestCase):
+    def test_accepted_sources_can_require_an_invalid_oracle_artifact(self):
+        case = {"accept": True, "oracle_validation_accept": False}
+        native = {"accepted": True, "expected_accept": True}
+        oracle = {"accepted": False, "expected_accept": False}
+        self.assertTrue(compare_results(case, result(True), result(True), [native, oracle]))
+        self.assertFalse(compare_results(case, result(True), result(True), [native, {"accepted": True, "expected_accept": False}]))
+        self.assertFalse(compare_results(case, result(True), result(True), [{"accepted": False, "expected_accept": True}, oracle]))
+
     def test_declared_diagnostic_fragments_are_required_for_each_compiler(self):
         case = {
             "accept": False,

@@ -189,6 +189,10 @@ compiler acceptance. The corpus also records graphics group-barrier and shared
 atomic uses accepted by Slang 2026.21 whose HLSL DXC rejects. Each difference
 requires the expected native diagnostic and the oracle artifact's rejection.
 Compute derivatives with invalid quad dimensions are recorded in the same way.
+The double dot fixture is accepted by both compilers, but DXC rejects upstream's
+double dot DXIL instructions. Its `oracle_validation_accept: false` requires that
+rejection alongside valid native component arithmetic. This is an artifact
+difference and is counted separately from compiler-acceptance differences.
 The optional case `compile_profile` supplies a compiler profile independently of
 the DXC `profile`, allowing an automatic upgrade to be checked. `rust_warning`
 requires the corresponding warning code in the native compiler's output.
@@ -251,6 +255,10 @@ checked independently. Differential fixtures validate all implemented component
 types with DXC and reject invalid dimensions, matrices, boolean distance inputs,
 and non-scalar or brace-list refraction indices. These checks do not compare GPU
 results or establish full floating-point execution equivalence.
+Dot fixtures also cover boolean and integer components, mixed types, scalar
+inputs, one-component vectors, contextual lists, default bindings, and double
+component reductions. The workspace tests check helper reuse and input side
+effects independently of the DXC artifact checks.
 
 [validation.json](validation.json) records the Windows validation run for this
 checkpoint. It includes the pinned compiler version, workspace checks, and

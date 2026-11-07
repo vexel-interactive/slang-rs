@@ -5,7 +5,7 @@ use crate::{Scalar, Type};
 pub(crate) fn signature(name: &str, types: &[Type]) -> Option<Signature> {
     let arity = match name {
         "length" | "normalize" => 1,
-        "cross" | "distance" | "reflect" => 2,
+        "cross" | "distance" | "reflect" | "dot" => 2,
         "refract" | "faceforward" => 3,
         _ => return None,
     };
@@ -15,7 +15,7 @@ pub(crate) fn signature(name: &str, types: &[Type]) -> Option<Signature> {
     if name == "cross" {
         return cross(types);
     }
-    if types.iter().any(|ty| ty.scalar() == Some(Scalar::Bool)) {
+    if name != "dot" && types.iter().any(|ty| ty.scalar() == Some(Scalar::Bool)) {
         return None;
     }
     if name == "refract" && types[2].width() != Some(1) {
@@ -35,9 +35,13 @@ pub(crate) fn signature(name: &str, types: &[Type]) -> Option<Signature> {
             width = Some(*n);
         }
     }
-    let scalar = match types.iter().filter_map(Type::scalar).max()? {
-        Scalar::Int | Scalar::Uint => Scalar::Float,
-        scalar => scalar,
+    let scalar = if name == "dot" {
+        arithmetic_component(types)?
+    } else {
+        match types.iter().filter_map(Type::scalar).max()? {
+            Scalar::Int | Scalar::Uint => Scalar::Float,
+            scalar => scalar,
+        }
     };
     let parameter = match width {
         Some(n) => Type::Vector(scalar, n),
@@ -48,7 +52,7 @@ pub(crate) fn signature(name: &str, types: &[Type]) -> Option<Signature> {
         parameters[2] = Type::Scalar(scalar);
     }
     let result = match name {
-        "length" | "distance" => Type::Scalar(scalar),
+        "length" | "distance" | "dot" => Type::Scalar(scalar),
         // The core faceforward signature is always a vector, even for scalar inputs.
         "faceforward" => Type::Vector(scalar, width.unwrap_or(1)),
         _ => parameter,
@@ -67,7 +71,16 @@ fn cross(types: &[Type]) -> Option<Signature> {
     {
         return None;
     }
-    // Bool can reach an integer overload; it cannot reach the floating overload.
+    let result = Type::Vector(arithmetic_component(types)?, 3);
+    Some(Signature {
+        parameters: vec![result.clone(); 2],
+        result,
+        outputs_start: None,
+    })
+}
+
+/// Bool reaches an integer overload, so floating operands convert to that integer type.
+fn arithmetic_component(types: &[Type]) -> Option<Scalar> {
     let scalar = if types.iter().any(|ty| ty.scalar() == Some(Scalar::Bool)) {
         if types.iter().any(|ty| ty.scalar() == Some(Scalar::Uint)) {
             Scalar::Uint
@@ -77,10 +90,5 @@ fn cross(types: &[Type]) -> Option<Signature> {
     } else {
         types.iter().filter_map(Type::scalar).max()?
     };
-    let result = Type::Vector(scalar, 3);
-    Some(Signature {
-        parameters: vec![result.clone(); 2],
-        result,
-        outputs_start: None,
-    })
+    Some(scalar)
 }

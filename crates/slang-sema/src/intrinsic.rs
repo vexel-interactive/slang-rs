@@ -115,15 +115,6 @@ pub(crate) fn intrinsic(name: &str, types: &[Type]) -> Option<Type> {
         ("clamp" | "lerp", [a, b, c]) if a.numeric() && b.numeric() && c.numeric() => {
             Type::common(&Type::common(a, b)?, c)
         }
-        ("dot", [a, b])
-            if a == b
-                && matches!(
-                    a,
-                    Type::Vector(Scalar::Half | Scalar::Float | Scalar::Double, _)
-                ) =>
-        {
-            Some(Type::Scalar(a.scalar()?))
-        }
         ("all" | "any", [a]) if a.scalar().is_some() => Some(Type::Scalar(Scalar::Bool)),
         (
             "GroupMemoryBarrierWithGroupSync"
