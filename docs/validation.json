@@ -25,7 +25,17 @@
       "ps_6_0"
     ]
   },
-  "remote_ci_executed": false,
+  "remote_ci_executed": true,
+  "remote_ci": {
+    "run_id": 42367678965,
+    "head_sha": "67c1fb69221e41a4530289e8e3b01a185e5720cf",
+    "conclusion": "success",
+    "platforms": [
+      "ubuntu-latest",
+      "windows-latest",
+      "macos-latest"
+    ]
+  },
   "previous_remote_ci": {
     "run_id": 42367102622,
     "head_sha": "c8308f709fd35c7a50624bed3905f76378ffaa7b",
