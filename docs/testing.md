@@ -44,6 +44,10 @@ errors. Recursive and branching function defaults are exercised through the
 Windows debug CLI. Differential fixtures validate full target signatures and
 declaration-scope helper generation with DXC.
 
+Comma tests check precedence, argument/default separators, void left operands,
+result types, loop increments, and rejection of writable or constant uses.
+Differential cases also cover comma expressions inside function defaults.
+
 Examples cover vector addition, control flow, matrix algebra, vertex transforms,
 fragment color output, struct construction, and a multi-file module. With DXC
 installed, validate generated HLSL independently:

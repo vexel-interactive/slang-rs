@@ -635,6 +635,34 @@
       "entry": "main",
       "accept": false,
       "rust_code": "T014"
+    },
+    {
+      "file": "../../examples/comma-expressions.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/comma-default.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "negative/comma-case.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T017"
+    },
+    {
+      "file": "negative/comma-list.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T008"
+    },
+    {
+      "file": "negative/comma-location.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T015"
     }
   ]
 }

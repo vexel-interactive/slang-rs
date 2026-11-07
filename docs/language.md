@@ -206,7 +206,17 @@ function calls, fields, swizzles, indexing, conditionals, and increment/decremen
 Statements include blocks, local declarations, expression statements, `return`,
 `if/else`, `while`, `for`, `do/while`, `switch`, `break`, and `continue`.
 C-style casts support scalar-to-scalar conversions. Use constructors for vector
-and matrix values. The comma operator and statement attributes remain to be ported.
+and matrix values. Statement attributes remain to be ported.
+
+The comma operator evaluates its left operand before its right operand and
+returns the right operand's value. It has lower precedence than assignment and
+works in `for` initializers/increments, returns, and parenthesized expressions.
+Parentheses keep a comma expression together when passed as one function
+argument. Unparenthesized commas continue to separate arguments and initializers.
+Comma results are not writable locations or supported integer constant
+expressions. A brace list inside a comma expression cannot infer its type from
+the surrounding declaration. The frontend does not reproduce upstream's comma
+warnings. See [comma-expressions.slang](../examples/comma-expressions.slang).
 
 The checker resolves nested scopes, validates conversions and scalar conditions,
 and tracks writable locations. It rejects writes to const values, read-only

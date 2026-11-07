@@ -282,6 +282,9 @@ impl Checker {
         if *a == Type::Error || *b == Type::Error {
             return Type::Error;
         }
+        if op == "," {
+            return b.clone();
+        }
         let common = Type::common(a, b);
         let valid = match op {
             "&&" | "||" => matches!(a, Type::Scalar(_)) && matches!(b, Type::Scalar(_)),

@@ -215,7 +215,7 @@ impl Parser {
         ty.arrays.splice(0..0, arrays);
         let semantic = self.semantic()?;
         let initializer = if self.eat("=") {
-            Some(self.expression(0)?)
+            Some(self.expression(1)?)
         } else {
             None
         };
@@ -289,7 +289,7 @@ impl Parser {
         let mut arguments = vec![];
         if !self.at(close) {
             loop {
-                arguments.push(self.expression(0)?);
+                arguments.push(self.expression(1)?);
                 if !self.eat(",") {
                     break;
                 }
