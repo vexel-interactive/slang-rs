@@ -15,6 +15,12 @@ AST; lowering replaces them with the selected canonical constructor. The typed I
 and HLSL emitter therefore use one representation for `vector<float, 3>` and
 `float3`.
 
+Atomic normalization adds a private typed output when Slang omits the old value
+of an exchange. HLSL requires that output. Its per-invocation scalar storage is
+declared before source globals so global initializers can also use it. The atomic
+destination stays in the original call, and generated storage is excluded from
+source reflection.
+
 ## Compilation flow
 
 ```mermaid

@@ -50,6 +50,7 @@ pub(crate) struct Binding {
     pub ty: Type,
     pub writable: bool,
     pub constant: Option<i64>,
+    pub groupshared: bool,
 }
 
 #[derive(Clone)]

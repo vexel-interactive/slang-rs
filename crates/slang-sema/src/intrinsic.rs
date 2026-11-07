@@ -1,6 +1,8 @@
 use crate::{Scalar, Type};
 
+mod atomic;
 mod output;
+pub(crate) use atomic::signature as atomic_signature;
 pub(crate) use output::signature as output_signature;
 
 /// Names implemented by the native builtin signature set.
@@ -38,6 +40,15 @@ pub fn is_intrinsic_name(name: &str) -> bool {
             | "sincos"
             | "modf"
             | "frexp"
+            | "InterlockedAdd"
+            | "InterlockedAnd"
+            | "InterlockedOr"
+            | "InterlockedXor"
+            | "InterlockedMin"
+            | "InterlockedMax"
+            | "InterlockedExchange"
+            | "InterlockedCompareExchange"
+            | "InterlockedCompareStore"
             | "GroupMemoryBarrierWithGroupSync"
             | "DeviceMemoryBarrierWithGroupSync"
             | "AllMemoryBarrierWithGroupSync"

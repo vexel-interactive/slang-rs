@@ -464,6 +464,8 @@ impl Checker {
                     ty,
                     writable,
                     constant,
+                    groupshared: matches!(context, VariableScope::Global)
+                        && variable.modifiers.iter().any(|m| m == "groupshared"),
                 },
             )
             .is_some()

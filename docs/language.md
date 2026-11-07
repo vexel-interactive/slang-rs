@@ -424,6 +424,24 @@ const values, temporary expressions, and repeated swizzles are rejected. `sincos
 and `modf` can infer brace-list input types from their outputs. See
 [output-intrinsics.slang](../examples/output-intrinsics.slang).
 
+## Integer atomic operations
+
+Global `InterlockedAdd`, `InterlockedAnd`, `InterlockedOr`, `InterlockedXor`,
+`InterlockedMin`, `InterlockedMax`, and `InterlockedExchange` accept an `int` or
+`uint` destination and a value, with an optional output for the old value.
+`InterlockedCompareExchange` requires destination, comparison, replacement, and
+old-value output. `InterlockedCompareStore` takes the first three arguments.
+
+Destinations must be writable `groupshared` storage or elements of RW structured
+buffers or RW textures. Arrays, fields, and scalar components within this storage
+keep their location. Locals, local static storage, ordinary static globals,
+read-only resources, temporaries, and ordinary `inout` parameters are rejected.
+The destination selects the scalar integer type. Input conversions are explicit
+in IR; old-value outputs must match that type and be writable. These operations
+do not imply a memory barrier. Floating-point and 64-bit atomics are unimplemented.
+Byte-address buffer atomics retain their separate method signatures described
+above. See [group-atomics.slang](../examples/group-atomics.slang).
+
 ## Fragment discard and stage requirements
 
 `discard;` rejects the current fragment. `clip(value)` rejects it when any

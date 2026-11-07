@@ -60,6 +60,7 @@ pub fn lower(checked: &CheckedModule) -> Result<Module, Diagnostic> {
     }
     crate::initialization::lower(&mut module)?;
     crate::intrinsic::lower(&mut module)?;
+    crate::atomic::lower(&mut module)?;
     crate::static_local::lower(&mut module)?;
     crate::scope::lower(&mut module);
     Ok(module)

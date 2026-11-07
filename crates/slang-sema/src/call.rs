@@ -214,6 +214,37 @@ impl Checker {
                 }
             }
         }
+        if let Some(signature) = crate::intrinsic::atomic_signature(name, &types) {
+            for (index, ((argument, actual), target)) in arguments
+                .iter()
+                .zip(&types)
+                .zip(&signature.parameters)
+                .enumerate()
+            {
+                if index == 0 {
+                    self.require_atomic_destination(argument);
+                } else if signature.output == Some(index) {
+                    self.require_writable(argument);
+                    if actual != target {
+                        self.error(
+                            "T014",
+                            argument.span,
+                            format!("atomic output requires {target}, found {actual}"),
+                        );
+                    }
+                } else {
+                    self.coerce_value(argument, target);
+                }
+            }
+            self.expression_types.insert(
+                callee.id,
+                Type::Callable {
+                    parameters: signature.parameters,
+                    result: Box::new(Type::Void),
+                },
+            );
+            return Type::Void;
+        }
         if let Some(signature) = crate::intrinsic::output_signature(name, &types) {
             for (index, ((argument, actual), target)) in arguments
                 .iter()

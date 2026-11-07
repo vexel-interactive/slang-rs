@@ -6,7 +6,7 @@
     "rustfmt": "passed",
     "clippy_all_targets_warnings_denied": "passed",
     "unit_tests": 17,
-    "integration_tests": 116,
+    "integration_tests": 121,
     "doc_tests": 1,
     "conformance_comparison_tests": 3,
     "rustdoc": "passed",
@@ -15,11 +15,11 @@
   },
   "differential_validation": {
     "oracle": "Slang 2026.21",
-    "cases_passed": 169,
-    "cases_total": 169,
-    "matching_acceptance_cases": 168,
+    "cases_passed": 177,
+    "cases_total": 177,
+    "matching_acceptance_cases": 176,
     "documented_oracle_differences": 1,
-    "dxc_hlsl_artifacts_validated": 164,
+    "dxc_hlsl_artifacts_validated": 170,
     "dxc_invalid_hlsl_artifacts_rejected": 1,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
@@ -31,6 +31,16 @@
   },
   "remote_ci_executed": true,
   "remote_ci": {
+    "run_id": 42391843348,
+    "head_sha": "b2fd44e0e64a2380786362b04b6e53f1c0309146",
+    "conclusion": "success",
+    "platforms": [
+      "ubuntu-latest",
+      "windows-latest",
+      "macos-latest"
+    ]
+  },
+  "previous_remote_ci": {
     "run_id": 42391228254,
     "head_sha": "1861f8a7597a5eb3955ff0de717df88fa8c2c824",
     "conclusion": "success",
@@ -40,17 +50,17 @@
       "macos-latest"
     ]
   },
-  "previous_remote_ci": {
-    "run_id": 42390134534,
-    "head_sha": "b1234dd483d3d63adfc0b4473a113c25819a8064",
-    "conclusion": "success",
-    "platforms": [
-      "ubuntu-latest",
-      "windows-latest",
-      "macos-latest"
-    ]
-  },
   "earlier_remote_ci": [
+    {
+      "run_id": 42390134534,
+      "head_sha": "b1234dd483d3d63adfc0b4473a113c25819a8064",
+      "conclusion": "success",
+      "platforms": [
+        "ubuntu-latest",
+        "windows-latest",
+        "macos-latest"
+      ]
+    },
     {
       "run_id": 42389080230,
       "head_sha": "e2e3ac4d71f579b8b4c01171c0a0ec41f3843fac",

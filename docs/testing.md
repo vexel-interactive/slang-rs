@@ -151,6 +151,12 @@ conversions, matrix truncation, imported component aliases, and incompatible
 shapes. Value comparisons using names `vector` and `matrix` remain expressions
 and must not be parsed as type applications.
 
+Integer atomic fixtures cover both integer signs and optional output forms,
+groupshared variables and arrays, RW structure fields, and RW textures. Negative
+fixtures reject ordinary locals, shadowing, read-only locations, constant outputs,
+and incorrect comparison arity. The corpus validates shader artifacts and does
+not measure concurrency or memory-order behavior on a GPU.
+
 [validation.json](validation.json) records the Windows validation run for this
 checkpoint. It includes the pinned compiler version, workspace checks, and
 differential corpus counts. It is a snapshot of that run, not a promise of

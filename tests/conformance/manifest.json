@@ -945,6 +945,51 @@
       "entry": "main",
       "accept": false,
       "rust_code": "T008"
+    },
+    {
+      "file": "../../examples/group-atomics.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/integer-atomics.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "negative/atomic-local.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T015"
+    },
+    {
+      "file": "negative/atomic-shadowing.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T015"
+    },
+    {
+      "file": "negative/atomic-read-only.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T015"
+    },
+    {
+      "file": "negative/atomic-output-constant.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T015"
+    },
+    {
+      "file": "negative/atomic-compare-arity.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T014"
+    },
+    {
+      "file": "positive/atomic-global-initializer.slang",
+      "entry": "main",
+      "accept": true
     }
   ]
 }

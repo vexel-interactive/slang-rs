@@ -18,6 +18,7 @@ subsystem is absent. No subsystem currently claims complete upstream parity.
 | Explicit numeric casts | slang-syntax, slang-sema, slang-ir | Partial | Scalar splats, same-width vectors, matrix component conversions and truncation, boolean conversions; standalone alias and aggregate cast syntax absent |
 | Aggregate initialization | slang-syntax, slang-sema, slang-ir | Partial | Struct and fixed-array constructors, copies, defaults, contextual brace lists, nested/flat arrays, numeric padding/splats; user constructors and full generic inference absent |
 | Core module | slang-sema | Partial | Small built-in signature set |
+| Integer atomics | slang-sema, slang-ir | Partial | Global 32-bit Interlocked operations on groupshared and RW locations, checked outputs; float and 64-bit atomics absent |
 | Texture and sampler operations | slang-sema, slang-codegen | Partial | 1D/2D/3D/cube, indexed access, load/sample/bias/gradients/comparison/dimensions; advanced resources absent |
 | Constant buffers | slang-sema, slang-codegen | Partial | ConstantBuffer with a struct element and read-only fields; direct cbuffer syntax and explicit layout absent |
 | Byte-address buffers | slang-sema, slang-codegen | Partial | Load/store widths, byte count, uint atomic operations with explicit outputs; typed access and advanced atomics absent |
