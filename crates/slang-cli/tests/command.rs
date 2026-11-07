@@ -1,6 +1,47 @@
 use std::{fs, process::Command};
 
 #[test]
+fn cli_reports_upgraded_profiles_in_warnings_and_reflection() {
+    let root = std::env::temp_dir().join(format!("slang-rs-cli-profile-{}", std::process::id()));
+    fs::create_dir_all(&root).unwrap();
+    let input = root.join("compute.slang");
+    let reflection = root.join("reflection.json");
+    fs::write(
+        &input,
+        include_str!("../../../examples/compute-derivatives.slang"),
+    )
+    .unwrap();
+    let result = Command::new(env!("CARGO_BIN_EXE_slangc-rs"))
+        .arg(&input)
+        .args(["-profile", "cs_6_0", "--check", "--reflection"])
+        .arg(&reflection)
+        .output()
+        .unwrap();
+    assert!(
+        result.status.success(),
+        "{}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+    assert!(String::from_utf8_lossy(&result.stderr).contains("C003"));
+    let json: serde_json::Value = serde_json::from_slice(&fs::read(&reflection).unwrap()).unwrap();
+    assert_eq!(json["entry_points"][0]["target_profile"], "cs_6_6");
+    for path in [&input, &reflection] {
+        fs::remove_file(path).unwrap();
+    }
+    fs::remove_dir(root).unwrap();
+}
+
+#[test]
+fn cli_rejects_invalid_profile_models_before_compilation() {
+    let result = Command::new(env!("CARGO_BIN_EXE_slangc-rs"))
+        .args(["unused.slang", "-profile", "cs_5_0"])
+        .output()
+        .unwrap();
+    assert_eq!(result.status.code(), Some(2));
+    assert!(String::from_utf8_lossy(&result.stderr).contains("unsupported shader profile"));
+}
+
+#[test]
 fn cli_reports_deep_syntax_without_exhausting_its_stack() {
     let root = std::env::temp_dir().join(format!("slang-rs-cli-depth-{}", std::process::id()));
     fs::create_dir_all(&root).unwrap();

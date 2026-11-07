@@ -274,6 +274,17 @@ impl Checker {
             );
             return signature.result;
         }
+        if let Some(result) = crate::intrinsic::derivative_signature(name, &types) {
+            self.coerce_value(&arguments[0], &result);
+            self.expression_types.insert(
+                callee.id,
+                Type::Callable {
+                    parameters: vec![result.clone()],
+                    result: Box::new(result.clone()),
+                },
+            );
+            return result;
+        }
         if let Some(result) = intrinsic(name, &types) {
             self.expression_types.insert(
                 callee.id,

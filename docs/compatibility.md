@@ -18,13 +18,15 @@ subsystem is absent. No subsystem currently claims complete upstream parity.
 | Explicit numeric casts | slang-syntax, slang-sema, slang-ir | Partial | Scalar splats, same-width vectors, matrix component conversions and truncation, boolean conversions; standalone alias and aggregate cast syntax absent |
 | Aggregate initialization | slang-syntax, slang-sema, slang-ir | Partial | Struct and fixed-array constructors, copies, defaults, contextual brace lists, nested/flat arrays, numeric padding/splats; user constructors and full generic inference absent |
 | Core module | slang-sema | Partial | Small built-in signature set |
+| Screen derivatives | slang-sema, slang-ir | Partial | ddx/ddy/fwidth and coarse/fine variants, floating shapes and integer conversion, compute quads; full uniformity analysis absent |
 | Integer atomics | slang-sema, slang-ir | Partial | Global 32-bit Interlocked operations on groupshared and RW locations, checked outputs; float and 64-bit atomics absent |
 | Texture and sampler operations | slang-sema, slang-codegen | Partial | 1D/2D/3D/cube, indexed access, load/sample/bias/gradients/comparison/dimensions; advanced resources absent |
 | Constant buffers | slang-sema, slang-codegen | Partial | ConstantBuffer with a struct element and read-only fields; direct cbuffer syntax and explicit layout absent |
 | Byte-address buffers | slang-sema, slang-codegen | Partial | Load/store widths, byte count, uint atomic operations with explicit outputs; typed access and advanced atomics absent |
 | Modules and imports | slang-module, slang-sema | Partial | Imports, reexports, member files, isolated preprocessing, public/internal, legacy visibility; session API and cross-module overload merging absent |
 | Interfaces and generics | ? | Not ported | Constraints, witnesses, specialization required |
-| Capability system | slang-sema | Partial | Fragment operations and compute storage/barriers through selected overloads, resolved globals and defaults; complete profile and target requirements absent |
+| Capability system | slang-sema, slang-compiler | Partial | Fragment operations, shared memory, barriers and derivative requirements through selected calls, globals and defaults; complete profile and target requirements absent |
+| Shader profiles | slang-compiler | Partial | HLSL shader model 6 profile selection, derivative upgrades, reflected target profiles; complete capability and device validation absent |
 | Automatic differentiation | ? | Not ported | AD passes, JVP/VJP, runtime contracts required |
 | Structured IR | slang-ir | Partial | Typed tree lowering |
 | SSA, linking, optimization | ? | Not ported | CFG, use-def, verifier, passes required |

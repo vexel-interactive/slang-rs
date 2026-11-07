@@ -1,7 +1,27 @@
 use slang_compiler::CompileOptions;
 use std::{ffi::OsString, path::PathBuf};
 
-pub const HELP: &str = "Native Rust Slang compiler (partial language compatibility)\n\nUsage: slangc-rs <file.slang> [options]\n\n  -target <name>       Output target (hlsl implemented)\n  -entry <name>        Require a shader entry point\n  -o <path>           Write output atomically (default: stdout)\n  -I <directory>      Add include search path (also -Idirectory)\n  -D <NAME[=value]>   Define macro (also -DNAME=value)\n  --check             Check without generating code\n  --dump-ir           Emit typed structured IR as JSON\n  --reflection <path> Write declaration reflection as JSON\n  --diagnostics-json  Emit compilation errors as JSON\n  --help, -h          Display this help\n  --version           Display version\n\nTargets spirv, dxil, glsl, wgsl, metal, cuda, cpp are tracked but unimplemented.\nUnsupported language constructs fail explicitly. See docs/compatibility.md.\n";
+pub const HELP: &str = "Native Rust Slang compiler (partial language compatibility)
+
+Usage: slangc-rs <file.slang> [options]
+
+  -target <name>       Output target (hlsl implemented)
+  -entry <name>        Require a shader entry point
+  -profile <profile>   HLSL shader model 6 profile (cs_6_N, vs_6_N, ps_6_N)
+  -o <path>            Write output atomically (default: stdout)
+  -I <directory>       Add include search path (also -Idirectory)
+  -D <NAME[=value]>    Define macro (also -DNAME=value)
+  --check              Check without generating code
+  --dump-ir            Emit typed structured IR as JSON
+  --reflection <path>  Write declaration reflection as JSON
+  --diagnostics-json   Emit compilation errors as JSON
+  --help, -h           Display this help
+  --version            Display version
+
+Compute derivatives can upgrade the profile; use target_profile from reflection.
+Targets spirv, dxil, glsl, wgsl, metal, cuda, cpp are tracked but unimplemented.
+Unsupported language constructs fail explicitly. See docs/compatibility.md.
+";
 
 pub enum Action {
     Help,
@@ -54,6 +74,14 @@ impl Arguments {
                             .into_string()
                             .map_err(|_| "entry point must be UTF-8")?,
                     )
+                }
+                Some("-profile") => {
+                    options.profile = Some(
+                        next(&mut values, "-profile")?
+                            .to_str()
+                            .ok_or("profile must be UTF-8")?
+                            .parse()?,
+                    );
                 }
                 Some("--check") => options.check_only = true,
                 Some("--dump-ir") => {

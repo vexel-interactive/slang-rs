@@ -142,6 +142,16 @@ spans. The current set covers `discard`, `clip`, groupshared storage, and memory
 barriers that use a thread group; a device barrier without group synchronization
 does not impose a compute requirement.
 
+Derivative requirements remain separate from fragment-only operations because
+compute supports them with suitable quad dimensions and target capabilities.
+Checking validates the dimensions and retains source-located requirements in
+`CheckedModule`. Profile resolution in `slang-compiler` selects HLSL profiles,
+upgrades compute derivatives to shader model 6.6, and records the result in
+reflection. Semantic checking therefore does not depend on an HLSL profile.
+Coarse/fine fwidth lowering uses cached typed helpers with a single input;
+double derivatives explicitly narrow to HLSL float instructions and convert
+their results back to the checked type.
+
 Output intrinsic signatures infer input conversions from supplied output types,
 then require exact writable outputs. IR makes the selected intrinsic and resource
 input conversions explicit so backend overload resolution preserves the checked

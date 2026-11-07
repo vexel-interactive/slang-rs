@@ -6,21 +6,21 @@
     "rustfmt": "passed",
     "clippy_all_targets_warnings_denied": "passed",
     "unit_tests": 18,
-    "integration_tests": 127,
+    "integration_tests": 141,
     "doc_tests": 1,
-    "conformance_comparison_tests": 3,
+    "conformance_comparison_tests": 4,
     "rustdoc": "passed",
     "release_build": "passed",
     "english_documentation_and_links": "passed"
   },
   "differential_validation": {
     "oracle": "Slang 2026.21",
-    "cases_passed": 188,
-    "cases_total": 188,
-    "matching_acceptance_cases": 182,
-    "documented_oracle_differences": 6,
-    "dxc_hlsl_artifacts_validated": 180,
-    "dxc_invalid_hlsl_artifacts_rejected": 6,
+    "cases_passed": 203,
+    "cases_total": 203,
+    "matching_acceptance_cases": 195,
+    "documented_oracle_differences": 8,
+    "dxc_hlsl_artifacts_validated": 200,
+    "dxc_invalid_hlsl_artifacts_rejected": 8,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
     "profiles": [
@@ -31,6 +31,16 @@
   },
   "remote_ci_executed": true,
   "remote_ci": {
+    "run_id": 42394055643,
+    "head_sha": "7cd6e16b71bfd358399c94ef8ea685ed07799397",
+    "conclusion": "success",
+    "platforms": [
+      "ubuntu-latest",
+      "windows-latest",
+      "macos-latest"
+    ]
+  },
+  "previous_remote_ci": {
     "run_id": 42393630551,
     "head_sha": "59019c56e23813e49010fed51c348a6f1145aa27",
     "conclusion": "success",
@@ -40,17 +50,17 @@
       "macos-latest"
     ]
   },
-  "previous_remote_ci": {
-    "run_id": 42391843348,
-    "head_sha": "b2fd44e0e64a2380786362b04b6e53f1c0309146",
-    "conclusion": "success",
-    "platforms": [
-      "ubuntu-latest",
-      "windows-latest",
-      "macos-latest"
-    ]
-  },
   "earlier_remote_ci": [
+    {
+      "run_id": 42391843348,
+      "head_sha": "b2fd44e0e64a2380786362b04b6e53f1c0309146",
+      "conclusion": "success",
+      "platforms": [
+        "ubuntu-latest",
+        "windows-latest",
+        "macos-latest"
+      ]
+    },
     {
       "run_id": 42391228254,
       "head_sha": "1861f8a7597a5eb3955ff0de717df88fa8c2c824",

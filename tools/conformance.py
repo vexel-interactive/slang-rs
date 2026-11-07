@@ -16,6 +16,8 @@ def compare_results(case, rust, oracle, validators):
     passed = passed and oracle["accepted"] == case.get("oracle_accept", case["accept"])
     if "rust_code" in case:
         passed = passed and case["rust_code"] in rust["stderr"]
+    if "rust_warning" in case:
+        passed = passed and case["rust_warning"] in rust["stderr"]
     return passed and all(v["accepted"] == v["expected_accept"] for v in validators)
 
 
@@ -35,6 +37,9 @@ def main():
         rust_output = args.output.parent / f"case-{index}-rust.hlsl"
         oracle_output = args.output.parent / f"case-{index}-oracle.hlsl"
         common = [str(source), "-target", "hlsl", "-entry", case["entry"]]
+        profile = case.get("compile_profile", case.get("profile"))
+        if profile:
+            common.extend(["-profile", profile])
         rust = run([str(args.rust.resolve()), *common, "-o", str(rust_output)])
         oracle = run([str(args.oracle.resolve()), *common, "-o", str(oracle_output)])
         validators = []

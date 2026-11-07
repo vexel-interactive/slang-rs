@@ -2,7 +2,7 @@ use serde::Serialize;
 use slang_codegen::Target;
 use slang_ir::Module;
 use slang_sema::{ShaderStage, Type};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 /// Declaration reflection only. GPU binding allocation and byte layout are not yet implemented.
 #[derive(Clone, Debug, Serialize)]
@@ -19,6 +19,9 @@ pub struct EntryPointInfo {
     /// Identifier to pass to the target compiler when it differs from the source name.
     pub target_name: String,
     pub stage: ShaderStage,
+    /// Profile to pass to an HLSL compiler, including required feature upgrades.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target_profile: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub thread_group_size: Option<[u32; 3]>,
 }
@@ -39,6 +42,7 @@ impl Reflection {
         module: &Module,
         target: Target,
         checked: &slang_sema::CheckedModule,
+        profiles: &BTreeMap<String, crate::ShaderProfile>,
     ) -> Self {
         let source_globals: BTreeSet<_> = checked
             .module
@@ -53,7 +57,7 @@ impl Reflection {
             })
             .collect();
         Self {
-            schema_version: 4,
+            schema_version: 5,
             modules: checked.modules.clone(),
             entry_points: module
                 .entry_points
@@ -62,6 +66,7 @@ impl Reflection {
                     name: entry.name.clone(),
                     target_name: slang_codegen::entry_point_name(&entry.name, target),
                     stage: entry.stage,
+                    target_profile: profiles.get(&entry.name).map(ToString::to_string),
                     thread_group_size: entry.thread_group_size,
                 })
                 .collect(),

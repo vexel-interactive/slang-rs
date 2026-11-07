@@ -1075,6 +1075,108 @@
       "entry": "main",
       "accept": false,
       "rust_code": "T014"
+    },
+    {
+      "file": "../../examples/screen-derivatives.slang",
+      "entry": "main",
+      "accept": true,
+      "profile": "ps_6_0"
+    },
+    {
+      "file": "../../examples/compute-derivatives.slang",
+      "entry": "main",
+      "accept": true,
+      "profile": "cs_6_6"
+    },
+    {
+      "file": "../../examples/compute-derivatives.slang",
+      "entry": "main",
+      "accept": true,
+      "profile": "cs_6_6",
+      "compile_profile": "cs_6_0",
+      "rust_warning": "C003"
+    },
+    {
+      "file": "positive/integer-derivatives.slang",
+      "entry": "main",
+      "accept": true,
+      "profile": "ps_6_0"
+    },
+    {
+      "file": "positive/derivative-supplied-defaults.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "modules/derivative-root.slang",
+      "entry": "main",
+      "accept": true,
+      "profile": "ps_6_0"
+    },
+    {
+      "file": "positive/derivative-side-effects.slang",
+      "entry": "main",
+      "accept": true,
+      "profile": "ps_6_0"
+    },
+    {
+      "file": "positive/derivatives-half.slang",
+      "entry": "main",
+      "accept": true,
+      "profile": "ps_6_0"
+    },
+    {
+      "file": "positive/derivatives-float.slang",
+      "entry": "main",
+      "accept": true,
+      "profile": "ps_6_0"
+    },
+    {
+      "file": "positive/derivatives-double.slang",
+      "entry": "main",
+      "accept": true,
+      "profile": "ps_6_0"
+    },
+    {
+      "file": "negative/derivative-vertex.slang",
+      "entry": "main",
+      "accept": false,
+      "profile": "vs_6_0",
+      "rust_code": "T023"
+    },
+    {
+      "file": "negative/derivative-bool.slang",
+      "entry": "main",
+      "accept": false,
+      "profile": "ps_6_0",
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/derivative-arity.slang",
+      "entry": "main",
+      "accept": false,
+      "profile": "ps_6_0",
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/derivative-group-1d.slang",
+      "entry": "main",
+      "accept": false,
+      "profile": "cs_6_6",
+      "rust_code": "T024",
+      "oracle_accept": true,
+      "oracle_validation_accept": false,
+      "reason": "Slang 2026.21 accepts compute derivatives with a group size rejected by DXC, while the native frontend diagnoses the invalid quad dimensions"
+    },
+    {
+      "file": "negative/derivative-group-3d.slang",
+      "entry": "main",
+      "accept": false,
+      "profile": "cs_6_6",
+      "rust_code": "T024",
+      "oracle_accept": true,
+      "oracle_validation_accept": false,
+      "reason": "Slang 2026.21 accepts compute derivatives with a group size rejected by DXC, while the native frontend diagnoses the invalid quad dimensions"
     }
   ]
 }

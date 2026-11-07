@@ -20,12 +20,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 Compilation returns `Result<Compilation, CompileError>`. `Compilation` contains
 a text artifact, typed IR, declaration reflection, a source map, and warnings.
-Reflection schema version 4 reports `compute`, `vertex`, or `fragment` stages;
+Reflection schema version 5 reports `compute`, `vertex`, or `fragment` stages;
 `thread_group_size` is present only for compute entries. The Rust model uses
 `slang_sema::ShaderStage` and `Option<[u32; 3]>` for these fields.
 `EntryPointInfo` and `GlobalInfo` retain the source `name` and add `target_name`
 for HLSL identifier renaming. Use `target_name` as the target compiler's entry
 identifier; for common names such as `main` it is identical to `name`.
+`EntryPointInfo.target_profile` gives the selected HLSL profile. Pass it to DXC's
+`-T` option. Compute derivatives require `cs_6_6` or higher; callers must use the
+reflected profile after an automatic upgrade. The optional `CompileOptions.profile`
+accepts a parsed `ShaderProfile`, for example `Some("cs_6_6".parse()?)`.
+Supported profile spellings are `cs_6_N`, `vs_6_N`, and `ps_6_N` for minor versions
+zero through nine. Parsing a profile does not establish support for every feature
+of that shader model; only implemented requirements are checked.
 `Reflection.modules` describes each loaded module's identity, imports, and
 member source IDs. `GlobalInfo.module` identifies imported globals' owner;
 root globals omit it. Imported struct type names are canonical linked names.

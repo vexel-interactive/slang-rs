@@ -1,6 +1,7 @@
 //! Typed structured IR. This is the first lowering layer, not an SSA optimizer.
 
 mod atomic;
+mod derivative;
 mod initialization;
 mod intrinsic;
 mod lower;

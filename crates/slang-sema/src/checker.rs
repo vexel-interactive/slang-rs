@@ -39,6 +39,7 @@ pub struct CheckedModule {
     pub default_arguments: BTreeMap<ExprId, Vec<crate::Initialization>>,
     /// Integer case values after conversion to their switch selector type.
     pub case_values: BTreeMap<ExprId, i64>,
+    pub entry_point_requirements: BTreeMap<String, crate::EntryPointRequirements>,
 }
 
 /// Byte-span key used to distinguish declarations in separate scopes and files.
@@ -201,7 +202,7 @@ fn check_with_metadata(
     }
     checker.validate_constant_buffers();
     if checker.diagnostics.is_empty() {
-        let checked = CheckedModule {
+        let mut checked = CheckedModule {
             module,
             expression_types: checker.expression_types,
             declaration_types: checker.declaration_types,
@@ -214,8 +215,9 @@ fn check_with_metadata(
             initializations: checker.initializations,
             default_arguments: checker.default_arguments,
             case_values: checker.case_values,
+            entry_point_requirements: BTreeMap::new(),
         };
-        crate::capability::validate(&checked)?;
+        checked.entry_point_requirements = crate::capability::validate(&checked)?;
         Ok(checked)
     } else {
         Err(checker.diagnostics)

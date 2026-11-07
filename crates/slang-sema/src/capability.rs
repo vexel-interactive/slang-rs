@@ -8,21 +8,31 @@ use std::collections::{BTreeMap, BTreeSet};
 
 type Functions = BTreeMap<String, Vec<(Vec<Type>, usize)>>;
 
-#[derive(Clone, Copy)]
-struct Operation {
-    name: &'static str,
-    span: Span,
+/// Original checked operation requiring an entry-point capability.
+#[derive(Clone, Copy, Debug)]
+pub struct RequiredOperation {
+    pub name: &'static str,
+    pub span: Span,
+}
+
+type Operation = RequiredOperation;
+
+/// Capabilities that require target-specific profile selection after checking.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct EntryPointRequirements {
+    pub derivatives: Option<RequiredOperation>,
 }
 
 #[derive(Clone, Copy, Default)]
 struct Requirements {
     fragment: Option<Operation>,
     compute: Option<Operation>,
+    derivatives: Option<Operation>,
 }
 
 impl Requirements {
     fn any(self) -> bool {
-        self.fragment.is_some() || self.compute.is_some()
+        self.fragment.is_some() || self.compute.is_some() || self.derivatives.is_some()
     }
 
     /// Requirements only grow, including when the call graph contains cycles.
@@ -36,14 +46,20 @@ impl Requirements {
             self.compute = other.compute;
             changed = true;
         }
+        if self.derivatives.is_none() && other.derivatives.is_some() {
+            self.derivatives = other.derivatives;
+            changed = true;
+        }
         changed
     }
 }
 
 /// Propagate stage requirements through selected overloads without recursion.
-pub(crate) fn validate(checked: &CheckedModule) -> Result<(), Vec<Diagnostic>> {
+pub(crate) fn validate(
+    checked: &CheckedModule,
+) -> Result<BTreeMap<String, EntryPointRequirements>, Vec<Diagnostic>> {
     if checked.entry_points.is_empty() {
-        return Ok(());
+        return Ok(BTreeMap::new());
     }
     let functions: Vec<_> = checked
         .module
@@ -119,6 +135,7 @@ pub(crate) fn validate(checked: &CheckedModule) -> Result<(), Vec<Diagnostic>> {
         }
     }
     let mut diagnostics = vec![];
+    let mut entry_requirements = BTreeMap::new();
     for entry in &checked.entry_points {
         let Some(index) = functions.iter().position(|f| f.name == entry.name) else {
             continue;
@@ -142,12 +159,27 @@ pub(crate) fn validate(checked: &CheckedModule) -> Result<(), Vec<Diagnostic>> {
                 ),
             ));
         }
+        let derivatives = requirements[index].derivatives;
+        if let Some(operation) = derivatives {
+            match entry.stage {
+                ShaderStage::Vertex => diagnostics.push(Diagnostic::error("T023", operation.span,
+                    format!("vertex entry point '{}' reaches '{}', which requires fragment or compute stage", entry.name, operation.name))),
+                ShaderStage::Compute if !derivative_group(entry.thread_group_size.unwrap()) => diagnostics.push(Diagnostic::error("T024", operation.span,
+                    format!("compute entry point '{}' uses derivatives with an invalid thread-group size; use a 1D group with x divisible by four or x and y both even", entry.name))),
+                _ => {},
+            }
+        }
+        entry_requirements.insert(entry.name.clone(), EntryPointRequirements { derivatives });
     }
     if diagnostics.is_empty() {
-        Ok(())
+        Ok(entry_requirements)
     } else {
         Err(diagnostics)
     }
+}
+
+fn derivative_group([x, y, z]: [u32; 3]) -> bool {
+    (y == 1 && z == 1 && x.is_multiple_of(4)) || (x.is_multiple_of(2) && y.is_multiple_of(2))
 }
 
 fn stage_name(stage: ShaderStage) -> &'static str {
@@ -336,7 +368,8 @@ impl<'a> Scanner<'a> {
                             &mut self.requirements.compute,
                             "AllMemoryBarrierWithGroupSync",
                         )),
-                        _ => None,
+                        name => crate::intrinsic::derivative_name(name)
+                            .map(|name| (&mut self.requirements.derivatives, name)),
                     };
                     if let Some((requirement, name)) = operation {
                         requirement.get_or_insert(Operation {

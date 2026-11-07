@@ -13,6 +13,11 @@ def result(accepted, stderr=""):
 
 
 class ConformanceComparison(unittest.TestCase):
+    def test_profile_upgrade_warnings_are_required_when_declared(self):
+        case = {"accept": True, "rust_warning": "C003"}
+        self.assertTrue(compare_results(case, result(True, "warning[C003]"), result(True), []))
+        self.assertFalse(compare_results(case, result(True), result(True), []))
+
     def test_ordinary_cases_require_both_compilers_to_match(self):
         for expected in [False, True]:
             for rust in [False, True]:

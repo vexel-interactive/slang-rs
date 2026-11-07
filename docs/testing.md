@@ -73,6 +73,13 @@ overloads, omitted defaults, and imported source locations. Cyclic graphs merge
 independent fragment and compute requirements rather than retaining only the
 first one discovered.
 
+Derivative tests check 351 intrinsic/type signatures across all supported floating
+scalar, vector, and matrix shapes, plus integer input conversions, helper caching,
+single argument evaluation, imports, defaults, and compute quad dimensions.
+Profile tests check automatic upgrades, reflected DXC profiles, mismatched stages,
+selected entries, and check-only compilation. CLI tests verify warning and
+reflection output together.
+
 Sampling tests cover bias and explicit gradients for all four texture dimensions,
 element return types, contextual gradient lists, and invalid receivers and shapes.
 Differential fixtures validate fragment bias and compute gradient sampling with DXC.
@@ -127,6 +134,10 @@ both the acceptance difference and DXC's rejection; it is not counted as matchin
 compiler acceptance. The corpus also records graphics group-barrier and shared
 atomic uses accepted by Slang 2026.21 whose HLSL DXC rejects. Each difference
 requires the expected native diagnostic and the oracle artifact's rejection.
+Compute derivatives with invalid quad dimensions are recorded in the same way.
+The optional case `compile_profile` supplies a compiler profile independently of
+the DXC `profile`, allowing an automatic upgrade to be checked. `rust_warning`
+requires the corresponding warning code in the native compiler's output.
 Reports distinguish valid artifacts from rejected artifacts.
 Test the comparison rules with `python -m unittest discover -s tools/tests`.
 

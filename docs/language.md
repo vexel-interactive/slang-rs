@@ -405,6 +405,9 @@ The current built-in signatures cover `abs`, `sin`, `cos`, `tan`, `sqrt`, `rsqrt
 `GroupMemoryBarrier`, `DeviceMemoryBarrier`, `AllMemoryBarrier`, and their
 `WithGroupSync` variants.
 
+Screen derivative signatures include `ddx`, `ddy`, `fwidth`, and their `_coarse`
+and `_fine` variants. See the derivative and profile rules below.
+
 These are limited signature rules rather than a port of the complete core
 module. They do not provide full intrinsic overload compatibility or capability
 validation.
@@ -481,6 +484,37 @@ emission. It also requires compute for shared reads that an optimizing backend
 could eliminate. Mesh, amplification, and node stages are not implemented. See
 [memory-barriers.slang](../examples/memory-barriers.slang).
 
+## Derivatives and shader profiles
+
+`ddx` and `ddy` compute partial differences across screen-space quads. `fwidth`
+returns the sum of the magnitudes of those differences. Coarse and fine variants
+select the corresponding quad derivative instructions. Each takes one operand
+and preserves its floating scalar, vector, or matrix shape. Integer operands
+convert to the corresponding float shape. Boolean and aggregate operands are
+rejected. HLSL double derivatives use float instructions; native lowering makes
+the input narrowing and conversion back to the checked double shape explicit.
+
+The functions are available in fragment and compute shaders. Vertex entries
+cannot reach them. Compute entries need shader model 6.6 and a valid quad shape:
+either `numthreads(x, 1, 1)` with x divisible by four, or x and y both even,
+including groups with multiple z slices. Invalid shapes produce `T024`.
+Requirements propagate through selected calls, globals, and omitted defaults.
+Divergent derivative control flow remains outside the current uniformity analysis.
+
+`-profile cs_6_0`, `vs_6_0`, or `ps_6_0` supplies a profile for the selected entry.
+Without `-entry`, it applies to every entry, so their stages must match. The CLI
+accepts shader model 6.0 through 6.9 profiles for compute, vertex, and fragment.
+Absent a supplied profile, the compiler starts at 6.0 and chooses 6.6 for compute
+derivatives. An explicitly lower compute profile is upgraded with warning `C003`.
+Reflection schema version 5 reports the resulting `target_profile`; use that
+profile when compiling the HLSL. A profile selection does not yet validate the
+complete target capability set. Unsupported stages and older models are rejected.
+
+HLSL lacks coarse/fine `fwidth` builtins, so generated helpers evaluate their
+input once and sum the corresponding absolute derivatives. See
+[screen-derivatives.slang](../examples/screen-derivatives.slang) and
+[compute-derivatives.slang](../examples/compute-derivatives.slang).
+
 ## Compute entry points
 
 ```slang
@@ -533,7 +567,10 @@ and type names, and read/read_write access for constant, structured, byte-addres
 buffers, and textures. It does not
 provide binding indices, register spaces, byte offsets, strides, or layout.
 Applications must not treat this JSON as the upstream compiler's ABI reflection.
-Schema version 4 adds a `modules` graph and the optional owning `module` name
+Schema version 5 adds `target_profile` for HLSL entries, including any required
+shader model upgrade. Pass `target_name` and `target_profile` to DXC's `-E` and
+`-T` options respectively.
+Schema version 4 added a `modules` graph and the optional owning `module` name
 for imported globals. Each module lists its primary source and explicit member
 source IDs, imports, and legacy visibility mode. Imported global names retain
 their source spelling; `target_name` identifies their generated HLSL name.

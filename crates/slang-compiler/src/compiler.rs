@@ -12,6 +12,7 @@ use std::{
 pub struct CompileOptions {
     pub target: Target,
     pub entry_point: Option<String>,
+    pub profile: Option<crate::ShaderProfile>,
     pub defines: BTreeMap<String, String>,
     pub include_paths: Vec<PathBuf>,
     pub check_only: bool,
@@ -67,7 +68,7 @@ pub fn compile_source(
         diagnostics,
         sources: sources.clone(),
     })?;
-    let warnings = program.diagnostics.clone();
+    let mut warnings = program.diagnostics.clone();
     let checked = slang_sema::check_program(program).map_err(|diagnostics| CompileError {
         diagnostics,
         sources: sources.clone(),
@@ -84,6 +85,12 @@ pub fn compile_source(
             sources,
         });
     }
+    let profiles =
+        crate::profile::resolve(&checked, options).map_err(|diagnostics| CompileError {
+            diagnostics,
+            sources: sources.clone(),
+        })?;
+    warnings.extend(profiles.diagnostics);
     let ir = slang_ir::lower(&checked).map_err(|diagnostic| CompileError {
         diagnostics: vec![diagnostic],
         sources: sources.clone(),
@@ -98,7 +105,7 @@ pub fn compile_source(
             })?,
         )
     };
-    let reflection = Reflection::from_module(&ir, options.target, &checked);
+    let reflection = Reflection::from_module(&ir, options.target, &checked, &profiles.entries);
     Ok(Compilation {
         artifact,
         ir,
