@@ -18,6 +18,8 @@ def compare_results(case, rust, oracle, validators):
         passed = passed and case["rust_code"] in rust["stderr"]
     if "rust_warning" in case:
         passed = passed and case["rust_warning"] in rust["stderr"]
+    for compiler, result in [("rust", rust), ("oracle", oracle)]:
+        passed = passed and all(text in result["stderr"] for text in case.get(f"{compiler}_stderr_contains", []))
     return passed and all(v["accepted"] == v["expected_accept"] for v in validators)
 
 

@@ -65,17 +65,15 @@ fn expand_at(
         let initiating = item.initiating.unwrap_or(item.token.span);
         if let Some(builtin) = definition.builtin {
             if let Some(file) = sources.get(initiating.source) {
+                let location = file.presumed_location(initiating.start);
                 output.push(Token {
                     kind: match builtin {
                         Builtin::Line => TokenKind::Integer,
                         Builtin::File => TokenKind::String,
                     },
                     text: match builtin {
-                        Builtin::Line => file.location(initiating.start).0.to_string(),
-                        Builtin::File => format!(
-                            "\"{}\"",
-                            file.name.replace('\\', "\\\\").replace('"', "\\\"")
-                        ),
+                        Builtin::Line => location.line.to_string(),
+                        Builtin::File => crate::line::quote_name(location.name),
                     },
                     span: item.token.span,
                 });

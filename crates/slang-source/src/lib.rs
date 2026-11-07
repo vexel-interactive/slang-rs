@@ -4,4 +4,4 @@ mod diagnostic;
 mod source;
 
 pub use diagnostic::{Diagnostic, Severity};
-pub use source::{SourceFile, SourceId, SourceMap, Span};
+pub use source::{LineDirective, SourceFile, SourceId, SourceLocation, SourceMap, Span};

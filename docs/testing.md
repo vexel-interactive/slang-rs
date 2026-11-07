@@ -193,6 +193,10 @@ The optional case `compile_profile` supplies a compiler profile independently of
 the DXC `profile`, allowing an automatic upgrade to be checked. `rust_warning`
 requires the corresponding warning code in the native compiler's output.
 Reports distinguish valid artifacts from rejected artifacts.
+Optional `rust_stderr_contains` and `oracle_stderr_contains` lists require every
+declared diagnostic fragment from the corresponding compiler. Source-line cases
+use them to compare displayed filenames and line numbers, including negative
+locations and errors on a continued directive.
 Test the comparison rules with `python -m unittest discover -s tools/tests`.
 
 The oracle is published release `v2026.21`; it may differ from the pinned master
@@ -230,6 +234,14 @@ groupshared variables and arrays, RW structure fields, and RW textures. Negative
 fixtures reject ordinary locals, shadowing, read-only locations, constant outputs,
 and incorrect comparison arity. The corpus validates shader artifacts and does
 not measure concurrency or memory-order behavior on a GPU.
+
+Source-line tests cover physical and displayed coordinates, UTF-8 columns,
+LF/CRLF/bare CR, EOF, macro arguments, filename retention, resets, escapes,
+signed conversion, and repeated preprocessing. Compiler regressions check
+include/import/member resolution, constant and thread-group uses, and locations
+from preprocessing, lexing, syntax, semantics, and profile diagnostics. Differential
+fixtures compare line conversion, initiating calls, continuations, physical file
+resolution, and upstream's rejection of negative location tokens in typed expressions.
 
 [validation.json](validation.json) records the Windows validation run for this
 checkpoint. It includes the pinned compiler version, workspace checks, and

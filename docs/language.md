@@ -60,7 +60,7 @@ continue to use ordinary member lookup. See
 
 Object and function macros support fixed and variadic parameters, nested calls,
 and aliases. Directives include `#define`, `#undef`, `#include`, `#pragma once`,
-`#if`, `#ifdef`, `#ifndef`, `#elif`, `#else`, `#endif`, `#error`, and `#warning`.
+`#if`, `#ifdef`, `#ifndef`, `#elif`, `#else`, `#endif`, `#line`, `#error`, and `#warning`.
 Conditions support `defined`, integer operators, and short-circuit `&&`/`||`.
 
 Include guards, line continuations, `#` stringification, `##` token pasting,
@@ -70,18 +70,55 @@ are not expanded.
 
 Quoted includes search the current file's directory before `-I` paths. Angle
 includes search `-I` paths. `MemoryIncludes` resolves exact names from a map.
-`__LINE__` and `__FILE__` are predefined location macros. They use the physical
+`__LINE__` and `__FILE__` are predefined location macros. They use the displayed
 line and file of the initiating macro call, including nested calls, multiline
 arguments, token-pasted names, and definitions originating in an included file.
-File names produce quoted strings with escaped backslashes and quotation marks.
+File names produce quoted strings with escaped backslashes, quotation marks,
+and ASCII control characters.
 Both names participate in `defined`; `#undef` removes them. A user definition
 replaces a builtin with warning `P010`, and removing that definition does not
 restore the builtin. `compile_source` and `compile_file` also supply `__SLANG__`
 as one unless the caller supplies a definition. Imported modules start with
 fresh location macros and the same caller definitions.
 
-`__VA_OPT__`, GNU comma elision, other predefined macros, `#line`, full redefinition
+`__VA_OPT__`, GNU comma elision, other predefined macros, full redefinition
 rules, and macro expansion stacks remain to be ported.
+
+### Source line directives
+
+`#line N "name"` assigns a displayed line and optional filename to subsequent
+source locations. Arguments expand macros. Omitting the filename retains the
+current displayed name; an integer filename becomes its token spelling. Both
+`#line default` and an empty `#line` restore the physical name and line count.
+Inactive conditional branches do not apply directives.
+
+```slang
+#define FIRST_LINE 40
+#line FIRST_LINE "generated.slang"
+static const int line = __LINE__; // 40
+#line 10
+static const int next = __LINE__; // 10, still generated.slang
+#line default
+```
+
+Mappings affect diagnostics, `__LINE__`, and `__FILE__`. Diagnostic excerpts still
+come from the physical source text. Includes, imports, member files, source IDs,
+and byte spans retain their physical identity and resolution paths. A continued
+directive counts physical lines from its keyword: `#line 50` followed by a
+backslash-newline and a filename makes the following source line 51.
+
+Numeric conversion follows upstream's directive rules rather than ordinary
+integer-expression parsing: decimal and lowercase `0x` are recognized, suffixes
+are ignored, signed 64-bit overflow saturates, and the result wraps to 32 bits.
+For example, `4294967295` becomes -1; uppercase `0X10` and `0b100` become zero.
+Zero and negative displayed lines are valid. Negative `__LINE__` values work in
+preprocessor conditions, but upstream rejects them as typed integer literals;
+the native compiler also reports `T010` for that use. Literal `#line -1`, arithmetic
+expressions, and trailing flags are rejected.
+
+Quoted filenames decode C byte escapes and Unicode escapes. Decoded names must
+form UTF-8 in the native source API; arbitrary upstream byte filenames remain
+unsupported. See [line-directives.slang](../tests/conformance/positive/line-directives.slang).
 
 Limits: 64 include levels, 128 macro nesting levels, and 100000 steps per
 expansion. `#if` uses signed i64 wrapping arithmetic; complete upstream

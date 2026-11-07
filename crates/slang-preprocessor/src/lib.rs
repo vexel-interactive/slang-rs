@@ -2,6 +2,7 @@
 
 mod condition;
 mod expand;
+mod line;
 mod macros;
 mod processor;
 mod substitute;

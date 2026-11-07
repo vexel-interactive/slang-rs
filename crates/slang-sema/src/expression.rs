@@ -38,7 +38,13 @@ impl Checker {
                 }
                 let unsigned =
                     text.contains(['u', 'U']) || value.is_some_and(|v| v > i32::MAX as u64);
-                if value.is_none_or(|v| v > u32::MAX as u64) {
+                if digits.starts_with('-') {
+                    self.error(
+                        "T010",
+                        expression.span,
+                        "negative __LINE__ values cannot form integer literals",
+                    );
+                } else if value.is_none_or(|v| v > u32::MAX as u64) {
                     self.error("T010", expression.span, "integer literal exceeds 32 bits");
                 }
                 Type::Scalar(if unsigned { Scalar::Uint } else { Scalar::Int })

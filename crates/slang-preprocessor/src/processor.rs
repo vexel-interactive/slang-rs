@@ -115,6 +115,9 @@ impl Processor<'_> {
         let Some(file) = self.sources.get(id).cloned() else {
             return vec![];
         };
+        self.sources
+            .clear_line_directives(id)
+            .expect("existing source ID");
         if self.once.contains(&file.name) {
             return vec![];
         }
@@ -212,6 +215,22 @@ impl Processor<'_> {
                     }
                     _ if !active => {}
                     "define" => self.define(args),
+                    "line" => {
+                        let args = self.expand(args);
+                        match crate::line::parse(&args) {
+                            Ok((directive, consumed)) => {
+                                if let Err(message) =
+                                    self.sources.add_line_directive(id, span.start, directive)
+                                {
+                                    self.error(span, message);
+                                }
+                                if let Some(extra) = args.get(consumed) {
+                                    self.error(extra.span, "unexpected tokens after #line");
+                                }
+                            }
+                            Err(diagnostic) => self.diagnostics.push(diagnostic),
+                        }
+                    }
                     "undef" => {
                         if args.len() == 1 && args[0].kind == TokenKind::Identifier {
                             self.macros.remove(&args[0].text);

@@ -44,9 +44,11 @@ impl Diagnostic {
     pub fn render(&self, sources: &SourceMap) -> String {
         let mut result = self.to_string();
         if let Some(file) = sources.get(self.span.source) {
-            let (line, column) = file.location(self.span.start);
-            result.push_str(&format!("\n --> {}:{line}:{column}", file.name));
-            if let Some(text) = file.line(line) {
+            let physical_line = file.location(self.span.start).0;
+            let location = file.presumed_location(self.span.start);
+            let (line, column) = (location.line, location.column);
+            result.push_str(&format!("\n --> {}:{line}:{column}", location.name));
+            if let Some(text) = file.line(physical_line) {
                 result.push_str(&format!(
                     "\n {line} | {text}\n   | {}^",
                     " ".repeat(column - 1)

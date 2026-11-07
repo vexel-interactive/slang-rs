@@ -8,7 +8,7 @@ subsystem is absent. No subsystem currently claims complete upstream parity.
 | --- | --- | --- | --- |
 | Source manager and diagnostics | slang-source | Partial | UTF-8, CRLF, spans; upstream diagnostic IDs absent |
 | Lexer | slang-lexer | Partial | Lossless tokens; incomplete literal grammar |
-| Preprocessor | slang-preprocessor | Partial | Macros, #, ##, variadics, includes, conditionals, __LINE__/__FILE__; other predefined macros and #line absent |
+| Preprocessor | slang-preprocessor | Partial | Macros, #, ##, variadics, includes, conditionals, __LINE__/__FILE__, #line remapping and resets; complete predefined macros and expansion stacks absent |
 | Parser and AST | slang-syntax | Partial | Functions, globals, structs, declaration groups, expressions, casts, loops, switches, discard |
 | Name and type checking | slang-sema | Partial | Scalars, vectors, matrices, fixed arrays, aliases, scopes, overloads, writable locations |
 | Local storage and declaration scopes | slang-module, slang-sema, slang-ir | Partial | Lexical unbraced declarations, loop scopes, guarded local static initialization; definite-assignment analysis absent |

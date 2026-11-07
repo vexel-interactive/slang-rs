@@ -64,9 +64,17 @@ crate's `Cargo.toml` defines the exact dependency graph.
 
 `SourceMap` owns immutable text through `Arc<str>`. A `SourceId` identifies a file
 within one compilation. `Span` is a half-open range of **byte offsets**. Rendered
-locations use one-based lines and Unicode scalar columns. Include diagnostics
+physical locations use one-based lines and Unicode scalar columns. Include diagnostics
 retain the included file's source ID. Macro body tokens receive the invocation
 span; a complete macro origin stack remains to be implemented.
+
+Each source file stores an ordered table of line mappings at directive keyword
+offsets. `location` remains physical; `presumed_location` selects the displayed
+filename and applies a wrapping signed 32-bit line adjustment. Diagnostic rendering
+uses presumed coordinates with a physical source excerpt. Preprocessing clears
+old mappings when a source is processed again. Line directive argument parsing
+and filename decoding belong to `slang-preprocessor`; source mapping does not
+depend on tokens. Physical names continue to drive all file resolution.
 
 Location macros retain a separate initiating span through expansion queues and
 argument rescanning. This gives nested `__LINE__` and `__FILE__` the outer source

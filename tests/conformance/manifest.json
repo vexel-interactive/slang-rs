@@ -1498,6 +1498,134 @@
       "entry": "main",
       "accept": false,
       "rust_code": "T014"
+    },
+    {
+      "file": "positive/line-directives.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/line-signed.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/line-number-conversion.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/line-initiating-call.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/line-include.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "modules/line-root.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/line-resets.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "negative/line-unknown.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T011",
+      "rust_stderr_contains": [
+        "generated.slang:72:",
+        "72 |     int value = missing;"
+      ],
+      "oracle_stderr_contains": [
+        "generated.slang:72:"
+      ]
+    },
+    {
+      "file": "negative/line-trailing.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "P002",
+      "rust_stderr_contains": [
+        "generated.slang:29:"
+      ],
+      "oracle_stderr_contains": [
+        "generated.slang:29:"
+      ]
+    },
+    {
+      "file": "negative/line-continued-error.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "P004",
+      "rust_stderr_contains": [
+        "generated.slang:51:",
+        "51 | #error failure"
+      ],
+      "oracle_stderr_contains": [
+        "generated.slang:51:"
+      ]
+    },
+    {
+      "file": "negative/line-retained-file.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "P004",
+      "rust_stderr_contains": [
+        "generated.slang:10:"
+      ],
+      "oracle_stderr_contains": [
+        "generated.slang:10:"
+      ]
+    },
+    {
+      "file": "negative/line-integer-file.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "P004",
+      "rust_stderr_contains": [
+        "2:10:"
+      ],
+      "oracle_stderr_contains": [
+        "2:10:"
+      ]
+    },
+    {
+      "file": "negative/line-invalid-number.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "P002"
+    },
+    {
+      "file": "negative/line-invalid-expression.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "P002"
+    },
+    {
+      "file": "negative/line-invalid-escape.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "P002"
+    },
+    {
+      "file": "negative/line-negative-literal.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T010",
+      "rust_stderr_contains": [
+        "generated.slang:-1:"
+      ],
+      "oracle_stderr_contains": [
+        "generated.slang:-1:",
+        "invalid suffix"
+      ]
     }
   ]
 }

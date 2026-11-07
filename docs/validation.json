@@ -1,25 +1,25 @@
 {
-  "date": "2026-11-07",
+  "date": "2026-11-08",
   "platform": "windows-x86_64-msvc",
   "rust_toolchain": "1.99.1",
   "checks": {
     "rustfmt": "passed",
     "clippy_all_targets_warnings_denied": "passed",
-    "unit_tests": 21,
-    "integration_tests": 178,
+    "unit_tests": 24,
+    "integration_tests": 194,
     "doc_tests": 1,
-    "conformance_comparison_tests": 4,
+    "conformance_comparison_tests": 5,
     "rustdoc": "passed",
     "release_build": "passed",
     "english_documentation_and_links": "passed"
   },
   "differential_validation": {
     "oracle": "Slang 2026.21",
-    "cases_passed": 262,
-    "cases_total": 262,
-    "matching_acceptance_cases": 254,
+    "cases_passed": 278,
+    "cases_total": 278,
+    "matching_acceptance_cases": 270,
     "documented_oracle_differences": 8,
-    "dxc_hlsl_artifacts_validated": 272,
+    "dxc_hlsl_artifacts_validated": 286,
     "dxc_invalid_hlsl_artifacts_rejected": 8,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
@@ -32,6 +32,16 @@
   },
   "remote_ci_executed": true,
   "remote_ci": {
+    "run_id": 42398733846,
+    "head_sha": "481afa17b1e01948598bb4102dab4174c5cbdb3c",
+    "conclusion": "success",
+    "platforms": [
+      "ubuntu-latest",
+      "windows-latest",
+      "macos-latest"
+    ]
+  },
+  "previous_remote_ci": {
     "run_id": 42398412972,
     "head_sha": "193d7e4cba142c2780131060d7170c63e68de160",
     "conclusion": "success",
@@ -41,17 +51,17 @@
       "macos-latest"
     ]
   },
-  "previous_remote_ci": {
-    "run_id": 42397854941,
-    "head_sha": "87323245902d92f518155d0678ff98b9be819b17",
-    "conclusion": "success",
-    "platforms": [
-      "ubuntu-latest",
-      "windows-latest",
-      "macos-latest"
-    ]
-  },
   "earlier_remote_ci": [
+    {
+      "run_id": 42397854941,
+      "head_sha": "87323245902d92f518155d0678ff98b9be819b17",
+      "conclusion": "success",
+      "platforms": [
+        "ubuntu-latest",
+        "windows-latest",
+        "macos-latest"
+      ]
+    },
     {
       "run_id": 42396880318,
       "head_sha": "00f343f9dc6917a9411ab3150e48a9be4f4182bd",

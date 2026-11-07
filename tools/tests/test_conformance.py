@@ -13,6 +13,18 @@ def result(accepted, stderr=""):
 
 
 class ConformanceComparison(unittest.TestCase):
+    def test_declared_diagnostic_fragments_are_required_for_each_compiler(self):
+        case = {
+            "accept": False,
+            "rust_stderr_contains": ["virtual.slang:70:", "70 | return missing;"],
+            "oracle_stderr_contains": ["virtual.slang(70)", "undefined identifier"],
+        }
+        rust = result(False, "virtual.slang:70:1\n70 | return missing;")
+        oracle = result(False, "virtual.slang(70): undefined identifier")
+        self.assertTrue(compare_results(case, rust, oracle, []))
+        self.assertFalse(compare_results(case, result(False, "virtual.slang:70:1"), oracle, []))
+        self.assertFalse(compare_results(case, rust, result(False, "virtual.slang(71): undefined identifier"), []))
+
     def test_profile_upgrade_warnings_are_required_when_declared(self):
         case = {"accept": True, "rust_warning": "C003"}
         self.assertTrue(compare_results(case, result(True, "warning[C003]"), result(True), []))
