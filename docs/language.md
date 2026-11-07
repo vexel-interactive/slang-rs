@@ -236,6 +236,12 @@ buffers, and swizzles with repeated components. Overload conversions currently
 have equal cost after exact matches. Full overload ranking, definite assignment,
 general constant evaluation, uniformity analysis, and capability checking are absent.
 
+A local initializer resolves names before introducing that local. For example,
+`float value = value + 1;` inside a nested scope reads an existing outer `value`.
+Subsequent expressions use the new binding. Canonical local names preserve this
+distinction when emitting HLSL, including parameter and const shadowing. See
+[lexical-bindings.slang](../examples/lexical-bindings.slang).
+
 Syntax recursion is limited to 32 levels and expression trees to 64 levels.
 These limits also apply to debug executables on Windows, where the default
 thread stack is small. Excessive nesting produces `S001` instead of a stack

@@ -111,7 +111,14 @@ pub(crate) fn link(
                 exports[id.0].extend(&names);
             }
         }
-        let mut resolver = Resolver::new(&own[id.0], &imported, &mut next_expression);
+        let mut resolver = Resolver::new(
+            &own[id.0],
+            &imported,
+            &mut next_expression,
+            format!("{prefix}local_{}_", id.0),
+            *id,
+            &mut origins,
+        );
         for declaration in &mut nodes[id.0].syntax.declarations {
             if id.0 != 0
                 && matches!(declaration, Declaration::Function(f) if f.attributes.iter().any(|a| a.name == "shader" || a.name == "numthreads"))

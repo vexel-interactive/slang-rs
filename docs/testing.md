@@ -58,6 +58,10 @@ const values, field defaults, imported visibility, and loop scope. Differential
 examples exercise both numeric and array declarators in `for` initializers;
 duplicate names and references after the loop must fail in both compilers.
 
+Binding regressions inspect initializer references under global, parameter, and
+nested local shadowing. They also cover const evaluation, declaration groups,
+generated prefix collisions, source names in diagnostics, and global reflection.
+
 Examples cover vector addition, control flow, matrix algebra, vertex transforms,
 fragment color output, struct construction, and a multi-file module. With DXC
 installed, validate generated HLSL independently:

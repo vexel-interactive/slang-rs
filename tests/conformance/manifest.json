@@ -690,6 +690,11 @@
       "entry": "main",
       "accept": false,
       "rust_code": "T011"
+    },
+    {
+      "file": "../../examples/lexical-bindings.slang",
+      "entry": "main",
+      "accept": true
     }
   ]
 }

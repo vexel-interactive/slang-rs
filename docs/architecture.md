@@ -58,6 +58,10 @@ The parsed AST retains source type names, attributes, spans, and expression IDs.
 The module linker assigns unique declaration names and expression IDs across
 all loaded ASTs, preserving lexical scopes and source ownership. `Program`
 records the module graph and each canonical declaration's source name and owner.
+Lexical scopes map source names to their selected bindings. Locals that could
+capture an outer target name receive unique canonical names after resolving
+their initializers. Their source names remain in symbol metadata for diagnostics;
+duplicate declarations in one scope still map to the same name and are rejected.
 Semantic checking resolves types into expression and declaration tables.
 Type aliases resolve through a compilation-local cache with cycle detection.
 They disappear during lowering, leaving canonical scalar, aggregate, and resource

@@ -155,7 +155,10 @@ fn field_defaults_use_declaration_scope_but_supplied_values_use_caller_scope() {
         let ExprKind::Call { arguments, .. } = &pair.initializer.as_ref().unwrap().kind else {
             panic!()
         };
-        assert!(matches!(&arguments[0].kind, ExprKind::Name(n) if n == "value"));
+        let StmtKind::Variable(local) = &body[0].kind else {
+            panic!()
+        };
+        assert!(matches!(&arguments[0].kind, ExprKind::Name(n) if n == &local.name));
         let ExprKind::Call { name, arguments } = &arguments[1].kind else {
             panic!("an omitted field must evaluate outside the caller's bindings")
         };

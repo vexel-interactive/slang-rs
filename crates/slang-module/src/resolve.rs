@@ -1,23 +1,39 @@
 use crate::link::Names;
+use crate::{ModuleId, SymbolOrigin};
 use slang_source::{Diagnostic, Span};
 use slang_syntax::{Declaration, Expr, ExprId, ExprKind, Stmt, StmtKind, TypeRef, Variable};
-use std::collections::BTreeSet;
+use std::collections::BTreeMap;
 
 /// Rewrite module symbols while preserving parameter and block-local bindings.
 pub(crate) struct Resolver<'a> {
     own: &'a Names,
     imported: &'a Names,
-    scopes: Vec<BTreeSet<String>>,
+    scopes: Vec<BTreeMap<String, String>>,
     next_expression: &'a mut usize,
+    local_prefix: String,
+    next_local: usize,
+    module: ModuleId,
+    origins: &'a mut BTreeMap<String, SymbolOrigin>,
 }
 
 impl<'a> Resolver<'a> {
-    pub fn new(own: &'a Names, imported: &'a Names, next_expression: &'a mut usize) -> Self {
+    pub fn new(
+        own: &'a Names,
+        imported: &'a Names,
+        next_expression: &'a mut usize,
+        local_prefix: String,
+        module: ModuleId,
+        origins: &'a mut BTreeMap<String, SymbolOrigin>,
+    ) -> Self {
         Self {
             own,
             imported,
             scopes: vec![],
             next_expression,
+            local_prefix,
+            next_local: 0,
+            module,
+            origins,
         }
     }
 
@@ -47,6 +63,50 @@ impl<'a> Resolver<'a> {
         Ok(())
     }
 
+    /// A local initializer sees the previous binding before its new name is installed.
+    fn local(&mut self, variable: &mut Variable) -> Result<(), Diagnostic> {
+        self.variable(variable)?;
+        self.bind_local(variable);
+        Ok(())
+    }
+
+    fn bind_local(&mut self, variable: &mut Variable) {
+        let source = variable.name.clone();
+        if let Some(target) = self.scopes.last().unwrap().get(&source) {
+            // Keep duplicate declarations mapped alike so semantic checking rejects them.
+            variable.name = target.clone();
+            return;
+        }
+        let outer = self
+            .scopes
+            .iter()
+            .rev()
+            .find_map(|scope| scope.get(&source));
+        let captures = outer.is_some_and(|target| target == &source)
+            || [&self.own.values, &self.imported.values]
+                .iter()
+                .any(|names| {
+                    names
+                        .get(&source)
+                        .is_some_and(|targets| targets.contains(&source))
+                });
+        if captures {
+            variable.name = format!("{}{}", self.local_prefix, self.next_local);
+            self.next_local += 1;
+            self.origins.insert(
+                variable.name.clone(),
+                SymbolOrigin {
+                    module: self.module,
+                    name: source.clone(),
+                },
+            );
+        }
+        self.scopes
+            .last_mut()
+            .unwrap()
+            .insert(source, variable.name.clone());
+    }
+
     pub fn declaration(&mut self, declaration: &mut Declaration) -> Result<(), Diagnostic> {
         match declaration {
             Declaration::TypeAlias(alias) => {
@@ -66,8 +126,10 @@ impl<'a> Resolver<'a> {
             Declaration::Function(function) => {
                 function.name = self.symbol(&function.name, false, function.span)?;
                 self.ty(&mut function.return_type)?;
-                self.scopes
-                    .push(function.parameters.iter().map(|p| p.name.clone()).collect());
+                self.scopes.push(BTreeMap::new());
+                for parameter in &mut function.parameters {
+                    self.bind_local(parameter);
+                }
                 for parameter in &mut function.parameters {
                     self.variable(parameter)?;
                 }
@@ -86,7 +148,7 @@ impl<'a> Resolver<'a> {
     }
 
     fn scoped_statement(&mut self, statement: &mut Stmt) -> Result<(), Diagnostic> {
-        self.scopes.push(BTreeSet::new());
+        self.scopes.push(BTreeMap::new());
         self.statement(statement)?;
         self.scopes.pop();
         Ok(())
@@ -95,26 +157,16 @@ impl<'a> Resolver<'a> {
     fn statement(&mut self, statement: &mut Stmt) -> Result<(), Diagnostic> {
         match &mut statement.kind {
             StmtKind::Block(statements) => {
-                self.scopes.push(BTreeSet::new());
+                self.scopes.push(BTreeMap::new());
                 for statement in statements {
                     self.statement(statement)?;
                 }
                 self.scopes.pop();
             }
-            StmtKind::Variable(variable) => {
-                self.variable(variable)?;
-                self.scopes
-                    .last_mut()
-                    .unwrap()
-                    .insert(variable.name.clone());
-            }
+            StmtKind::Variable(variable) => self.local(variable)?,
             StmtKind::Variables(variables) => {
                 for variable in variables {
-                    self.variable(variable)?;
-                    self.scopes
-                        .last_mut()
-                        .unwrap()
-                        .insert(variable.name.clone());
+                    self.local(variable)?;
                 }
             }
             StmtKind::Expression(value) => self.expression(value)?,
@@ -144,7 +196,7 @@ impl<'a> Resolver<'a> {
                 increment,
                 body,
             } => {
-                self.scopes.push(BTreeSet::new());
+                self.scopes.push(BTreeMap::new());
                 self.statement(initializer)?;
                 if let Some(condition) = condition {
                     self.expression(condition)?;
@@ -157,7 +209,7 @@ impl<'a> Resolver<'a> {
             }
             StmtKind::Switch { selector, cases } => {
                 self.expression(selector)?;
-                self.scopes.push(BTreeSet::new());
+                self.scopes.push(BTreeMap::new());
                 for case in cases {
                     if let Some(value) = &mut case.value {
                         self.expression(value)?;
@@ -183,7 +235,9 @@ impl<'a> Resolver<'a> {
                 }
             }
             ExprKind::Name(name) => {
-                if !self.scopes.iter().rev().any(|scope| scope.contains(name)) {
+                if let Some(target) = self.scopes.iter().rev().find_map(|scope| scope.get(name)) {
+                    *name = target.clone();
+                } else {
                     if let Some(target) = self.own.lookup(name, false, expression.span)? {
                         *name = target;
                     } else if let Some(target) = self.own.lookup(name, true, expression.span)? {

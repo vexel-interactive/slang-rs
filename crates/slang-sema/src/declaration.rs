@@ -311,11 +311,7 @@ impl Checker {
                 "global const with an initializer requires static",
             );
         }
-        let source_name = if matches!(context, VariableScope::Global) {
-            self.source_name(&variable.name)
-        } else {
-            &variable.name
-        };
+        let source_name = self.source_name(&variable.name);
         if Type::builtin(source_name).is_some()
             || self
                 .source_types
@@ -403,7 +399,7 @@ impl Checker {
             self.error(
                 "T003",
                 variable.span,
-                format!("duplicate variable '{}'", variable.name),
+                format!("duplicate variable '{}'", self.source_name(&variable.name)),
             );
         }
     }
