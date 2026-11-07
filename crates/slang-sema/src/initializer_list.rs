@@ -382,7 +382,7 @@ impl Planner<'_> {
             self.charge(depth, field.span)?;
             Ok(Initialization {
                 ty: target.clone(),
-                kind: InitializationKind::Value(Box::new(value.clone())),
+                kind: InitializationKind::DeclarationDefault(Box::new(value.clone())),
             })
         } else {
             self.default(target, field.span, depth)

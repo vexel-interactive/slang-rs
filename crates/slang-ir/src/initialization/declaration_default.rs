@@ -1,8 +1,8 @@
 use super::*;
 
 impl Lowerer {
-    pub(super) fn default_argument(&mut self, expression: &mut Expr) -> bool {
-        let ExprKind::DefaultArgument(value) = &expression.kind else {
+    pub(super) fn declaration_default(&mut self, expression: &mut Expr) -> bool {
+        let ExprKind::DeclarationDefault(value) = &expression.kind else {
             return false;
         };
         let name = format!("{}default_{}", self.prefix, self.functions.len());

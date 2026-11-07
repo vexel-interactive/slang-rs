@@ -149,7 +149,11 @@ Pair d = Pair(a);   // copy; does not evaluate field defaults
 Omitted fields use their declared defaults. Without a declared default, scalar,
 vector, and matrix fields are zero; nested structs and fixed arrays recursively
 initialize their fields and elements. Defaults are checked in the struct's
-owning module. Transparent aliases use the same constructor. Public structs
+owning module and evaluated outside the caller's local bindings. Supplied
+constructor arguments use the caller's scope. Nested struct and array defaults
+retain this distinction; see
+[field-default-scope.slang](../examples/field-default-scope.slang).
+Transparent aliases use the same constructor. Public structs
 accept constructor arguments only for explicitly public fields, including when
 called from their own module. Internal fields still receive their defaults.
 

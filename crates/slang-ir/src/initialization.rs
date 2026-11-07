@@ -1,4 +1,4 @@
-mod default_argument;
+mod declaration_default;
 
 use crate::*;
 use slang_sema::{Scalar, Type};
@@ -178,7 +178,7 @@ impl Lowerer {
                     self.expression(v)?;
                 }
             }
-            ExprKind::DefaultArgument(value)
+            ExprKind::DeclarationDefault(value)
             | ExprKind::Unary { value, .. }
             | ExprKind::Cast { value }
             | ExprKind::Postfix { value, .. } => self.expression(value)?,
@@ -202,7 +202,7 @@ impl Lowerer {
             }
             _ => {}
         }
-        if self.default_argument(expression) {
+        if self.declaration_default(expression) {
             return Ok(());
         }
         if let ExprKind::Construct(values) = &expression.kind

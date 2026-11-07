@@ -231,11 +231,7 @@ impl Lowerer<'_> {
                         .map(|value| self.initialization(value, expression.span))
                         .collect::<Result<Vec<_>, _>>();
                     self.initializing.borrow_mut().pop();
-                    arguments.extend(result?.into_iter().map(|value| Expr {
-                        ty: value.ty.clone(),
-                        span: value.span,
-                        kind: ExprKind::DefaultArgument(Box::new(value)),
-                    }));
+                    arguments.extend(result?);
                 }
                 match &callee.kind {
                     ast::ExprKind::Name(name) => ExprKind::Call {
@@ -334,9 +330,10 @@ impl Lowerer<'_> {
                     .map(|v| self.initialization(v, span))
                     .collect::<Result<_, _>>()?,
             ),
-            slang_sema::InitializationKind::Value(source) => {
+            slang_sema::InitializationKind::Value(source)
+            | slang_sema::InitializationKind::DeclarationDefault(source) => {
                 let expression = self.expression(source)?;
-                return Ok(if expression.ty == value.ty {
+                let expression = if expression.ty == value.ty {
                     expression
                 } else {
                     Expr {
@@ -346,7 +343,21 @@ impl Lowerer<'_> {
                         },
                         span,
                     }
-                });
+                };
+                return Ok(
+                    if matches!(
+                        value.kind,
+                        slang_sema::InitializationKind::DeclarationDefault(_)
+                    ) {
+                        Expr {
+                            ty: expression.ty.clone(),
+                            span: expression.span,
+                            kind: ExprKind::DeclarationDefault(Box::new(expression)),
+                        }
+                    } else {
+                        expression
+                    },
+                );
             }
         };
         Ok(Expr {

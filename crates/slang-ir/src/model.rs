@@ -93,7 +93,7 @@ pub struct SwitchCase {
 #[derive(Clone, Debug, Serialize)]
 pub enum ExprKind {
     /// Evaluate a checked default in declaration scope before passing its value.
-    DefaultArgument(Box<Expr>),
+    DeclarationDefault(Box<Expr>),
     Zero,
     Construct(Vec<Expr>),
     Integer(String),

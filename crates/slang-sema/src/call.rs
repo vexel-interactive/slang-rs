@@ -169,7 +169,7 @@ impl Checker {
                         .zip(&best.parameters[arguments.len()..])
                         .map(|(value, ty)| crate::Initialization {
                             ty: ty.clone(),
-                            kind: crate::InitializationKind::Value(Box::new(
+                            kind: crate::InitializationKind::DeclarationDefault(Box::new(
                                 value.as_ref().unwrap().clone(),
                             )),
                         })

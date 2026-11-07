@@ -135,6 +135,70 @@ fn generated_constructor_names_cannot_capture_local_bindings() {
 }
 
 #[test]
+fn field_defaults_use_declaration_scope_but_supplied_values_use_caller_scope() {
+    for initializer in ["Pair(value)", "{value}"] {
+        let compiled = compile(&format!(
+            "static float value=2;float helper(){{return value;}}struct Pair{{float x;float y=helper()+value;}};float run(){{float value=9;float helper=8;Pair p={initializer};return p.x+p.y;}}"
+        ));
+        let run = compiled
+            .ir
+            .functions
+            .iter()
+            .find(|f| f.name == "run")
+            .unwrap();
+        let StmtKind::Block(body) = &run.body.as_ref().unwrap().kind else {
+            panic!()
+        };
+        let StmtKind::Variable(pair) = &body[2].kind else {
+            panic!()
+        };
+        let ExprKind::Call { arguments, .. } = &pair.initializer.as_ref().unwrap().kind else {
+            panic!()
+        };
+        assert!(matches!(&arguments[0].kind, ExprKind::Name(n) if n == "value"));
+        let ExprKind::Call { name, arguments } = &arguments[1].kind else {
+            panic!("an omitted field must evaluate outside the caller's bindings")
+        };
+        assert!(arguments.is_empty());
+        let default = compiled
+            .ir
+            .functions
+            .iter()
+            .find(|f| &f.name == name)
+            .unwrap();
+        assert!(default.parameters.is_empty());
+        let StmtKind::Block(body) = &default.body.as_ref().unwrap().kind else {
+            panic!()
+        };
+        let StmtKind::Return(Some(value)) = &body[0].kind else {
+            panic!()
+        };
+        assert!(
+            matches!(&value.kind, ExprKind::Binary { right, .. } if matches!(&right.kind, ExprKind::Name(n) if n == "value"))
+        );
+    }
+}
+
+#[test]
+fn nested_struct_and_array_field_defaults_preserve_declaration_scope() {
+    let compiled = compile(
+        "static float value=2;float helper(){return value;}struct Pair{float x=value;float y[2]={helper(),value+1};};struct Container{Pair p;};float run(){float value=9;float helper=8;Container c={};Pair a[2]=Pair[2]();return c.p.x+a[1].y[1];}",
+    );
+    let code = compiled.artifact.unwrap();
+    let run = code
+        .split("float run()\n{")
+        .nth(1)
+        .unwrap()
+        .split("\n}\n")
+        .next()
+        .unwrap();
+    assert!(!run.contains("helper()"));
+    assert!(!run.contains("(value + 1)"));
+    assert!(code.contains("return value;"));
+    assert!(code.contains("default_result"));
+}
+
+#[test]
 fn invalid_defaults_and_recursive_expansion_report_errors() {
     for (source, code) in [
         ("struct Pair{float2 value=float3(1);};", "T008"),

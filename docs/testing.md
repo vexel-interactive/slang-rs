@@ -48,6 +48,11 @@ Comma tests check precedence, argument/default separators, void left operands,
 result types, loop increments, and rejection of writable or constant uses.
 Differential cases also cover comma expressions inside function defaults.
 
+Field-default regression tests distinguish caller-supplied values from defaults
+under local variable and function shadowing. Nested structs, brace lists, and
+array defaults exercise declaration-scope evaluation. A differential example
+also validates the generated helper calls with DXC.
+
 Examples cover vector addition, control flow, matrix algebra, vertex transforms,
 fragment color output, struct construction, and a multi-file module. With DXC
 installed, validate generated HLSL independently:

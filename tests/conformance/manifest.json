@@ -663,6 +663,11 @@
       "entry": "main",
       "accept": false,
       "rust_code": "T015"
+    },
+    {
+      "file": "../../examples/field-default-scope.slang",
+      "entry": "main",
+      "accept": true
     }
   ]
 }

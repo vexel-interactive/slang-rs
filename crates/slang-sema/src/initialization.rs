@@ -12,6 +12,8 @@ pub struct Initialization {
 #[derive(Clone, Debug)]
 pub enum InitializationKind {
     Value(Box<Expr>),
+    /// Evaluate a default in its declaration scope, outside caller bindings.
+    DeclarationDefault(Box<Expr>),
     Zero,
     Aggregate(Vec<Initialization>),
 }
@@ -107,7 +109,7 @@ impl Checker {
         if let Some(value) = &field.initializer {
             Initialization {
                 ty: ty.clone(),
-                kind: InitializationKind::Value(Box::new(value.clone())),
+                kind: InitializationKind::DeclarationDefault(Box::new(value.clone())),
             }
         } else {
             self.default_initialization(ty, field.span, depth, budget)
