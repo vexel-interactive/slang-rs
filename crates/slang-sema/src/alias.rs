@@ -12,6 +12,7 @@ impl Checker {
         for declaration in &module.declarations {
             let (name, modifiers, span) = match declaration {
                 Declaration::Struct(s) => {
+                    self.struct_definitions.insert(s.name.clone(), s.clone());
                     self.structures.insert(s.name.clone(), BTreeMap::new());
                     (&s.name, &s.modifiers, s.span)
                 }

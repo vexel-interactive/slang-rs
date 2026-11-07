@@ -18,8 +18,14 @@ Byte-address tests cover access reflection, load/store widths, atomic output
 locations, and invalid method signatures. Independent DXC cases validate each
 implemented raw-buffer method.
 
+Struct construction tests cover field order, single evaluation, partial and
+empty constructors, copies, nested defaults, array fields, aliases, imported
+visibility, and generated helper names. CLI tests check excessive aggregate
+expansion and recursive field defaults on the Windows debug stack. Differential
+fixtures also validate static global initialization and empty structs with DXC.
+
 Examples cover vector addition, control flow, matrix algebra, vertex transforms,
-fragment color output, and a multi-file module. With DXC
+fragment color output, struct construction, and a multi-file module. With DXC
 installed, validate generated HLSL independently:
 
 ```text

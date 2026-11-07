@@ -426,6 +426,43 @@
       "file": "positive/byte-buffer-widths.slang",
       "accept": true,
       "entry": "main"
+    },
+    {
+      "file": "../../examples/struct-construction.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/struct-global-initializer.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/struct-empty.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/struct-order.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "modules/constructor-import.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "negative/struct-constructor-arity.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/struct-field-default.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T011"
     }
   ]
 }

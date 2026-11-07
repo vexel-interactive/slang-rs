@@ -24,6 +24,12 @@ impl Checker {
                     .then(|| Type::Struct(name.clone()))
             });
         if let Some(target) = constructor {
+            if let Type::Struct(name) = &target {
+                let result = self.struct_constructor(name, arguments, &types, callee.id, span);
+                self.expression_types
+                    .insert(callee.id, Type::Meta(Box::new(target)));
+                return result;
+            }
             let valid = match &target {
                 Type::Scalar(_) => types.len() == 1 && matches!(types[0], Type::Scalar(_)),
                 Type::Vector(scalar, width) => {
@@ -49,15 +55,6 @@ impl Checker {
                                 || matches!(types[0], Type::Matrix(_, r, c) if r == *rows && c == *columns))
                             || types.iter().all(|t| t.width().is_some())
                                 && components == Some(u16::from(*rows) * u16::from(*columns)))
-                }
-                Type::Struct(structure) => {
-                    // Struct constructor field order is not implemented; reject explicitly.
-                    self.error(
-                        "T001",
-                        span,
-                        format!("constructor for struct '{structure}' is not implemented"),
-                    );
-                    false
                 }
                 _ => false,
             };

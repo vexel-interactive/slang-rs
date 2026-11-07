@@ -223,6 +223,11 @@ fn signature(function: &Function) -> String {
 
 fn expression(expr: &Expr) -> String {
     match &expr.kind {
+        ExprKind::Zero => format!("(({})0)", type_name(&expr.ty)),
+        ExprKind::Construct(values) => format!(
+            "{{{}}}",
+            values.iter().map(expression).collect::<Vec<_>>().join(", ")
+        ),
         ExprKind::Integer(text) | ExprKind::Float(text) => text.clone(),
         ExprKind::Name(name) => identifier(name),
         ExprKind::Bool(value) => value.to_string(),

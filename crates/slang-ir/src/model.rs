@@ -92,6 +92,8 @@ pub struct SwitchCase {
 
 #[derive(Clone, Debug, Serialize)]
 pub enum ExprKind {
+    Zero,
+    Construct(Vec<Expr>),
     Integer(String),
     Float(String),
     Bool(bool),

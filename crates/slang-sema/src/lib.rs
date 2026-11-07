@@ -8,6 +8,7 @@ mod constant_buffer;
 mod declaration;
 mod entry;
 mod expression;
+mod initialization;
 mod interface;
 mod intrinsic;
 mod resource;
@@ -16,4 +17,5 @@ mod types;
 mod visibility;
 
 pub use checker::{CheckedModule, EntryPoint, ShaderStage, check, check_program, span_key};
+pub use initialization::{Initialization, InitializationKind};
 pub use types::{Scalar, TextureDimension, Type};

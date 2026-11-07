@@ -171,3 +171,43 @@ fn cli_reports_excessive_alias_and_array_nesting() {
     fs::remove_file(&input).unwrap();
     fs::remove_dir(&root).unwrap();
 }
+
+#[test]
+fn cli_reports_excessive_and_recursive_constructor_defaults() {
+    let root = std::env::temp_dir().join(format!("slang-rs-init-depth-{}", std::process::id()));
+    fs::create_dir_all(&root).unwrap();
+    let input = root.join("initialization.slang");
+    let mut nested = String::from("struct S0{float value;};");
+    for index in 1..40 {
+        nested.push_str(&format!("struct S{index}{{S{} value;}};", index - 1));
+    }
+    nested.push_str("void run(){S39 value=S39();}");
+    for (source, code) in [
+        (nested, "T020"),
+        (
+            "struct S{float values[65537];};void run(){S value=S();}".into(),
+            "T020",
+        ),
+        (
+            "struct S{float x=read(S());};float read(S s){return s.x;}void run(){S value=S();}"
+                .into(),
+            "I002",
+        ),
+    ] {
+        fs::write(&input, source).unwrap();
+        let result = Command::new(env!("CARGO_BIN_EXE_slangc-rs"))
+            .arg(&input)
+            .arg("--check")
+            .output()
+            .unwrap();
+        assert_eq!(
+            result.status.code(),
+            Some(1),
+            "{}",
+            String::from_utf8_lossy(&result.stderr)
+        );
+        assert!(String::from_utf8_lossy(&result.stderr).contains(code));
+    }
+    fs::remove_file(&input).unwrap();
+    fs::remove_dir(&root).unwrap();
+}

@@ -27,7 +27,7 @@ impl Checker {
         }
     }
 
-    fn constant_buffer_data(&self, ty: &Type, path: &mut BTreeSet<String>) -> bool {
+    pub(crate) fn constant_buffer_data(&self, ty: &Type, path: &mut BTreeSet<String>) -> bool {
         match ty {
             Type::Scalar(_) | Type::Vector(..) | Type::Matrix(..) | Type::Error => true,
             Type::Array(element, _) => self.constant_buffer_data(element, path),

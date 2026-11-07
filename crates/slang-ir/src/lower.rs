@@ -4,7 +4,10 @@ use slang_source::{Diagnostic, Span};
 use slang_syntax as ast;
 
 pub fn lower(checked: &CheckedModule) -> Result<Module, Diagnostic> {
-    let lowerer = Lowerer { checked };
+    let lowerer = Lowerer {
+        checked,
+        initializing: std::cell::RefCell::new(vec![]),
+    };
     let mut module = Module {
         structures: vec![],
         globals: vec![],
@@ -19,7 +22,11 @@ pub fn lower(checked: &CheckedModule) -> Result<Module, Diagnostic> {
                 fields: structure
                     .fields
                     .iter()
-                    .map(|f| lowerer.variable(f))
+                    .map(|f| {
+                        let mut field = f.clone();
+                        field.initializer = None;
+                        lowerer.variable(&field)
+                    })
                     .collect::<Result<_, _>>()?,
             }),
             ast::Declaration::Global(variable) => module.globals.push(lowerer.variable(variable)?),
@@ -46,11 +53,13 @@ pub fn lower(checked: &CheckedModule) -> Result<Module, Diagnostic> {
             }),
         }
     }
+    crate::initialization::lower(&mut module)?;
     Ok(module)
 }
 
 struct Lowerer<'a> {
     checked: &'a CheckedModule,
+    initializing: std::cell::RefCell<Vec<ast::ExprId>>,
 }
 
 fn error(span: Span) -> Diagnostic {
@@ -194,6 +203,21 @@ impl Lowerer<'_> {
                 right: Box::new(self.expression(right)?),
             },
             ast::ExprKind::Call { callee, arguments } => {
+                if let Some(value) = self.checked.initializations.get(&callee.id) {
+                    if self.initializing.borrow().len() >= 32
+                        || self.initializing.borrow().contains(&callee.id)
+                    {
+                        return Err(Diagnostic::error(
+                            "I002",
+                            expression.span,
+                            "recursive aggregate default initialization is not implemented",
+                        ));
+                    }
+                    self.initializing.borrow_mut().push(callee.id);
+                    let result = self.initialization(value, expression.span);
+                    self.initializing.borrow_mut().pop();
+                    return result;
+                }
                 let arguments = arguments
                     .iter()
                     .map(|a| self.expression(a))
@@ -243,6 +267,41 @@ impl Lowerer<'_> {
             ty,
             kind,
             span: expression.span,
+        })
+    }
+
+    fn initialization(
+        &self,
+        value: &slang_sema::Initialization,
+        span: Span,
+    ) -> Result<Expr, Diagnostic> {
+        let kind = match &value.kind {
+            slang_sema::InitializationKind::Zero => ExprKind::Zero,
+            slang_sema::InitializationKind::Aggregate(values) => ExprKind::Construct(
+                values
+                    .iter()
+                    .map(|v| self.initialization(v, span))
+                    .collect::<Result<_, _>>()?,
+            ),
+            slang_sema::InitializationKind::Value(source) => {
+                let expression = self.expression(source)?;
+                return Ok(if expression.ty == value.ty {
+                    expression
+                } else {
+                    Expr {
+                        ty: value.ty.clone(),
+                        kind: ExprKind::Cast {
+                            value: Box::new(expression),
+                        },
+                        span,
+                    }
+                });
+            }
+        };
+        Ok(Expr {
+            ty: value.ty.clone(),
+            kind,
+            span,
         })
     }
 }

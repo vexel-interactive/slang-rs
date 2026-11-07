@@ -66,6 +66,14 @@ the source used leading or trailing array declarators.
 Lowering checks that this information exists and attaches a type to each IR
 expression.
 
+`CheckedModule` also records normalized construction plans. The semantic
+checker preserves struct field order, resolves omitted defaults, and makes
+zero-initialized leaves explicit. Typed IR removes field initializers from
+declarations and lowers memberwise construction to generated functions with
+field and array-element writes. Helper names avoid source bindings; supplied
+values occur once in the call arguments. Copy construction lowers directly to
+the copied value. Bounded expansion detects recursive constructor defaults.
+
 Imported function overloads receive distinct target names when needed. The
 checker records the selected callable in `CheckedModule`; lowering uses that
 selection so target compilation cannot select an internal overload by mistake.

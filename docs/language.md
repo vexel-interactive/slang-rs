@@ -43,7 +43,7 @@ signed/unsigned evaluation rules are not implemented.
   vector types; omitting `T` selects `float4`.
 
 Direct `cbuffer` declarations, pointers, 64-bit integers,
-user-defined generics, and struct constructors are not implemented.
+and user-defined generics are not implemented.
 
 Modules, imports, reexports, and member files are described in
 [Modules and access control](modules.md). Globals, functions, structures, and
@@ -57,7 +57,7 @@ parameter directions and `const out/inout` are rejected. Global values without
 `static/groupshared` are read-only; RW buffer elements remain writable.
 Global const declarations with initializers require `static`.
 Complete modifier rules are not yet implemented. Comma-separated declarations,
-default arguments, and aggregate initialization are not supported.
+default arguments, and brace initializer lists are not supported.
 
 ## Type aliases and arrays
 
@@ -92,10 +92,41 @@ resolved array ranks are each limited to 32. Local/nested aliases, generic
 aliases, qualified type references, pointer declarators, and C-style casts using
 user alias names remain unported. See [the alias example](../examples/type-aliases.slang).
 
+## Struct construction and field defaults
+
+Named constructors initialize data-only structs in field declaration order:
+
+```slang
+struct Pair
+{
+    float x = 7.0;
+    int y = 3;
+};
+
+Pair a = Pair(2.0, 4);
+Pair b = Pair(2.0); // x = 2, y = 3
+Pair c = Pair();    // x = 7, y = 3
+Pair d = Pair(a);   // copy; does not evaluate field defaults
+```
+
+Omitted fields use their declared defaults. Without a declared default, scalar,
+vector, and matrix fields are zero; nested structs and fixed arrays recursively
+initialize their fields and elements. Defaults are checked in the struct's
+owning module. Transparent aliases use the same constructor. Public structs
+accept constructor arguments only for explicitly public fields, including when
+called from their own module. Internal fields still receive their defaults.
+
+Declarations without an initializer remain uninitialized and do not invoke
+field defaults. User-defined constructors, resource-valued memberwise
+construction, and brace initializer lists remain unimplemented. Default
+aggregate expansion is limited to 32 levels and 65536 elements. Recursive
+constructor defaults report a diagnostic during lowering. See
+[struct-construction.slang](../examples/struct-construction.slang).
+
 ## Expressions and statements
 
 Expressions include numeric and boolean literals, names, scalar, vector, and
-matrix constructors, unary and binary operators, assignment, compound assignment,
+matrix and struct constructors, unary and binary operators, assignment, compound assignment,
 function calls, fields, swizzles, indexing, conditionals, and increment/decrement.
 
 Statements include blocks, local declarations, expression statements, `return`,

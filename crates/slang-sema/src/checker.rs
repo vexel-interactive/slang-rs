@@ -33,6 +33,7 @@ pub struct CheckedModule {
     pub symbols: BTreeMap<String, SymbolOrigin>,
     pub function_names: BTreeMap<SpanKey, String>,
     pub call_names: BTreeMap<ExprId, String>,
+    pub initializations: BTreeMap<ExprId, crate::Initialization>,
 }
 
 /// Byte-span key used to distinguish declarations in separate scopes and files.
@@ -78,6 +79,8 @@ pub(crate) struct Checker {
     pub aliases: BTreeMap<String, TypeRef>,
     pub alias_types: BTreeMap<String, Type>,
     pub resolving_aliases: BTreeSet<String>,
+    pub struct_definitions: BTreeMap<String, Struct>,
+    pub initializations: BTreeMap<ExprId, crate::Initialization>,
 }
 
 pub fn check(mut module: Module) -> Result<CheckedModule, Vec<Diagnostic>> {
@@ -129,6 +132,8 @@ fn check_with_metadata(
         aliases: BTreeMap::new(),
         alias_types: BTreeMap::new(),
         resolving_aliases: BTreeSet::new(),
+        struct_definitions: BTreeMap::new(),
+        initializations: BTreeMap::new(),
     };
     checker.declare(&module);
     let mut entry_points = vec![];
@@ -154,10 +159,10 @@ fn check_with_metadata(
             }
             Declaration::Struct(structure) => {
                 for field in &structure.fields {
-                    if field.initializer.is_some()
-                        || field.modifiers.iter().any(|m| {
-                            !matches!(m.as_str(), "nointerpolation" | "public" | "internal")
-                        })
+                    if field
+                        .modifiers
+                        .iter()
+                        .any(|m| !matches!(m.as_str(), "nointerpolation" | "public" | "internal"))
                     {
                         checker.error(
                             "T001",
@@ -167,6 +172,9 @@ fn check_with_metadata(
                     }
                     checker.check_interpolation(&field.modifiers, field.span);
                     checker.check_visibility_modifiers(&field.modifiers, field.span);
+                    if field.initializer.is_some() {
+                        checker.initializer(field);
+                    }
                 }
             }
         }
@@ -182,6 +190,7 @@ fn check_with_metadata(
             symbols: checker.symbols,
             function_names: checker.function_names,
             call_names: checker.call_names,
+            initializations: checker.initializations,
         })
     } else {
         Err(checker.diagnostics)
