@@ -135,6 +135,12 @@ in coverage reports.
 
 ## Recorded local validation
 
+Local storage regression cases cover conditional first initialization, repeated
+calls, shadowing, aggregate defaults, grouped static declarations, loop
+initializers, and imported functions. Unbraced declaration cases cover positive
+scope behavior and conflicting or escaping bindings. Accepted differential
+fixtures are validated with DXC; these checks do not execute the shaders.
+
 [validation.json](validation.json) records the Windows validation run for this
 checkpoint. It includes the pinned compiler version, workspace checks, and
 differential corpus counts. It is a snapshot of that run, not a promise of

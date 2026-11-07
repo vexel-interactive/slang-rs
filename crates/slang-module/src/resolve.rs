@@ -147,13 +147,6 @@ impl<'a> Resolver<'a> {
         Ok(())
     }
 
-    fn scoped_statement(&mut self, statement: &mut Stmt) -> Result<(), Diagnostic> {
-        self.scopes.push(BTreeMap::new());
-        self.statement(statement)?;
-        self.scopes.pop();
-        Ok(())
-    }
-
     fn statement(&mut self, statement: &mut Stmt) -> Result<(), Diagnostic> {
         match &mut statement.kind {
             StmtKind::Block(statements) => {
@@ -177,17 +170,17 @@ impl<'a> Resolver<'a> {
                 else_branch,
             } => {
                 self.expression(condition)?;
-                self.scoped_statement(then_branch)?;
+                self.statement(then_branch)?;
                 if let Some(branch) = else_branch {
-                    self.scoped_statement(branch)?;
+                    self.statement(branch)?;
                 }
             }
             StmtKind::While { condition, body } => {
                 self.expression(condition)?;
-                self.scoped_statement(body)?;
+                self.statement(body)?;
             }
             StmtKind::DoWhile { condition, body } => {
-                self.scoped_statement(body)?;
+                self.statement(body)?;
                 self.expression(condition)?;
             }
             StmtKind::For {
@@ -204,7 +197,7 @@ impl<'a> Resolver<'a> {
                 if let Some(increment) = increment {
                     self.expression(increment)?;
                 }
-                self.scoped_statement(body)?;
+                self.statement(body)?;
                 self.scopes.pop();
             }
             StmtKind::Switch { selector, cases } => {

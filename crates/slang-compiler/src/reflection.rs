@@ -2,6 +2,7 @@ use serde::Serialize;
 use slang_codegen::Target;
 use slang_ir::Module;
 use slang_sema::{ShaderStage, Type};
+use std::collections::BTreeSet;
 
 /// Declaration reflection only. GPU binding allocation and byte layout are not yet implemented.
 #[derive(Clone, Debug, Serialize)]
@@ -39,6 +40,18 @@ impl Reflection {
         target: Target,
         checked: &slang_sema::CheckedModule,
     ) -> Self {
+        let source_globals: BTreeSet<_> = checked
+            .module
+            .declarations
+            .iter()
+            .filter_map(|declaration| {
+                if let slang_syntax::Declaration::Global(global) = declaration {
+                    Some(global.name.as_str())
+                } else {
+                    None
+                }
+            })
+            .collect();
         Self {
             schema_version: 4,
             modules: checked.modules.clone(),
@@ -55,6 +68,7 @@ impl Reflection {
             globals: module
                 .globals
                 .iter()
+                .filter(|global| source_globals.contains(global.name.as_str()))
                 .map(|global| GlobalInfo {
                     name: checked
                         .symbols

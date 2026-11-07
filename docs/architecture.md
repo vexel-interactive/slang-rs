@@ -1,5 +1,13 @@
 # Architecture
 
+Local storage normalization runs after aggregate and intrinsic lowering. It
+rewrites local static declarations to private global storage with guards at the
+original initialization sites. A lexical binding stack keeps shadowed locals and
+parameters separate. Unbraced declarations then move their storage to the source
+scope while keeping ordinary initialization inside the control body. IR statement
+sequences preserve order without introducing a scope; blocks represent scopes.
+Reflection selects source globals and excludes this generated storage.
+
 ## Compilation flow
 
 ```mermaid

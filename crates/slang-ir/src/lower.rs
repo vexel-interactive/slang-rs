@@ -60,6 +60,8 @@ pub fn lower(checked: &CheckedModule) -> Result<Module, Diagnostic> {
     }
     crate::initialization::lower(&mut module)?;
     crate::intrinsic::lower(&mut module)?;
+    crate::static_local::lower(&mut module)?;
+    crate::scope::lower(&mut module);
     Ok(module)
 }
 
@@ -158,7 +160,30 @@ impl Lowerer<'_> {
                             value: case
                                 .value
                                 .as_ref()
-                                .map(|value| self.expression(value))
+                                .map(|value| {
+                                    let constant = self
+                                        .checked
+                                        .case_values
+                                        .get(&value.id)
+                                        .ok_or_else(|| error(value.span))?;
+                                    let ty = self
+                                        .checked
+                                        .expression_types
+                                        .get(&selector.id)
+                                        .cloned()
+                                        .ok_or_else(|| error(selector.span))?;
+                                    Ok(Expr {
+                                        kind: ExprKind::Integer(
+                                            if ty == Type::Scalar(slang_sema::Scalar::Uint) {
+                                                format!("{constant}u")
+                                            } else {
+                                                constant.to_string()
+                                            },
+                                        ),
+                                        ty,
+                                        span: value.span,
+                                    })
+                                })
                                 .transpose()?,
                             statements: case
                                 .statements

@@ -95,6 +95,11 @@ impl Emitter {
 
     fn statement(&mut self, statement: &Stmt) {
         match &statement.kind {
+            StmtKind::Sequence(statements) => {
+                for statement in statements {
+                    self.statement(statement);
+                }
+            }
             StmtKind::Block(statements) => {
                 self.line("{");
                 self.indent += 1;
@@ -162,7 +167,10 @@ impl Emitter {
             } => {
                 // Independent declarations preserve mixed array suffixes. Keep
                 // their enclosing scope identical to the source for loop.
-                let group = matches!(initializer.kind, StmtKind::Variables(_));
+                let group = matches!(
+                    initializer.kind,
+                    StmtKind::Variables(_) | StmtKind::Sequence(_)
+                );
                 if group {
                     self.line("{");
                     self.indent += 1;

@@ -7,69 +7,7 @@ pub(crate) trait Visitor {
     fn expression(&mut self, expression: &mut Expr) -> Result<(), Diagnostic>;
 
     fn statement(&mut self, statement: &mut Stmt) -> Result<(), Diagnostic> {
-        match &mut statement.kind {
-            StmtKind::Block(body) => {
-                for s in body {
-                    self.statement(s)?;
-                }
-            }
-            StmtKind::Variable(v) => {
-                if let Some(e) = &mut v.initializer {
-                    self.expression(e)?;
-                }
-            }
-            StmtKind::Variables(values) => {
-                for v in values {
-                    if let Some(e) = &mut v.initializer {
-                        self.expression(e)?;
-                    }
-                }
-            }
-            StmtKind::Expression(e) | StmtKind::Return(Some(e)) => self.expression(e)?,
-            StmtKind::If {
-                condition,
-                then_branch,
-                else_branch,
-            } => {
-                self.expression(condition)?;
-                self.statement(then_branch)?;
-                if let Some(branch) = else_branch {
-                    self.statement(branch)?;
-                }
-            }
-            StmtKind::While { condition, body } | StmtKind::DoWhile { condition, body } => {
-                self.expression(condition)?;
-                self.statement(body)?;
-            }
-            StmtKind::For {
-                initializer,
-                condition,
-                increment,
-                body,
-            } => {
-                self.statement(initializer)?;
-                if let Some(e) = condition {
-                    self.expression(e)?;
-                }
-                if let Some(e) = increment {
-                    self.expression(e)?;
-                }
-                self.statement(body)?;
-            }
-            StmtKind::Switch { selector, cases } => {
-                self.expression(selector)?;
-                for case in cases {
-                    if let Some(e) = &mut case.value {
-                        self.expression(e)?;
-                    }
-                    for s in &mut case.statements {
-                        self.statement(s)?;
-                    }
-                }
-            }
-            _ => {}
-        }
-        Ok(())
+        walk_statement(self, statement)
     }
 
     fn module(&mut self, module: &mut Module) -> Result<(), Diagnostic> {
@@ -85,6 +23,79 @@ pub(crate) trait Visitor {
         }
         Ok(())
     }
+}
+
+pub(crate) fn walk_statement<V: Visitor + ?Sized>(
+    visitor: &mut V,
+    statement: &mut Stmt,
+) -> Result<(), Diagnostic> {
+    match &mut statement.kind {
+        StmtKind::Block(body) | StmtKind::Sequence(body) => {
+            for s in body {
+                visitor.statement(s)?;
+            }
+        }
+        StmtKind::Variable(v) => {
+            if let Some(e) = &mut v.initializer {
+                visitor.expression(e)?;
+            }
+        }
+        StmtKind::Variables(values) => {
+            for v in values {
+                if let Some(e) = &mut v.initializer {
+                    visitor.expression(e)?;
+                }
+            }
+        }
+        StmtKind::Expression(e) | StmtKind::Return(Some(e)) => visitor.expression(e)?,
+        StmtKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            visitor.expression(condition)?;
+            visitor.statement(then_branch)?;
+            if let Some(branch) = else_branch {
+                visitor.statement(branch)?;
+            }
+        }
+        StmtKind::While { condition, body } => {
+            visitor.expression(condition)?;
+            visitor.statement(body)?;
+        }
+        StmtKind::DoWhile { body, condition } => {
+            visitor.statement(body)?;
+            visitor.expression(condition)?;
+        }
+        StmtKind::For {
+            initializer,
+            condition,
+            increment,
+            body,
+        } => {
+            visitor.statement(initializer)?;
+            if let Some(e) = condition {
+                visitor.expression(e)?;
+            }
+            if let Some(e) = increment {
+                visitor.expression(e)?;
+            }
+            visitor.statement(body)?;
+        }
+        StmtKind::Switch { selector, cases } => {
+            visitor.expression(selector)?;
+            for case in cases {
+                if let Some(e) = &mut case.value {
+                    visitor.expression(e)?;
+                }
+                for s in &mut case.statements {
+                    visitor.statement(s)?;
+                }
+            }
+        }
+        _ => {}
+    }
+    Ok(())
 }
 
 pub(crate) fn walk_expression<V: Visitor + ?Sized>(
@@ -162,7 +173,7 @@ pub(crate) fn names(module: &Module) -> BTreeSet<String> {
                 names.insert(v.name.clone());
             }
             StmtKind::Variables(values) => names.extend(values.iter().map(|v| v.name.clone())),
-            StmtKind::Block(body) => work.extend(body),
+            StmtKind::Block(body) | StmtKind::Sequence(body) => work.extend(body),
             StmtKind::If {
                 then_branch,
                 else_branch,

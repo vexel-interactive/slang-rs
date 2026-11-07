@@ -11,6 +11,7 @@ subsystem is absent. No subsystem currently claims complete upstream parity.
 | Preprocessor | slang-preprocessor | Partial | Macros, #, ##, variadics, includes, conditionals; no predefined macros or #line |
 | Parser and AST | slang-syntax | Partial | Functions, globals, structs, declaration groups, expressions, casts, loops, switches, discard |
 | Name and type checking | slang-sema | Partial | Scalars, vectors, matrices, fixed arrays, aliases, scopes, overloads, writable locations |
+| Local storage and declaration scopes | slang-module, slang-sema, slang-ir | Partial | Lexical unbraced declarations, loop scopes, guarded local static initialization; definite-assignment analysis absent |
 | Function default arguments | slang-sema, slang-ir | Partial | Trailing input defaults, first-declaration prototype rules, declaration-scope evaluation; parameter-dependent defaults absent |
 | Type aliases | slang-syntax, slang-sema | Partial | Transparent global typedef/typealias, forwards, cycles, imports; local/nested and generic aliases absent |
 | Aggregate initialization | slang-syntax, slang-sema, slang-ir | Partial | Struct and fixed-array constructors, copies, defaults, contextual brace lists, nested/flat arrays, numeric padding/splats; user constructors and full generic inference absent |

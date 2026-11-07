@@ -111,13 +111,6 @@ impl Checker {
         self.scopes.pop();
     }
 
-    fn scoped_statement(&mut self, statement: &Stmt) -> Flow {
-        self.scopes.push(BTreeMap::new());
-        let returns = self.statement(statement);
-        self.scopes.pop();
-        returns
-    }
-
     pub(crate) fn statement(&mut self, statement: &Stmt) -> Flow {
         match &statement.kind {
             StmtKind::Block(statements) => {
@@ -162,16 +155,16 @@ impl Checker {
                 else_branch,
             } => {
                 self.condition(condition);
-                let a = self.scoped_statement(then_branch);
+                let a = self.statement(then_branch);
                 let b = else_branch
                     .as_ref()
-                    .map_or(Flow::FALLTHROUGH, |b| self.scoped_statement(b));
+                    .map_or(Flow::FALLTHROUGH, |b| self.statement(b));
                 a.union(b)
             }
             StmtKind::While { condition, body } => {
                 self.condition(condition);
                 self.loops += 1;
-                let flow = self.scoped_statement(body);
+                let flow = self.statement(body);
                 self.loops -= 1;
                 flow.loop_exit(true)
             }
@@ -199,14 +192,14 @@ impl Checker {
                     self.expression(increment);
                 }
                 self.loops += 1;
-                let flow = self.scoped_statement(body);
+                let flow = self.statement(body);
                 self.loops -= 1;
                 self.scopes.pop();
                 flow.loop_exit(true)
             }
             StmtKind::DoWhile { body, condition } => {
                 self.loops += 1;
-                let flow = self.scoped_statement(body);
+                let flow = self.statement(body);
                 self.loops -= 1;
                 self.condition(condition);
                 flow.loop_exit(false)
@@ -241,8 +234,10 @@ impl Checker {
                                 "case label requires an integer constant",
                             );
                         }
-                        if let Some(value) = self.integer_constant(value) {
-                            if !labels.insert(crate::constant::normalize(value, &ty)) {
+                        if let Some(constant) = self.integer_constant(value) {
+                            let constant = crate::constant::normalize(constant, &ty);
+                            self.case_values.insert(value.id, constant);
+                            if !labels.insert(constant) {
                                 self.error("T017", case.span, "duplicate case value");
                             }
                         } else {

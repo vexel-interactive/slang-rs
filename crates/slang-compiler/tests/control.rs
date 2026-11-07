@@ -10,7 +10,7 @@ fn switch_fallthrough_do_while_and_casts_lower_together() {
     )
     .unwrap();
     let code = compiled.artifact.unwrap();
-    assert!(code.contains("case special:"));
+    assert!(code.contains("case 4u:"));
     assert!(code.contains("while ((i < 4u));"));
     assert!(code.contains("((int)(values).x)"));
 }

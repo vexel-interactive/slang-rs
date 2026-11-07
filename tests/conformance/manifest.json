@@ -795,6 +795,61 @@
       "entry": "main",
       "accept": false,
       "rust_code": "T002"
+    },
+    {
+      "file": "../../examples/local-static-storage.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "../../examples/unbraced-declarations.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/static-aggregates.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/unbraced-constants.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "negative/unbraced-conflict.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T003"
+    },
+    {
+      "file": "negative/unbraced-else-conflict.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T003"
+    },
+    {
+      "file": "negative/unbraced-loop-conflict.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T003"
+    },
+    {
+      "file": "negative/unbraced-block-scope.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T011"
+    },
+    {
+      "file": "negative/unbraced-const-write.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T015"
+    },
+    {
+      "file": "positive/static-loop-initializer.slang",
+      "entry": "main",
+      "accept": true
     }
   ]
 }

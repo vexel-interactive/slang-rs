@@ -56,6 +56,15 @@ Structure fields support semantics and `nointerpolation`. Conflicting
 parameter directions and `const out/inout` are rejected. Global values without
 `static/groupshared` are read-only; RW buffer elements remain writable.
 Global const declarations with initializers require `static`.
+
+Local `static` variables have private storage for the shader invocation. Storage
+starts at zero; an explicit initializer runs once, when execution first reaches
+the declaration. Later calls reuse the value. Initialization can depend on
+parameters and call other functions. Groups, arrays, structures, imported
+functions, and `for` initializers follow the same rule. This storage is separate
+for each declaration and is absent from declaration reflection. It does not
+persist across shader dispatches. See
+[local-static-storage.slang](../examples/local-static-storage.slang).
 Complete modifier rules are not yet implemented.
 
 Comma-separated variable declarations share their leading type and modifiers.
@@ -243,6 +252,17 @@ Subsequent expressions use the new binding. Canonical local names preserve this
 distinction when emitting HLSL, including parameter and const shadowing. See
 [lexical-bindings.slang](../examples/lexical-bindings.slang).
 
+Unbraced declarations inside `if`, `else`, `while`, and `do` belong to their
+surrounding lexical scope. An `else` branch and later statements can use a
+binding declared by the preceding branch. Explicit braces create a scope, and
+`for` keeps its initializer and unbraced body declarations within its own scope.
+Duplicate declarations in a scope are rejected. HLSL lowering separates storage
+from conditional or repeated initialization to preserve these rules when adding
+control-body braces. Literal const initializers retain their constant value.
+Definite-assignment warnings remain unimplemented, so programs must initialize
+values on every execution path before reading them. See
+[unbraced-declarations.slang](../examples/unbraced-declarations.slang).
+
 Syntax recursion is limited to 32 levels and expression trees to 64 levels.
 These limits also apply to debug executables on Windows, where the default
 thread stack is small. Excessive nesting produces `S001` instead of a stack
@@ -257,6 +277,8 @@ and unsigned expression types. Duplicate values after selector conversion,
 duplicate defaults, and nonconstant labels are rejected. Function calls in
 constant expressions and the complete upstream constant evaluator remain absent.
 Global const expressions are currently processed in declaration order.
+Checked case labels are emitted as integer literals after selector conversion,
+including labels derived from local static const bindings.
 
 Consecutive labels and fallthrough are preserved. `break` exits the nearest
 loop or switch; `continue` requires a surrounding loop, including when nested

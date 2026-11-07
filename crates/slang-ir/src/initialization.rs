@@ -47,7 +47,7 @@ struct Lowerer {
 impl Lowerer {
     fn statement(&mut self, statement: &mut Stmt) -> Result<(), Diagnostic> {
         match &mut statement.kind {
-            StmtKind::Block(body) => {
+            StmtKind::Block(body) | StmtKind::Sequence(body) => {
                 for s in body {
                     self.statement(s)?;
                 }
