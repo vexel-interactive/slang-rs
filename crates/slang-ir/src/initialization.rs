@@ -1,3 +1,5 @@
+mod default_argument;
+
 use crate::*;
 use slang_sema::{Scalar, Type};
 use slang_source::Diagnostic;
@@ -176,7 +178,8 @@ impl Lowerer {
                     self.expression(v)?;
                 }
             }
-            ExprKind::Unary { value, .. }
+            ExprKind::DefaultArgument(value)
+            | ExprKind::Unary { value, .. }
             | ExprKind::Cast { value }
             | ExprKind::Postfix { value, .. } => self.expression(value)?,
             ExprKind::Binary { left, right, .. } => {
@@ -198,6 +201,9 @@ impl Lowerer {
                 self.expression(else_value)?;
             }
             _ => {}
+        }
+        if self.default_argument(expression) {
+            return Ok(());
         }
         if let ExprKind::Construct(values) = &expression.kind
             && matches!(expression.ty, Type::Struct(_) | Type::Array(..))

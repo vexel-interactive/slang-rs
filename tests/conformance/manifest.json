@@ -585,6 +585,56 @@
       "entry": "main",
       "accept": false,
       "rust_code": "T002"
+    },
+    {
+      "file": "../../examples/default-arguments.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/default-prototypes.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/default-overload.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "modules/default-import.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "negative/default-nontrailing.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T022"
+    },
+    {
+      "file": "negative/default-output.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T022"
+    },
+    {
+      "file": "negative/default-overload.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/default-recursion.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "I002"
+    },
+    {
+      "file": "negative/default-late-prototype.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T014"
     }
   ]
 }

@@ -244,6 +244,11 @@ impl Checker {
                             defined: function.body.is_some(),
                             public: function.modifiers.iter().any(|m| m == "public"),
                             target_name: function.name.clone(),
+                            defaults: function
+                                .parameters
+                                .iter()
+                                .map(|p| p.initializer.clone())
+                                .collect(),
                         });
                     }
                 }
@@ -379,6 +384,7 @@ impl Checker {
             .initializer
             .as_ref()
             .filter(|_| variable.modifiers.iter().any(|m| m == "const"))
+            .filter(|_| !matches!(context, VariableScope::Parameter))
             .and_then(|expr| self.integer_constant(expr));
         self.declaration_types
             .insert(span_key(variable.span), ty.clone());

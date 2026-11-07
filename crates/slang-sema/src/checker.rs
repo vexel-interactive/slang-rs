@@ -34,6 +34,7 @@ pub struct CheckedModule {
     pub function_names: BTreeMap<SpanKey, String>,
     pub call_names: BTreeMap<ExprId, String>,
     pub initializations: BTreeMap<ExprId, crate::Initialization>,
+    pub default_arguments: BTreeMap<ExprId, Vec<crate::Initialization>>,
 }
 
 /// Byte-span key used to distinguish declarations in separate scopes and files.
@@ -57,6 +58,7 @@ pub(crate) struct Signature {
     pub defined: bool,
     pub public: bool,
     pub target_name: String,
+    pub defaults: Vec<Option<Expr>>,
 }
 
 pub(crate) struct Checker {
@@ -81,6 +83,7 @@ pub(crate) struct Checker {
     pub resolving_aliases: BTreeSet<String>,
     pub struct_definitions: BTreeMap<String, Struct>,
     pub initializations: BTreeMap<ExprId, crate::Initialization>,
+    pub default_arguments: BTreeMap<ExprId, Vec<crate::Initialization>>,
 }
 
 pub fn check(mut module: Module) -> Result<CheckedModule, Vec<Diagnostic>> {
@@ -134,6 +137,7 @@ fn check_with_metadata(
         resolving_aliases: BTreeSet::new(),
         struct_definitions: BTreeMap::new(),
         initializations: BTreeMap::new(),
+        default_arguments: BTreeMap::new(),
     };
     checker.declare(&module);
     let mut entry_points = vec![];
@@ -191,6 +195,7 @@ fn check_with_metadata(
             function_names: checker.function_names,
             call_names: checker.call_names,
             initializations: checker.initializations,
+            default_arguments: checker.default_arguments,
         })
     } else {
         Err(checker.diagnostics)

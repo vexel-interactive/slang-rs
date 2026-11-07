@@ -88,6 +88,14 @@ depths. Shared subgraphs are checked once, cycles propagate to their embedding
 types, and structures deeper than 128 levels receive a source-located diagnostic.
 The traversal does not consume the native thread stack.
 
+Function signatures retain checked default expressions across prototypes and
+definitions. Selected calls record only the omitted arguments; IR makes the
+full argument list explicit and removes defaults from target parameter
+declarations. Default expressions lower into private functions in declaration
+scope so caller-local names cannot capture global references. Their generated
+names avoid all source bindings. Defaults and aggregate construction share
+cycle, depth, and expansion budgets.
+
 Imported function overloads receive distinct target names when needed. The
 checker records the selected callable in `CheckedModule`; lowering uses that
 selection so target compilation cannot select an internal overload by mistake.

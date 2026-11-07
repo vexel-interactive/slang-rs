@@ -96,14 +96,8 @@ impl Checker {
         self.scopes.push(BTreeMap::new());
         for parameter in &function.parameters {
             self.bind(parameter, VariableScope::Parameter);
-            if parameter.initializer.is_some() {
-                self.error(
-                    "T001",
-                    parameter.span,
-                    "default parameter values are not implemented",
-                );
-            }
         }
+        self.parameter_defaults(function);
         if let Some(body) = &function.body {
             let returns = self.statement(body);
             if self.return_type != Type::Void && returns != Flow::RETURN {

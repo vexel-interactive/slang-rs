@@ -195,9 +195,22 @@ fn cli_reports_excessive_and_recursive_constructor_defaults() {
         ));
     }
     branching.push_str("void run(){S17 value={};}");
+    let mut arguments = String::from("float f0(){return 1;}");
+    for index in 1..18 {
+        arguments.push_str(&format!(
+            "float f{index}(float x=f{0}()+f{0}()){{return x;}}",
+            index - 1
+        ));
+    }
+    arguments.push_str("float run(){return f17();}");
     for (source, code) in [
         (nested, "T020"),
         (branching, "I002"),
+        (arguments, "I002"),
+        (
+            "float read(float x=read()){return x;}float run(){return read();}".into(),
+            "I002",
+        ),
         (
             "struct S{float values[65537];};void run(){S value=S();}".into(),
             "T020",

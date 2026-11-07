@@ -112,7 +112,8 @@ impl Checker {
                 .into_iter()
                 .filter(|s| {
                     (s.public || owner == self.current_module)
-                        && s.parameters.len() == types.len()
+                        && types.len() <= s.parameters.len()
+                        && s.defaults[types.len()..].iter().all(Option::is_some)
                         && types
                             .iter()
                             .zip(&s.parameters)
@@ -162,6 +163,19 @@ impl Checker {
                     },
                 );
                 self.call_names.insert(callee.id, best.target_name.clone());
+                if arguments.len() < best.parameters.len() {
+                    let defaults = best.defaults[arguments.len()..]
+                        .iter()
+                        .zip(&best.parameters[arguments.len()..])
+                        .map(|(value, ty)| crate::Initialization {
+                            ty: ty.clone(),
+                            kind: crate::InitializationKind::Value(Box::new(
+                                value.as_ref().unwrap().clone(),
+                            )),
+                        })
+                        .collect();
+                    self.default_arguments.insert(callee.id, defaults);
+                }
                 return best.result.clone();
             }
             self.error("T014", span, format!("no matching overload for '{name}'"));

@@ -41,7 +41,11 @@ pub fn lower(checked: &CheckedModule) -> Result<Module, Diagnostic> {
                 parameters: function
                     .parameters
                     .iter()
-                    .map(|p| lowerer.variable(p))
+                    .map(|p| {
+                        let mut parameter = p.clone();
+                        parameter.initializer = None;
+                        lowerer.variable(&parameter)
+                    })
                     .collect::<Result<_, _>>()?,
                 modifiers: target_modifiers(&function.modifiers),
                 semantic: function.semantic.clone(),
@@ -216,10 +220,23 @@ impl Lowerer<'_> {
                 if let Some(value) = self.checked.initializations.get(&callee.id) {
                     return self.planned_initialization(callee.id, value, expression.span);
                 }
-                let arguments = arguments
+                let mut arguments: Vec<_> = arguments
                     .iter()
                     .map(|a| self.expression(a))
                     .collect::<Result<_, _>>()?;
+                if let Some(defaults) = self.checked.default_arguments.get(&callee.id) {
+                    self.enter_default(callee.id, expression.span)?;
+                    let result = defaults
+                        .iter()
+                        .map(|value| self.initialization(value, expression.span))
+                        .collect::<Result<Vec<_>, _>>();
+                    self.initializing.borrow_mut().pop();
+                    arguments.extend(result?.into_iter().map(|value| Expr {
+                        ty: value.ty.clone(),
+                        span: value.span,
+                        kind: ExprKind::DefaultArgument(Box::new(value)),
+                    }));
+                }
                 match &callee.kind {
                     ast::ExprKind::Name(name) => ExprKind::Call {
                         name: self
@@ -274,6 +291,13 @@ impl Lowerer<'_> {
         value: &slang_sema::Initialization,
         span: Span,
     ) -> Result<Expr, Diagnostic> {
+        self.enter_default(id, span)?;
+        let result = self.initialization(value, span);
+        self.initializing.borrow_mut().pop();
+        result
+    }
+
+    fn enter_default(&self, id: ast::ExprId, span: Span) -> Result<(), Diagnostic> {
         if self.initializing.borrow().is_empty() {
             self.initialization_nodes.set(65536);
         }
@@ -281,13 +305,11 @@ impl Lowerer<'_> {
             return Err(Diagnostic::error(
                 "I002",
                 span,
-                "recursive aggregate default initialization is not implemented",
+                "recursive or excessively nested default expansion",
             ));
         }
         self.initializing.borrow_mut().push(id);
-        let result = self.initialization(value, span);
-        self.initializing.borrow_mut().pop();
-        result
+        Ok(())
     }
 
     fn initialization(

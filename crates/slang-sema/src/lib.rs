@@ -6,6 +6,7 @@ mod checker;
 mod constant;
 mod constant_buffer;
 mod declaration;
+mod default_argument;
 mod entry;
 mod expression;
 mod initialization;

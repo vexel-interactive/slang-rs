@@ -57,7 +57,34 @@ parameter directions and `const out/inout` are rejected. Global values without
 `static/groupshared` are read-only; RW buffer elements remain writable.
 Global const declarations with initializers require `static`.
 Complete modifier rules are not yet implemented. Comma-separated declarations
-and default arguments are not supported.
+are not supported.
+
+## Function default arguments
+
+Input parameters may declare trailing default arguments:
+
+```slang
+float read(float value, float scale = 2.0, float bias = 1.0)
+{
+    return value * scale + bias;
+}
+
+float result = read(3.0); // read(3.0, 2.0, 1.0)
+```
+
+Each omitted argument evaluates its default when called. Defaults are checked
+in the declaring module, and caller-local names cannot capture their global
+references. Scalar, numeric aggregate, struct, and fixed-array defaults use the
+same contextual initialization rules as variables. `out/inout` defaults and
+required parameters following a default are rejected.
+
+Calls use defaults from the first declaration of a signature. Later definitions
+cannot add or replace that declaration's defaults. Overload ranking uses supplied arguments and does not
+prefer a function because it needs fewer defaults. Calls may therefore be
+ambiguous between a one-parameter function and a two-parameter function with a
+default. Parameter references in defaults are not implemented. Recursive or
+excessively branching default expansion produces a bounded lowering diagnostic.
+See [default-arguments.slang](../examples/default-arguments.slang).
 
 ## Type aliases and arrays
 
