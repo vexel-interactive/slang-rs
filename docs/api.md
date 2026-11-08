@@ -169,6 +169,18 @@ resource ranges in `resource_bindings`, keyed by declaration byte spans, and the
 shared uniform buffer register in `global_uniform_binding`. IR lowering adds the
 constant-buffer byte layouts used by emission and declaration reflection.
 
+## Scalar SSA analysis
+
+The optional scalar SSA analysis API is available through `slang_ir::flow`.
+`build_function(&compilation.ir, index)` returns a typed `Graph` for a function;
+prototypes, missing indices, and functions above the analysis size budget return
+`None`. `Graph::verify()` checks structural and dominance invariants.
+`Graph::use_blocks()` returns value use-def links, and `propagate(&graph)` returns
+the value lattice, reachable blocks, and executable edges. Call the verifier
+before propagating a graph modified by an API consumer. Graphs and propagation
+results are serializable, but do not have a stable upstream IR format. Floating
+values, aggregate memory, resource access, and call execution remain opaque.
+
 ## API compatibility
 
 The COM-style interfaces from `slang.h`, C ABI, session/component model,

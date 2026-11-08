@@ -138,9 +138,10 @@ pub fn lower_with_native_16bit(
     crate::geometric::lower(&mut module)?;
     crate::derivative::lower(&mut module)?;
     crate::atomic::lower(&mut module)?;
-    crate::wide_arithmetic::lower(&mut module)?;
     crate::static_local::lower(&mut module)?;
     crate::scope::lower(&mut module);
+    crate::flow::lower(&mut module)?;
+    crate::wide_arithmetic::lower(&mut module)?;
     crate::uniform::lower(&mut module, checked)?;
     crate::empty_array::lower(&mut module)?;
     crate::packed_uniform::lower(&mut module)?;

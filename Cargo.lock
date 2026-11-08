@@ -117,6 +117,7 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "slang-layout",
+ "slang-lexer",
  "slang-sema",
  "slang-source",
  "slang-syntax",

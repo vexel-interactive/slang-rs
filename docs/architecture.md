@@ -55,9 +55,11 @@ source offsets, avoiding DXC's direct-matrix tail padding. Register-aligned
 padding structs address fields in the second half of four-byte components.
 Native scalar shifts clamp unsigned counts at 16 before shifting promoted
 operands, matching pinned SCCP zero/sign saturation and evaluating each input
-once. Compound shifts retain native destination syntax.
+once. Proven scalar local compound shifts fold through SSA propagation;
+indexed compound shifts retain native destination syntax and runtime DXC behavior.
 
-Arithmetic normalization runs before local and resource storage lowering.
+Arithmetic normalization runs after local storage normalization and scalar SSA
+propagation, before resource storage lowering.
 It converts wide binary operands, conditional branches and arithmetic intrinsic
 inputs to their checked types. Compound assignments convert only the right
 operand to the destination type, preserving the native compound expression so
@@ -308,10 +310,34 @@ checker records the selected callable in `CheckedModule`; lowering uses that
 selection so target compilation cannot select an internal overload by mistake.
 See [modules.md](modules.md) for file membership, access rules, and remaining limits.
 
-The current IR is **structured**: blocks, conditions, and loops remain explicit
-nodes. SSA, CFG construction, dominance, phi nodes, specialization, IR linking,
-and optimization passes have not been implemented. They belong in a subsequent
-IR layer. Backends must not depend on the AST or semantic checker.
+Target emission consumes **structured** IR: blocks, conditions, and loops remain
+explicit nodes. `slang_ir::flow` builds a separate typed scalar SSA graph after
+local storage normalization. Each lexical integer or boolean local has its own
+identity. Block arguments merge reaching values at branches and loop backedges;
+conditional and short-circuit expressions also have result parameters. Explicit
+edges preserve switch fallthrough, break, continue, returns, and discarded paths.
+
+The verifier checks value definitions, operand IDs, edge argument counts and
+types, immediate dominance, and same-block definition order. Sparse conditional
+constant propagation tracks unknown, constant, and dynamic values, revisiting
+executable blocks through use-def lists. Only executable predecessors contribute
+to parameter meets. Uninitialized storage and opaque loads/calls are dynamic;
+constant loops do not receive a guessed iteration count.
+
+Substitution preserves writes and evaluation order in structured IR. A proven
+scalar compound value becomes an assignment, retaining a side-effecting right
+operand through a comma expression. The inout operand is loaded after right
+argument evaluation. Call output locations are never replaced with literals;
+out/inout calls invalidate their scalar values. Aggregate and indexed locations,
+shared or volatile storage, floating values, and call execution remain outside
+scalar propagation. An optional size budget skips optimization for large
+functions without rejecting compilation. Temporary tree addresses associate
+analysis results with expressions only within this pass; graphs expose stable
+value/block indices, not addresses.
+
+Memory SSA, aggregate propagation, specialization, IR linking, canonicalization,
+and the full upstream pass pipeline remain unimplemented. Backends must not
+depend on the AST or semantic checker.
 
 ## Backend boundaries
 

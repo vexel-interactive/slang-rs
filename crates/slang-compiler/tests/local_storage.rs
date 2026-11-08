@@ -93,7 +93,7 @@ fn static_shadowing_groups_arrays_defaults_and_loop_initializers_keep_bindings()
         panic!()
     };
     assert!(
-        matches!(&add.kind, ExprKind::Binary { right, .. } if matches!(&right.kind, ExprKind::Name(n) if n == &local.name))
+        matches!(&add.kind, ExprKind::Binary { right, .. } if matches!(&right.kind, ExprKind::Integer(n) if n == "9"))
     );
     let code = compiled.artifact.unwrap();
     assert!(code.contains("= (value + seed));"));

@@ -1,10 +1,11 @@
-//! Typed structured IR. This is the first lowering layer, not an SSA optimizer.
+//! Typed structured IR, scalar SSA analysis, and target lowering.
 
 mod array_result;
 mod atomic;
 mod constant_buffer_value;
 mod derivative;
 mod empty_array;
+pub mod flow;
 mod geometric;
 mod initialization;
 mod integer;

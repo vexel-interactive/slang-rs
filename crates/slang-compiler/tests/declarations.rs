@@ -73,7 +73,7 @@ fn grouped_for_initializers_share_loop_scope_without_leaking_bindings() {
         "float run(){float sum=0;for(int i=0,j=i+2;i<3;i++,j++){if(j==3)continue;sum+=j;}float j=5;return sum+j;}",
     );
     let code = compiled.artifact.unwrap();
-    assert!(code.contains("int j = (i + 2);"));
+    assert!(code.contains("int j = 2;"));
     assert!(code.contains("for (; (i < 3); ((i++) , (j++)))"));
     assert!(code.contains("float j = 5;"));
 }

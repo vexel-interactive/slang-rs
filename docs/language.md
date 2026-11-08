@@ -274,7 +274,10 @@ and require shader model 6.2. `-enable-16bit-types` or a profile of at least 6.2
 also selects two-byte half storage. See the
 [core alias cases](../tests/conformance/positive/core-numeric-aliases.slang).
 Narrow scalar shifts saturate counts at 16, producing zero or signed right-shift
-extension. Out-of-range compound narrow shift counts still retain DXC behavior.
+extension. Constant propagation also saturates proven scalar local compound
+shifts at their 16/32/64-bit operand width. Indexed compound locations and
+dynamic scalar operands retain runtime DXC behavior. See the
+[compound shift fixture](../tests/conformance/positive/integer16-compound-shifts.slang).
 Overloaded functions involving wide integers receive distinct target names
 to preserve Slang's literal and conversion ranking. Mixed 64-bit arithmetic
 operands are explicitly converted to the checked common type.

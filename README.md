@@ -8,7 +8,8 @@ compiler into clearly defined phases.
 **The full rewrite is not complete.** The current implementation compiles a
 limited compute, vertex, and fragment shader subset to HLSL. It includes preprocessing, parsing, type
 checking, native module loading, type aliases, aggregate initialization and field defaults,
-typed structured IR, resource register allocation, a Rust API, and a command-line compiler.
+typed structured IR, scalar SSA constant propagation, resource register allocation,
+a Rust API, and a command-line compiler.
 Complete module sessions, user generics, interfaces, autodiff, advanced resources and most intrinsics, binary
 backends, complete reflection, the upstream C ABI, and LSP remain to be ported.
 See the [compatibility matrix](docs/compatibility.md) for exact status.
@@ -54,7 +55,7 @@ crates/
   slang-syntax/        AST, declarations, expressions, statements
   slang-module/        imports, module members, dependency graph, name linking
   slang-sema/          names, types, overloads, shader validation
-  slang-ir/            typed structured IR and lowering
+  slang-ir/            structured IR, scalar SSA, and lowering
   slang-codegen/       backend dispatch and HLSL generation
   slang-compiler/      Rust API, filesystem, reflection, pipeline
   slang-cli/           command-line arguments and artifact output

@@ -7682,6 +7682,43 @@
           "size": 20
         }
       }
+    },
+    {
+      "file": "positive/integer16-compound-shifts.slang",
+      "entry": "main",
+      "accept": true,
+      "profile": "cs_6_2",
+      "dxc_constant_stores": {
+        "0": 0,
+        "1": 0,
+        "2": 4294967295,
+        "3": 1,
+        "4": 1,
+        "5": 1
+      }
+    },
+    {
+      "file": "positive/scalar-ssa-control.slang",
+      "entry": "main",
+      "accept": true,
+      "profile": "cs_6_0",
+      "dxc_constant_stores": {
+        "0": 9,
+        "1": 0,
+        "2": 7,
+        "3": 5,
+        "4": 10,
+        "5": 7,
+        "6": 13,
+        "7": 4,
+        "8": 0,
+        "9": 0,
+        "10": 4294967295,
+        "11": 0,
+        "12": 1431655765,
+        "13": 1431655765,
+        "14": 4294967295
+      }
     }
   ]
 }

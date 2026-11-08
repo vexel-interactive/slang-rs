@@ -13,7 +13,7 @@ subsystem is absent. No subsystem currently claims complete upstream parity.
 | Name and type checking | slang-sema | Partial | Scalars, vectors, matrices, fixed arrays with computed and zero dimensions, aliases, scopes, overloads, writable locations |
 | Local storage and declaration scopes | slang-module, slang-sema, slang-ir | Partial | Lexical unbraced declarations, loop scopes, guarded local static initialization; definite-assignment analysis absent |
 | Function default arguments | slang-sema, slang-ir | Partial | Trailing input defaults, first-declaration prototype rules, declaration-scope evaluation; parameter-dependent defaults absent |
-| Compile-time scalar constants | slang-sema, slang-ir | Partial | Typed 16/32/64-bit, pointer-sized integer and boolean expressions, narrow truncation and scalar shift saturation, rounded literal-to-integer conversions, direct prefix signs and signed minima, forward globals, initializer cycle diagnostics, computed thread sizes; out-of-range compound narrow shifts, upstream high-bit unsigned comparison folding, general floating evaluation and constant function execution remain incomplete |
+| Compile-time scalar constants | slang-sema, slang-ir | Partial | Typed 16/32/64-bit, pointer-sized integer and boolean expressions, narrow truncation, SSA local propagation and constant compound shift saturation, rounded literal-to-integer conversions, direct prefix signs and signed minima, forward globals, initializer cycle diagnostics, computed thread sizes; upstream high-bit unsigned comparison folding, general floating evaluation and constant function execution remain incomplete |
 | Type aliases | slang-syntax, slang-sema | Partial | Transparent global typedef/typealias, forwards, cycles, imports; local/nested and generic aliases absent |
 | Numeric type applications | slang-syntax, slang-module, slang-sema | Partial | Vector/matrix dimensions 1-4, scalar constant expressions, typed forward globals and lexical locals, core defaults, constructors, nested resource arguments; general constant execution and layout arguments absent |
 | Explicit numeric casts | slang-syntax, slang-sema, slang-ir | Partial | Scalar splats, same-width vectors, matrix component conversions and truncation, boolean conversions; standalone alias and aggregate cast syntax absent |
@@ -35,7 +35,7 @@ subsystem is absent. No subsystem currently claims complete upstream parity.
 | Shader profiles | slang-compiler | Partial | HLSL shader model 6 profile selection, derivative and native 16-bit upgrades, reflected target profiles and DXC type flags; complete capability and device validation absent |
 | Automatic differentiation | ? | Not ported | AD passes, JVP/VJP, runtime contracts required |
 | Structured IR | slang-ir | Partial | Typed tree lowering |
-| SSA, linking, optimization | ? | Not ported | CFG, use-def, verifier, passes required |
+| SSA, linking, optimization | slang-ir | Partial | Scalar local SSA, CFG block arguments, use-def worklists, dominance and edge verifier, sparse conditional constant propagation; aggregate/memory SSA, IR linking, specialization, canonicalization and full pass pipeline absent |
 | HLSL emitter | slang-codegen | Partial | Compute, vertex, fragment subset; examples validated by DXC |
 | SPIR-V emitter | ? | Not ported | Native binary emission and spirv-val required |
 | DXIL emitter | ? | Not ported | Textual HLSL output does not implement a native DXIL backend |

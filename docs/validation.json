@@ -1,12 +1,12 @@
 {
-  "date": "2026-11-08",
+  "date": "2026-11-09",
   "platform": "windows-x86_64-msvc",
   "rust_toolchain": "1.99.1",
   "checks": {
     "rustfmt": "passed",
     "clippy_all_targets_warnings_denied": "passed",
     "unit_tests": 42,
-    "integration_tests": 341,
+    "integration_tests": 356,
     "doc_tests": 1,
     "conformance_comparison_tests": 26,
     "rustdoc": "passed",
@@ -15,11 +15,11 @@
   },
   "differential_validation": {
     "oracle": "Slang 2026.21",
-    "cases_passed": 519,
-    "cases_total": 519,
-    "matching_acceptance_cases": 508,
+    "cases_passed": 521,
+    "cases_total": 521,
+    "matching_acceptance_cases": 510,
     "documented_oracle_differences": 11,
-    "dxc_hlsl_artifacts_validated": 560,
+    "dxc_hlsl_artifacts_validated": 564,
     "dxc_invalid_hlsl_artifacts_rejected": 17,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
@@ -36,9 +36,9 @@
     "uniform_byte_layout_cases_compared": 61,
     "documented_oracle_physical_layout_differences": 12,
     "physical_buffer_layout_cases_compared": 43,
-    "compiled_constant_cases_compared": 19,
-    "compiled_constant_words_compared": 979,
-    "compiled_constant_words_matching": 972,
+    "compiled_constant_cases_compared": 21,
+    "compiled_constant_words_compared": 1000,
+    "compiled_constant_words_matching": 993,
     "documented_oracle_constant_words_differing": 7,
     "documented_oracle_constant_cases_differing": 2,
     "documented_oracle_uniform_reflection_differences": 1
@@ -46,8 +46,8 @@
   "remote_ci_executed": false,
   "remote_ci": null,
   "previous_remote_ci": {
-    "run_id": 42520224468,
-    "head_sha": "973cfdb4fcd15a33e2e4c8a559503de6ca12f42a",
+    "run_id": 42521470106,
+    "head_sha": "fb74eb0c5619bb551684e419fb0a018569c3800b",
     "conclusion": "success",
     "platforms": [
       "ubuntu-latest",
@@ -449,7 +449,7 @@
   },
   "native_hlsl_suite": {
     "manifest": "tests/native/manifest.json",
-    "artifacts_validated": 107,
+    "artifacts_validated": 109,
     "profiles": [
       "cs_6_0",
       "cs_6_2",
@@ -564,13 +564,15 @@
       "../conformance/positive/native16-matrix-elements-uint16_t-0.slang",
       "../conformance/positive/native16-matrix-elements-uint16_t-1.slang",
       "../conformance/positive/native16-resource-shapes-uint16_t.slang",
-      "../conformance/positive/integer16-shapes.slang"
+      "../conformance/positive/integer16-shapes.slang",
+      "../conformance/positive/integer16-compound-shifts.slang",
+      "../conformance/positive/scalar-ssa-control.slang"
     ],
     "uniform_byte_layout_cases": 61,
     "matrix_layout_shapes": 96,
     "constant_buffer_numeric_layouts": 252,
-    "compiled_constant_cases": 19,
-    "compiled_constant_words": 979
+    "compiled_constant_cases": 21,
+    "compiled_constant_words": 1000
   },
   "pointer_integer_validation": {
     "target_pointer_bits": 64,
@@ -625,8 +627,25 @@
       "-enable-16bit-types"
     ],
     "native_matrix_oracle_physical_layout_difference_cases": 9,
-    "out_of_range_compound_shift_saturation_implemented": false,
+    "out_of_range_compound_shift_saturation_implemented": true,
     "gpu_execution_compared": false,
-    "shape_conversion_words": 6
+    "shape_conversion_words": 6,
+    "compound_shift_saturation_scope": "Proven scalar local constants through SSA/SCCP; indexed and dynamic operands retain runtime DXC behavior."
+  },
+  "scalar_ssa_validation": {
+    "integration_tests": 15,
+    "typed_block_parameters": true,
+    "use_def_worklists": true,
+    "dominance_and_edge_verifier": true,
+    "sparse_conditional_constant_propagation": true,
+    "compiled_constant_cases": 2,
+    "compiled_constant_words": 21,
+    "matching_words": 21,
+    "compound_rhs_side_effects_preserved": true,
+    "out_inout_invalidation": true,
+    "optional_analysis_value_budget": 262144,
+    "memory_ssa_implemented": false,
+    "general_constant_function_execution": false,
+    "gpu_execution_compared": false
   }
 }

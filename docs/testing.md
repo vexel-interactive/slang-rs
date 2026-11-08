@@ -79,6 +79,17 @@ and lexical local constants. The fixture checks exact overload results and
 the reflected two-element array, keeping wide arithmetic intermediates distinct
 from truncating conversions.
 
+Scalar SSA tests verify typed block arguments, use-def links, dominance, invalid
+operands, edge arity, and same-block ordering. Propagation regressions cover
+dynamic branch meets, unreachable paths, loop invariants and changing values,
+zero/single-iteration loops, switch fallthrough, break/continue, lexical shadows,
+uninitialized values, output invalidation, short-circuit effects, and bounded
+optional analysis. Compound right-hand-side writes and postfix effects remain
+observable after substitution. Two differential fixtures compare 21 exact DXIL
+words: six from narrow compound shifts and indexed single evaluation, and fifteen
+from control flow, sequencing, wide arithmetic, and saturated shifts. Both
+compilers' artifacts match all words; GPU execution is not claimed.
+
 `tools/check.ps1` runs rustfmt, Clippy, workspace tests, and rustdoc using Rust
 1.99.1. Tests cover precedence, scopes, const/read-only locations, overloads,
 macro recursion and operators, include guards, diagnostic locations, IR lowering,
