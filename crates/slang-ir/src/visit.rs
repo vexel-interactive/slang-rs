@@ -137,7 +137,8 @@ pub(crate) fn walk_expression<V: Visitor + ?Sized>(
                 visitor.expression(e)?;
             }
         }
-        ExprKind::ConstantBufferLoad(e)
+        ExprKind::AddressView(e)
+        | ExprKind::ConstantBufferLoad(e)
         | ExprKind::DeclarationDefault(e)
         | ExprKind::Unary { value: e, .. }
         | ExprKind::Cast { value: e }

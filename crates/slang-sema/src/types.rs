@@ -171,6 +171,35 @@ pub enum Type {
 }
 
 impl Type {
+    /// Logical numeric components selected by a vector or matrix member.
+    pub fn component_indices(&self, name: &str) -> Option<Vec<u8>> {
+        match self {
+            Self::Vector(_, width) => {
+                crate::swizzle::vector(name).filter(|indices| indices.iter().all(|i| i < width))
+            }
+            Self::Matrix(_, rows, columns) => crate::swizzle::matrix(name, *rows, *columns),
+            _ => None,
+        }
+    }
+
+    /// Out/inout locations permit identity or same-shape, same-width integer
+    /// views. Ordinary numeric value conversions cannot create an address.
+    pub fn output_convertible_to(&self, target: &Self) -> bool {
+        if self == target {
+            return true;
+        }
+        let same_shape = match (self, target) {
+            (Self::Scalar(_), Self::Scalar(_)) => true,
+            (Self::Vector(_, a), Self::Vector(_, b)) => a == b,
+            (Self::Matrix(_, ar, ac), Self::Matrix(_, br, bc)) => ar == br && ac == bc,
+            _ => false,
+        };
+        same_shape
+            && self.scalar().zip(target.scalar()).is_some_and(|(a, b)| {
+                a.is_integral() && b.is_integral() && a.bit_width() == b.bit_width()
+            })
+    }
+
     /// A fixed-array chain containing a zero dimension has no elements to store.
     pub fn is_empty_array(&self) -> bool {
         let mut ty = self;

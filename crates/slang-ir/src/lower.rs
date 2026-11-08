@@ -472,7 +472,18 @@ impl Lowerer<'_> {
             },
             ast::ExprKind::Index { base, index } => ExprKind::Index {
                 base: Box::new(self.expression(base)?),
-                index: Box::new(self.expression(index)?),
+                index: Box::new(
+                    if let Some(value) = self.checked.swizzle_indices.get(&expression.id) {
+                        let mut index = self.expression(index)?;
+                        index.kind = ExprKind::Integer(crate::integer::literal_text(
+                            i64::from(*value),
+                            &index.ty,
+                        ));
+                        index
+                    } else {
+                        self.expression(index)?
+                    },
+                ),
             },
             ast::ExprKind::Conditional {
                 condition,

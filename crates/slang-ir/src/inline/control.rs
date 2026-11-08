@@ -17,10 +17,10 @@ impl Lowerer {
         }
         self.active.push(function.name.clone());
         let mut statements = vec![];
+        let mut fixups = vec![];
         let mut bindings = BTreeMap::new();
         for (parameter, argument) in function.parameters.iter().zip(arguments) {
-            let local = self.storage(parameter, span);
-            statements.push(expression(assign(local.clone(), argument.clone())));
+            let local = self.argument(parameter, argument, &mut statements, &mut fixups, span)?;
             bindings.insert(parameter.name.clone(), local);
         }
         let result = if function.return_type == Type::Void {
@@ -46,6 +46,7 @@ impl Lowerer {
             &result,
             &returned,
         )?);
+        statements.extend(fixups);
         let mut value = Expr {
             ty: function.return_type.clone(),
             span,

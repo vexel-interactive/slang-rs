@@ -86,12 +86,12 @@ fn malformed_attributes_and_unsupported_body_or_storage_forms_report_limits() {
     for (source, code) in [
         ("[ForceInline(1)]int f(int x){return x;}", "T006"),
         (
-            "[ForceInline]int f(inout int x){return x;}int g(){int x=1;return f(x);}",
+            "[ForceInline]int f(int x){return x;}static int value=f(1);",
             "I005",
         ),
         (
-            "[ForceInline]int f(int x){return x;}static int value=f(1);",
-            "I005",
+            "[ForceInline]void f(inout int x){x=2;}void g(){float x=1.5;f(x);}",
+            "T015",
         ),
     ] {
         let error = compile_source(
@@ -209,6 +209,79 @@ fn resource_inputs_and_results_keep_selected_handles() {
     }
     assert!(main.contains("SampleLevel("), "{main}");
     assert!(main.contains("Store("), "{main}");
+}
+
+#[test]
+fn output_arguments_preserve_aliases_coordinates_and_scratch_copy_back() {
+    let compiled = compile(include_str!(
+        "../../../tests/conformance/positive/force-inline-outputs.slang"
+    ));
+    let json = serde_json::to_string(&compiled.ir).unwrap();
+    assert!(!json.contains("BlockExpression"));
+    assert!(!json.contains("AddressView"));
+    for index in 0..compiled.ir.functions.len() {
+        if let Some(graph) = slang_ir::flow::build_function(&compiled.ir, index) {
+            graph.verify().unwrap();
+        }
+    }
+    let code = compiled.artifact.unwrap();
+    let main = code.split("void main()").last().unwrap();
+    for name in [
+        "aliased",
+        "readAfterArgument",
+        "useVector",
+        "changeVector",
+        "overlapping",
+        "initialize",
+        "increment",
+        "writePair",
+        "writeArray",
+        "initializerShadow",
+    ] {
+        assert!(!main.contains(&format!("{name}(")), "{name}: {main}");
+    }
+}
+
+#[test]
+fn narrow_wide_and_pointer_output_views_preserve_storage_bits() {
+    let compiled = compile(include_str!(
+        "../../../tests/conformance/positive/force-inline-output-views.slang"
+    ));
+    let json = serde_json::to_string(&compiled.ir).unwrap();
+    assert!(!json.contains("BlockExpression") && !json.contains("AddressView"));
+    for index in 0..compiled.ir.functions.len() {
+        if let Some(graph) = slang_ir::flow::build_function(&compiled.ir, index) {
+            graph.verify().unwrap();
+        }
+    }
+}
+
+#[test]
+fn output_locations_reject_value_conversions_that_cannot_form_integer_views() {
+    for (source_type, target_type) in [
+        ("float", "int"),
+        ("int", "int64_t"),
+        ("int64_t", "int"),
+        ("half", "float"),
+        ("float", "half"),
+        ("int", "vector<int, 1>"),
+        ("vector<int, 1>", "int"),
+    ] {
+        let source = format!(
+            "void outputValue(inout {target_type} x) {{}} void caller() {{ {source_type} x; outputValue(x); }}"
+        );
+        let error = compile_source(
+            "output-types.slang",
+            &source,
+            &CompileOptions::default(),
+            &MemoryIncludes::default(),
+        )
+        .unwrap_err();
+        assert!(
+            error.diagnostics.iter().any(|d| d.code == "T015"),
+            "{source}: {error}"
+        );
+    }
 }
 
 #[test]

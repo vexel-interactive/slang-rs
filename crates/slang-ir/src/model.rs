@@ -135,6 +135,9 @@ pub struct SwitchCase {
 
 #[derive(Clone, Debug, Serialize)]
 pub enum ExprKind {
+    /// Temporary same-width integer view of writable storage. Effect lowering
+    /// preserves its address while applying the viewed type to loads and stores.
+    AddressView(Box<Expr>),
     /// Temporary statement-valued expression, eliminated by effect normalization
     /// before scalar SSA and target lowering.
     BlockExpression {

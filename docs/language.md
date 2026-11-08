@@ -136,7 +136,7 @@ language reference remains the specification for the complete port.
 ## Function inlining
 
 `[ForceInline]` takes no arguments and expands functions with numeric, aggregate,
-or resource input parameters and results before scalar constant propagation.
+or resource parameters and results before scalar constant propagation.
 Void functions also expand, including empty bodies and early returns. The body
 may contain ordinary value declarations, nested lexical scopes, branches, loops,
 switches, and multiple returns. Nested inline calls, prototypes, selected overloads, and imported
@@ -150,8 +150,28 @@ before later statement effects and retain writable indexes for assignments and
 output arguments. See [force-inline-values.slang](../tests/conformance/positive/force-inline-values.slang)
 and [force-inline-control.slang](../tests/conformance/positive/force-inline-control.slang).
 
-Inlining out/inout parameters, shared/volatile
-local storage, and calls in global initializers is not implemented and reports
+Out/inout arguments retain their original address when possible, including scalar
+vector/matrix selections. Resource receivers and indexes evaluate once at their
+argument position. Multi-component swizzles and resource subscript setters use
+temporary storage with ordered copy-back after the body and before its captured
+result is consumed. A member or implicit integer view of a resource element can
+request direct addressing. Pure `out` arguments do not read the original value.
+Output types must match, or have the same numeric shape and integral component
+width. Same-width integer views retain aliases and convert loads and stores to
+the declared parameter type. Floating, width-changing and scalar/vector output
+conversions report `T015`. Dynamic indexes into writable numeric swizzles are
+rejected; direct vector, matrix, array and resource indexes remain supported.
+An initializer that shadows an outer name evaluates using the outer binding.
+See [output examples](../tests/conformance/positive/force-inline-outputs.slang)
+and [16/64-bit views](../tests/conformance/positive/force-inline-output-views.slang).
+The pinned HLSL backend erases integer address casts, producing arithmetic
+right shifts for some inlined unsigned 16/32-bit views of signed storage. The
+native explicit conversions preserve logical shifts; separate exact artifact
+goldens record four differing words. Potentially aliased output arguments may
+have undefined behavior according to upstream's warnings; the regression checks
+compiled artifacts and does not establish a language guarantee for such calls.
+
+Inlining shared/volatile local storage and calls in global initializers is not implemented and reports
 `I005`. Statement-valued vector conditional/logical operands also report `I005`.
 Recursive or excessive
 expansion is bounded by depth and node limits. Ordinary calls retain their target

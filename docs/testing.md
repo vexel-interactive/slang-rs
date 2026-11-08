@@ -123,6 +123,20 @@ void conditionals. Both compilers and DXC match the same exact golden.
 [force-inline-resources.slang](../tests/conformance/positive/force-inline-resources.slang)
 checks buffer handle selection, constant-buffer inputs and constant selections,
 texture/sampler inputs, and byte-buffer writes with both compilers and DXC.
+The [output fixture](../tests/conformance/positive/force-inline-outputs.slang)
+adds 41 compiled words for address aliases, argument ordering, swizzle scratch
+copy-back, direct scalar selectors, frozen vector/matrix/array coordinates,
+early returns, aggregate outputs, nested integer views, prefix/postfix updates,
+ordinary/intrinsic output calls, and initializer shadowing. The
+[wide/narrow fixture](../tests/conformance/positive/force-inline-output-views.slang)
+adds seven words for 16/64-bit and pointer-sized views. Forty-four of these 48
+words match. Four exact separate oracle goldens record upstream's removal of
+HLSL integer lvalue casts, which changes unsigned shifts of signed 16/32-bit
+storage. Native explicit load/store conversions preserve the parameter type.
+Negative fixtures reject incompatible output conversions and dynamic writable
+swizzle indexes. The resource fixture additionally covers output handle
+selection and inout resource element updates. These are artifact comparisons;
+upstream warns that potentially aliased output calls may have undefined behavior.
 The [dynamic ConstantBuffer regression](../tests/conformance/positive/force-inline-dynamic-cbuffer.slang)
 records a shared target limitation: source compilation succeeds, but both HLSL
 artifacts are expected to fail DXC. It is not counted as a valid shader artifact.

@@ -189,9 +189,21 @@ impl Checker {
                 for (argument, target) in arguments.iter().zip(&best.parameters) {
                     self.coerce_value(argument, target);
                 }
-                for (argument, output) in arguments.iter().zip(&best.output_parameters) {
+                for (index, (argument, output)) in
+                    arguments.iter().zip(&best.output_parameters).enumerate()
+                {
                     if *output {
                         self.require_writable(argument);
+                        if !types[index].output_convertible_to(&best.parameters[index]) {
+                            self.error(
+                                "T015",
+                                argument.span,
+                                format!(
+                                    "output argument cannot view {} storage as {}",
+                                    types[index], best.parameters[index]
+                                ),
+                            );
+                        }
                     }
                 }
                 self.expression_types.insert(

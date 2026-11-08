@@ -321,6 +321,12 @@ impl Checker {
                 {
                     self.error("T013", index.span, "constant index is out of bounds");
                 }
+                if self.numeric_selection(base)
+                    && let Some(value) = self.integer_constant(index)
+                    && let Ok(value) = u8::try_from(value)
+                {
+                    self.swizzle_indices.insert(expression.id, value);
+                }
                 result
             }
             ExprKind::Conditional {
@@ -431,12 +437,25 @@ impl Checker {
                 };
                 unique && self.writable(base)
             }
-            ExprKind::Index { base, .. } => match self.expression_types.get(&base.id) {
+            ExprKind::Index { base, index } => match self.expression_types.get(&base.id) {
                 Some(Type::ConstantBuffer { .. }) => false,
                 Some(Type::Buffer { writable, .. } | Type::Texture { writable, .. }) => *writable,
-                _ => self.writable(base),
+                _ => {
+                    (!self.numeric_selection(base) || self.integer_constant(index).is_some())
+                        && self.writable(base)
+                }
             },
             _ => false,
+        }
+    }
+
+    fn numeric_selection(&self, expr: &Expr) -> bool {
+        if let ExprKind::Member { base, name } = &expr.kind {
+            self.expression_types
+                .get(&base.id)
+                .is_some_and(|ty| ty.component_indices(name).is_some())
+        } else {
+            false
         }
     }
 }

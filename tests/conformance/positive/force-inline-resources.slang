@@ -32,6 +32,12 @@ RWByteAddressBuffer bytes;
     if (x < 0) { value.Store(offset, uint(-x)); return; }
     value.Store(offset, uint(x));
 }
+[ForceInline] void selectedOutput(out StructuredBuffer<int> value, bool flag, StructuredBuffer<int> a, StructuredBuffer<int> b)
+{
+    if (flag) { value = a; return; }
+    value = b;
+}
+[ForceInline] void addElement(inout int value, int addend) { value += addend; }
 
 [shader("compute")]
 [numthreads(1, 1, 1)]
@@ -43,4 +49,7 @@ void main(uint3 tid : SV_DispatchThreadID)
     output[1] = readUniform(selectedUniform(true, buffers[0], buffers[1]));
     output[2] = int(sampleValue(texture, sampler, float2(float(tid.x), 0)).x);
     storeBytes(bytes, tid.x * 4u, loadBuffer(input[1], int(tid.x)));
+    selectedOutput(chosen, flag, input[0], input[1]);
+    output[3] = chosen[tid.x];
+    addElement(output[tid.x], 2);
 }

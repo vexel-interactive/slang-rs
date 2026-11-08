@@ -30,6 +30,8 @@ pub struct CheckedModule {
     pub expression_types: BTreeMap<ExprId, Type>,
     /// Resource expressions implicitly loaded in their checked value context.
     pub constant_buffer_loads: BTreeSet<ExprId>,
+    /// Constant scalar indexes into numeric member selections.
+    pub swizzle_indices: BTreeMap<ExprId, u8>,
     pub declaration_types: BTreeMap<SpanKey, Type>,
     pub matrix_layouts: BTreeMap<SpanKey, slang_layout::MatrixMajor>,
     pub entry_points: Vec<EntryPoint>,
@@ -97,6 +99,7 @@ pub(crate) struct Checker {
     pub structures: BTreeMap<String, BTreeMap<String, Type>>,
     pub expression_types: BTreeMap<ExprId, Type>,
     pub constant_buffer_loads: BTreeSet<ExprId>,
+    pub swizzle_indices: BTreeMap<ExprId, u8>,
     pub declaration_types: BTreeMap<SpanKey, Type>,
     pub matrix_layouts: BTreeMap<SpanKey, slang_layout::MatrixMajor>,
     pub diagnostics: Vec<Diagnostic>,
@@ -176,6 +179,7 @@ fn check_with_metadata(
         structures: BTreeMap::new(),
         expression_types: BTreeMap::new(),
         constant_buffer_loads: BTreeSet::new(),
+        swizzle_indices: BTreeMap::new(),
         declaration_types: BTreeMap::new(),
         matrix_layouts: BTreeMap::new(),
         diagnostics: vec![],
@@ -353,6 +357,7 @@ fn check_with_metadata(
             module,
             expression_types: checker.expression_types,
             constant_buffer_loads: checker.constant_buffer_loads,
+            swizzle_indices: checker.swizzle_indices,
             declaration_types: checker.declaration_types,
             matrix_layouts: checker.matrix_layouts,
             entry_points,

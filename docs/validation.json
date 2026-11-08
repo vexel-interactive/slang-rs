@@ -6,7 +6,7 @@
     "rustfmt": "passed",
     "clippy_all_targets_warnings_denied": "passed",
     "unit_tests": 42,
-    "integration_tests": 369,
+    "integration_tests": 372,
     "doc_tests": 1,
     "conformance_comparison_tests": 27,
     "rustdoc": "passed",
@@ -16,11 +16,11 @@
   },
   "differential_validation": {
     "oracle": "Slang 2026.21",
-    "cases_passed": 527,
-    "cases_total": 527,
-    "matching_acceptance_cases": 516,
+    "cases_passed": 531,
+    "cases_total": 531,
+    "matching_acceptance_cases": 520,
     "documented_oracle_differences": 11,
-    "dxc_hlsl_artifacts_validated": 574,
+    "dxc_hlsl_artifacts_validated": 578,
     "dxc_invalid_hlsl_artifacts_rejected": 19,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
@@ -37,11 +37,11 @@
     "uniform_byte_layout_cases_compared": 61,
     "documented_oracle_physical_layout_differences": 12,
     "physical_buffer_layout_cases_compared": 43,
-    "compiled_constant_cases_compared": 23,
-    "compiled_constant_words_compared": 1039,
-    "compiled_constant_words_matching": 1032,
-    "documented_oracle_constant_words_differing": 7,
-    "documented_oracle_constant_cases_differing": 2,
+    "compiled_constant_cases_compared": 25,
+    "compiled_constant_words_compared": 1087,
+    "compiled_constant_words_matching": 1076,
+    "documented_oracle_constant_words_differing": 11,
+    "documented_oracle_constant_cases_differing": 4,
     "documented_oracle_uniform_reflection_differences": 1,
     "integer_program_cases_compared": 1,
     "integer_program_words_compared": 49,
@@ -52,8 +52,8 @@
   "remote_ci_executed": false,
   "remote_ci": null,
   "previous_remote_ci": {
-    "run_id": 42527943885,
-    "head_sha": "6e81f2090bb4199a8ea9bd7f84b99916124d890e",
+    "run_id": 42528864983,
+    "head_sha": "a8b1228e8e34e9ceee77631e9500ff41ce8cf020",
     "conclusion": "success",
     "platforms": [
       "ubuntu-latest",
@@ -62,6 +62,16 @@
     ]
   },
   "earlier_remote_ci": [
+    {
+      "run_id": 42527943885,
+      "head_sha": "6e81f2090bb4199a8ea9bd7f84b99916124d890e",
+      "conclusion": "success",
+      "platforms": [
+        "ubuntu-latest",
+        "windows-latest",
+        "macos-latest"
+      ]
+    },
     {
       "run_id": 42525695798,
       "head_sha": "9e2ad36e490b94f0640e2b9db997cda7cdcec3e2",
@@ -686,9 +696,9 @@
     "gpu_execution_compared": false
   },
   "force_inline_validation": {
-    "integration_tests": 13,
-    "compiled_constant_words": 39,
-    "matching_words": 39,
+    "integration_tests": 16,
+    "compiled_constant_words": 87,
+    "matching_words": 83,
     "capture_argument_evaluation_once": true,
     "conditional_and_short_circuit_evaluation": true,
     "unused_argument_effects_preserved": true,
@@ -724,8 +734,23 @@
     "void_bodies_and_returns": true,
     "empty_void_input_effects_preserved": true,
     "void_comma_conditional_returned_calls": true,
-    "out_inout_parameters": false,
+    "out_inout_parameters": true,
     "dynamic_constant_buffer_handle_selection_valid": false,
-    "shared_invalid_hlsl_artifact_regressions": 1
+    "shared_invalid_hlsl_artifact_regressions": 1,
+    "direct_output_address_aliases": true,
+    "output_argument_coordinates_captured_once": true,
+    "ordered_swizzle_and_resource_setter_copy_back": true,
+    "same_width_integer_output_views": true,
+    "integer_output_view_widths": [
+      16,
+      32,
+      64
+    ],
+    "pointer_output_views": true,
+    "viewed_prefix_postfix_updates": true,
+    "nested_ordinary_and_intrinsic_output_calls": true,
+    "initializer_shadow_uses_outer_binding": true,
+    "documented_oracle_output_view_words_differing": 4,
+    "dynamic_writable_swizzle_indexes_rejected": true
   }
 }

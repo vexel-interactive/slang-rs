@@ -138,6 +138,9 @@ impl Lowerer<'_> {
     /// Preserve a storage path while capturing its evaluated coordinates. The
     /// value stored at a compound destination is read only after the RHS.
     fn location(&mut self, value: &mut Expr, freeze: bool) -> Result<Vec<Stmt>, Diagnostic> {
+        if has_view(value) {
+            *value = physical_location(value);
+        }
         match &mut value.kind {
             ExprKind::Name(_) | ExprKind::GlobalName(_) => Ok(vec![]),
             ExprKind::Member { base, .. } => {
@@ -185,7 +188,14 @@ impl Lowerer<'_> {
     fn value(&mut self, value: &mut Expr) -> Result<Vec<Stmt>, Diagnostic> {
         let span = value.span;
         let ty = value.ty.clone();
+        let postfix = matches!(value.kind, ExprKind::Postfix { .. });
         match &mut value.kind {
+            ExprKind::AddressView(_) => {
+                *value = physical_location(value);
+                let prefix = self.location(value, false)?;
+                *value = convert(value.clone(), ty);
+                Ok(prefix)
+            }
             ExprKind::BlockExpression {
                 statements,
                 value: result,
@@ -221,23 +231,79 @@ impl Lowerer<'_> {
                 prefix.append(&mut argument_prefix);
                 Ok(prefix)
             }
-            ExprKind::Unary { op, value } | ExprKind::Postfix { op, value }
+            ExprKind::Unary { op, value: operand } | ExprKind::Postfix { op, value: operand }
                 if matches!(op.as_str(), "++" | "--") =>
             {
-                self.location(value, false)
+                if has_view(operand) {
+                    let viewed = operand.ty.clone();
+                    let mut location = physical_location(operand);
+                    let mut prefix = self.location(&mut location, false)?;
+                    let old = self.storage(&viewed, span);
+                    prefix.push(expression(assign(
+                        old.clone(),
+                        convert(location.clone(), viewed.clone()),
+                    )));
+                    let one = Expr {
+                        kind: ExprKind::Integer("1".into()),
+                        ty: Type::Scalar(Scalar::Int),
+                        span,
+                    };
+                    let new = binary(
+                        if op == "++" { "+" } else { "-" },
+                        old.clone(),
+                        convert(one, viewed.clone()),
+                    );
+                    let update = assign(location, new);
+                    if postfix {
+                        prefix.push(expression(update));
+                        *value = old;
+                    } else {
+                        *value = convert(update, viewed);
+                    }
+                    return Ok(prefix);
+                }
+                self.location(operand, false)
             }
             ExprKind::Unary { value, .. }
             | ExprKind::Cast { value }
             | ExprKind::ConstantBufferLoad(value)
             | ExprKind::DeclarationDefault(value) => self.value(value),
-            ExprKind::Member { .. } | ExprKind::Index { .. } => self.location(value, false),
+            ExprKind::Member { .. } | ExprKind::Index { .. } => {
+                if has_view(value) {
+                    *value = physical_location(value);
+                    let prefix = self.location(value, false)?;
+                    *value = convert(value.clone(), ty);
+                    Ok(prefix)
+                } else {
+                    self.location(value, false)
+                }
+            }
             ExprKind::Binary { op, left, right } if assignment(op) => {
+                let view = has_view(left).then(|| left.ty.clone());
+                if view.is_some() {
+                    **left = physical_location(left);
+                }
                 let mut prefix = self.location(left, false)?;
                 let mut right_prefix = self.value(right)?;
                 if !right_prefix.is_empty() {
                     prefix.extend(self.location(left, true)?);
                 }
                 prefix.append(&mut right_prefix);
+                if let Some(view) = view {
+                    let result = if op == "=" {
+                        convert(*right.clone(), view.clone())
+                    } else {
+                        self.save(right, &mut prefix);
+                        let operation = op.strip_suffix('=').unwrap();
+                        let right = if matches!(operation, "<<" | ">>") {
+                            *right.clone()
+                        } else {
+                            convert(*right.clone(), view.clone())
+                        };
+                        binary(operation, convert(*left.clone(), view), right)
+                    };
+                    *value = convert(assign(*left.clone(), result), ty);
+                }
                 Ok(prefix)
             }
             ExprKind::Binary { op, left, right } if matches!(op.as_str(), "&&" | "||") => {
@@ -510,7 +576,48 @@ fn storage_path(value: &Expr) -> bool {
     match &value.kind {
         ExprKind::Name(_) | ExprKind::GlobalName(_) => true,
         ExprKind::Index { base, .. } | ExprKind::Member { base, .. } => storage_path(base),
+        ExprKind::AddressView(location) => storage_path(location),
         _ => false,
+    }
+}
+
+fn has_view(value: &Expr) -> bool {
+    match &value.kind {
+        ExprKind::AddressView(_) => true,
+        ExprKind::Index { base, .. } | ExprKind::Member { base, .. } => has_view(base),
+        _ => false,
+    }
+}
+
+fn physical_location(value: &Expr) -> Expr {
+    if let ExprKind::AddressView(location) = &value.kind {
+        return physical_location(location);
+    }
+    let mut value = value.clone();
+    if let ExprKind::Member { base, .. } | ExprKind::Index { base, .. } = &mut value.kind {
+        let numeric = matches!(
+            base.ty,
+            Type::Scalar(_) | Type::Vector(..) | Type::Matrix(..)
+        );
+        **base = physical_location(base);
+        if numeric && let Some(scalar) = base.ty.scalar() {
+            value.ty = value.ty.with_scalar(scalar);
+        }
+    }
+    value
+}
+
+fn convert(value: Expr, ty: Type) -> Expr {
+    if value.ty == ty {
+        value
+    } else {
+        Expr {
+            ty,
+            span: value.span,
+            kind: ExprKind::Cast {
+                value: Box::new(value),
+            },
+        }
     }
 }
 

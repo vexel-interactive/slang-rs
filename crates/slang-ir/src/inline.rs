@@ -6,6 +6,7 @@ use slang_sema::{CheckedModule, Type, span_key};
 use slang_source::{Diagnostic, Span};
 use std::collections::{BTreeMap, BTreeSet};
 
+mod arguments;
 mod control;
 
 const MAX_INLINE_NODES: usize = 65_536;
@@ -165,16 +166,11 @@ impl Lowerer {
                 unsupported(span, "ForceInline requires an available function body")
             })?;
         if !(storable(&function.return_type) || function.return_type == Type::Void)
-            || function.parameters.iter().any(|p| {
-                !storable(&p.ty)
-                    || p.modifiers
-                        .iter()
-                        .any(|m| matches!(m.as_str(), "out" | "inout"))
-            })
+            || function.parameters.iter().any(|p| !storable(&p.ty))
         {
             return Err(unsupported(
                 span,
-                "ForceInline output parameters and non-value signatures are not implemented",
+                "ForceInline non-value signatures are not implemented",
             ));
         }
         let body = function.body.as_ref().unwrap();
@@ -192,6 +188,7 @@ impl Lowerer {
             }
         });
         let linear = linear_result.is_some()
+            && !function.parameters.iter().any(arguments::output)
             && statements[..statements.len() - 1].iter().all(|statement| {
                 matches!(
                     statement.kind,
@@ -286,9 +283,14 @@ impl Lowerer {
             ));
         }
         let local = self.storage(variable, span);
+        let initializer = variable
+            .initializer
+            .as_ref()
+            .map(|value| capture(value, bindings))
+            .transpose()?;
         bindings.insert(variable.name.clone(), local.clone());
-        if let Some(value) = &variable.initializer {
-            values.push(self.assign(local, capture(value, bindings)?, span));
+        if let Some(value) = initializer {
+            values.push(self.assign(local, value, span));
         }
         Ok(())
     }
