@@ -310,6 +310,19 @@ checker records the selected callable in `CheckedModule`; lowering uses that
 selection so target compilation cannot select an internal overload by mistake.
 See [modules.md](modules.md) for file membership, access rules, and remaining limits.
 
+Explicit `[ForceInline]` requests expand linear numeric function bodies before
+SSA construction. Prototypes and definitions use their checked target names;
+overloads and imported declarations retain the selected callable. Fresh local
+storage captures every argument in source order, including unused inputs, and
+preserves local parameter writes. Assignments occur inside comma expressions at
+the original call site, so conditional arms and short-circuit operands keep their
+evaluation conditions. Numeric local declarations and expression statements
+expand before the final returned expression. Source global references stay
+distinct from renamed local/parameter bindings. Expansion has node/depth limits
+and reports unsupported control flow, output parameters, aggregate/resource
+types, and global initializer calls explicitly. Ordinary calls remain opaque to
+SCCP, matching the tested upstream optimization boundary.
+
 Target emission consumes **structured** IR: blocks, conditions, and loops remain
 explicit nodes. `slang_ir::flow` builds a separate typed scalar SSA graph after
 local storage normalization. Each lexical integer or boolean local has its own

@@ -90,6 +90,16 @@ words: six from narrow compound shifts and indexed single evaluation, and fiftee
 from control flow, sequencing, wide arithmetic, and saturated shifts. Both
 compilers' artifacts match all words; GPU execution is not claimed.
 
+ForceInline regressions verify selected prototypes/overloads, imported global
+references under caller shadowing, nested expansion, fresh argument storage,
+conditional evaluation, unused argument effects, parameter copies, and bounded
+unsupported/recursive forms. A differential fixture compares twenty compiled
+words from narrow shifts, ordinary call boundaries, postfix arguments, local
+declarations, conditionals, vectors, and matrices. A thousand-local function
+checks generated traversal depth; exponential nesting checks the expansion node
+budget. Both DXC artifacts match the same exact golden. General function
+inlining and compile-time function execution remain incomplete.
+
 `tools/check.ps1` runs rustfmt, Clippy, workspace tests, and rustdoc using Rust
 1.99.1. Tests cover precedence, scopes, const/read-only locations, overloads,
 macro recursion and operators, include guards, diagnostic locations, IR lowering,

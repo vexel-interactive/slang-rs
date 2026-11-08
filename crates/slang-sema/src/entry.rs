@@ -14,6 +14,11 @@ impl Checker {
         let mut dimensions = None;
         for attribute in &function.attributes {
             match attribute.name.as_str() {
+                "ForceInline" => {
+                    if !attribute.arguments.is_empty() {
+                        self.error("T006", attribute.span, "ForceInline takes no arguments");
+                    }
+                }
                 "shader" => {
                     if stage.is_some() {
                         self.error("T006", attribute.span, "duplicate shader attribute");

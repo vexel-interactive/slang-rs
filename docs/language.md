@@ -133,6 +133,23 @@ The source language uses Slang syntax. Version 0.1.0 implements a small subset
 of upstream features. This document describes its actual boundaries; upstream's
 language reference remains the specification for the complete port.
 
+## Function inlining
+
+`[ForceInline]` takes no arguments and expands functions with numeric input
+parameters and a numeric result before scalar constant propagation. The body
+may contain numeric local declarations, expression statements, and a final
+return. Nested inline calls, prototypes, selected overloads, and imported
+functions are supported. Each argument evaluates once in source order, including
+unused inputs. Assignments to an input parameter affect its captured copy.
+Conditional and short-circuit calls keep argument evaluation in the selected
+path. See [force-inline-values.slang](../tests/conformance/positive/force-inline-values.slang).
+
+Inlining control statements or nested declaration scopes, out/inout and resource
+parameters, aggregate/void results, static/shared local storage, and calls in
+global initializers is not implemented and reports `I005`. Recursive or excessive
+expansion is bounded by depth and node limits. Ordinary calls retain their target
+call boundary; they are not evaluated as compile-time functions for type shapes.
+
 ## Matrix component selectors
 
 Matrices support `_m00` through `_m33` with zero-based coordinates, and `_11`

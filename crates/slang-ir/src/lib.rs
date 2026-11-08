@@ -8,6 +8,7 @@ mod empty_array;
 pub mod flow;
 mod geometric;
 mod initialization;
+mod inline;
 mod integer;
 mod intrinsic;
 mod lower;

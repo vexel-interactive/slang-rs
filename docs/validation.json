@@ -6,7 +6,7 @@
     "rustfmt": "passed",
     "clippy_all_targets_warnings_denied": "passed",
     "unit_tests": 42,
-    "integration_tests": 356,
+    "integration_tests": 365,
     "doc_tests": 1,
     "conformance_comparison_tests": 26,
     "rustdoc": "passed",
@@ -15,11 +15,11 @@
   },
   "differential_validation": {
     "oracle": "Slang 2026.21",
-    "cases_passed": 521,
-    "cases_total": 521,
-    "matching_acceptance_cases": 510,
+    "cases_passed": 522,
+    "cases_total": 522,
+    "matching_acceptance_cases": 511,
     "documented_oracle_differences": 11,
-    "dxc_hlsl_artifacts_validated": 564,
+    "dxc_hlsl_artifacts_validated": 566,
     "dxc_invalid_hlsl_artifacts_rejected": 17,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
@@ -36,9 +36,9 @@
     "uniform_byte_layout_cases_compared": 61,
     "documented_oracle_physical_layout_differences": 12,
     "physical_buffer_layout_cases_compared": 43,
-    "compiled_constant_cases_compared": 21,
-    "compiled_constant_words_compared": 1000,
-    "compiled_constant_words_matching": 993,
+    "compiled_constant_cases_compared": 22,
+    "compiled_constant_words_compared": 1020,
+    "compiled_constant_words_matching": 1013,
     "documented_oracle_constant_words_differing": 7,
     "documented_oracle_constant_cases_differing": 2,
     "documented_oracle_uniform_reflection_differences": 1
@@ -46,8 +46,8 @@
   "remote_ci_executed": false,
   "remote_ci": null,
   "previous_remote_ci": {
-    "run_id": 42521470106,
-    "head_sha": "fb74eb0c5619bb551684e419fb0a018569c3800b",
+    "run_id": 42523987194,
+    "head_sha": "7f408dd60fc8f45bddd11b2624eeae02c1aa44bc",
     "conclusion": "success",
     "platforms": [
       "ubuntu-latest",
@@ -56,6 +56,16 @@
     ]
   },
   "earlier_remote_ci": [
+    {
+      "run_id": 42521470106,
+      "head_sha": "fb74eb0c5619bb551684e419fb0a018569c3800b",
+      "conclusion": "success",
+      "platforms": [
+        "ubuntu-latest",
+        "windows-latest",
+        "macos-latest"
+      ]
+    },
     {
       "run_id": 42514024212,
       "head_sha": "ca9f02b86cbc49886b015586001cdcebe8578476",
@@ -449,7 +459,7 @@
   },
   "native_hlsl_suite": {
     "manifest": "tests/native/manifest.json",
-    "artifacts_validated": 109,
+    "artifacts_validated": 110,
     "profiles": [
       "cs_6_0",
       "cs_6_2",
@@ -566,13 +576,14 @@
       "../conformance/positive/native16-resource-shapes-uint16_t.slang",
       "../conformance/positive/integer16-shapes.slang",
       "../conformance/positive/integer16-compound-shifts.slang",
-      "../conformance/positive/scalar-ssa-control.slang"
+      "../conformance/positive/scalar-ssa-control.slang",
+      "../conformance/positive/force-inline-values.slang"
     ],
     "uniform_byte_layout_cases": 61,
     "matrix_layout_shapes": 96,
     "constant_buffer_numeric_layouts": 252,
-    "compiled_constant_cases": 21,
-    "compiled_constant_words": 1000
+    "compiled_constant_cases": 22,
+    "compiled_constant_words": 1020
   },
   "pointer_integer_validation": {
     "target_pointer_bits": 64,
@@ -645,6 +656,25 @@
     "out_inout_invalidation": true,
     "optional_analysis_value_budget": 262144,
     "memory_ssa_implemented": false,
+    "general_constant_function_execution": false,
+    "gpu_execution_compared": false
+  },
+  "force_inline_validation": {
+    "integration_tests": 9,
+    "compiled_constant_words": 20,
+    "matching_words": 20,
+    "capture_argument_evaluation_once": true,
+    "conditional_and_short_circuit_evaluation": true,
+    "unused_argument_effects_preserved": true,
+    "parameter_copies_preserved": true,
+    "numeric_local_declarations": true,
+    "nested_calls_overloads_prototypes_imports": true,
+    "balanced_generated_sequences": true,
+    "long_linear_local_declarations_tested": 1000,
+    "max_expansion_depth": 32,
+    "max_expansion_nodes": 65536,
+    "general_control_flow_inlining": false,
+    "out_inout_resource_parameters": false,
     "general_constant_function_execution": false,
     "gpu_execution_compared": false
   }
