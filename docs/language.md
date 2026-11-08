@@ -4,9 +4,22 @@
 
 Integer tokens support decimal, hexadecimal (`0x`/`0X`), binary (`0b`/`0B`),
 and octal (a leading zero). Octal tokens warn with `L005`; invalid base digits
-report `L004`. Magnitudes remain limited to 32 bits. `u` selects unsigned and a
-single `l`/`L` denotes 32-bit long; 64-bit and pointer-sized integer literals
-remain unimplemented.
+report `L004`. Magnitudes fit in 64 bits. A single `l`/`L` denotes 32-bit long;
+matching-case `ll`/`LL` starts type selection at 64 bits. One `u`/`U` marker
+may precede or follow the width suffix. Mixed-case `lL` and repeated markers
+are rejected. Pointer-sized `z`/`Z` suffixes remain unimplemented.
+
+Unsigned decimal literals select `uint` when they fit, then `uint64_t`.
+Signed decimal literals select `int`, then `int64_t`. Decimal values beyond
+the signed 64-bit range select `uint64_t` and warn with `T030`. Nondecimal
+values can select `uint` or `uint64_t` without that warning. Values exceeding
+the unsigned 64-bit range report `T010`.
+
+Direct prefix minus gives `-2147483648` type `int` and
+`-9223372036854775808` type `int64_t`. Parentheses around the operand prevent
+that exception: `-(2147483648)` retains `int64_t`. An explicit `LL` keeps
+`-2147483648LL` at 64 bits. HLSL emission preserves these types and bit patterns,
+including the two signed minima.
 
 Floating literals support decimal fractions and `e` exponents, hexadecimal
 fractions and `p` exponents, leading-dot forms, and the legacy `#INF` spelling.
@@ -217,14 +230,14 @@ form UTF-8 in the native source API; arbitrary upstream byte filenames remain
 unsupported. See [line-directives.slang](../tests/conformance/positive/line-directives.slang).
 
 Limits: 64 include levels, 128 macro nesting levels, and 100000 steps per
-expansion. `#if` uses signed i64 wrapping arithmetic; complete upstream
+expansion. `#if` uses signed 32-bit wrapping arithmetic; complete upstream
 signed/unsigned evaluation rules are not implemented.
 
 ## Declarations and types
 
 - Functions, prototypes, overloads, and `in`, `out`, `inout` parameters.
 - Global and local variables, and simple structures with fields.
-- `bool`, `int`, `uint`, `half`, `float`, `double`, and vectors with 1-4 components.
+- `bool`, `int`, `uint`, `int64_t`, `uint64_t`, `half`, `float`, `double`, and vectors with 1-4 components.
 - Scalar names `int32_t`, `uint32_t`, `float32_t`, and `float64_t` resolve to the
   corresponding native scalar types.
 - Matrix aliases such as `float2x3`, with 1-4 rows and 1-4 columns.
@@ -237,8 +250,14 @@ signed/unsigned evaluation rules are not implemented.
   `SamplerComparisonState`. Texture elements are half/float/int/uint scalar or
   vector types; omitting `T` selects `float4`.
 
-Pointers, 64-bit integers,
-and user-defined generics are not implemented.
+Pointers, pointer-sized integers, and user-defined generics are not implemented.
+
+Wide integer aliases include `int64_t2` and `uint64_t2x3`; numeric templates,
+constructors, casts, overloads, arrays, and structured buffers use the same
+canonical types. HLSL uses `vector<int64_t, N>` and `matrix<uint64_t, R, C>`.
+Overloaded functions involving wide integers receive distinct target names
+to preserve Slang's literal and conversion ranking. Mixed 64-bit arithmetic
+operands are explicitly converted to the checked common type.
 
 Modules, imports, reexports, and member files are described in
 [Modules and access control](modules.md). Globals, functions, structures, and
@@ -500,10 +519,11 @@ overflow. An iterative parser remains necessary for deeper upstream programs.
 
 ## Switches and control flow
 
-Switch selectors require scalar `int` or `uint`. Labels support integer
+Switch selectors require scalar 32-bit or 64-bit integers. Labels support integer
 literals, const bindings, unary/binary integer operations, conditional
-expressions, and scalar integer conversions. The evaluator tracks 32-bit signed
-and unsigned expression types. Duplicate values after selector conversion,
+expressions, and scalar integer conversions. The evaluator tracks 32-bit and
+64-bit signed and unsigned expression types, retaining unsigned bit patterns.
+Duplicate values after selector conversion,
 duplicate defaults, and nonconstant labels are rejected. Function calls in
 constant expressions and the complete upstream constant evaluator remain absent.
 Scalar integer and boolean global constants resolve forward references through
@@ -511,6 +531,15 @@ their checked dependencies, including imported declarations. Cyclic integer
 initializers are rejected even when the reference occurs in an inactive branch.
 Checked case labels are emitted as integer literals after selector conversion,
 including labels derived from local static const bindings.
+
+Unsigned 64-bit division, remainder, right shifts, and comparisons preserve
+their operand types. This differs from a verified upstream constant-folding
+behavior: the pinned `slang-ir-sccp.cpp` dispatches comparisons by their boolean
+result type and compares signed `intVal` operands, while `slang-ast-val.cpp`
+also uses signed comparisons. Values with bit 63 set can therefore compare
+differently after upstream folding. The differential corpus checks both exact
+results with separate goldens for the five affected words. Full constant-folding
+and execution parity remain incomplete.
 
 Consecutive labels and fallthrough are preserved. `break` exits the nearest
 loop or switch; `continue` requires a surrounding loop, including when nested

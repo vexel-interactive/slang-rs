@@ -48,9 +48,13 @@ impl Checker {
                         .map(|expr| {
                             let ty = self.expression(expr);
                             let value = match ty {
-                                Type::Scalar(Scalar::Int | Scalar::Uint | Scalar::Bool) => {
-                                    self.integer_constant(expr)
-                                }
+                                Type::Scalar(
+                                    Scalar::Int
+                                    | Scalar::Uint
+                                    | Scalar::Int64
+                                    | Scalar::Uint64
+                                    | Scalar::Bool,
+                                ) => self.integer_constant(expr),
                                 Type::Scalar(Scalar::Half | Scalar::Float | Scalar::Double) => {
                                     self.constant_conversion(expr)
                                 }

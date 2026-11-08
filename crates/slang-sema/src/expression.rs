@@ -21,6 +21,42 @@ impl Checker {
     }
 
     pub fn expression(&mut self, expression: &Expr) -> Type {
+        match slang_syntax::integer_literal(expression) {
+            Ok(Some(literal)) => {
+                let scalar = match literal.kind {
+                    slang_lexer::IntegerKind::Int => Scalar::Int,
+                    slang_lexer::IntegerKind::Uint => Scalar::Uint,
+                    slang_lexer::IntegerKind::Int64 => Scalar::Int64,
+                    slang_lexer::IntegerKind::Uint64 => Scalar::Uint64,
+                };
+                if literal.signed_overflow
+                    && !self
+                        .diagnostics
+                        .iter()
+                        .any(|d| d.code == "T030" && d.span == expression.span)
+                {
+                    self.diagnostics.push(Diagnostic::warning(
+                        "T030",
+                        expression.span,
+                        "integer literal exceeds the signed range; interpreting as unsigned",
+                    ));
+                }
+                let ty = Type::Scalar(scalar);
+                self.expression_types.insert(expression.id, ty.clone());
+                return ty;
+            }
+            Err(error) => {
+                let (code, message) = if error == slang_lexer::IntegerLiteralError::Pointer {
+                    ("T001", "pointer-sized integer literals are not implemented")
+                } else {
+                    ("T010", "invalid or overflowing integer literal")
+                };
+                self.error(code, expression.span, message);
+                self.expression_types.insert(expression.id, Type::Error);
+                return Type::Error;
+            }
+            Ok(None) => {}
+        }
         let ty = match &expression.kind {
             ExprKind::InitializerList(values) => {
                 for value in values {
@@ -28,29 +64,7 @@ impl Checker {
                 }
                 Type::InitializerList
             }
-            ExprKind::Integer(text) => {
-                let digits = text.trim_end_matches(['u', 'U', 'l', 'L']);
-                let value = slang_lexer::integer_literal_value(text);
-                if text.to_ascii_lowercase().contains("ll") {
-                    self.error(
-                        "T001",
-                        expression.span,
-                        "64-bit integer literals are not implemented",
-                    );
-                }
-                let unsigned =
-                    text.contains(['u', 'U']) || value.is_some_and(|v| v > i32::MAX as u64);
-                if digits.starts_with('-') {
-                    self.error(
-                        "T010",
-                        expression.span,
-                        "negative __LINE__ values cannot form integer literals",
-                    );
-                } else if value.is_none_or(|v| v > u32::MAX as u64) {
-                    self.error("T010", expression.span, "integer literal exceeds 32 bits");
-                }
-                Type::Scalar(if unsigned { Scalar::Uint } else { Scalar::Int })
-            }
+            ExprKind::Integer(_) => unreachable!("integer literals handled above"),
             ExprKind::Float(text) => match slang_lexer::parse_float_literal(text) {
                 Ok(literal) => {
                     let scalar = match literal.kind {

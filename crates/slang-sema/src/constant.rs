@@ -16,7 +16,13 @@ impl Checker {
                     && variable.initializer.is_some()
                     && matches!(
                         self.declaration_types.get(&crate::span_key(variable.span)),
-                        Some(Type::Scalar(Scalar::Int | Scalar::Uint | Scalar::Bool))
+                        Some(Type::Scalar(
+                            Scalar::Int
+                                | Scalar::Uint
+                                | Scalar::Int64
+                                | Scalar::Uint64
+                                | Scalar::Bool
+                        ))
                     ))
                 .then_some((crate::span_key(variable.span), variable))
             })
@@ -76,12 +82,22 @@ impl Checker {
         self.current_module = previous_module;
     }
 
-    /// Fold the implemented scalar integer constant subset using 32-bit shapes.
+    /// Fold typed 32/64-bit integer constants, storing unsigned values as bits.
     pub(crate) fn integer_constant(&self, expr: &Expr) -> Option<i64> {
         self.integer_constant_mode(expr, false)
     }
 
     fn integer_constant_mode(&self, expr: &Expr, shape: bool) -> Option<i64> {
+        if let Ok(Some(literal)) = slang_syntax::integer_literal(expr) {
+            let value = literal.bits as i64;
+            return Some(if shape {
+                value
+            } else {
+                self.expression_types
+                    .get(&expr.id)
+                    .map_or(value, |ty| normalize(value, ty))
+            });
+        }
         if matches!(
             self.expression_types.get(&expr.id),
             Some(Type::Scalar(Scalar::Half | Scalar::Float | Scalar::Double))
@@ -89,7 +105,7 @@ impl Checker {
             return None;
         }
         let value = match &expr.kind {
-            ExprKind::Integer(text) => integer(text)?,
+            ExprKind::Integer(_) => return None,
             ExprKind::InitializerList(values) if values.len() == 1 => {
                 self.integer_constant_mode(&values[0], shape)?
             }
@@ -125,30 +141,53 @@ impl Checker {
                     return Some(1);
                 }
                 let mut b = self.integer_constant_mode(right, shape)?;
+                let common = self
+                    .expression_types
+                    .get(&left.id)
+                    .zip(self.expression_types.get(&right.id))
+                    .and_then(|(a, b)| Type::common(a, b));
                 if !shape
                     && !matches!(op.as_str(), "<<" | ">>")
-                    && let Some(common) = self
-                        .expression_types
-                        .get(&left.id)
-                        .zip(self.expression_types.get(&right.id))
-                        .and_then(|(a, b)| Type::common(a, b))
+                    && let Some(common) = &common
                 {
-                    a = normalize(a, &common);
-                    b = normalize(b, &common);
+                    a = normalize(a, common);
+                    b = normalize(b, common);
                 }
+                let operation_type = if matches!(op.as_str(), "<<" | ">>") {
+                    self.expression_types.get(&left.id)
+                } else {
+                    common.as_ref()
+                };
+                let unsigned64 =
+                    operation_type.is_some_and(|ty| ty.scalar() == Some(Scalar::Uint64));
+                let shift_bits = if shape
+                    || operation_type.is_some_and(|ty| {
+                        matches!(ty.scalar(), Some(Scalar::Int64 | Scalar::Uint64))
+                    }) {
+                    64
+                } else {
+                    32
+                };
                 match op.as_str() {
                     "+" => a.wrapping_add(b),
                     "-" => a.wrapping_sub(b),
                     "*" => a.wrapping_mul(b),
+                    "/" if unsigned64 => (a as u64).checked_div(b as u64)? as i64,
+                    "%" if unsigned64 => (a as u64).checked_rem(b as u64)? as i64,
                     "/" => a.checked_div(b)?,
                     "%" => a.checked_rem(b)?,
                     "&" => a & b,
                     "|" => a | b,
                     "^" => a ^ b,
-                    "<<" if (0..if shape { 64 } else { 32 }).contains(&b) => a << b,
-                    ">>" if (0..if shape { 64 } else { 32 }).contains(&b) => a >> b,
+                    "<<" if (0..shift_bits).contains(&b) => a << b,
+                    ">>" if (0..shift_bits).contains(&b) && unsigned64 => ((a as u64) >> b) as i64,
+                    ">>" if (0..shift_bits).contains(&b) => a >> b,
                     "==" => i64::from(a == b),
                     "!=" => i64::from(a != b),
+                    "<" if unsigned64 => i64::from((a as u64) < b as u64),
+                    "<=" if unsigned64 => i64::from((a as u64) <= b as u64),
+                    ">" if unsigned64 => i64::from((a as u64) > b as u64),
+                    ">=" if unsigned64 => i64::from((a as u64) >= b as u64),
                     "<" => i64::from(a < b),
                     "<=" => i64::from(a <= b),
                     ">" => i64::from(a > b),
@@ -173,7 +212,7 @@ impl Checker {
             ExprKind::Cast { value, .. } => self.constant_conversion_mode(value, shape)?,
             ExprKind::Call { callee, arguments }
                 if arguments.len() == 1
-                    && matches!(self.expression_types.get(&callee.id), Some(Type::Meta(target)) if matches!(target.as_ref(), Type::Scalar(Scalar::Int | Scalar::Uint | Scalar::Bool))) =>
+                    && matches!(self.expression_types.get(&callee.id), Some(Type::Meta(target)) if matches!(target.as_ref(), Type::Scalar(Scalar::Int | Scalar::Uint | Scalar::Int64 | Scalar::Uint64 | Scalar::Bool))) =>
             {
                 self.constant_conversion_mode(&arguments[0], shape)?
             }
@@ -201,8 +240,13 @@ impl Checker {
 
     fn constant_conversion_mode(&self, expr: &Expr, shape: bool) -> Option<i64> {
         if let Some(value) = self.floating_literal(expr) {
-            (value.is_finite() && value >= i32::MIN as f64 && value <= u32::MAX as f64)
-                .then_some(value as i64)
+            (value.is_finite() && value >= i64::MIN as f64 && value < 2.0_f64.powi(64)).then_some(
+                if value >= 2.0_f64.powi(63) {
+                    (value as u64) as i64
+                } else {
+                    value as i64
+                },
+            )
         } else {
             self.integer_constant_mode(expr, shape)
         }
@@ -320,8 +364,4 @@ pub(crate) fn normalize(value: i64, ty: &Type) -> i64 {
         Type::Scalar(Scalar::Bool) => i64::from(value != 0),
         _ => value,
     }
-}
-
-fn integer(text: &str) -> Option<i64> {
-    slang_lexer::integer_literal_value(text).and_then(|v| i64::try_from(v).ok())
 }

@@ -7,6 +7,7 @@ mod derivative;
 mod empty_array;
 mod geometric;
 mod initialization;
+mod integer;
 mod intrinsic;
 mod lower;
 mod matrix_resource;

@@ -336,20 +336,24 @@ fn builtin_cast_type(name: &str) -> bool {
             | "double"
             | "int32_t"
             | "uint32_t"
+            | "int64_t"
+            | "uint64_t"
             | "float32_t"
             | "float64_t"
     ) {
         return true;
     }
-    ["bool", "int", "uint", "half", "float", "double"]
-        .iter()
-        .any(|prefix| {
-            let Some(shape) = name.strip_prefix(prefix) else {
-                return false;
-            };
-            let dimension = |text: &str| text.parse::<u8>().is_ok_and(|n| (1..=4).contains(&n));
-            shape
-                .split_once('x')
-                .map_or_else(|| dimension(shape), |(r, c)| dimension(r) && dimension(c))
-        })
+    [
+        "bool", "int", "uint", "int64_t", "uint64_t", "half", "float", "double",
+    ]
+    .iter()
+    .any(|prefix| {
+        let Some(shape) = name.strip_prefix(prefix) else {
+            return false;
+        };
+        let dimension = |text: &str| text.parse::<u8>().is_ok_and(|n| (1..=4).contains(&n));
+        shape
+            .split_once('x')
+            .map_or_else(|| dimension(shape), |(r, c)| dimension(r) && dimension(c))
+    })
 }

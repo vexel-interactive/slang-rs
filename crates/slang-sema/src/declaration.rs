@@ -379,7 +379,7 @@ impl Checker {
             }
         }
         // Preserve selected overloads when module visibility, one-component
-        // shapes, or half/float types collapse under HLSL's overload rules.
+        // shapes, half/float types, or integer literal ranking differ in HLSL.
         let mut target_names = declaration_names(module);
         target_names.extend(self.symbols.keys().cloned());
         for (name, overloads) in &mut self.functions {
@@ -540,7 +540,13 @@ impl Checker {
             .filter(|_| {
                 matches!(
                     ty,
-                    Type::Scalar(crate::Scalar::Int | crate::Scalar::Uint | crate::Scalar::Bool)
+                    Type::Scalar(
+                        crate::Scalar::Int
+                            | crate::Scalar::Uint
+                            | crate::Scalar::Int64
+                            | crate::Scalar::Uint64
+                            | crate::Scalar::Bool
+                    )
                 )
             })
             .filter(|_| variable.modifiers.iter().any(|m| m == "const"))
@@ -550,7 +556,13 @@ impl Checker {
             && variable.modifiers.iter().any(|m| m == "const")
             && matches!(
                 ty,
-                Type::Scalar(crate::Scalar::Int | crate::Scalar::Uint | crate::Scalar::Bool)
+                Type::Scalar(
+                    crate::Scalar::Int
+                        | crate::Scalar::Uint
+                        | crate::Scalar::Int64
+                        | crate::Scalar::Uint64
+                        | crate::Scalar::Bool
+                )
             ) {
             variable
                 .initializer
@@ -601,9 +613,11 @@ impl Checker {
 
 fn collapsed_hlsl_type(ty: &Type) -> bool {
     match ty {
-        Type::Scalar(crate::Scalar::Half)
-        | Type::Vector(crate::Scalar::Half, _)
-        | Type::Matrix(crate::Scalar::Half, _, _) => true,
+        Type::Scalar(crate::Scalar::Half | crate::Scalar::Int64 | crate::Scalar::Uint64)
+        | Type::Vector(crate::Scalar::Half | crate::Scalar::Int64 | crate::Scalar::Uint64, _)
+        | Type::Matrix(crate::Scalar::Half | crate::Scalar::Int64 | crate::Scalar::Uint64, _, _) => {
+            true
+        }
         Type::Vector(_, 1) | Type::Matrix(_, 1, _) | Type::Matrix(_, _, 1) => true,
         Type::Array(element, _)
         | Type::Buffer { element, .. }

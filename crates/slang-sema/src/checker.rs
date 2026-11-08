@@ -44,7 +44,7 @@ pub struct CheckedModule {
     /// Integer case values after conversion to their switch selector type.
     pub case_values: BTreeMap<ExprId, i64>,
     pub entry_point_requirements: BTreeMap<String, crate::EntryPointRequirements>,
-    /// Checked scalar integer and boolean global constant values.
+    /// Checked scalar integer and boolean constants; uint64 values store bits.
     pub global_constants: BTreeMap<SpanKey, i64>,
     /// Allocated resource ranges, keyed by their source declarations.
     pub resource_bindings: BTreeMap<SpanKey, slang_layout::ResourceBinding>,
@@ -63,6 +63,7 @@ pub fn span_key(span: Span) -> SpanKey {
 pub(crate) struct Binding {
     pub ty: Type,
     pub writable: bool,
+    /// Integer values use signed storage; the binding type determines the sign.
     pub constant: Option<i64>,
     /// Template dimensions use upstream's wider integer intermediates.
     pub shape_constant: Option<i64>,
@@ -325,7 +326,11 @@ fn check_with_metadata(
                     && matches!(
                         binding.ty,
                         Type::Scalar(
-                            crate::Scalar::Int | crate::Scalar::Uint | crate::Scalar::Bool
+                            crate::Scalar::Int
+                                | crate::Scalar::Uint
+                                | crate::Scalar::Int64
+                                | crate::Scalar::Uint64
+                                | crate::Scalar::Bool
                         )
                     )
                 {

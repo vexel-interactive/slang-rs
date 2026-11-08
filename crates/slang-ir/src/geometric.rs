@@ -39,7 +39,13 @@ impl Visitor for Lowerer {
             || name == "dot"
                 && matches!(
                     expression.ty.scalar(),
-                    Some(Scalar::Int | Scalar::Uint | Scalar::Double)
+                    Some(
+                        Scalar::Int
+                            | Scalar::Uint
+                            | Scalar::Int64
+                            | Scalar::Uint64
+                            | Scalar::Double
+                    )
                 )
         {
             let parameter = &arguments[0].ty;

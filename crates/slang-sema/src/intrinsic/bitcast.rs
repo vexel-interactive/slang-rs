@@ -40,7 +40,7 @@ pub(crate) fn signature(name: &str, types: &[Type]) -> Option<Signature> {
         Scalar::Bool => input.with_scalar(Scalar::Int),
         Scalar::Half => input.with_scalar(Scalar::Float),
         Scalar::Int | Scalar::Uint | Scalar::Float => input.clone(),
-        Scalar::Double => return None,
+        Scalar::Double | Scalar::Int64 | Scalar::Uint64 => return None,
     };
     Some(Signature {
         parameters: vec![parameter],

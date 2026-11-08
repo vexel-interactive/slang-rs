@@ -5,10 +5,12 @@ mod binding;
 mod constant_buffer;
 mod declaration;
 mod expression;
+mod literal;
 mod module;
 mod parser;
 mod statement;
 mod visibility;
 
 pub use ast::*;
+pub use literal::integer_literal;
 pub use parser::parse;

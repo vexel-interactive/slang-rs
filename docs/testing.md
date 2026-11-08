@@ -16,6 +16,15 @@ character corpus transcribes all 55 values from the pinned frontend value test;
 the DXIL comparator checks those words and four context results in both
 compilers' artifacts.
 
+Wide-integer fixtures transcribe 86 non-pointer boundary and prefix cases from
+the pinned integer literal type tests, including additional suffix/context cases.
+DXC verifies 40 words from 64-bit arithmetic, casts, signed minima, and shapes.
+Five words differ because upstream folds high-bit unsigned comparisons as signed;
+both artifacts must match their explicit goldens. Dynamic buffer tests cover
+wide vectors, matrices, overloads, constructors, switches, and geometric/math
+operations. Reflection and DXC independently verify a 120-byte constant buffer,
+including eight-byte component alignment, matrix stride and array tails.
+
 `tools/check.ps1` runs rustfmt, Clippy, workspace tests, and rustdoc using Rust
 1.99.1. Tests cover precedence, scopes, const/read-only locations, overloads,
 macro recursion and operators, include guards, diagnostic locations, IR lowering,

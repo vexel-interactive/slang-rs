@@ -1,4 +1,4 @@
-use slang_sema::Type;
+use slang_sema::{Scalar, Type};
 
 /// HLSL reserves words that remain valid identifiers in the Slang frontend.
 /// Prefixing existing generated-name prefixes keeps this mapping injective.
@@ -128,16 +128,31 @@ fn reserved(name: &str) -> bool {
 
 pub(crate) fn type_name(ty: &Type) -> String {
     match ty {
+        Type::Vector(s @ (Scalar::Int64 | Scalar::Uint64), n) => format!("vector<{s}, {n}>"),
+        Type::Matrix(s @ (Scalar::Int64 | Scalar::Uint64), rows, columns) => {
+            format!("matrix<{s}, {rows}, {columns}>")
+        }
         Type::Struct(name) => identifier(name),
-        Type::ConstantBuffer { element, .. } => format!("ConstantBuffer<{}>", type_name(element)),
+        Type::ConstantBuffer { element, .. } => {
+            format!("ConstantBuffer<{}>", template_element(element))
+        }
         Type::Array(element, length) => format!("{}[{length}]", type_name(element)),
         Type::Buffer {
             element, writable, ..
         } => format!(
             "{}StructuredBuffer<{}>",
             if *writable { "RW" } else { "" },
-            type_name(element)
+            template_element(element)
         ),
         _ => ty.to_string(),
     }
+}
+
+// HLSL's parser treats adjacent template closers as a shift token.
+fn template_element(ty: &Type) -> String {
+    let mut text = type_name(ty);
+    if text.ends_with('>') {
+        text.push(' ');
+    }
+    text
 }

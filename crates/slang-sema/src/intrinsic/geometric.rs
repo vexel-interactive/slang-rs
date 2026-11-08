@@ -39,7 +39,7 @@ pub(crate) fn signature(name: &str, types: &[Type]) -> Option<Signature> {
         arithmetic_component(types)?
     } else {
         match types.iter().filter_map(Type::scalar).max()? {
-            Scalar::Int | Scalar::Uint => Scalar::Float,
+            Scalar::Int | Scalar::Uint | Scalar::Int64 | Scalar::Uint64 => Scalar::Float,
             scalar => scalar,
         }
     };

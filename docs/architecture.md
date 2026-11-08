@@ -31,7 +31,11 @@ complete, with cached bindings and bounded cycle checks. Temporary global
 bindings preserve local lexical priority, isolate global initializers from caller
 locals, and restore the ordinary checker environment after folding. Shape
 constants use 64-bit intermediate arithmetic, matching upstream's type-level
-folding; ordinary shader constants retain their checked 32-bit arithmetic.
+folding; ordinary shader constants retain their checked 32-bit or 64-bit types.
+Unsigned 64-bit constants store their bit pattern in signed storage; division,
+remainder, comparisons and right shifts interpret it through the checked type.
+Literal width and signed-minimum selection are shared between syntax checking
+and IR lowering. Target integer literals explicitly preserve the selected width.
 
 Matrix storage qualifiers are separate from algebraic matrix value types.
 Semantic checking records declaration and alias layouts and normalizes qualified

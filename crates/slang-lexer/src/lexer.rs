@@ -236,10 +236,7 @@ impl Lexer<'_> {
                     | "FL"
             )
         } else {
-            matches!(
-                suffix.to_ascii_lowercase().as_str(),
-                "" | "u" | "l" | "ul" | "lu" | "ll" | "ull" | "llu"
-            )
+            crate::parse_integer_suffix(suffix).is_some()
         };
         if !valid_suffix {
             self.diagnostics.push(Diagnostic::error(

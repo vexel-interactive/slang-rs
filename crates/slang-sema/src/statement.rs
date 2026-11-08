@@ -52,7 +52,11 @@ impl Checker {
                     matches!(
                         self.declaration_types.get(&crate::span_key(variable.span)),
                         Some(Type::Scalar(
-                            crate::Scalar::Int | crate::Scalar::Uint | crate::Scalar::Bool
+                            crate::Scalar::Int
+                                | crate::Scalar::Uint
+                                | crate::Scalar::Int64
+                                | crate::Scalar::Uint64
+                                | crate::Scalar::Bool
                         ))
                     )
                 })
@@ -222,12 +226,17 @@ impl Checker {
                 let ty = self.expression(selector);
                 if !matches!(
                     ty,
-                    Type::Scalar(crate::Scalar::Int | crate::Scalar::Uint) | Type::Error
+                    Type::Scalar(
+                        crate::Scalar::Int
+                            | crate::Scalar::Uint
+                            | crate::Scalar::Int64
+                            | crate::Scalar::Uint64
+                    ) | Type::Error
                 ) {
                     self.error(
                         "T009",
                         selector.span,
-                        "switch selector requires scalar int or uint",
+                        "switch selector requires a scalar integer",
                     );
                 }
                 self.switches += 1;
@@ -240,7 +249,12 @@ impl Checker {
                         let value_type = self.expression(value);
                         if !matches!(
                             value_type,
-                            Type::Scalar(crate::Scalar::Int | crate::Scalar::Uint) | Type::Error
+                            Type::Scalar(
+                                crate::Scalar::Int
+                                    | crate::Scalar::Uint
+                                    | crate::Scalar::Int64
+                                    | crate::Scalar::Uint64
+                            ) | Type::Error
                         ) {
                             self.error(
                                 "T017",

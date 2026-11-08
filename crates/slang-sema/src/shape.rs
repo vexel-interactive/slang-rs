@@ -80,8 +80,12 @@ impl Checker {
         self.scopes = vec![std::mem::take(&mut scopes[0])];
         let ty = self.resolve_type(&variable.ty);
         let constant = if variable.modifiers.iter().any(|m| m == "const")
-            && matches!(ty, Type::Scalar(Scalar::Int | Scalar::Uint | Scalar::Bool))
-        {
+            && matches!(
+                ty,
+                Type::Scalar(
+                    Scalar::Int | Scalar::Uint | Scalar::Int64 | Scalar::Uint64 | Scalar::Bool
+                )
+            ) {
             variable.initializer.as_ref().and_then(|initializer| {
                 self.prepare_shape_names(initializer);
                 let saved = self.install_shape_bindings(initializer);

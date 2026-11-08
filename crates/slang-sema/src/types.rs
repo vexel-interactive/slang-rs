@@ -6,6 +6,8 @@ pub enum Scalar {
     Bool,
     Int,
     Uint,
+    Int64,
+    Uint64,
     Half,
     Float,
     Double,
@@ -121,6 +123,8 @@ impl Type {
             return Some(Self::Void);
         }
         for (prefix, scalar) in [
+            ("int64_t", Scalar::Int64),
+            ("uint64_t", Scalar::Uint64),
             ("bool", Scalar::Bool),
             ("int", Scalar::Int),
             ("uint", Scalar::Uint),
@@ -225,7 +229,10 @@ impl Type {
         }
     }
     pub fn integral(&self) -> bool {
-        matches!(self.scalar(), Some(Scalar::Int | Scalar::Uint))
+        matches!(
+            self.scalar(),
+            Some(Scalar::Int | Scalar::Uint | Scalar::Int64 | Scalar::Uint64)
+        )
     }
 
     pub fn value_type(&self) -> &Self {
@@ -240,6 +247,42 @@ impl Type {
             0
         } else if matches!(self, Self::ConstantBuffer { .. }) && !target.is_resource() {
             1 + usize::from(self.value_type() != target)
+        } else if let (Some(from), Some(to)) = (self.scalar(), target.scalar()) {
+            let info = |scalar| match scalar {
+                Scalar::Bool => (0, 1),
+                Scalar::Int => (1, 32),
+                Scalar::Int64 => (1, 64),
+                Scalar::Uint => (2, 32),
+                Scalar::Uint64 => (2, 64),
+                Scalar::Half => (3, 16),
+                Scalar::Float => (3, 32),
+                Scalar::Double => (3, 64),
+            };
+            let (from_kind, from_bits) = info(from);
+            let (to_kind, to_bits) = info(to);
+            // Core scalar conversion costs, before scalar/shape conversion.
+            let cost = if from == to {
+                0
+            } else if from_kind == to_kind && to_bits > from_bits {
+                150
+            } else if from_kind == 2 && to_kind == 1 && to_bits > from_bits {
+                200
+            } else if from_kind == 1 && to_kind == 2 && to_bits >= from_bits {
+                250
+            } else if from_kind == 2 && to_kind == 1 && to_bits == from_bits {
+                300
+            } else if matches!(from_kind, 1 | 2) && to_kind == 3 {
+                if to_bits == 16 { 500 } else { 400 }
+            } else {
+                900
+            };
+            cost + if matches!(self, Self::Scalar(_))
+                && matches!(target, Self::Vector(..) | Self::Matrix(..))
+            {
+                2
+            } else {
+                usize::from(self != target && from == to)
+            }
         } else {
             1
         }
@@ -330,6 +373,8 @@ impl fmt::Display for Scalar {
             Self::Bool => "bool",
             Self::Int => "int",
             Self::Uint => "uint",
+            Self::Int64 => "int64_t",
+            Self::Uint64 => "uint64_t",
             Self::Half => "half",
             Self::Float => "float",
             Self::Double => "double",

@@ -367,21 +367,7 @@ fn expression(expr: &Expr) -> String {
                 format!("{{{values}}}")
             }
         }
-        ExprKind::Integer(text) => {
-            if text.contains(['l', 'L']) {
-                let digits = text.trim_end_matches(['u', 'U', 'l', 'L']);
-                format!(
-                    "{digits}{}",
-                    if expr.ty.scalar() == Some(slang_sema::Scalar::Uint) {
-                        "u"
-                    } else {
-                        ""
-                    }
-                )
-            } else {
-                text.clone()
-            }
-        }
+        ExprKind::Integer(text) => text.clone(),
         ExprKind::Float(text) => floating_literal(text),
         ExprKind::Name(name) | ExprKind::GlobalName(name) => identifier(name),
         ExprKind::Bool(value) => value.to_string(),
@@ -396,12 +382,12 @@ fn expression(expr: &Expr) -> String {
                 && matches!(expr.ty, Type::Vector(..) | Type::Matrix(..))
                 && matches!(arguments[0].ty, Type::Scalar(_)) =>
         {
-            format!("(({}){})", expr.ty, expression(&arguments[0]))
+            format!("(({}){})", type_name(&expr.ty), expression(&arguments[0]))
         }
         ExprKind::Call { name, arguments } => format!(
             "{}({})",
             if Type::builtin(name).is_some() {
-                name.clone()
+                type_name(&expr.ty)
             } else {
                 identifier(name)
             },

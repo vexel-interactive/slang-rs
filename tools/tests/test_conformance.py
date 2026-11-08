@@ -8,6 +8,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from conformance import compare_bindings, compare_results, normalize_bindings, normalize_global_uniform_binding, normalize_uniform_artifact_binding, normalize_uniform_locations, compare_uniform_locations, compare_dxc_uniform_layouts, normalize_dxc_uniform_layouts
 from conformance import target_buffer_layouts
 from conformance import normalize_dxc_constant_stores
+from conformance import expected_constant_stores
 
 
 def result(accepted, stderr=""):
@@ -15,6 +16,15 @@ def result(accepted, stderr=""):
 
 
 class ConformanceComparison(unittest.TestCase):
+    def test_documented_constant_differences_require_both_exact_goldens(self):
+        case = {"dxc_constant_stores": {"0": 1}, "oracle_dxc_constant_stores": {"0": 0}, "reason": "Pinned SCCP compares integer bits as signed for boolean results."}
+        self.assertEqual(expected_constant_stores(case, "rust"), {"0": 1})
+        self.assertEqual(expected_constant_stores(case, "oracle"), {"0": 0})
+        self.assertEqual(expected_constant_stores({"dxc_constant_stores": {"0": 1}}, "oracle"), {"0": 1})
+        for invalid in [{"oracle_dxc_constant_stores": {"0": 0}}, {"dxc_constant_stores": {"0": 1}, "oracle_dxc_constant_stores": {"0": 0}}]:
+            with self.assertRaises(ValueError):
+                expected_constant_stores(invalid, "oracle")
+
     def test_constant_stores_require_exact_values_and_valid_hlsl(self):
         dump = "call void @dx.op.bufferStore.i32(i32 69, %dx.types.Handle %1, i32 2, i32 0, i32 -1, i32 undef, i32 undef, i32 undef, i8 1)"
         self.assertEqual(normalize_dxc_constant_stores(dump), {"2": 0xffffffff})

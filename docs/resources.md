@@ -153,8 +153,8 @@ Unused uniforms retain their offsets. Root-module values precede imported values
 in both the emitted buffer and reflection. Private storage and structured-buffer
 elements do not receive constant-buffer layouts.
 
-These layouts follow legacy DXC packing: 32-bit scalars use four bytes, doubles
-use eight, and vectors align to their components. A value that would cross a
+These layouts follow legacy DXC packing: 32-bit scalars use four bytes; doubles,
+`int64_t`, and `uint64_t` use eight. Vectors align to their components. A value that would cross a
 16-byte boundary starts at the next boundary. Structs and arrays start on
 16-byte boundaries, but their final size is not rounded up. For example,
 `float2 values[2]` occupies 24 bytes with a stride of 16; a following float can

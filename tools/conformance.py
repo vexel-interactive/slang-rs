@@ -70,6 +70,16 @@ def normalize_dxc_constant_stores(dump):
     return stores
 
 
+def expected_constant_stores(case, compiler):
+    """Require separate exact goldens and a reason for known oracle differences."""
+    if "oracle_dxc_constant_stores" in case:
+        if "dxc_constant_stores" not in case or not case.get("reason"):
+            raise ValueError("oracle constant differences require native values and a reason")
+        if compiler == "oracle":
+            return case["oracle_dxc_constant_stores"]
+    return case["dxc_constant_stores"]
+
+
 def normalize_bindings(reflection, compiler):
     """Compare direct global resource ranges without claiming uniform byte layout."""
     result = {}
@@ -274,7 +284,7 @@ def main():
                         dump = run([str(args.dxc.resolve()), "-dumpbin", str(output.with_suffix(".dxil"))])
                         try:
                             validation["constant_stores_actual"] = normalize_dxc_constant_stores(dump["stdout"])
-                            validation["constant_stores_passed"] = dump["accepted"] and validation["constant_stores_actual"] == case["dxc_constant_stores"]
+                            validation["constant_stores_passed"] = dump["accepted"] and validation["constant_stores_actual"] == expected_constant_stores(case, compiler)
                         except ValueError as error:
                             validation["constant_stores_error"] = str(error)
                 validators.append(validation)

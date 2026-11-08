@@ -32,7 +32,10 @@ pub(crate) fn signature(name: &str, types: &[Type]) -> Option<Signature> {
         return None;
     }
     let scalar = target.scalar()?;
-    if matches!(scalar, Scalar::Int | Scalar::Uint) {
+    if matches!(
+        scalar,
+        Scalar::Int | Scalar::Uint | Scalar::Int64 | Scalar::Uint64
+    ) {
         target = target.with_scalar(Scalar::Float);
     }
     let output = if name == "frexp" {

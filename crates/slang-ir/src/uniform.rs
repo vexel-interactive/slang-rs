@@ -233,7 +233,11 @@ fn layout_name(ty: &Type, row: bool) -> String {
 
 fn component_bytes(scalar: Scalar) -> u32 {
     // HLSL half uses 32-bit storage without DXC's enable-16bit-types option.
-    if scalar == Scalar::Double { 8 } else { 4 }
+    if matches!(scalar, Scalar::Double | Scalar::Int64 | Scalar::Uint64) {
+        8
+    } else {
+        4
+    }
 }
 
 fn error(span: Span, error: UniformLayoutError) -> Diagnostic {

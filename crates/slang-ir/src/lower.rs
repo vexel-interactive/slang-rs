@@ -64,10 +64,7 @@ pub fn lower(checked: &CheckedModule) -> Result<Module, Diagnostic> {
                 if let Some(&value) = checked.global_constants.get(&span_key(variable.span)) {
                     let kind = match global.ty {
                         Type::Scalar(slang_sema::Scalar::Bool) => ExprKind::Bool(value != 0),
-                        Type::Scalar(slang_sema::Scalar::Uint) => {
-                            ExprKind::Integer(format!("{value}u"))
-                        }
-                        _ => ExprKind::Integer(value.to_string()),
+                        _ => ExprKind::Integer(crate::integer::literal_text(value, &global.ty)),
                     };
                     global.initializer = Some(Expr {
                         ty: global.ty.clone(),
@@ -268,13 +265,9 @@ impl Lowerer<'_> {
                                         .cloned()
                                         .ok_or_else(|| error(selector.span))?;
                                     Ok(Expr {
-                                        kind: ExprKind::Integer(
-                                            if ty == Type::Scalar(slang_sema::Scalar::Uint) {
-                                                format!("{constant}u")
-                                            } else {
-                                                constant.to_string()
-                                            },
-                                        ),
+                                        kind: ExprKind::Integer(crate::integer::literal_text(
+                                            *constant, &ty,
+                                        )),
                                         ty,
                                         span: value.span,
                                     })
@@ -330,6 +323,13 @@ impl Lowerer<'_> {
             .filter(|t| **t != Type::Error)
             .cloned()
             .ok_or_else(|| error(expression.span))?;
+        if let Ok(Some(literal)) = ast::integer_literal(expression) {
+            return Ok(Expr {
+                kind: ExprKind::Integer(crate::integer::literal_text(literal.bits as i64, &ty)),
+                ty,
+                span: expression.span,
+            });
+        }
         let kind = match &expression.kind {
             ast::ExprKind::InitializerList(_) => {
                 let value = self
@@ -356,11 +356,52 @@ impl Lowerer<'_> {
             ast::ExprKind::Cast { value, .. } => ExprKind::Cast {
                 value: Box::new(self.expression(value)?),
             },
-            ast::ExprKind::Binary { op, left, right } => ExprKind::Binary {
-                op: op.clone(),
-                left: Box::new(self.expression(left)?),
-                right: Box::new(self.expression(right)?),
-            },
+            ast::ExprKind::Binary { op, left, right } => {
+                let mut left = self.expression(left)?;
+                let mut right = self.expression(right)?;
+                // DXC promotes mixed signed-64/unsigned-32 operands differently.
+                // Preserve the component and shape selected by semantic checking.
+                if !matches!(
+                    op.as_str(),
+                    "=" | "+="
+                        | "-="
+                        | "*="
+                        | "/="
+                        | "%="
+                        | "&="
+                        | "|="
+                        | "^="
+                        | "<<="
+                        | ">>="
+                        | "<<"
+                        | ">>"
+                        | ","
+                        | "&&"
+                        | "||"
+                ) && let Some(common) = Type::common(&left.ty, &right.ty)
+                    && matches!(
+                        common.scalar(),
+                        Some(slang_sema::Scalar::Int64 | slang_sema::Scalar::Uint64)
+                    )
+                {
+                    for argument in [&mut left, &mut right] {
+                        if argument.ty != common {
+                            *argument = Expr {
+                                ty: common.clone(),
+                                span: argument.span,
+                                kind: ExprKind::Cast {
+                                    value: Box::new(argument.clone()),
+                                },
+                            };
+                        }
+                    }
+                }
+                ExprKind::Binary {
+                    op: op.clone(),
+                    left: Box::new(left),
+                    right: Box::new(right),
+                }
+            }
             ast::ExprKind::Call { callee, arguments } => {
                 if let Some(value) = self.checked.initializations.get(&callee.id) {
                     return self.planned_initialization(callee.id, value, expression.span);

@@ -1,0 +1,95 @@
+// Boundary cases transcribed from the pinned frontend integer literal type tests.
+uint getType(int x){return 1;}
+uint getType(uint x){return 2;}
+uint getType(int64_t x){return 3;}
+uint getType(uint64_t x){return 4;}
+RWStructuredBuffer<uint> output;
+[shader("compute")][numthreads(1,1,1)]void main()
+{
+    output[0]=getType(0);
+    output[1]=getType(2147483647);
+    output[2]=getType(2147483648);
+    output[3]=getType(9223372036854775807);
+    output[4]=getType(9223372036854775808);
+    output[5]=getType(18446744073709551615);
+    output[6]=getType(0x0);
+    output[7]=getType(0x7FFFFFFF);
+    output[8]=getType(0x80000000);
+    output[9]=getType(0xFFFFFFFF);
+    output[10]=getType(0x100000000);
+    output[11]=getType(0x7FFFFFFFFFFFFFFF);
+    output[12]=getType(0x8000000000000000);
+    output[13]=getType(0xFFFFFFFFFFFFFFFF);
+    output[14]=getType(0b0);
+    output[15]=getType(0b1111111111111111111111111111111);
+    output[16]=getType(0b10000000000000000000000000000000);
+    output[17]=getType(0b1000000000000000000000000000000000000000000000000000000000000000);
+    output[18]=getType(017777777777);
+    output[19]=getType(020000000000);
+    output[20]=getType(040000000000);
+    output[21]=getType(01000000000000000000000);
+    output[22]=getType(0L);
+    output[23]=getType(2147483647L);
+    output[24]=getType(2147483648L);
+    output[25]=getType(9223372036854775807L);
+    output[26]=getType(9223372036854775808L);
+    output[27]=getType(18446744073709551615L);
+    output[28]=getType(0x0L);
+    output[29]=getType(0x7FFFFFFFL);
+    output[30]=getType(0x80000000L);
+    output[31]=getType(0xFFFFFFFFL);
+    output[32]=getType(0x100000000L);
+    output[33]=getType(0x7FFFFFFFFFFFFFFFL);
+    output[34]=getType(0x8000000000000000L);
+    output[35]=getType(0xFFFFFFFFFFFFFFFFL);
+    output[36]=getType(0LL);
+    output[37]=getType(9223372036854775807LL);
+    output[38]=getType(9223372036854775808LL);
+    output[39]=getType(18446744073709551615LL);
+    output[40]=getType(0x0LL);
+    output[41]=getType(0x7FFFFFFFFFFFFFFFLL);
+    output[42]=getType(0x8000000000000000LL);
+    output[43]=getType(0xFFFFFFFFFFFFFFFFLL);
+    output[44]=getType(0U);
+    output[45]=getType(4294967295U);
+    output[46]=getType(0UL);
+    output[47]=getType(4294967295UL);
+    output[48]=getType(0LU);
+    output[49]=getType(4294967295LU);
+    output[50]=getType(0x0U);
+    output[51]=getType(0xFFFFFFFFU);
+    output[52]=getType(4294967296U);
+    output[53]=getType(18446744073709551615U);
+    output[54]=getType(4294967296UL);
+    output[55]=getType(18446744073709551615UL);
+    output[56]=getType(4294967296LU);
+    output[57]=getType(18446744073709551615LU);
+    output[58]=getType(0x100000000U);
+    output[59]=getType(0xFFFFFFFFFFFFFFFFU);
+    output[60]=getType(0ULL);
+    output[61]=getType(18446744073709551615ULL);
+    output[62]=getType(0LLU);
+    output[63]=getType(18446744073709551615LLU);
+    output[64]=getType(0x0ULL);
+    output[65]=getType(0xFFFFFFFFFFFFFFFFULL);
+    output[66]=getType(-2147483648);
+    output[67]=getType(-9223372036854775808);
+    output[68]=getType(-2147483648L);
+    output[69]=getType(-9223372036854775808L);
+    output[70]=getType(-2147483648LL);
+    output[71]=getType(-9223372036854775808LL);
+    output[72]=getType(2147483648);
+    output[73]=getType(-2147483648);
+    output[74]=getType(+2147483648);
+    output[75]=getType(~2147483648);
+    output[76]=getType(1ull);
+    output[77]=getType(1Ull);
+    output[78]=getType(1LLu);
+    output[79]=getType(1llu);
+    output[80]=getType(1l);
+    output[81]=getType(1Lu);
+    output[82]=getType(-(2147483648));
+    output[83]=getType(- +2147483648);
+    output[84]=getType(~ -9223372036854775808);
+    output[85]=getType(-(9223372036854775808));
+}
