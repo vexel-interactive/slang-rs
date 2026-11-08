@@ -86,6 +86,11 @@ visibility, member files, empty elements, duplicate buffer names, and invalid
 writes or output arguments. Differential fixtures compare the buffers' resource
 bindings and field byte layouts. Native DXC buffer definitions independently
 verify those layouts using target buffer names from reflection.
+Packoffset tests include explicit-first placement, overlaps, decimal
+normalization, arrays, unaligned double storage, imports, static members, and
+invalid contexts. A crossing vector offset is accepted by both frontends and
+rejected by DXC; its rejection is checked explicitly rather than counted as a
+valid shader artifact.
 
 Discard tests cover fragment HLSL, clip signatures, selected overloads, unused
 defaults, imported source locations, and stage propagation through calls,

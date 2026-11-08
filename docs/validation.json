@@ -6,7 +6,7 @@
     "rustfmt": "passed",
     "clippy_all_targets_warnings_denied": "passed",
     "unit_tests": 27,
-    "integration_tests": 243,
+    "integration_tests": 247,
     "doc_tests": 1,
     "conformance_comparison_tests": 17,
     "rustdoc": "passed",
@@ -15,12 +15,12 @@
   },
   "differential_validation": {
     "oracle": "Slang 2026.21",
-    "cases_passed": 363,
-    "cases_total": 363,
-    "matching_acceptance_cases": 352,
+    "cases_passed": 370,
+    "cases_total": 370,
+    "matching_acceptance_cases": 359,
     "documented_oracle_differences": 11,
-    "dxc_hlsl_artifacts_validated": 381,
-    "dxc_invalid_hlsl_artifacts_rejected": 12,
+    "dxc_hlsl_artifacts_validated": 385,
+    "dxc_invalid_hlsl_artifacts_rejected": 14,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
     "profiles": [
@@ -32,7 +32,7 @@
     "documented_oracle_artifact_differences": 1,
     "resource_binding_cases_compared": 27,
     "global_uniform_binding_cases_compared": 14,
-    "uniform_byte_layout_cases_compared": 10
+    "uniform_byte_layout_cases_compared": 13
   },
   "remote_ci_executed": false,
   "remote_ci": null,
@@ -329,7 +329,7 @@
   },
   "native_hlsl_suite": {
     "manifest": "tests/native/manifest.json",
-    "artifacts_validated": 16,
+    "artifacts_validated": 18,
     "profiles": [
       "cs_6_0",
       "ps_6_0"
@@ -352,9 +352,11 @@
       "../conformance/positive/cbuffer-multiple.slang",
       "../conformance/positive/cbuffer-defaults.slang",
       "../conformance/positive/cbuffer-static.slang",
-      "../conformance/positive/cbuffer-module/main.slang"
+      "../conformance/positive/cbuffer-module/main.slang",
+      "../conformance/positive/cbuffer-packoffset.slang",
+      "../conformance/positive/cbuffer-packed-array.slang"
     ],
-    "uniform_byte_layout_cases": 9,
+    "uniform_byte_layout_cases": 11,
     "matrix_layout_shapes": 48
   }
 }

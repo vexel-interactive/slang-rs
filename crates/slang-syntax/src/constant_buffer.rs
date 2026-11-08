@@ -9,8 +9,8 @@ impl Parser {
         modifiers: Vec<String>,
     ) -> Result<Vec<Declaration>, Diagnostic> {
         let name = self.identifier()?;
-        let (semantic, register) = self.annotations()?;
-        if semantic.is_some() {
+        let annotations = self.annotations()?;
+        if annotations.semantic.is_some() || annotations.pack_offset.is_some() {
             return Err(self
                 .error("cbuffer declarations require register annotations rather than semantics"));
         }
@@ -28,6 +28,7 @@ impl Parser {
                     name: field.name.clone(),
                     variable_name: field.name.clone(),
                     static_storage,
+                    pack_offset: field.pack_offset,
                     span: field.span,
                 });
                 if !static_storage {
@@ -39,6 +40,7 @@ impl Parser {
                     field.initializer = None;
                     field.modifiers.retain(|m| m != "const");
                 }
+                field.pack_offset = None;
                 globals.push(Declaration::Global(field));
             }
             self.expect(";")?;
@@ -83,7 +85,8 @@ impl Parser {
                 },
                 modifiers,
                 semantic: None,
-                register,
+                register: annotations.register,
+                pack_offset: None,
                 initializer: None,
                 span,
             }),

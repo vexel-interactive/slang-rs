@@ -168,9 +168,25 @@ target buffer-size limit validation remain absent. Mixed resource aggregates
 omit shared-buffer byte metadata until their layout model is implemented.
 See [uniform-layout.slang](../examples/uniform-layout.slang) for a complete example.
 
+Direct `cbuffer` fields accept `: packoffset(c2.y)`. Register indices count
+16-byte slots; `x`, `y`, `z`, and `w` select byte offsets 0, 4, 8, and 12.
+Omitting the component selects `x`. Reflection preserves the explicit byte
+offset, and HLSL emits a normalized `packoffset`. All explicit fields are placed
+before automatic fields, which start after the largest occupied explicit end.
+Explicit fields may overlap. Static members ignore `packoffset` because they
+have private storage. The generated value struct carries no HLSL packing
+annotations; packing is applied to the direct buffer fields.
+
+Explicit placement bypasses the automatic alignment rules. As in upstream,
+the frontend preserves offsets that DXC may reject, such as a `float2` at
+`c0.w` or an array at `c1.y`. DXC validation is required to establish HLSL
+validity. Packoffsets on ordinary structs, standalone uniforms, function
+parameters, and locals remain unsupported. Indices use the resource parser's
+bounded decimal range; component masks require exactly one supported component.
+
 ## Current limits
 
-Vulkan binding attributes, explicit byte packing,
+Vulkan binding attributes, explicit byte packing on ordinary structs,
 other target layouts, and the upstream reflection API remain to be implemented.
 Register annotations currently require
 global resources. Numeric/aggregate uniforms, struct fields, parameters, local

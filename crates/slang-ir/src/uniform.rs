@@ -135,6 +135,14 @@ fn calculate<'a>(
                 let mut fields = vec![];
                 let mut supported = true;
                 for field in &structure.fields {
+                    if let Some(offset) = field.pack_offset {
+                        let name = field.ty.to_string();
+                        if let Some(layout) = layouts.get(&name).and_then(Option::as_ref) {
+                            packer.place(offset, layout)?;
+                        }
+                    }
+                }
+                for field in &structure.fields {
                     let name = field.ty.to_string();
                     let Some(layout) = layouts.get(&name).and_then(Option::as_ref) else {
                         supported = false;
@@ -142,7 +150,10 @@ fn calculate<'a>(
                     };
                     fields.push(UniformFieldLayout {
                         name: field.name.clone(),
-                        offset: packer.push(layout)?,
+                        offset: match field.pack_offset {
+                            Some(offset) => offset,
+                            None => packer.push(layout)?,
+                        },
                         type_name: name,
                     });
                 }

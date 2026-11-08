@@ -107,7 +107,9 @@ pub fn lower(checked: &CheckedModule) -> Result<Module, Diagnostic> {
             let field = global_declarations
                 .get(member.variable_name.as_str())
                 .ok_or_else(|| error(member.span))?;
-            fields.push(lowerer.variable(field)?);
+            let mut lowered = lowerer.variable(field)?;
+            lowered.pack_offset = member.pack_offset.map(|p| p.offset);
+            fields.push(lowered);
         }
         module.constant_buffers.push(ConstantBuffer {
             name: buffer.name.clone(),
@@ -170,6 +172,7 @@ impl Lowerer<'_> {
                 .get(&span_key(variable.span))
                 .copied(),
             uniform_layout: None,
+            pack_offset: variable.pack_offset.map(|p| p.offset),
             initializer: variable
                 .initializer
                 .as_ref()

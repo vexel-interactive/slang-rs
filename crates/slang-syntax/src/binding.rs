@@ -1,30 +1,85 @@
-use crate::{RegisterAnnotation, parser::Parser};
+use crate::{PackOffsetAnnotation, RegisterAnnotation, parser::Parser};
 use slang_layout::{MAX_REGISTER_INDEX, RegisterBinding, RegisterClass};
 use slang_source::Diagnostic;
 
+#[derive(Default)]
+pub(crate) struct Annotations {
+    pub semantic: Option<String>,
+    pub register: Option<RegisterAnnotation>,
+    pub pack_offset: Option<PackOffsetAnnotation>,
+}
+
 impl Parser {
-    pub(crate) fn annotations(
-        &mut self,
-    ) -> Result<(Option<String>, Option<RegisterAnnotation>), Diagnostic> {
-        let mut semantic = None;
-        let mut register: Option<RegisterAnnotation> = None;
+    pub(crate) fn annotations(&mut self) -> Result<Annotations, Diagnostic> {
+        let mut result = Annotations::default();
         while self.eat(":") {
             let name = self.identifier()?;
             if name.is("register") && self.at("(") {
                 let annotation = self.register_annotation(name.span)?;
-                if register.is_some_and(|r| r.binding != annotation.binding) {
+                if result
+                    .register
+                    .is_some_and(|r| r.binding != annotation.binding)
+                {
                     return Err(Diagnostic::error(
                         "S001",
                         annotation.span,
                         "conflicting register annotations",
                     ));
                 }
-                register = Some(annotation);
-            } else if semantic.replace(name.text).is_some() {
+                result.register = Some(annotation);
+            } else if name.is("packoffset") && self.at("(") {
+                let annotation = self.pack_offset_annotation(name.span)?;
+                if result
+                    .pack_offset
+                    .is_some_and(|p| p.offset != annotation.offset)
+                {
+                    return Err(Diagnostic::error(
+                        "S001",
+                        annotation.span,
+                        "conflicting packoffset annotations",
+                    ));
+                }
+                result.pack_offset = Some(annotation);
+            } else if result.semantic.replace(name.text).is_some() {
                 return Err(self.error("multiple declaration semantics are not implemented"));
             }
         }
-        Ok((semantic, register))
+        Ok(result)
+    }
+
+    fn pack_offset_annotation(
+        &mut self,
+        start: slang_source::Span,
+    ) -> Result<PackOffsetAnnotation, Diagnostic> {
+        self.expect("(")?;
+        let name = self.identifier()?;
+        let digits = name.text.strip_prefix('c').ok_or_else(|| {
+            Diagnostic::error("S001", name.span, "packoffset requires a c register")
+        })?;
+        let index = register_index(digits, name.span, "packoffset register index")?;
+        let component = if self.eat(".") {
+            let mask = self.identifier()?;
+            match mask.text.as_str() {
+                "x" => 0,
+                "y" => 4,
+                "z" => 8,
+                "w" => 12,
+                _ => {
+                    return Err(Diagnostic::error(
+                        "S001",
+                        mask.span,
+                        "packoffset requires one x, y, z, or w component",
+                    ));
+                }
+            }
+        } else {
+            0
+        };
+        let end = self.expect(")")?;
+        Ok(PackOffsetAnnotation {
+            offset: u64::from(index) * 16 + component,
+            span: start.join(end),
+        })
     }
 
     fn register_annotation(

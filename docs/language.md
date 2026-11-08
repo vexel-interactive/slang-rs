@@ -437,6 +437,8 @@ Reflection exposes one resource under the source buffer name and its element
 layout; injected fields and static members are omitted from the global list.
 Empty constant buffers retain their declarations and zero-byte layouts without
 consuming a register. Duplicate buffer names within a module are rejected.
+Direct fields support `packoffset(c2.y)` with explicit fields placed before
+automatic ones; see [resources.md](resources.md#constant-buffer-byte-layout).
 
 Nonstruct constant-buffer elements, automatic conversion
 of a constant-buffer handle to its element,

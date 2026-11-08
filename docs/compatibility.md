@@ -26,7 +26,7 @@ subsystem is absent. No subsystem currently claims complete upstream parity.
 | Screen derivatives | slang-sema, slang-ir | Partial | ddx/ddy/fwidth and coarse/fine variants, floating shapes and integer conversion, compute quads; full uniformity analysis absent |
 | Integer atomics | slang-sema, slang-ir | Partial | Global 32-bit Interlocked operations on groupshared and RW locations, checked outputs; float and 64-bit atomics absent |
 | Texture and sampler operations | slang-sema, slang-codegen | Partial | 1D/2D/3D/cube, indexed access, load/sample/bias/gradients/comparison/dimensions; advanced resources absent |
-| Constant buffers | slang-syntax, slang-module, slang-sema, slang-ir, slang-codegen | Partial | ConstantBuffer with a struct element, direct cbuffer fields, module visibility, static members, read-only locations and legacy HLSL byte layout; explicit layout and mixed resource fields absent |
+| Constant buffers | slang-syntax, slang-module, slang-sema, slang-ir, slang-codegen | Partial | ConstantBuffer with a struct element, direct cbuffer fields and packoffset, module visibility, static members, read-only locations and legacy HLSL byte layout; packed ordinary structs and mixed resource fields absent |
 | Byte-address buffers | slang-sema, slang-codegen | Partial | Load/store widths, byte count, uint atomic operations with explicit outputs; typed access and advanced atomics absent |
 | Modules and imports | slang-module, slang-sema | Partial | Imports, reexports, member files, isolated preprocessing, public/internal, legacy visibility; session API and cross-module overload merging absent |
 | Interfaces and generics | ? | Not ported | Constraints, witnesses, specialization required |
@@ -40,7 +40,7 @@ subsystem is absent. No subsystem currently claims complete upstream parity.
 | DXIL emitter | ? | Not ported | Textual HLSL output does not implement a native DXIL backend |
 | GLSL, WGSL, Metal | ? | Not ported | Target-specific lowering and validators required |
 | CUDA, C++, CPU targets | ? | Not ported | ABI lowering and runtime required |
-| Resource binding and layout | slang-layout, slang-sema, slang-ir | Partial | Explicit HLSL classes/spaces, first-fit allocation, resource arrays, overlap warnings, shared global uniform buffer, legacy DXC offsets/sizes/strides; native 16-bit storage, explicit packing and other target rules absent |
+| Resource binding and layout | slang-layout, slang-sema, slang-ir | Partial | Explicit HLSL classes/spaces, first-fit allocation, resource arrays, overlap warnings, shared global uniform buffer, legacy DXC offsets/sizes/strides, direct cbuffer packoffset; native 16-bit storage, packed ordinary structs and other target rules absent |
 | Declaration reflection | slang-compiler | Partial | Source/target names, types, stages, group sizes, module graph, resource ranges, binding origins, constant-buffer byte offsets and shared type layouts |
 | Complete reflection API | ? | Not ported | Upstream API, layouts for all targets and buffer classes, nested resource aggregates, specialization absent |
 | Native Rust API | slang-compiler | Partial | Own API for the implemented pipeline |

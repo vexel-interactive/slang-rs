@@ -406,6 +406,16 @@ impl Checker {
             self.error("T003", variable.span, "variable name conflicts with a type");
         }
         let ty = self.resolve_type(&variable.ty);
+        if let Some(pack) = variable.pack_offset
+            && (!matches!(context, VariableScope::Global)
+                || !variable.modifiers.iter().any(|m| m == "static"))
+        {
+            self.error(
+                "T022",
+                pack.span,
+                "packoffset currently requires a direct cbuffer field",
+            );
+        }
         self.check_register(variable, &ty, context);
         if matches!(context, VariableScope::Global)
             && variable.modifiers.iter().any(|m| m == "public")

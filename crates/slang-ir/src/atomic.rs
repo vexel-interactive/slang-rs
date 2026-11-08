@@ -43,6 +43,7 @@ impl Visitor for Lowerer {
                 semantic: None,
                 binding: None,
                 uniform_layout: None,
+                pack_offset: None,
                 initializer: None,
                 span: expression.span,
             });

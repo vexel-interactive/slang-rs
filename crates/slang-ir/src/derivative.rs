@@ -137,6 +137,7 @@ fn width_helper(name: &str, intrinsic: &str, ty: &Type, span: Span) -> Function 
             semantic: None,
             binding: None,
             uniform_layout: None,
+            pack_offset: None,
             initializer: None,
             span,
         }],

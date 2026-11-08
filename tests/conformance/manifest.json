@@ -2955,6 +2955,102 @@
       "accept": false,
       "entry": "main",
       "rust_code": "T003"
+    },
+    {
+      "file": "positive/cbuffer-packoffset.slang",
+      "accept": true,
+      "entry": "main",
+      "uniform_layouts": {
+        "Params": {
+          "offset": 0,
+          "size": 44
+        },
+        "Params.scale": {
+          "offset": 36,
+          "size": 4
+        },
+        "Params.tail": {
+          "offset": 40,
+          "size": 4
+        },
+        "Params.values": {
+          "offset": 8,
+          "size": 8
+        },
+        "Params.alias": {
+          "offset": 36,
+          "size": 4
+        }
+      }
+    },
+    {
+      "file": "positive/cbuffer-packed-array.slang",
+      "accept": true,
+      "entry": "main",
+      "uniform_layouts": {
+        "Params": {
+          "offset": 0,
+          "size": 60
+        },
+        "Params.wide": {
+          "offset": 4,
+          "size": 8
+        },
+        "Params.tail": {
+          "offset": 52,
+          "size": 4
+        },
+        "Params.values": {
+          "offset": 32,
+          "size": 20
+        },
+        "Params.after": {
+          "offset": 56,
+          "size": 4
+        }
+      }
+    },
+    {
+      "file": "positive/cbuffer-packoffset-straddle.slang",
+      "accept": true,
+      "entry": "main",
+      "uniform_layouts": {
+        "Params": {
+          "offset": 0,
+          "size": 20
+        },
+        "Params.value": {
+          "offset": 12,
+          "size": 8
+        }
+      },
+      "rust_validation_accept": false,
+      "oracle_validation_accept": false,
+      "reason": "Both frontends preserve the explicit offset, including its unaligned byte layout. DXC rejects float2 starting at c0.w because it crosses the register boundary."
+    },
+    {
+      "file": "negative/packoffset-class.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "S001"
+    },
+    {
+      "file": "negative/packoffset-component.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "S001"
+    },
+    {
+      "file": "negative/packoffset-global.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T022"
+    },
+    {
+      "file": "negative/packoffset-local.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T022"
     }
   ]
 }

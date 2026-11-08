@@ -58,7 +58,11 @@ pub(crate) fn emit(module: &Module) -> String {
             emitter.line("{");
             emitter.indent += 1;
             for field in &buffer.fields {
-                emitter.line(&format!("{};", variable(field)));
+                let packing = field.pack_offset.map_or_else(String::new, |offset| {
+                    let component = ["", ".y", ".z", ".w"][(offset % 16 / 4) as usize];
+                    format!(" : packoffset(c{}{component})", offset / 16)
+                });
+                emitter.line(&format!("{}{packing};", variable(field)));
             }
             emitter.indent -= 1;
             emitter.line("};");

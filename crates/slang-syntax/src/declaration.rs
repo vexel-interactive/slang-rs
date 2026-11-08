@@ -140,12 +140,19 @@ impl Parser {
                 self.eat("void");
             }
             self.expect(")")?;
-            let (semantic, register) = self.annotations()?;
-            if let Some(register) = register {
+            let annotations = self.annotations()?;
+            if let Some(register) = annotations.register {
                 return Err(Diagnostic::error(
                     "S001",
                     register.span,
                     "register annotations on function results are not implemented",
+                ));
+            }
+            if let Some(pack) = annotations.pack_offset {
+                return Err(Diagnostic::error(
+                    "S001",
+                    pack.span,
+                    "packoffset is not allowed on function results",
                 ));
             }
             let body = if self.eat(";") {
@@ -166,7 +173,7 @@ impl Parser {
                 parameters,
                 attributes,
                 modifiers,
-                semantic,
+                semantic: annotations.semantic,
                 body,
                 span,
             }))])
@@ -250,7 +257,7 @@ impl Parser {
     ) -> Result<Variable, Diagnostic> {
         let arrays = self.array_sizes()?;
         ty.arrays.splice(0..0, arrays);
-        let (semantic, register) = self.annotations()?;
+        let annotations = self.annotations()?;
         let initializer = if self.eat("=") {
             Some(self.expression(1)?)
         } else {
@@ -261,8 +268,9 @@ impl Parser {
             name: name.text,
             ty,
             modifiers,
-            semantic,
-            register,
+            semantic: annotations.semantic,
+            register: annotations.register,
+            pack_offset: annotations.pack_offset,
             initializer,
             span,
         })

@@ -40,6 +40,8 @@ pub struct Variable {
     pub binding: Option<slang_layout::ResourceBinding>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub uniform_layout: Option<slang_layout::UniformVariableLayout>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pack_offset: Option<u64>,
     pub initializer: Option<Expr>,
     pub span: Span,
 }

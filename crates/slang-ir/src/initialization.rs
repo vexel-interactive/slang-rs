@@ -181,6 +181,7 @@ impl Lowerer {
                         semantic: None,
                         binding: None,
                         uniform_layout: None,
+                        pack_offset: None,
                         initializer: None,
                         span: expression.span,
                     }],
@@ -216,6 +217,7 @@ impl Lowerer {
                     semantic: None,
                     binding: None,
                     uniform_layout: None,
+                    pack_offset: None,
                     initializer: Some(Expr {
                         ty: result.ty.clone(),
                         kind: ExprKind::Zero,
@@ -319,6 +321,7 @@ impl Lowerer {
             semantic: None,
             binding: None,
             uniform_layout: None,
+            pack_offset: None,
             initializer: None,
             span: value.span,
         });

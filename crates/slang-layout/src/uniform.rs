@@ -112,6 +112,21 @@ pub struct UniformPacker {
 }
 
 impl UniformPacker {
+    /// Explicit offsets bypass automatic alignment and may overlap other fields.
+    pub fn place(
+        &mut self,
+        offset: u64,
+        layout: &UniformTypeLayout,
+    ) -> Result<(), UniformLayoutError> {
+        self.size = self.size.max(
+            offset
+                .checked_add(layout.size)
+                .ok_or(UniformLayoutError::Overflow)?,
+        );
+        self.alignment = self.alignment.max(layout.alignment);
+        Ok(())
+    }
+
     pub fn push(&mut self, layout: &UniformTypeLayout) -> Result<u64, UniformLayoutError> {
         if layout.size == 0 {
             return Ok(self.size);

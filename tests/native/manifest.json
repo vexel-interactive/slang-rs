@@ -601,6 +601,80 @@
           }
         }
       }
+    },
+    {
+      "file": "../conformance/positive/cbuffer-packoffset.slang",
+      "entry": "main",
+      "uniform_layouts": {
+        "Params": {
+          "offset": 0,
+          "size": 44
+        },
+        "Params.scale": {
+          "offset": 36,
+          "size": 4
+        },
+        "Params.tail": {
+          "offset": 40,
+          "size": 4
+        },
+        "Params.values": {
+          "offset": 8,
+          "size": 8
+        },
+        "Params.alias": {
+          "offset": 36,
+          "size": 4
+        }
+      },
+      "dxc_layouts": {
+        "Params": {
+          "size": 44,
+          "offsets": {
+            "scale": 36,
+            "tail": 40,
+            "values": 8,
+            "alias": 36
+          }
+        }
+      }
+    },
+    {
+      "file": "../conformance/positive/cbuffer-packed-array.slang",
+      "entry": "main",
+      "uniform_layouts": {
+        "Params": {
+          "offset": 0,
+          "size": 60
+        },
+        "Params.wide": {
+          "offset": 4,
+          "size": 8
+        },
+        "Params.tail": {
+          "offset": 52,
+          "size": 4
+        },
+        "Params.values": {
+          "offset": 32,
+          "size": 20
+        },
+        "Params.after": {
+          "offset": 56,
+          "size": 4
+        }
+      },
+      "dxc_layouts": {
+        "Params": {
+          "size": 60,
+          "offsets": {
+            "wide": 4,
+            "tail": 52,
+            "values": 32,
+            "after": 56
+          }
+        }
+      }
     }
   ]
 }

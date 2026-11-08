@@ -77,6 +77,7 @@ impl Lowerer {
             semantic: None,
             binding: None,
             uniform_layout: None,
+            pack_offset: None,
             initializer: Some(Expr {
                 kind: ExprKind::Bool(false),
                 ty: Type::Scalar(Scalar::Bool),

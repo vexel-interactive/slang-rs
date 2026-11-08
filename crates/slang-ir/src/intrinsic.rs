@@ -102,6 +102,7 @@ fn matrix_helper(
         semantic: None,
         binding: None,
         uniform_layout: None,
+        pack_offset: None,
         initializer: None,
         span,
     }];
@@ -114,6 +115,7 @@ fn matrix_helper(
             semantic: None,
             binding: None,
             uniform_layout: None,
+            pack_offset: None,
             initializer: None,
             span,
         });
@@ -129,6 +131,7 @@ fn matrix_helper(
                 semantic: None,
                 binding: None,
                 uniform_layout: None,
+                pack_offset: None,
                 initializer: None,
                 span,
             }),

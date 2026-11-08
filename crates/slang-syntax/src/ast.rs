@@ -27,6 +27,7 @@ pub struct ConstantBufferMember {
     pub name: String,
     pub variable_name: String,
     pub static_storage: bool,
+    pub pack_offset: Option<PackOffsetAnnotation>,
     pub span: Span,
 }
 
@@ -119,6 +120,7 @@ pub struct Variable {
     pub modifiers: Vec<String>,
     pub semantic: Option<String>,
     pub register: Option<RegisterAnnotation>,
+    pub pack_offset: Option<PackOffsetAnnotation>,
     pub initializer: Option<Expr>,
     pub span: Span,
 }
@@ -126,6 +128,12 @@ pub struct Variable {
 #[derive(Clone, Copy, Debug, Serialize)]
 pub struct RegisterAnnotation {
     pub binding: slang_layout::RegisterBinding,
+    pub span: Span,
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
+pub struct PackOffsetAnnotation {
+    pub offset: u64,
     pub span: Span,
 }
 
