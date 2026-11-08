@@ -25,6 +25,12 @@ wide vectors, matrices, overloads, constructors, switches, and geometric/math
 operations. Reflection and DXC independently verify a 120-byte constant buffer,
 including eight-byte component alignment, matrix stride and array tails.
 
+A further fixture compares 24 compiled words from mixed compound assignments,
+conditional branches and arithmetic intrinsics. It checks signed and unsigned
+scalar, vector and matrix destinations, returned assignment values, narrowing
+of floating operands and an index function called exactly once. Floating shift
+counts are rejected by both frontends. These words match in both artifacts.
+
 `tools/check.ps1` runs rustfmt, Clippy, workspace tests, and rustdoc using Rust
 1.99.1. Tests cover precedence, scopes, const/read-only locations, overloads,
 macro recursion and operators, include guards, diagnostic locations, IR lowering,

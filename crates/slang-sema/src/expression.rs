@@ -198,8 +198,12 @@ impl Checker {
                 ) {
                     let b = self.value_expression(right);
                     self.require_writable(left);
-                    let result = self.binary(op.trim_end_matches('='), &a, &b, expression.span);
-                    self.require_conversion(&result, &a, expression.span);
+                    if matches!(op.as_str(), "<<=" | ">>=") {
+                        self.binary(op.trim_end_matches('='), &a, &b, expression.span);
+                    } else {
+                        self.require_conversion(&b, &a, right.span);
+                        self.binary(op.trim_end_matches('='), &a, &a, expression.span);
+                    }
                     a
                 } else {
                     let a = self.load_type(left, a);

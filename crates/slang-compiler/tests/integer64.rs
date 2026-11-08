@@ -176,3 +176,34 @@ fn wide_overloads_prefer_lossless_promotions_and_record_mixed_operand_types() {
     assert!(code.contains("choose__overload_1(b)"), "{code}");
     assert!(code.contains("a < ((int64_t)b)"), "{code}");
 }
+
+#[test]
+fn compound_locations_are_evaluated_once_and_right_operands_use_destination_types() {
+    let compiled =
+        compile("uint f(){uint index=0;uint data[2]={9u,7u};return data[index++]/=-2LL;}");
+    let code = compiled.artifact.unwrap();
+    assert_eq!(code.matches("(index++)").count(), 1, "{code}");
+    assert!(code.contains("/= ((uint)-2ll)"), "{code}");
+}
+
+#[test]
+fn mixed_conditional_intrinsic_and_compound_shapes_compile_together() {
+    compile(include_str!(
+        "../../../tests/conformance/positive/integer64-promotions.slang"
+    ));
+}
+
+#[test]
+fn compound_shifts_keep_independent_integer_count_types() {
+    compile(
+        "int64_t f(uint shift){int64_t x=1LL;x<<=shift;return x;}int g(uint64_t shift){int x=1;x>>=shift;return x;}",
+    );
+    let error = compile_source(
+        "shift.slang",
+        "int f(){int x=1;x<<=2.5;return x;}",
+        &CompileOptions::default(),
+        &MemoryIncludes::default(),
+    )
+    .unwrap_err();
+    assert!(error.diagnostics.iter().any(|d| d.code == "T012"));
+}

@@ -37,6 +37,12 @@ remainder, comparisons and right shifts interpret it through the checked type.
 Literal width and signed-minimum selection are shared between syntax checking
 and IR lowering. Target integer literals explicitly preserve the selected width.
 
+Arithmetic normalization runs before local and resource storage lowering.
+It converts wide binary operands, conditional branches and arithmetic intrinsic
+inputs to their checked types. Compound assignments convert only the right
+operand to the destination type, preserving the native compound expression so
+DXC evaluates an indexed destination once. Shift count types stay independent.
+
 Matrix storage qualifiers are separate from algebraic matrix value types.
 Semantic checking records declaration and alias layouts and normalizes qualified
 structured-buffer elements against the compilation default. `CheckedModule`

@@ -259,6 +259,15 @@ Overloaded functions involving wide integers receive distinct target names
 to preserve Slang's literal and conversion ranking. Mixed 64-bit arithmetic
 operands are explicitly converted to the checked common type.
 
+Compound arithmetic and bitwise assignments select their operand type from
+the writable left argument. The right argument converts to that type before
+the operation: `uint value=9; value/=int64_t(-2);` gives zero, while
+`int64_t value=-9; value/=uint(2);` gives negative four. Integer destinations
+also convert floating right operands before arithmetic. Compound shifts retain
+an independent integer count type and reject floating counts. Emitted compound
+assignments evaluate indexed destinations once. Wide conditional branches and
+`min`/`max`/`clamp`/`mul` inputs explicitly preserve their selected component type.
+
 Modules, imports, reexports, and member files are described in
 [Modules and access control](modules.md). Globals, functions, structures, and
 structure fields accept `public/internal`. Explicit module declarations use

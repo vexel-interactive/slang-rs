@@ -124,6 +124,7 @@ pub fn lower(checked: &CheckedModule) -> Result<Module, Diagnostic> {
     crate::geometric::lower(&mut module)?;
     crate::derivative::lower(&mut module)?;
     crate::atomic::lower(&mut module)?;
+    crate::wide_arithmetic::lower(&mut module)?;
     crate::static_local::lower(&mut module)?;
     crate::scope::lower(&mut module);
     crate::uniform::lower(&mut module, checked)?;
@@ -356,52 +357,11 @@ impl Lowerer<'_> {
             ast::ExprKind::Cast { value, .. } => ExprKind::Cast {
                 value: Box::new(self.expression(value)?),
             },
-            ast::ExprKind::Binary { op, left, right } => {
-                let mut left = self.expression(left)?;
-                let mut right = self.expression(right)?;
-                // DXC promotes mixed signed-64/unsigned-32 operands differently.
-                // Preserve the component and shape selected by semantic checking.
-                if !matches!(
-                    op.as_str(),
-                    "=" | "+="
-                        | "-="
-                        | "*="
-                        | "/="
-                        | "%="
-                        | "&="
-                        | "|="
-                        | "^="
-                        | "<<="
-                        | ">>="
-                        | "<<"
-                        | ">>"
-                        | ","
-                        | "&&"
-                        | "||"
-                ) && let Some(common) = Type::common(&left.ty, &right.ty)
-                    && matches!(
-                        common.scalar(),
-                        Some(slang_sema::Scalar::Int64 | slang_sema::Scalar::Uint64)
-                    )
-                {
-                    for argument in [&mut left, &mut right] {
-                        if argument.ty != common {
-                            *argument = Expr {
-                                ty: common.clone(),
-                                span: argument.span,
-                                kind: ExprKind::Cast {
-                                    value: Box::new(argument.clone()),
-                                },
-                            };
-                        }
-                    }
-                }
-                ExprKind::Binary {
-                    op: op.clone(),
-                    left: Box::new(left),
-                    right: Box::new(right),
-                }
-            }
+            ast::ExprKind::Binary { op, left, right } => ExprKind::Binary {
+                op: op.clone(),
+                left: Box::new(self.expression(left)?),
+                right: Box::new(self.expression(right)?),
+            },
             ast::ExprKind::Call { callee, arguments } => {
                 if let Some(value) = self.checked.initializations.get(&callee.id) {
                     return self.planned_initialization(callee.id, value, expression.span);
