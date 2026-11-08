@@ -109,7 +109,6 @@ fn wide_case_values_convert_to_selector_types_without_aliasing() {
 #[test]
 fn wide_values_do_not_enter_unimplemented_32_bit_intrinsics() {
     for source in [
-        "uint f(uint64_t x){return countbits(x);}",
         "float f(int64_t x){return asfloat(x);}",
         "groupshared uint64_t value;void f(){InterlockedAdd(value,1ULL);}",
     ] {

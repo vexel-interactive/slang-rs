@@ -6,7 +6,7 @@
     "rustfmt": "passed",
     "clippy_all_targets_warnings_denied": "passed",
     "unit_tests": 39,
-    "integration_tests": 319,
+    "integration_tests": 320,
     "doc_tests": 1,
     "conformance_comparison_tests": 22,
     "rustdoc": "passed",
@@ -15,11 +15,11 @@
   },
   "differential_validation": {
     "oracle": "Slang 2026.21",
-    "cases_passed": 470,
-    "cases_total": 470,
-    "matching_acceptance_cases": 459,
+    "cases_passed": 472,
+    "cases_total": 472,
+    "matching_acceptance_cases": 461,
     "documented_oracle_differences": 11,
-    "dxc_hlsl_artifacts_validated": 492,
+    "dxc_hlsl_artifacts_validated": 496,
     "dxc_invalid_hlsl_artifacts_rejected": 17,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
@@ -35,17 +35,17 @@
     "uniform_byte_layout_cases_compared": 44,
     "documented_oracle_physical_layout_differences": 3,
     "physical_buffer_layout_cases_compared": 26,
-    "compiled_constant_cases_compared": 7,
-    "compiled_constant_words_compared": 238,
-    "compiled_constant_words_matching": 233,
+    "compiled_constant_cases_compared": 8,
+    "compiled_constant_words_compared": 350,
+    "compiled_constant_words_matching": 345,
     "documented_oracle_constant_words_differing": 5,
     "documented_oracle_constant_cases_differing": 1
   },
   "remote_ci_executed": false,
   "remote_ci": null,
   "previous_remote_ci": {
-    "run_id": 42512021174,
-    "head_sha": "6a165ca496b52dd8679da53e1deb4d265679d2f4",
+    "run_id": 42513119853,
+    "head_sha": "e09d2de599bdbccbd70fc44a6a733ebb532cf48f",
     "conclusion": "success",
     "platforms": [
       "ubuntu-latest",
@@ -54,6 +54,16 @@
     ]
   },
   "earlier_remote_ci": [
+    {
+      "run_id": 42512021174,
+      "head_sha": "6a165ca496b52dd8679da53e1deb4d265679d2f4",
+      "conclusion": "success",
+      "platforms": [
+        "ubuntu-latest",
+        "windows-latest",
+        "macos-latest"
+      ]
+    },
     {
       "run_id": 42509814941,
       "head_sha": "cd8847a9f5dcdec30eb8e40561a6ef3e47734b81",
@@ -417,7 +427,7 @@
   },
   "native_hlsl_suite": {
     "manifest": "tests/native/manifest.json",
-    "artifacts_validated": 73,
+    "artifacts_validated": 75,
     "profiles": [
       "one-component-output-half.slang",
       "one-component-derivatives-half.slang",
@@ -564,12 +574,14 @@
       "../conformance/positive/integer64-literals.slang",
       "../conformance/positive/integer64-constants.slang",
       "../conformance/positive/integer64-storage.slang",
-      "../conformance/positive/integer64-promotions.slang"
+      "../conformance/positive/integer64-promotions.slang",
+      "../conformance/positive/integer64-bitops.slang",
+      "../conformance/positive/integer64-bitops-buffer.slang"
     ],
     "uniform_byte_layout_cases": 40,
     "matrix_layout_shapes": 96,
     "constant_buffer_numeric_layouts": 252,
-    "compiled_constant_cases": 7,
-    "compiled_constant_words": 238
+    "compiled_constant_cases": 8,
+    "compiled_constant_words": 350
   }
 }

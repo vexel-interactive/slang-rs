@@ -31,6 +31,12 @@ scalar, vector and matrix destinations, returned assignment values, narrowing
 of floating operands and an index function called exactly once. Floating shift
 counts are rejected by both frontends. These words match in both artifacts.
 
+Wide bit-operation fixtures verify 112 compiled words, including counts and
+searches across both 32-bit halves, signed negative inputs, zero search results,
+64-bit reversal, vector results, declaration defaults, result overload types,
+and one evaluation of a postfix argument. A dynamic structured-buffer fixture
+also validates all four operations on signed 64-bit vectors through DXC.
+
 `tools/check.ps1` runs rustfmt, Clippy, workspace tests, and rustdoc using Rust
 1.99.1. Tests cover precedence, scopes, const/read-only locations, overloads,
 macro recursion and operators, include guards, diagnostic locations, IR lowering,

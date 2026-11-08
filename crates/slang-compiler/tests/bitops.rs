@@ -13,7 +13,13 @@ fn compile(source: &str) -> slang_compiler::Compilation {
 
 #[test]
 fn integer_bit_functions_preserve_signedness_width_and_unsigned_result_types() {
-    for scalar in [Scalar::Bool, Scalar::Int, Scalar::Uint] {
+    for scalar in [
+        Scalar::Bool,
+        Scalar::Int,
+        Scalar::Uint,
+        Scalar::Int64,
+        Scalar::Uint64,
+    ] {
         let mut types = vec![Type::Scalar(scalar)];
         types.extend((1..=4).map(|n| Type::Vector(scalar, n)));
         for ty in types {
@@ -43,6 +49,18 @@ fn integer_bit_functions_preserve_signedness_width_and_unsigned_result_types() {
             }
         }
     }
+}
+
+#[test]
+fn wide_bit_operations_retain_values_types_and_single_evaluation() {
+    compile(include_str!(
+        "../../../tests/conformance/positive/integer64-bitops.slang"
+    ));
+    let code = compile("uint run(inout uint64_t value){return countbits(value++);}")
+        .artifact
+        .unwrap();
+    assert_eq!(code.matches("(value++)").count(), 1, "{code}");
+    assert!(code.contains("countbits((value++))"), "{code}");
 }
 
 #[test]

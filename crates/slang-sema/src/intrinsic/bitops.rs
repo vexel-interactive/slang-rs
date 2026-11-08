@@ -15,7 +15,7 @@ pub(crate) fn signature(name: &str, types: &[Type]) -> Option<Signature> {
     }
     let parameter = match input.scalar()? {
         Scalar::Bool => input.with_scalar(Scalar::Int),
-        Scalar::Int | Scalar::Uint => input.clone(),
+        Scalar::Int | Scalar::Uint | Scalar::Int64 | Scalar::Uint64 => input.clone(),
         _ => return None,
     };
     let result = if name == "reversebits" {

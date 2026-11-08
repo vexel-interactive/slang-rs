@@ -756,12 +756,14 @@ equivalence and automatic differentiation remain unverified. See
 
 `countbits`, `firstbithigh`, and `firstbitlow` return `uint` counts or positions
 with the same scalar/vector width as their input. `reversebits` reverses all
-32 bits and preserves the input's integer sign and width. Boolean scalar/vector
-arguments promote to `int`. Floating inputs, matrices, and wider integer types
-are outside these signatures.
+32 or 64 bits and preserves the input's integer sign and width. Supported
+integer types are `int`, `uint`, `int64_t`, and `uint64_t`. Boolean scalar/vector
+arguments promote to `int`. Floating inputs, matrices, 8/16-bit integers, and
+pointer-sized integers are outside these signatures.
 
 The highest-bit search retains signed inputs: negative `int` values search for
-the highest zero bit, while `uint` values search for the highest set bit. A search
+the highest zero bit, while unsigned values search for the highest set bit.
+The same rule applies to signed and unsigned 64-bit values. A search
 without a qualifying bit returns `0xffffffffu`. These calls retain runtime
 evaluation, including when used in function defaults. See
 [integer-bit-operations.slang](../examples/integer-bit-operations.slang).
