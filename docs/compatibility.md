@@ -7,7 +7,7 @@ subsystem is absent. No subsystem currently claims complete upstream parity.
 | Slang subsystem | Rust crate | Status | Evidence or remaining work |
 | --- | --- | --- | --- |
 | Source manager and diagnostics | slang-source | Partial | UTF-8, CRLF, spans; upstream diagnostic IDs absent |
-| Lexer | slang-lexer | Partial | Lossless tokens, decimal/hex floating syntax, half/float/double suffixes, typed rounding and range warnings, integer bases; complete string/character and wider integer grammar absent |
+| Lexer | slang-lexer | Partial | Lossless tokens, decimal/hex floating syntax, half/float/double suffixes, typed rounding and range warnings, integer bases, uint character values and escapes; complete string and wider integer grammar absent |
 | Preprocessor | slang-preprocessor | Partial | Macros, #, ##, variadics, includes, conditionals, __LINE__/__FILE__, #line remapping and resets; complete predefined macros and expansion stacks absent |
 | Parser and AST | slang-syntax | Partial | Functions, globals, structs, declaration groups, expressions, casts, loops, switches, discard |
 | Name and type checking | slang-sema | Partial | Scalars, vectors, matrices, fixed arrays with computed and zero dimensions, aliases, scopes, overloads, writable locations |

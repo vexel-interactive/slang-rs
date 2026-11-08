@@ -41,6 +41,26 @@ zero. `#if` arithmetic wraps to 32 bits. Ordinary integer expressions retain
 their source bases. See the
 [literal fixtures](../tests/conformance/positive/literal-suffixes.slang).
 
+## Character literals
+
+A character literal has type `uint` and holds exactly one unescaped Unicode
+code point or one escape value. For example, `'X'` is `88u`, `'\n'` is `10u`,
+and `'\u{ffffffff}'` is `4294967295u`. Character escapes can hold any unsigned
+32-bit value; they do not require a valid Unicode scalar.
+
+Supported escapes include quotes, backslash, question mark, `\a`, `\b`, `\f`,
+`\n`, `\r`, `\t`, and `\v`; one through three octal digits; hexadecimal
+`\x...` and `\x{...}`; four-digit `\u...`, braced `\u{...}`, and eight-digit
+`\U...`. Hexadecimal escape values must fit in 32 bits. Empty, multiple-value,
+unknown, incomplete, and overflowing literals report `L006` at the token span.
+
+Characters work in numeric expressions, overloads, constructors, constant
+dimensions, switch labels, macros, imports, and declaration defaults. HLSL
+receives the decoded unsigned integer. String value support remains limited
+to existing preprocessor and attribute contexts. See the
+[character values](../tests/conformance/positive/character-values.slang) and
+[context checks](../tests/conformance/positive/character-contexts.slang).
+
 ## Numeric type applications
 
 `vector<T, N>` and `matrix<T, R, C>` resolve to the same canonical types as

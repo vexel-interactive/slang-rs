@@ -8,6 +8,13 @@ subnormals, maximum finite values, infinity, negative zero, malformed spellings,
 and literal-to-integer dimensions. Parentheses preserve upstream's restriction
 on literal-specific folding. Octal shader values and the preprocessor's separate
 32-bit conversion rules have independent checks.
+Character tests cover unsigned overload selection, Unicode input and 32-bit
+escapes, octal/hex/Unicode forms, empty and multiple values, malformed escapes,
+and exact diagnostic spans. Macro expansion, forward dimensions, switch labels,
+imported aliases, and default arguments exercise the whole pipeline. The
+character corpus transcribes all 55 values from the pinned frontend value test;
+the DXIL comparator checks those words and four context results in both
+compilers' artifacts.
 
 `tools/check.ps1` runs rustfmt, Clippy, workspace tests, and rustdoc using Rust
 1.99.1. Tests cover precedence, scopes, const/read-only locations, overloads,

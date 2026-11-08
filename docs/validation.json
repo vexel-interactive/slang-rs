@@ -5,8 +5,8 @@
   "checks": {
     "rustfmt": "passed",
     "clippy_all_targets_warnings_denied": "passed",
-    "unit_tests": 34,
-    "integration_tests": 304,
+    "unit_tests": 36,
+    "integration_tests": 308,
     "doc_tests": 1,
     "conformance_comparison_tests": 21,
     "rustdoc": "passed",
@@ -15,11 +15,11 @@
   },
   "differential_validation": {
     "oracle": "Slang 2026.21",
-    "cases_passed": 449,
-    "cases_total": 449,
-    "matching_acceptance_cases": 438,
+    "cases_passed": 457,
+    "cases_total": 457,
+    "matching_acceptance_cases": 446,
     "documented_oracle_differences": 11,
-    "dxc_hlsl_artifacts_validated": 480,
+    "dxc_hlsl_artifacts_validated": 484,
     "dxc_invalid_hlsl_artifacts_rejected": 17,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
@@ -35,14 +35,14 @@
     "uniform_byte_layout_cases_compared": 43,
     "documented_oracle_physical_layout_differences": 3,
     "physical_buffer_layout_cases_compared": 25,
-    "compiled_constant_cases_compared": 2,
-    "compiled_constant_words_compared": 29
+    "compiled_constant_cases_compared": 4,
+    "compiled_constant_words_compared": 88
   },
   "remote_ci_executed": false,
   "remote_ci": null,
   "previous_remote_ci": {
-    "run_id": 42505676599,
-    "head_sha": "746d981ee84bd3073dcfc42854ae98922765cbbc",
+    "run_id": 42508766336,
+    "head_sha": "81101ea404a8434dfe0980578ca56286884f80f7",
     "conclusion": "success",
     "platforms": [
       "ubuntu-latest",
@@ -51,6 +51,16 @@
     ]
   },
   "earlier_remote_ci": [
+    {
+      "run_id": 42505676599,
+      "head_sha": "746d981ee84bd3073dcfc42854ae98922765cbbc",
+      "conclusion": "success",
+      "platforms": [
+        "ubuntu-latest",
+        "windows-latest",
+        "macos-latest"
+      ]
+    },
     {
       "run_id": 42504150602,
       "head_sha": "ad261ea528df8163fabd35723dd2fe93d321cbb8",
@@ -384,7 +394,7 @@
   },
   "native_hlsl_suite": {
     "manifest": "tests/native/manifest.json",
-    "artifacts_validated": 67,
+    "artifacts_validated": 69,
     "profiles": [
       "one-component-output-half.slang",
       "one-component-derivatives-half.slang",
@@ -452,7 +462,9 @@
       "../conformance/positive/literal-ranges.slang",
       "../conformance/positive/literal-infinity.slang",
       "../conformance/positive/literal-dimensions.slang",
-      "../conformance/positive/literal-boundaries.slang"
+      "../conformance/positive/literal-boundaries.slang",
+      "../conformance/positive/character-values.slang",
+      "../conformance/positive/character-contexts.slang"
     ],
     "gpu_execution_compared": false,
     "upstream_artifacts_compared": false,
@@ -523,12 +535,14 @@
       "../conformance/positive/literal-ranges.slang",
       "../conformance/positive/literal-infinity.slang",
       "../conformance/positive/literal-dimensions.slang",
-      "../conformance/positive/literal-boundaries.slang"
+      "../conformance/positive/literal-boundaries.slang",
+      "../conformance/positive/character-values.slang",
+      "../conformance/positive/character-contexts.slang"
     ],
     "uniform_byte_layout_cases": 39,
     "matrix_layout_shapes": 96,
     "constant_buffer_numeric_layouts": 252,
-    "compiled_constant_cases": 2,
-    "compiled_constant_words": 29
+    "compiled_constant_cases": 4,
+    "compiled_constant_words": 88
   }
 }

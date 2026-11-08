@@ -1,0 +1,2 @@
+[shader("compute")][numthreads(1,1,1)]
+void main(){uint value='\u{12';}

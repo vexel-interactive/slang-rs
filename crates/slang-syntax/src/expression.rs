@@ -99,6 +99,27 @@ impl Parser {
             let kind = match token.kind {
                 TokenKind::Integer => ExprKind::Integer(token.text),
                 TokenKind::Float => ExprKind::Float(token.text),
+                TokenKind::Character => {
+                    let value =
+                        slang_lexer::parse_character_literal(&token.text).map_err(|error| {
+                            Diagnostic::error(
+                                "L006",
+                                token.span,
+                                match error {
+                                    slang_lexer::CharacterLiteralError::CharacterCount => {
+                                        "character literal must contain exactly one value"
+                                    }
+                                    slang_lexer::CharacterLiteralError::Escape => {
+                                        "invalid escape in character literal"
+                                    }
+                                    slang_lexer::CharacterLiteralError::Overflow => {
+                                        "character escape exceeds 32 bits"
+                                    }
+                                },
+                            )
+                        })?;
+                    ExprKind::Integer(format!("{value}u"))
+                }
                 TokenKind::String => ExprKind::String(token.text),
                 TokenKind::Identifier if token.is("true") || token.is("false") => {
                     ExprKind::Bool(token.is("true"))
