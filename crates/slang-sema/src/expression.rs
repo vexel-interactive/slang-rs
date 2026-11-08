@@ -2,7 +2,7 @@ use crate::{
     Scalar, TextureDimension, Type,
     checker::{Checker, Storage},
 };
-use slang_source::Span;
+use slang_source::{Diagnostic, Span};
 use slang_syntax::{Expr, ExprKind};
 
 impl Checker {
@@ -30,20 +30,8 @@ impl Checker {
             }
             ExprKind::Integer(text) => {
                 let digits = text.trim_end_matches(['u', 'U', 'l', 'L']);
-                let value = if let Some(hex) = digits
-                    .strip_prefix("0x")
-                    .or_else(|| digits.strip_prefix("0X"))
-                {
-                    u64::from_str_radix(hex, 16).ok()
-                } else if let Some(binary) = digits
-                    .strip_prefix("0b")
-                    .or_else(|| digits.strip_prefix("0B"))
-                {
-                    u64::from_str_radix(binary, 2).ok()
-                } else {
-                    digits.parse::<u64>().ok()
-                };
-                if text.contains(['l', 'L']) {
+                let value = slang_lexer::integer_literal_value(text);
+                if text.to_ascii_lowercase().contains("ll") {
                     self.error(
                         "T001",
                         expression.span,
@@ -63,24 +51,40 @@ impl Checker {
                 }
                 Type::Scalar(if unsigned { Scalar::Uint } else { Scalar::Int })
             }
-            ExprKind::Float(text) => {
-                let value = text
-                    .trim_end_matches(['f', 'F', 'h', 'H'])
-                    .parse::<f64>()
-                    .ok();
-                if value.is_none_or(|v| !v.is_finite() || v.abs() > f32::MAX as f64) {
-                    self.error(
-                        "T010",
-                        expression.span,
-                        "floating-point literal is out of range",
-                    );
+            ExprKind::Float(text) => match slang_lexer::parse_float_literal(text) {
+                Ok(literal) => {
+                    let scalar = match literal.kind {
+                        slang_lexer::FloatKind::Half => Scalar::Half,
+                        slang_lexer::FloatKind::Float => Scalar::Float,
+                        slang_lexer::FloatKind::Double => Scalar::Double,
+                    };
+                    let warning = if literal.out_of_range {
+                        Some(if literal.value.is_finite() {
+                            ("T027", "floating-point literal underflows to zero")
+                        } else {
+                            ("T028", "floating-point literal overflows to infinity")
+                        })
+                    } else if literal.precision_lost {
+                        Some(("T029", "hexadecimal floating-point literal loses precision"))
+                    } else {
+                        None
+                    };
+                    if let Some((code, message)) = warning
+                        && !self
+                            .diagnostics
+                            .iter()
+                            .any(|d| d.code == code && d.span == expression.span)
+                    {
+                        self.diagnostics
+                            .push(Diagnostic::warning(code, expression.span, message));
+                    }
+                    Type::Scalar(scalar)
                 }
-                Type::Scalar(if text.ends_with(['h', 'H']) {
-                    Scalar::Half
-                } else {
-                    Scalar::Float
-                })
-            }
+                Err(_) => {
+                    self.error("T010", expression.span, "invalid floating-point literal");
+                    Type::Error
+                }
+            },
             ExprKind::Bool(_) => Type::Scalar(Scalar::Bool),
             ExprKind::Cast { target, value } => {
                 let actual = self.value_expression(value);

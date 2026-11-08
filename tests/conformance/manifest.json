@@ -4498,6 +4498,143 @@
       "entry": "main",
       "rust_code": "T001",
       "profile": "ps_6_0"
+    },
+    {
+      "file": "positive/literal-suffixes.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/literal-hex.slang",
+      "accept": true,
+      "entry": "main",
+      "rust_warning": "T029",
+      "oracle_stderr_contains": [
+        "E40019"
+      ]
+    },
+    {
+      "file": "positive/literal-rounding.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 1258291200,
+        "1": 1258291200,
+        "2": 1258291201,
+        "3": 1258291201,
+        "4": 1258291202,
+        "5": 1258291202,
+        "6": 1198522368,
+        "7": 1198530560,
+        "8": 1198538752
+      }
+    },
+    {
+      "file": "positive/literal-octal.slang",
+      "accept": true,
+      "entry": "main",
+      "rust_warning": "L005",
+      "oracle_stderr_contains": [
+        "10002"
+      ]
+    },
+    {
+      "file": "positive/literal-ranges.slang",
+      "accept": true,
+      "entry": "main",
+      "rust_stderr_contains": [
+        "T027",
+        "T028"
+      ],
+      "oracle_stderr_contains": [
+        "E40009",
+        "E40010"
+      ]
+    },
+    {
+      "file": "positive/literal-infinity.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/literal-dimensions.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/literal-boundaries.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 8388608,
+        "1": 1,
+        "2": 2139095039,
+        "3": 947912704,
+        "4": 864026624,
+        "5": 1199562752,
+        "6": 2147483648,
+        "7": 2147483648,
+        "8": 2139095040,
+        "9": 4286578688,
+        "10": 0,
+        "11": 1048576,
+        "12": 1,
+        "13": 0,
+        "14": 4294967295,
+        "15": 2146435071,
+        "16": 0,
+        "17": 2147483648,
+        "18": 1,
+        "19": 1072693248
+      }
+    },
+    {
+      "file": "negative/literal-mixed-half-suffix.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "L004"
+    },
+    {
+      "file": "negative/literal-mixed-double-suffix.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "L004"
+    },
+    {
+      "file": "negative/literal-integer-float-suffix.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "L004"
+    },
+    {
+      "file": "negative/literal-octal-digit.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "L004"
+    },
+    {
+      "file": "negative/literal-hex-exponent.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "L004"
+    },
+    {
+      "file": "negative/literal-parenthesized-sign.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T002",
+      "oracle_stderr_contains": [
+        "E39999"
+      ]
+    },
+    {
+      "file": "negative/literal-constructor-sign.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T002",
+      "oracle_stderr_contains": [
+        "E39999"
+      ]
     }
   ]
 }

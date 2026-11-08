@@ -153,21 +153,26 @@ impl Lexer<'_> {
         let mut float = false;
         let hex = self.text[start..].starts_with("0x") || self.text[start..].starts_with("0X");
         let binary = self.text[start..].starts_with("0b") || self.text[start..].starts_with("0B");
+        let octal = !hex
+            && !binary
+            && self.text.as_bytes()[start] == b'0'
+            && self
+                .text
+                .as_bytes()
+                .get(start + 1)
+                .is_some_and(u8::is_ascii_digit);
+        if octal {
+            self.diagnostics.push(Diagnostic::warning(
+                "L005",
+                Span::new(self.source, start, start + 1),
+                "'0' prefix indicates an octal literal",
+            ));
+        }
         if hex || binary {
             self.offset += 2;
         }
         let digit_start = self.offset;
-        while self.offset < self.text.len()
-            && if hex {
-                self.current().is_ascii_hexdigit()
-            } else if binary {
-                matches!(self.current(), '0' | '1')
-            } else {
-                self.current().is_ascii_digit()
-            }
-        {
-            self.bump();
-        }
+        self.number_digits(start, hex, binary, octal);
         if (hex || binary) && self.offset == digit_start {
             self.diagnostics.push(Diagnostic::error(
                 "L004",
@@ -175,48 +180,64 @@ impl Lexer<'_> {
                 "expected digits after numeric base prefix",
             ));
         }
-        if !hex && !binary {
-            if self.current() == '.' {
-                float = true;
+        if self.current() == '.'
+            && !matches!(self.text.as_bytes().get(self.offset + 1), Some(b'x' | b'r'))
+        {
+            float = true;
+            self.bump();
+            self.number_digits(start, hex, binary, octal);
+        }
+        if self.text[self.offset..].starts_with("#INF") {
+            float = true;
+            self.offset += 4;
+        } else if (hex && matches!(self.current(), 'p' | 'P'))
+            || (!hex && !binary && !octal && matches!(self.current(), 'e' | 'E'))
+        {
+            float = true;
+            self.bump();
+            if matches!(self.current(), '+' | '-') {
                 self.bump();
-                while self.offset < self.text.len() && self.current().is_ascii_digit() {
-                    self.bump();
-                }
             }
-            if matches!(self.current(), 'e' | 'E') {
-                float = true;
+            let exponent = self.offset;
+            while self.offset < self.text.len() && self.current().is_ascii_digit() {
                 self.bump();
-                if matches!(self.current(), '+' | '-') {
-                    self.bump();
-                }
-                let exponent = self.offset;
-                while self.offset < self.text.len() && self.current().is_ascii_digit() {
-                    self.bump();
-                }
-                if self.offset == exponent {
-                    self.diagnostics.push(Diagnostic::error(
-                        "L004",
-                        Span::new(self.source, start, self.offset),
-                        "expected exponent digits",
-                    ));
-                }
+            }
+            if self.offset == exponent {
+                self.diagnostics.push(Diagnostic::error(
+                    "L004",
+                    Span::new(self.source, start, self.offset),
+                    "expected exponent digits",
+                ));
             }
         }
         let suffix_start = self.offset;
-        if matches!(self.current(), 'f' | 'F' | 'h' | 'H') && !hex && !binary {
-            float = true;
+        while self.offset < self.text.len()
+            && (self.current().is_ascii_alphanumeric() || self.current() == '_')
+        {
             self.bump();
-        } else {
-            while self.offset < self.text.len() && matches!(self.current(), 'u' | 'U' | 'l' | 'L') {
-                self.bump();
-            }
         }
-        let suffix = self.text[suffix_start..self.offset].to_ascii_lowercase();
+        let suffix = &self.text[suffix_start..self.offset];
         let valid_suffix = if float {
-            matches!(suffix.as_str(), "" | "f" | "h")
+            matches!(
+                suffix,
+                "" | "f"
+                    | "F"
+                    | "h"
+                    | "H"
+                    | "hf"
+                    | "HF"
+                    | "fh"
+                    | "FH"
+                    | "l"
+                    | "L"
+                    | "lf"
+                    | "LF"
+                    | "fl"
+                    | "FL"
+            )
         } else {
             matches!(
-                suffix.as_str(),
+                suffix.to_ascii_lowercase().as_str(),
                 "" | "u" | "l" | "ul" | "lu" | "ll" | "ull" | "llu"
             )
         };
@@ -227,22 +248,31 @@ impl Lexer<'_> {
                 "invalid numeric suffix",
             ));
         }
-        if self.current().is_ascii_alphanumeric() || self.current() == '_' {
-            while self.offset < self.text.len()
-                && (self.current().is_ascii_alphanumeric() || self.current() == '_')
-            {
-                self.bump();
-            }
-            self.diagnostics.push(Diagnostic::error(
-                "L004",
-                Span::new(self.source, start, self.offset),
-                "invalid numeric literal",
-            ));
-        }
         if float {
             TokenKind::Float
         } else {
             TokenKind::Integer
+        }
+    }
+
+    fn number_digits(&mut self, start: usize, hex: bool, binary: bool, octal: bool) {
+        while self.offset < self.text.len()
+            && if hex {
+                self.current().is_ascii_hexdigit()
+            } else {
+                self.current().is_ascii_digit()
+            }
+        {
+            if (binary && !matches!(self.current(), '0' | '1'))
+                || (octal && matches!(self.current(), '8' | '9'))
+            {
+                self.diagnostics.push(Diagnostic::error(
+                    "L004",
+                    Span::new(self.source, start, self.offset + 1),
+                    "invalid digit for numeric base",
+                ));
+            }
+            self.bump();
         }
     }
 }
@@ -274,6 +304,41 @@ mod tests {
         }
         for text in ["/*", "\"unterminated", "α", "1e+", "0x", "0b2", "12wat"] {
             assert!(!lex(SourceId(0), text).diagnostics.is_empty(), "{text}");
+        }
+    }
+
+    #[test]
+    fn floating_grammar_and_integer_members_keep_token_boundaries() {
+        let text = "0e10 0E-3 .5 0x1.8p+2HF 0x1.8 1.0lf 1.0FL 0#INFh 123.x 0.r 0xff.x";
+        let result = lex(SourceId(0), text);
+        assert!(result.diagnostics.is_empty(), "{:?}", result.diagnostics);
+        let tokens: Vec<_> = result
+            .tokens
+            .iter()
+            .filter(|t| {
+                !matches!(
+                    t.kind,
+                    TokenKind::Whitespace
+                        | TokenKind::Newline
+                        | TokenKind::Comment
+                        | TokenKind::Eof
+                )
+            })
+            .collect();
+        assert!(tokens[..8].iter().all(|t| t.kind == TokenKind::Float));
+        for group in tokens[8..].chunks(3) {
+            assert_eq!(group[0].kind, TokenKind::Integer);
+            assert!(group[1].is("."));
+            assert_eq!(group[2].kind, TokenKind::Identifier);
+        }
+        for text in ["2f", "2h", "1.0hF", "1.0lF", "0x1p+", "0b12", "09"] {
+            assert!(
+                lex(SourceId(0), text)
+                    .diagnostics
+                    .iter()
+                    .any(|d| d.severity == slang_source::Severity::Error),
+                "{text}"
+            );
         }
     }
 }

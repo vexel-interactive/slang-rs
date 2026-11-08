@@ -8,6 +8,7 @@ license.workspace = true
 authors.workspace = true
 
 [dependencies]
+slang-lexer.workspace = true
 slang-source.workspace = true
 slang-sema.workspace = true
 slang-ir.workspace = true

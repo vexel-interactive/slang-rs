@@ -11,7 +11,7 @@ pub(crate) fn evaluate(tokens: &[Token]) -> Result<i64, Diagnostic> {
     if parser.offset != tokens.len() {
         return Err(parser.error("unexpected tokens in #if expression"));
     }
-    Ok(result)
+    Ok(i64::from(result))
 }
 
 struct Evaluator<'a> {
@@ -32,7 +32,7 @@ impl Evaluator<'_> {
         )
     }
 
-    fn expr(&mut self, min: u8, execute: bool) -> Result<i64, Diagnostic> {
+    fn expr(&mut self, min: u8, execute: bool) -> Result<i32, Diagnostic> {
         if self.depth >= 128 {
             return Err(self.error("#if expression nesting limit exceeded"));
         }
@@ -42,7 +42,7 @@ impl Evaluator<'_> {
         result
     }
 
-    fn expr_inner(&mut self, min: u8, execute: bool) -> Result<i64, Diagnostic> {
+    fn expr_inner(&mut self, min: u8, execute: bool) -> Result<i32, Diagnostic> {
         let token = self
             .tokens
             .get(self.offset)
@@ -57,13 +57,12 @@ impl Evaluator<'_> {
                 self.offset += 1;
                 value
             }
-            "!" => i64::from(self.expr(12, execute)? == 0),
+            "!" => i32::from(self.expr(12, execute)? == 0),
             "~" => !self.expr(12, execute)?,
             "-" => self.expr(12, execute)?.wrapping_neg(),
             "+" => self.expr(12, execute)?,
             _ if token.kind == TokenKind::Identifier => 0,
-            _ if token.kind == TokenKind::Integer => integer(&token.text)
-                .ok_or_else(|| self.error("integer literal out of range in #if"))?,
+            _ if token.kind == TokenKind::Integer => crate::line::number(&token.text),
             _ => return Err(self.error("expected integer expression")),
         };
         while let Some(token) = self.tokens.get(self.offset) {
@@ -92,19 +91,19 @@ impl Evaluator<'_> {
                 continue;
             }
             left = match op {
-                "||" => i64::from(left != 0 || right != 0),
-                "&&" => i64::from(left != 0 && right != 0),
+                "||" => i32::from(left != 0 || right != 0),
+                "&&" => i32::from(left != 0 && right != 0),
                 "|" => left | right,
                 "^" => left ^ right,
                 "&" => left & right,
-                "==" => i64::from(left == right),
-                "!=" => i64::from(left != right),
-                "<" => i64::from(left < right),
-                "<=" => i64::from(left <= right),
-                ">" => i64::from(left > right),
-                ">=" => i64::from(left >= right),
+                "==" => i32::from(left == right),
+                "!=" => i32::from(left != right),
+                "<" => i32::from(left < right),
+                "<=" => i32::from(left <= right),
+                ">" => i32::from(left > right),
+                ">=" => i32::from(left >= right),
                 "<<" | ">>" => {
-                    if !(0..64).contains(&right) {
+                    if !(0..32).contains(&right) {
                         return Err(self.error("invalid shift amount in #if"));
                     }
                     if op == "<<" {
@@ -130,16 +129,5 @@ impl Evaluator<'_> {
             };
         }
         Ok(left)
-    }
-}
-
-fn integer(text: &str) -> Option<i64> {
-    let text = text.trim_end_matches(['u', 'U', 'l', 'L']);
-    if let Some(text) = text.strip_prefix("0x").or_else(|| text.strip_prefix("0X")) {
-        i64::from_str_radix(text, 16).ok()
-    } else if let Some(text) = text.strip_prefix("0b").or_else(|| text.strip_prefix("0B")) {
-        i64::from_str_radix(text, 2).ok()
-    } else {
-        text.parse().ok()
     }
 }

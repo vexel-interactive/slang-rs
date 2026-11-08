@@ -83,7 +83,10 @@ fn signed_and_wrapped_line_numbers_match_upstream_conversion() {
     ] {
         let (_, result) = run(&format!("#line {number}\n__LINE__"));
         assert!(
-            result.diagnostics.is_empty(),
+            result
+                .diagnostics
+                .iter()
+                .all(|d| d.code == "L005" && number == "077"),
             "{number}: {:?}",
             result.diagnostics
         );

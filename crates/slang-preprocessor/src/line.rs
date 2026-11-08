@@ -42,7 +42,7 @@ fn error(span: Span, message: &'static str) -> Diagnostic {
 }
 
 /// Match upstream's signed strtoll conversion, including lower-case hex and suffixes.
-fn number(text: &str) -> i32 {
+pub(crate) fn number(text: &str) -> i32 {
     let negative = text.starts_with('-');
     let text = text.strip_prefix('-').unwrap_or(text);
     let (text, radix) = text

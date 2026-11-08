@@ -378,8 +378,8 @@ impl Checker {
                 }
             }
         }
-        // Preserve selected overloads when module visibility or one-component
-        // shapes cannot be distinguished by the target's overload rules.
+        // Preserve selected overloads when module visibility, one-component
+        // shapes, or half/float types collapse under HLSL's overload rules.
         let mut target_names = declaration_names(module);
         target_names.extend(self.symbols.keys().cloned());
         for (name, overloads) in &mut self.functions {
@@ -387,7 +387,7 @@ impl Checker {
                 && (self.symbols.get(name).is_some_and(|o| o.module.0 != 0)
                     || overloads
                         .iter()
-                        .any(|signature| signature.parameters.iter().any(one_component_shape)))
+                        .any(|signature| signature.parameters.iter().any(collapsed_hlsl_type)))
             {
                 for (index, signature) in overloads.iter_mut().enumerate() {
                     let mut target = format!("{name}__overload_{index}");
@@ -599,12 +599,16 @@ impl Checker {
     }
 }
 
-fn one_component_shape(ty: &Type) -> bool {
+fn collapsed_hlsl_type(ty: &Type) -> bool {
     match ty {
+        Type::Scalar(crate::Scalar::Half)
+        | Type::Vector(crate::Scalar::Half, _)
+        | Type::Matrix(crate::Scalar::Half, _, _) => true,
         Type::Vector(_, 1) | Type::Matrix(_, 1, _) | Type::Matrix(_, _, 1) => true,
-        Type::Array(element, _) | Type::Buffer { element, .. } | Type::Texture { element, .. } => {
-            one_component_shape(element)
-        }
+        Type::Array(element, _)
+        | Type::Buffer { element, .. }
+        | Type::Texture { element, .. }
+        | Type::ConstantBuffer { element, .. } => collapsed_hlsl_type(element),
         _ => false,
     }
 }

@@ -200,6 +200,9 @@ pub struct Expr {
     pub id: ExprId,
     pub kind: ExprKind,
     pub span: Span,
+    /// Parentheses prevent parser-time literal folding by an enclosing prefix
+    /// operator, even though they are transparent to ordinary type checking.
+    pub parenthesized: bool,
     #[serde(skip)]
     pub(crate) height: usize,
 }

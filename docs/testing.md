@@ -2,6 +2,13 @@
 
 ## Workspace checks
 
+Numeric literal regressions cover every supported suffix family, selected
+overloads, direct decimal-to-float rounding, half ties to even, hex truncation,
+subnormals, maximum finite values, infinity, negative zero, malformed spellings,
+and literal-to-integer dimensions. Parentheses preserve upstream's restriction
+on literal-specific folding. Octal shader values and the preprocessor's separate
+32-bit conversion rules have independent checks.
+
 `tools/check.ps1` runs rustfmt, Clippy, workspace tests, and rustdoc using Rust
 1.99.1. Tests cover precedence, scopes, const/read-only locations, overloads,
 macro recursion and operators, include guards, diagnostic locations, IR lowering,
@@ -253,6 +260,13 @@ The optional case `compile_profile` supplies a compiler profile independently of
 the DXC `profile`, allowing an automatic upgrade to be checked. `rust_warning`
 requires the corresponding warning code in the native compiler's output.
 Reports distinguish valid artifacts from rejected artifacts.
+An optional `dxc_constant_stores` map requires exact uint values by output index
+in the compiled DXIL of a single structured UAV. The comparator also decodes
+constant `splitDouble`/`extractvalue` instructions. Dynamic, vector, repeated,
+or ambiguous stores fail these checks. The rounding and boundary fixtures check
+29 stored words against expected IEEE values in both compilers' artifacts;
+native fixtures require the same values. This verifies emitted constants,
+including subnormals and negative zero, without claiming GPU execution.
 An optional `bindings` map specifies expected direct resource ranges by source
 name. The runner requests JSON reflection from both compilers, normalizes the
 four range fields, and requires every named range to match. Native origin flags

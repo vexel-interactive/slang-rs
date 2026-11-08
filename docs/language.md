@@ -1,5 +1,46 @@
 # Supported language subset
 
+## Numeric literals
+
+Integer tokens support decimal, hexadecimal (`0x`/`0X`), binary (`0b`/`0B`),
+and octal (a leading zero). Octal tokens warn with `L005`; invalid base digits
+report `L004`. Magnitudes remain limited to 32 bits. `u` selects unsigned and a
+single `l`/`L` denotes 32-bit long; 64-bit and pointer-sized integer literals
+remain unimplemented.
+
+Floating literals support decimal fractions and `e` exponents, hexadecimal
+fractions and `p` exponents, leading-dot forms, and the legacy `#INF` spelling.
+The suffix selects the literal's type before overload resolution or conversion:
+
+| Type | Suffixes |
+| --- | --- |
+| float | empty, `f`, `F` |
+| half | `h`, `H`, `hf`, `HF`, `fh`, `FH` |
+| double | `l`, `L`, `lf`, `LF`, `fl`, `FL` |
+
+Mixed-case two-letter suffixes and floating suffixes on an integer token such
+as `2f` are invalid. Decimal floats parse directly to float precision. Decimal
+half values round from double to half with ties to even, matching upstream's
+double-rounding rule. Hexadecimal significands truncate discarded bits and
+warn with `T029`. Decimal overflow warns with `T028`; underflow to zero warns
+with `T027`. These warnings preserve the converted zero or infinity. Explicit
+`#INF` does not warn. HLSL uses valid target spellings, including `L` on finite
+double literals and converted half values; half/float overloads receive distinct
+names to preserve Slang's selected signatures.
+
+Direct signed literals and conversions that preserve their floating type can
+convert to integer dimensions. Rounding happens first: `int(1.99999999)` is
+two, while `int(1.99999999lf)` is one. Parentheses around a floating operand
+prevent literal-specific constant folding, so `- -2.5` is a valid dimension
+but `-(-2.5)` is rejected. Named floating constants and floating arithmetic
+remain outside the compile-time integer evaluator.
+
+Preprocessor numbers use upstream's separate signed 32-bit conversion:
+`010` means ten, lower-case `0x10` means sixteen, and `0X10` and `0b10` mean
+zero. `#if` arithmetic wraps to 32 bits. Ordinary integer expressions retain
+their source bases. See the
+[literal fixtures](../tests/conformance/positive/literal-suffixes.slang).
+
 ## Numeric type applications
 
 `vector<T, N>` and `matrix<T, R, C>` resolve to the same canonical types as

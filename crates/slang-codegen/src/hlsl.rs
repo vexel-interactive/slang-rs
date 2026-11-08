@@ -311,6 +311,49 @@ fn signature(function: &Function) -> String {
     )
 }
 
+fn floating_literal(text: &str) -> String {
+    let literal =
+        slang_lexer::parse_float_literal(text).expect("checked floating literal must have a value");
+    if literal.value.is_infinite() {
+        return match literal.kind {
+            slang_lexer::FloatKind::Double => "asdouble(0u, 0x7ff00000u)".into(),
+            slang_lexer::FloatKind::Half => "((half)asfloat(0x7f800000u))".into(),
+            slang_lexer::FloatKind::Float => "asfloat(0x7f800000u)".into(),
+        };
+    }
+    // Existing decimal float spellings already round directly to f32 in HLSL.
+    if literal.kind == slang_lexer::FloatKind::Float
+        && !literal.out_of_range
+        && !text.starts_with("0x")
+        && !text.starts_with("0X")
+        && !text.contains('#')
+    {
+        return text.into();
+    }
+    let scientific = literal.value != 0.0 && (literal.value < 1e-6 || literal.value >= 1e6);
+    let mut number = if literal.kind == slang_lexer::FloatKind::Double {
+        if scientific {
+            format!("{:e}", literal.value)
+        } else {
+            literal.value.to_string()
+        }
+    } else {
+        if scientific {
+            format!("{:e}", literal.value as f32)
+        } else {
+            (literal.value as f32).to_string()
+        }
+    };
+    if !number.contains(['.', 'e', 'E']) {
+        number.push_str(".0");
+    }
+    match literal.kind {
+        slang_lexer::FloatKind::Half => format!("((half){number}f)"),
+        slang_lexer::FloatKind::Double => format!("{number}L"),
+        slang_lexer::FloatKind::Float => format!("{number}f"),
+    }
+}
+
 fn expression(expr: &Expr) -> String {
     match &expr.kind {
         ExprKind::ConstantBufferLoad(value) => expression(value),
@@ -324,7 +367,22 @@ fn expression(expr: &Expr) -> String {
                 format!("{{{values}}}")
             }
         }
-        ExprKind::Integer(text) | ExprKind::Float(text) => text.clone(),
+        ExprKind::Integer(text) => {
+            if text.contains(['l', 'L']) {
+                let digits = text.trim_end_matches(['u', 'U', 'l', 'L']);
+                format!(
+                    "{digits}{}",
+                    if expr.ty.scalar() == Some(slang_sema::Scalar::Uint) {
+                        "u"
+                    } else {
+                        ""
+                    }
+                )
+            } else {
+                text.clone()
+            }
+        }
+        ExprKind::Float(text) => floating_literal(text),
         ExprKind::Name(name) | ExprKind::GlobalName(name) => identifier(name),
         ExprKind::Bool(value) => value.to_string(),
         ExprKind::Unary { op, value } => format!("({op}{})", expression(value)),

@@ -7,6 +7,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from conformance import compare_bindings, compare_results, normalize_bindings, normalize_global_uniform_binding, normalize_uniform_artifact_binding, normalize_uniform_locations, compare_uniform_locations, compare_dxc_uniform_layouts, normalize_dxc_uniform_layouts
 from conformance import target_buffer_layouts
+from conformance import normalize_dxc_constant_stores
 
 
 def result(accepted, stderr=""):
@@ -14,6 +15,30 @@ def result(accepted, stderr=""):
 
 
 class ConformanceComparison(unittest.TestCase):
+    def test_constant_stores_require_exact_values_and_valid_hlsl(self):
+        dump = "call void @dx.op.bufferStore.i32(i32 69, %dx.types.Handle %1, i32 2, i32 0, i32 -1, i32 undef, i32 undef, i32 undef, i8 1)"
+        self.assertEqual(normalize_dxc_constant_stores(dump), {"2": 0xffffffff})
+        self.assertEqual(normalize_dxc_constant_stores(""), {})
+        validator = {"accepted": True, "expected_accept": True, "constant_stores_passed": False}
+        self.assertFalse(compare_results({"accept": True}, result(True), result(True), [validator]))
+        self.assertTrue(compare_results({"accept": True}, result(True), result(True), [{**validator, "constant_stores_passed": True}]))
+
+    def test_dynamic_repeated_vector_and_multi_resource_stores_are_rejected(self):
+        store = "call void @dx.op.bufferStore.i32(i32 69, %dx.types.Handle %1, i32 2, i32 0, i32 42, i32 undef, i32 undef, i32 undef, i8 1)"
+        for dump in [store.replace("i32 42", "i32 %value"), store.replace("i8 1", "i8 3"),
+                     store + "\n" + store,
+                     store + "\n" + store.replace("%1", "%2").replace("i32 2,", "i32 3,")]:
+            with self.assertRaises(ValueError):
+                normalize_dxc_constant_stores(dump)
+
+    def test_constant_double_splitting_preserves_bits_and_negative_zero(self):
+        for number, bits in [("0x3FF0000000000001", 0x3ff0000000000001), ("-0.000000e+00", 0x8000000000000000), ("4.940656e-324", 1)]:
+            dump = f"%2 = call %dx.types.splitdouble @dx.op.splitDouble.f64(i32 102, double {number})\n"
+            dump += "%3 = extractvalue %dx.types.splitdouble %2, 0\n%4 = extractvalue %dx.types.splitdouble %2, 1\n"
+            for index, value in enumerate(['%3', '%4']):
+                dump += f"call void @dx.op.bufferStore.i32(i32 69, %dx.types.Handle %1, i32 {index}, i32 0, i32 {value}, i32 undef, i32 undef, i32 undef, i8 1)\n"
+            self.assertEqual(normalize_dxc_constant_stores(dump), {"0": bits & 0xffffffff, "1": bits >> 32})
+
     def test_valid_hlsl_with_wrong_physical_layout_cannot_pass(self):
         validator = {"accepted": True, "expected_accept": True, "layout_passed": False}
         self.assertFalse(compare_results({"accept": True}, result(True), result(True), [validator]))

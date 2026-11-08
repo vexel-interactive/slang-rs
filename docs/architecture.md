@@ -1,5 +1,14 @@
 # Architecture
 
+The lexer owns location-independent numeric value parsing shared by semantic
+checking and HLSL emission. Decimal float parsing avoids an intermediate double;
+half conversion and hexadecimal truncation follow the pinned upstream rules.
+The syntax AST retains a parenthesized flag because parentheses limit parser-time
+literal folding even when ordinary type checking treats them as transparent.
+The constant evaluator uses converted literal values, and target emission
+preserves their precision and suffix type. The preprocessor keeps its separate
+signed 32-bit number conversion, shared with `#line`.
+
 Local storage normalization runs after aggregate and intrinsic lowering. It
 rewrites local static declarations to private global storage with guards at the
 original initialization sites. A lexical binding stack keeps shadowed locals and

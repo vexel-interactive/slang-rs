@@ -4,7 +4,7 @@ import argparse
 import json
 from pathlib import Path
 
-from conformance import compare_dxc_uniform_layouts, compare_uniform_locations, run, target_buffer_layouts
+from conformance import compare_dxc_uniform_layouts, compare_uniform_locations, normalize_dxc_constant_stores, run, target_buffer_layouts
 
 
 def main():
@@ -36,6 +36,7 @@ def main():
         validation = None
         entry = None
         layout_checks = {}
+        constant_stores = None
         if compilation["accepted"]:
             reflection = json.loads(reflection_path.read_text(encoding="utf-8"))
             entry = next(e for e in reflection["entry_points"] if e["name"] == case["entry"])
@@ -50,12 +51,23 @@ def main():
                 dump = run([str(args.dxc.resolve()), "-dumpbin", str(output.with_suffix(".dxil"))])
                 expected = target_buffer_layouts(case["dxc_layouts"], reflection)
                 layout_checks["dxc"] = dump["accepted"] and compare_dxc_uniform_layouts(expected, dump["stdout"])
+            if "dxc_constant_stores" in case:
+                validation["constant_stores_passed"] = False
+                if validation["accepted"]:
+                    dump = run([str(args.dxc.resolve()), "-dumpbin", str(output.with_suffix(".dxil"))])
+                    try:
+                        constant_stores = normalize_dxc_constant_stores(dump["stdout"])
+                        validation["constant_stores_passed"] = dump["accepted"] and constant_stores == case["dxc_constant_stores"]
+                    except ValueError as error:
+                        validation["constant_stores_error"] = str(error)
         passed = compilation["accepted"] and validation is not None and validation["accepted"]
         passed = passed and all(layout_checks.values())
+        passed = passed and (validation is not None and validation.get("constant_stores_passed", True))
         results.append({
             "file": case["file"], "passed": passed, "entry": entry,
             "compilation": compilation, "validation": validation,
             "uniform_layout_checks": layout_checks,
+            "constant_stores_actual": constant_stores,
         })
         print(f"{'PASS' if passed else 'FAIL'} {case['file']}")
     report = {
@@ -63,6 +75,7 @@ def main():
         "passed": sum(r["passed"] for r in results),
         "total": len(results),
         "uniform_layout_cases": sum(bool(r["uniform_layout_checks"]) for r in results),
+        "constant_store_cases": sum(r["constant_stores_actual"] is not None for r in results),
         "cases": results,
     }
     args.output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8", newline="\n")

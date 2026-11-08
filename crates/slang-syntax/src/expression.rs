@@ -45,6 +45,7 @@ impl Parser {
             id,
             kind,
             span,
+            parenthesized: false,
             height,
         })
     }
@@ -73,6 +74,7 @@ impl Parser {
             let mut expr = self.expression(0)?;
             let end = self.expect(")")?;
             expr.span = token.span.join(end);
+            expr.parenthesized = true;
             expr
         } else if matches!(token.text.as_str(), "vector" | "matrix")
             && self

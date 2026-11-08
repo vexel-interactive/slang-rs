@@ -3,6 +3,7 @@
 import argparse
 import json
 import re
+import struct
 import subprocess
 from pathlib import Path
 
@@ -21,7 +22,52 @@ def compare_results(case, rust, oracle, validators):
         passed = passed and case["rust_warning"] in rust["stderr"]
     for compiler, result in [("rust", rust), ("oracle", oracle)]:
         passed = passed and all(text in result["stderr"] for text in case.get(f"{compiler}_stderr_contains", []))
-    return passed and all(v["accepted"] == v["expected_accept"] and v.get("layout_passed", True) for v in validators)
+    return passed and all(v["accepted"] == v["expected_accept"] and v.get("layout_passed", True)
+                          and v.get("constant_stores_passed", True) for v in validators)
+
+
+def normalize_dxc_constant_stores(dump):
+    """Read scalar constant uint stores to one structured UAV in DXIL assembly.
+
+    Constant splitDouble/extractvalue operands are decoded as IEEE bits.
+    This checks compiled constants, not shader execution. Reject dynamic,
+    repeated, multi-resource, and vector stores instead of ignoring them.
+    """
+    stores = {}
+    handles = set()
+    split_values = {}
+    values = {}
+    split_pattern = re.compile(r"(%\w+) = call %dx\.types\.splitdouble @dx\.op\.splitDouble\.f64\(i32 102, double ([^ )]+)\)")
+    extract_pattern = re.compile(r"(%\w+) = extractvalue %dx\.types\.splitdouble (%\w+), ([01])\b")
+    pattern = re.compile(r"call void @dx\.op\.bufferStore\.i32\(i32 69, %dx\.types\.Handle ([^,]+), "
+                         r"i32 (\d+), i32 0, i32 (-?\d+|%\w+), i32 undef, i32 undef, i32 undef, i8 1\)")
+    for line in dump.splitlines():
+        if match := split_pattern.search(line):
+            name, number = match.groups()
+            bits = int(number, 16) if number.startswith("0x") else struct.unpack("<Q", struct.pack("<d", float(number)))[0]
+            if not 0 <= bits <= 0xffffffffffffffff:
+                raise ValueError("invalid double constant bits")
+            split_values[name] = (bits & 0xffffffff, bits >> 32)
+        if match := extract_pattern.search(line):
+            name, source, component = match.groups()
+            if source in split_values:
+                values[name] = split_values[source][int(component)]
+        if "call void @dx.op.bufferStore." not in line:
+            continue
+        match = pattern.search(line)
+        if match is None:
+            raise ValueError("expected scalar constant structured-buffer store")
+        handle, index, value = match.groups()
+        handles.add(handle)
+        if len(handles) != 1 or index in stores:
+            raise ValueError("ambiguous resource or repeated constant store")
+        if value.startswith('%'):
+            if value not in values:
+                raise ValueError("nonconstant structured-buffer store")
+            stores[index] = values[value]
+        else:
+            stores[index] = int(value) & 0xffffffff
+    return stores
 
 
 def normalize_bindings(reflection, compiler):
@@ -222,6 +268,15 @@ def main():
                             validation["layout_actual"] = normalize_dxc_uniform_layouts(dump["stdout"])
                         except (OSError, ValueError, KeyError, TypeError) as error:
                             validation["layout_error"] = str(error)
+                if "dxc_constant_stores" in case:
+                    validation["constant_stores_passed"] = False
+                    if validation["accepted"]:
+                        dump = run([str(args.dxc.resolve()), "-dumpbin", str(output.with_suffix(".dxil"))])
+                        try:
+                            validation["constant_stores_actual"] = normalize_dxc_constant_stores(dump["stdout"])
+                            validation["constant_stores_passed"] = dump["accepted"] and validation["constant_stores_actual"] == case["dxc_constant_stores"]
+                        except ValueError as error:
+                            validation["constant_stores_error"] = str(error)
                 validators.append(validation)
         passed = compare_results(case, rust, oracle, validators)
         binding_checks = []
@@ -276,6 +331,7 @@ def main():
         "resource_binding_cases": sum(bool(r["binding_checks"]) for r in results),
         "global_uniform_binding_cases": sum(bool(r["uniform_binding_checks"]) for r in results),
         "uniform_layout_cases": sum(bool(r["uniform_layout_checks"]) for r in results),
+        "constant_store_cases": sum(any("constant_stores_passed" in v for v in r["validators"]) for r in results),
         "cases": results,
     }
     args.output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8", newline="\n")

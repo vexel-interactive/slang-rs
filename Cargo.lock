@@ -90,6 +90,7 @@ dependencies = [
  "serde",
  "slang-ir",
  "slang-layout",
+ "slang-lexer",
  "slang-sema",
  "slang-source",
 ]

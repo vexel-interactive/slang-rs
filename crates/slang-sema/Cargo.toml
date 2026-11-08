@@ -8,14 +8,12 @@ license.workspace = true
 authors.workspace = true
 
 [dependencies]
+slang-lexer.workspace = true
 slang-layout.workspace = true
 slang-source.workspace = true
 slang-syntax.workspace = true
 slang-module.workspace = true
 serde.workspace = true
-
-[dev-dependencies]
-slang-lexer.workspace = true
 
 [lints]
 workspace = true

@@ -103,7 +103,11 @@ impl Checker {
                 }
             }
             ExprKind::Unary { op, value } => {
-                let value = self.integer_constant_mode(value, shape)?;
+                let value = if op == "!" {
+                    self.constant_conversion_mode(value, shape)?
+                } else {
+                    self.integer_constant_mode(value, shape)?
+                };
                 match op.as_str() {
                     "+" => value,
                     "-" => value.wrapping_neg(),
@@ -196,22 +200,53 @@ impl Checker {
     }
 
     fn constant_conversion_mode(&self, expr: &Expr, shape: bool) -> Option<i64> {
-        if let ExprKind::Float(text) = &expr.kind {
-            let value = floating(text)?;
+        if let Some(value) = self.floating_literal(expr) {
             (value.is_finite() && value >= i32::MIN as f64 && value <= u32::MAX as f64)
                 .then_some(value as i64)
         } else {
             self.integer_constant_mode(expr, shape)
         }
     }
+
+    /// Prefix signs fold literals in the upstream parser. A conversion to the
+    /// same type is also removed before integer constant evaluation.
+    fn floating_literal(&self, expr: &Expr) -> Option<f64> {
+        if expr.parenthesized {
+            return None;
+        }
+        match &expr.kind {
+            ExprKind::Float(_) | ExprKind::Unary { .. } => parser_floating_literal(expr),
+            ExprKind::Cast { value, .. }
+                if self.expression_types.get(&expr.id) == self.expression_types.get(&value.id) =>
+            {
+                self.floating_literal(value)
+            }
+            ExprKind::Call { callee, arguments }
+                if arguments.len() == 1
+                    && matches!(self.expression_types.get(&callee.id), Some(Type::Meta(target))
+                    if Some(target.as_ref()) == self.expression_types.get(&arguments[0].id)) =>
+            {
+                self.floating_literal(&arguments[0])
+            }
+            _ => None,
+        }
+    }
 }
 
-fn floating(text: &str) -> Option<f64> {
-    let value = text
-        .trim_end_matches(['f', 'F', 'h', 'H'])
-        .parse::<f64>()
-        .ok()?;
-    value.is_finite().then_some(value)
+/// Only syntactic literals fold through prefix signs. Identity constructors
+/// are simplified later, so a sign outside such a constructor is not a literal.
+fn parser_floating_literal(expr: &Expr) -> Option<f64> {
+    if expr.parenthesized {
+        return None;
+    }
+    match &expr.kind {
+        ExprKind::Float(text) => slang_lexer::parse_float_literal(text).ok().map(|v| v.value),
+        ExprKind::Unary { op, value } if matches!(op.as_str(), "+" | "-") => {
+            let value = parser_floating_literal(value)?;
+            Some(if op == "-" { -value } else { value })
+        }
+        _ => None,
+    }
 }
 
 fn constant_cycles(
@@ -288,12 +323,5 @@ pub(crate) fn normalize(value: i64, ty: &Type) -> i64 {
 }
 
 fn integer(text: &str) -> Option<i64> {
-    let text = text.trim_end_matches(['u', 'U', 'l', 'L']);
-    if let Some(text) = text.strip_prefix("0x").or_else(|| text.strip_prefix("0X")) {
-        i64::from_str_radix(text, 16).ok()
-    } else if let Some(text) = text.strip_prefix("0b").or_else(|| text.strip_prefix("0B")) {
-        i64::from_str_radix(text, 2).ok()
-    } else {
-        text.parse().ok()
-    }
+    slang_lexer::integer_literal_value(text).and_then(|v| i64::try_from(v).ok())
 }
