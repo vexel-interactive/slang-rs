@@ -286,6 +286,13 @@ fixtures are validated with DXC; these checks do not execute the shaders.
 
 Numeric type application cases compare explicit shapes, upstream core defaults,
 alias constructors, imported scalar arguments, nested resources, and arrays.
+Computed dimension regressions cover forward dependencies, wider intermediate
+integer arithmetic, lexical shadowing, imported declaration scopes, bool and literal
+conversions, casts and constructors, and nested resource applications. Negative
+fixtures reject runtime values, dependency cycles, division by zero, and right
+angle operators forbidden by the upstream template grammar. A deep dependency
+chain checks bounded diagnostics. Selected reflection and physical DXC buffer
+layouts verify that dimension expressions become the expected canonical shapes.
 Invalid shape, component, arity, and resource arguments must fail before IR
 lowering.
 

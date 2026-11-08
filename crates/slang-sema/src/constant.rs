@@ -78,6 +78,10 @@ impl Checker {
 
     /// Fold the implemented scalar integer constant subset using 32-bit shapes.
     pub(crate) fn integer_constant(&self, expr: &Expr) -> Option<i64> {
+        self.integer_constant_mode(expr, false)
+    }
+
+    fn integer_constant_mode(&self, expr: &Expr, shape: bool) -> Option<i64> {
         if matches!(
             self.expression_types.get(&expr.id),
             Some(Type::Scalar(Scalar::Half | Scalar::Float | Scalar::Double))
@@ -87,12 +91,19 @@ impl Checker {
         let value = match &expr.kind {
             ExprKind::Integer(text) => integer(text)?,
             ExprKind::InitializerList(values) if values.len() == 1 => {
-                self.integer_constant(&values[0])?
+                self.integer_constant_mode(&values[0], shape)?
             }
             ExprKind::Bool(value) => i64::from(*value),
-            ExprKind::Name(name) => self.lookup(name)?.constant?,
+            ExprKind::Name(name) => {
+                let binding = self.lookup(name)?;
+                if shape {
+                    binding.shape_constant.or(binding.constant)?
+                } else {
+                    binding.constant?
+                }
+            }
             ExprKind::Unary { op, value } => {
-                let value = self.integer_constant(value)?;
+                let value = self.integer_constant_mode(value, shape)?;
                 match op.as_str() {
                     "+" => value,
                     "-" => value.wrapping_neg(),
@@ -102,15 +113,16 @@ impl Checker {
                 }
             }
             ExprKind::Binary { op, left, right } => {
-                let mut a = self.integer_constant(left)?;
+                let mut a = self.integer_constant_mode(left, shape)?;
                 if op == "&&" && a == 0 {
                     return Some(0);
                 }
                 if op == "||" && a != 0 {
                     return Some(1);
                 }
-                let mut b = self.integer_constant(right)?;
-                if !matches!(op.as_str(), "<<" | ">>")
+                let mut b = self.integer_constant_mode(right, shape)?;
+                if !shape
+                    && !matches!(op.as_str(), "<<" | ">>")
                     && let Some(common) = self
                         .expression_types
                         .get(&left.id)
@@ -129,8 +141,8 @@ impl Checker {
                     "&" => a & b,
                     "|" => a | b,
                     "^" => a ^ b,
-                    "<<" if (0..32).contains(&b) => a << b,
-                    ">>" if (0..32).contains(&b) => a >> b,
+                    "<<" if (0..if shape { 64 } else { 32 }).contains(&b) => a << b,
+                    ">>" if (0..if shape { 64 } else { 32 }).contains(&b) => a >> b,
                     "==" => i64::from(a == b),
                     "!=" => i64::from(a != b),
                     "<" => i64::from(a < b),
@@ -146,34 +158,50 @@ impl Checker {
                 condition,
                 then_value,
                 else_value,
-            } => self.integer_constant(if self.integer_constant(condition)? != 0 {
-                then_value
-            } else {
-                else_value
-            })?,
-            ExprKind::Cast { value, .. } => self.constant_conversion(value)?,
+            } => self.integer_constant_mode(
+                if self.integer_constant_mode(condition, shape)? != 0 {
+                    then_value
+                } else {
+                    else_value
+                },
+                shape,
+            )?,
+            ExprKind::Cast { value, .. } => self.constant_conversion_mode(value, shape)?,
             ExprKind::Call { callee, arguments }
                 if arguments.len() == 1
                     && matches!(self.expression_types.get(&callee.id), Some(Type::Meta(target)) if matches!(target.as_ref(), Type::Scalar(Scalar::Int | Scalar::Uint | Scalar::Bool))) =>
             {
-                self.constant_conversion(&arguments[0])?
+                self.constant_conversion_mode(&arguments[0], shape)?
             }
             _ => return None,
         };
         Some(
-            self.expression_types
-                .get(&expr.id)
-                .map_or(value, |ty| normalize(value, ty)),
+            if shape && self.expression_types.get(&expr.id) != Some(&Type::Scalar(Scalar::Bool)) {
+                value
+            } else {
+                self.expression_types
+                    .get(&expr.id)
+                    .map_or(value, |ty| normalize(value, ty))
+            },
         )
     }
 
     pub(crate) fn constant_conversion(&self, expr: &Expr) -> Option<i64> {
+        self.constant_conversion_mode(expr, false)
+    }
+
+    /// Type-level folding preserves 64-bit intermediates before shape checking.
+    pub(crate) fn shape_constant_conversion(&self, expr: &Expr) -> Option<i64> {
+        self.constant_conversion_mode(expr, true)
+    }
+
+    fn constant_conversion_mode(&self, expr: &Expr, shape: bool) -> Option<i64> {
         if let ExprKind::Float(text) = &expr.kind {
             let value = floating(text)?;
             (value.is_finite() && value >= i32::MIN as f64 && value <= u32::MAX as f64)
                 .then_some(value as i64)
         } else {
-            self.integer_constant(expr)
+            self.integer_constant_mode(expr, shape)
         }
     }
 }

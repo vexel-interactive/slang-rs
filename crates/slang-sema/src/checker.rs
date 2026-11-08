@@ -64,6 +64,8 @@ pub(crate) struct Binding {
     pub ty: Type,
     pub writable: bool,
     pub constant: Option<i64>,
+    /// Template dimensions use upstream's wider integer intermediates.
+    pub shape_constant: Option<i64>,
     pub storage: Storage,
 }
 
@@ -111,6 +113,9 @@ pub(crate) struct Checker {
     pub alias_matrix_layouts: BTreeMap<String, Option<slang_layout::MatrixMajor>>,
     pub resolving_aliases: BTreeSet<String>,
     pub struct_definitions: BTreeMap<String, Struct>,
+    pub shape_globals: BTreeMap<String, Variable>,
+    pub shape_bindings: BTreeMap<String, Binding>,
+    pub resolving_shape_globals: BTreeSet<String>,
     pub initializations: BTreeMap<ExprId, crate::Initialization>,
     pub default_arguments: BTreeMap<ExprId, Vec<crate::Initialization>>,
     pub case_values: BTreeMap<ExprId, i64>,
@@ -186,6 +191,19 @@ fn check_with_metadata(
         alias_matrix_layouts: BTreeMap::new(),
         resolving_aliases: BTreeSet::new(),
         struct_definitions: BTreeMap::new(),
+        shape_globals: module
+            .declarations
+            .iter()
+            .filter_map(|d| {
+                if let Declaration::Global(v) = d {
+                    Some((v.name.clone(), v.clone()))
+                } else {
+                    None
+                }
+            })
+            .collect(),
+        shape_bindings: BTreeMap::new(),
+        resolving_shape_globals: BTreeSet::new(),
         initializations: BTreeMap::new(),
         default_arguments: BTreeMap::new(),
         case_values: BTreeMap::new(),

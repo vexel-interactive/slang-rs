@@ -177,6 +177,9 @@ impl Parser {
             let Some(token) = self.current() else {
                 break;
             };
+            if self.expression_angle_stop && matches!(token.text.as_str(), ">" | ">>" | ">=") {
+                break;
+            }
             let precedence = match token.text.as_str() {
                 "," => 0,
                 "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^=" | "<<=" | ">>=" => 1,
@@ -232,23 +235,52 @@ impl Parser {
     }
 
     /// Recognize angle brackets without consuming comparisons or shifting tokens.
-    fn type_application_end(&self, start: usize) -> Option<usize> {
+    pub(crate) fn type_application_end(&self, start: usize) -> Option<usize> {
         if !self.tokens.get(start + 1)?.is("<") {
             return None;
         }
-        let mut nesting = 0i32;
+        let mut applications: Vec<(bool, usize)> = vec![];
+        let mut parentheses = 0usize;
         for (offset, token) in self.tokens.iter().enumerate().skip(start + 1) {
+            if token.is("(") {
+                parentheses += 1;
+                continue;
+            }
+            if token.is(")") {
+                if parentheses == 0 {
+                    return None;
+                }
+                parentheses -= 1;
+                continue;
+            }
+            if parentheses > 0 {
+                continue;
+            }
             match token.text.as_str() {
-                "<" => nesting += 1,
-                ">" => nesting -= 1,
-                ">>" => nesting -= 2,
-                "(" | ")" | ";" | "{" | "}" | "=" | "?" => return None,
+                "<" if applications
+                    .last()
+                    .is_some_and(|&(numeric, index)| numeric && index > 0) => {}
+                "<" => applications.push((
+                    self.tokens
+                        .get(offset - 1)
+                        .is_some_and(|t| matches!(t.text.as_str(), "vector" | "matrix")),
+                    0,
+                )),
+                "," => applications.last_mut()?.1 += 1,
+                ">" => {
+                    applications.pop()?;
+                }
+                ">>" => {
+                    applications.pop()?;
+                    applications.pop()?;
+                }
+                ";" | "{" | "}" | "=" => return None,
                 _ => {}
             }
-            if nesting == 0 {
+            if applications.is_empty() {
                 return Some(offset + 1);
             }
-            if nesting < 0 || token.kind == TokenKind::Eof {
+            if token.kind == TokenKind::Eof {
                 return None;
             }
         }

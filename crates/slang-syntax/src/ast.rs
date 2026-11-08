@@ -79,6 +79,7 @@ pub struct TypeRef {
 pub enum TypeArgument {
     Type(TypeRef),
     Integer { value: u32, span: Span },
+    Expression(Box<Expr>),
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -194,7 +195,7 @@ pub struct SwitchCase {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
 pub struct ExprId(pub usize);
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct Expr {
     pub id: ExprId,
     pub kind: ExprKind,
@@ -203,7 +204,7 @@ pub struct Expr {
     pub(crate) height: usize,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub enum ExprKind {
     InitializerList(Vec<Expr>),
     Integer(String),

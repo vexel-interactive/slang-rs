@@ -204,7 +204,13 @@ impl Parser {
         let mut arguments = vec![];
         if self.eat("<") {
             while !self.at(">") && !self.at(">>") {
-                if self.current().is_some_and(|t| t.kind == TokenKind::Integer) {
+                if matches!(token.text.as_str(), "vector" | "matrix") && !arguments.is_empty() {
+                    let previous = self.expression_angle_stop;
+                    self.expression_angle_stop = true;
+                    let expression = self.expression(1);
+                    self.expression_angle_stop = previous;
+                    arguments.push(TypeArgument::Expression(Box::new(expression?)));
+                } else if self.current().is_some_and(|t| t.kind == TokenKind::Integer) {
                     let token = self.current().unwrap().clone();
                     self.offset += 1;
                     let text = token.text.trim_end_matches(['u', 'U']);

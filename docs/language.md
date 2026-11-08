@@ -19,11 +19,22 @@ declarations, aliases, resource arguments, arrays, and constructor calls.
 | `matrix<float, 2>` | `float2x4` |
 
 Omitted arguments use the upstream core defaults: `float` for the component
-and four for each dimension. Supplied dimensions currently require integer
-literals from one through four; decimal, hexadecimal, and binary spellings are
-accepted. Named constant or expression dimensions, the matrix layout argument,
-user-defined generic types, and generic functions remain
-unimplemented. Constructors require explicit angle brackets, including `<>`, or
+and four for each dimension. Supplied dimensions evaluate to values from one
+through four. Integer expressions support arithmetic, bit operations, supported
+comparisons, conditional selection, integer casts, and named global/local
+constants. Global dependencies can reference later declarations and are checked
+in their declaration module. Type dimensions use 64-bit intermediate arithmetic,
+matching upstream's compile-time shape folding. Boolean constants and numeric literals can convert
+to integer dimensions; floating literals truncate toward zero. For example,
+`static const int Count = 2; vector<float, Count + 1> value;` declares a `float3`.
+
+As in upstream's template grammar, `>`, `>=`, and `>>` cannot appear within a
+type argument, including parentheses. Compute those operations in a named
+constant before using the result as a dimension. Cyclic or excessively nested
+shape dependencies report `T026`; dimension expressions must be compile-time
+constants. General floating constant evaluation, constant function execution,
+the matrix layout argument, user-defined generic types, and generic functions
+remain unimplemented. Constructors require explicit angle brackets, including `<>`, or
 a transparent type alias; bare `vector(...)` and `matrix(...)` calls do not
 specialize a numeric type. They use the existing numeric and aggregate checks. See
 [numeric-type-templates.slang](../examples/numeric-type-templates.slang).

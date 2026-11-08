@@ -16,6 +16,7 @@ mod initializer_list;
 mod interface;
 mod intrinsic;
 mod resource;
+mod shape;
 mod statement;
 mod swizzle;
 mod types;

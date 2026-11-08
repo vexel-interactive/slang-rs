@@ -168,6 +168,14 @@ impl Checker {
                 self.error("T002", *span, "expected a type argument, found an integer");
                 Type::Error
             }
+            TypeArgument::Expression(expression) => {
+                self.error(
+                    "T002",
+                    expression.span,
+                    "expected a type argument, found a value",
+                );
+                Type::Error
+            }
         }
     }
 
@@ -199,23 +207,37 @@ impl Checker {
         };
         let mut dimensions = vec![];
         for argument in reference.arguments.iter().skip(1) {
-            let TypeArgument::Integer { value, span } = argument else {
-                self.error(
-                    "T002",
-                    reference.span,
-                    "numeric shape arguments currently require integer literals",
-                );
-                return Type::Error;
+            let (value, span) = match argument {
+                TypeArgument::Integer { value, span } => (i64::from(*value), *span),
+                TypeArgument::Expression(expression) => {
+                    let Some(value) = self.numeric_shape_value(expression) else {
+                        self.error(
+                            "T002",
+                            expression.span,
+                            "numeric shape arguments require scalar integer constants",
+                        );
+                        return Type::Error;
+                    };
+                    (value, expression.span)
+                }
+                TypeArgument::Type(_) => {
+                    self.error(
+                        "T002",
+                        reference.span,
+                        "numeric shape arguments require scalar integer constants",
+                    );
+                    return Type::Error;
+                }
             };
-            if !(1..=4).contains(value) {
+            if !(1..=4).contains(&value) {
                 self.error(
                     "T002",
-                    *span,
+                    span,
                     "numeric shape dimensions require values from 1 through 4",
                 );
                 return Type::Error;
             }
-            dimensions.push(*value as u8);
+            dimensions.push(value as u8);
         }
         dimensions.resize(expected - 1, 4);
         if reference.name == "vector" {
@@ -520,6 +542,26 @@ impl Checker {
             .filter(|_| variable.modifiers.iter().any(|m| m == "const"))
             .filter(|_| !matches!(context, VariableScope::Parameter))
             .and_then(|expr| self.integer_constant(expr));
+        let shape_constant = if matches!(context, VariableScope::Local)
+            && variable.modifiers.iter().any(|m| m == "const")
+            && matches!(
+                ty,
+                Type::Scalar(crate::Scalar::Int | crate::Scalar::Uint | crate::Scalar::Bool)
+            ) {
+            variable
+                .initializer
+                .as_ref()
+                .and_then(|expr| self.numeric_shape_value(expr))
+                .map(|v| {
+                    if ty == Type::Scalar(crate::Scalar::Bool) {
+                        i64::from(v != 0)
+                    } else {
+                        v
+                    }
+                })
+        } else {
+            None
+        };
         self.declaration_types
             .insert(span_key(variable.span), ty.clone());
         let scope = self.scopes.last_mut().unwrap();
@@ -530,6 +572,7 @@ impl Checker {
                     ty,
                     writable,
                     constant,
+                    shape_constant,
                     storage: match context {
                         VariableScope::Global
                             if variable.modifiers.iter().any(|m| m == "groupshared") =>

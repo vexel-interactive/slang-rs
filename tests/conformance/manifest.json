@@ -4076,6 +4076,144 @@
           "count": 1
         }
       }
+    },
+    {
+      "file": "positive/computed-shape-arithmetic.slang",
+      "entry": "main",
+      "accept": true,
+      "uniform_layouts": {
+        "input": {
+          "offset": 0,
+          "size": 12
+        },
+        "matrixValue": {
+          "offset": 0,
+          "size": 28
+        }
+      },
+      "rust_dxc_layouts": {
+        "input": {
+          "size": 12,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "matrixValue": {
+          "size": 28,
+          "offsets": {
+            "_value": 0
+          }
+        }
+      }
+    },
+    {
+      "file": "positive/computed-shape-forward.slang",
+      "entry": "main",
+      "accept": true,
+      "uniform_layouts": {
+        "input": {
+          "offset": 0,
+          "size": 8
+        }
+      },
+      "rust_dxc_layouts": {
+        "input": {
+          "size": 8,
+          "offsets": {
+            "_value": 0
+          }
+        }
+      }
+    },
+    {
+      "file": "positive/computed-shape-conversions.slang",
+      "entry": "main",
+      "accept": true,
+      "uniform_layouts": {
+        "single": {
+          "offset": 0,
+          "size": 4
+        },
+        "input": {
+          "offset": 0,
+          "size": 12
+        }
+      },
+      "rust_dxc_layouts": {
+        "single": {
+          "size": 4,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input": {
+          "size": 12,
+          "offsets": {
+            "_value": 0
+          }
+        }
+      }
+    },
+    {
+      "file": "positive/computed-shape-module/main.slang",
+      "entry": "main",
+      "accept": true,
+      "uniform_layouts": {
+        "input": {
+          "offset": 0,
+          "size": 12
+        }
+      },
+      "rust_dxc_layouts": {
+        "input": {
+          "size": 12,
+          "offsets": {
+            "_value": 0
+          }
+        }
+      }
+    },
+    {
+      "file": "negative/computed-shape-runtime.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T002"
+    },
+    {
+      "file": "negative/computed-shape-parameter.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T002"
+    },
+    {
+      "file": "negative/computed-shape-cycle.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T026"
+    },
+    {
+      "file": "negative/computed-shape-right-shift.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "S001"
+    },
+    {
+      "file": "negative/computed-shape-greater.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "S001"
+    },
+    {
+      "file": "negative/computed-shape-greater-equal.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "S001"
+    },
+    {
+      "file": "negative/computed-shape-divide-zero.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T002"
     }
   ]
 }

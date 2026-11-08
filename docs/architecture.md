@@ -8,12 +8,21 @@ scope while keeping ordinary initialization inside the control body. IR statemen
 sequences preserve order without introducing a scope; blocks represent scopes.
 Reflection selects source globals and excludes this generated storage.
 
-Syntax type applications distinguish type arguments from integer shape arguments.
+Syntax type applications distinguish type arguments from shape expressions.
 Semantic checking resolves numeric applications and their defaults into canonical
 vector and matrix types. Constructor callees retain their type application in the
 AST; lowering replaces them with the selected canonical constructor. The typed IR
 and HLSL emitter therefore use one representation for `vector<float, 3>` and
 `float3`.
+
+Module linking resolves names and assigns expression IDs inside type arguments.
+Numeric shape checking uses the existing typed scalar constant evaluator. Global
+shape dependencies are resolved on demand before declaration signatures are
+complete, with cached bindings and bounded cycle checks. Temporary global
+bindings preserve local lexical priority, isolate global initializers from caller
+locals, and restore the ordinary checker environment after folding. Shape
+constants use 64-bit intermediate arithmetic, matching upstream's type-level
+folding; ordinary shader constants retain their checked 32-bit arithmetic.
 
 Matrix storage qualifiers are separate from algebraic matrix value types.
 Semantic checking records declaration and alias layouts and normalizes qualified

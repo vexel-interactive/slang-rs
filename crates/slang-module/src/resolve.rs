@@ -47,11 +47,13 @@ impl<'a> Resolver<'a> {
             .unwrap_or_else(|| name.into()))
     }
 
-    fn ty(&self, ty: &mut TypeRef) -> Result<(), Diagnostic> {
+    fn ty(&mut self, ty: &mut TypeRef) -> Result<(), Diagnostic> {
         ty.name = self.symbol(&ty.name, true, ty.span)?;
         for argument in &mut ty.arguments {
-            if let slang_syntax::TypeArgument::Type(argument) = argument {
-                self.ty(argument)?;
+            match argument {
+                slang_syntax::TypeArgument::Type(argument) => self.ty(argument)?,
+                slang_syntax::TypeArgument::Expression(argument) => self.expression(argument)?,
+                slang_syntax::TypeArgument::Integer { .. } => {}
             }
         }
         Ok(())

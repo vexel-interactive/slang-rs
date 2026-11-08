@@ -14,6 +14,7 @@ pub fn parse(tokens: &[Token]) -> Result<Module, Vec<Diagnostic>> {
         offset: 0,
         next_expr: 0,
         depth: 0,
+        expression_angle_stop: false,
         constant_buffers: vec![],
         buffer_prefix,
     };
@@ -57,6 +58,7 @@ pub(crate) struct Parser {
     pub offset: usize,
     pub next_expr: usize,
     pub depth: usize,
+    pub expression_angle_stop: bool,
     pub constant_buffers: Vec<ConstantBufferInfo>,
     pub buffer_prefix: String,
 }

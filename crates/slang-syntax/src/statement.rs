@@ -192,23 +192,10 @@ impl Parser {
         }
         i += 1;
         if self.tokens.get(i).is_some_and(|t| t.is("<")) {
-            let mut nesting = 0i32;
-            loop {
-                let Some(token) = self.tokens.get(i) else {
-                    return false;
-                };
-                match token.text.as_str() {
-                    "<" => nesting += 1,
-                    ">" => nesting -= 1,
-                    ">>" => nesting -= 2,
-                    ";" | "{" | "}" | "=" => return false,
-                    _ => {}
-                }
-                i += 1;
-                if nesting <= 0 {
-                    break;
-                }
-            }
+            let Some(end) = self.type_application_end(i - 1) else {
+                return false;
+            };
+            i = end;
         }
         while self.tokens.get(i).is_some_and(|t| t.is("[")) {
             if !self
