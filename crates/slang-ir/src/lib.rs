@@ -7,6 +7,7 @@ mod initialization;
 mod intrinsic;
 mod lower;
 mod model;
+mod packed_uniform;
 mod scope;
 mod static_local;
 mod uniform;

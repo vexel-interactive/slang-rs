@@ -1,0 +1,1 @@
+struct S{float a:packoffset(c2.y);float b;float v[2];};ConstantBuffer<S> params:register(b3);RWStructuredBuffer<float> output;[shader("compute")][numthreads(1,1,1)]void main(){output[0]=params.a+params.b+params.v[1];}

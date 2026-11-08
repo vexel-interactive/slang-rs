@@ -47,6 +47,8 @@ there are no such values; static and groupshared storage are excluded. The HLSL
 emitter uses this register explicitly, and `check_only` preserves it in reflection.
 `GlobalInfo.uniform_layout: Option<UniformVariableLayout>` holds an offset and
 canonical value type name for global uniforms and `ConstantBuffer` elements.
+Packed ordinary globals use generated load functions; their `target_name`
+identifies that function. Packed resource globals retain the target buffer name.
 `Reflection.uniform_types` maps these names to shared `UniformTypeLayout` entries:
 occupied byte size, alignment, struct field offsets, array strides and element
 types, and column-major matrix strides. `Reflection.global_uniform_size` reports

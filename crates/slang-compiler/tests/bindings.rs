@@ -29,7 +29,7 @@ fn a_shadowing_initializer_reads_the_previous_global_binding() {
     let ExprKind::Binary { left, .. } = &local.initializer.as_ref().unwrap().kind else {
         panic!()
     };
-    assert!(matches!(&left.kind, ExprKind::Name(n) if n == "value"));
+    assert!(matches!(&left.kind, ExprKind::GlobalName(n) if n == "value"));
     assert_ne!(local.name, "value");
     let StmtKind::Return(Some(value)) = &body[1].kind else {
         panic!()

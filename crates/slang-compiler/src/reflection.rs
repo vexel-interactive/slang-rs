@@ -100,7 +100,8 @@ impl Reflection {
                 .iter()
                 .filter(|global| source_globals.contains(global.name.as_str()))
                 .map(|global| GlobalInfo {
-                    name: module
+                    name: checked
+                        .module
                         .constant_buffers
                         .iter()
                         .find(|b| b.variable_name == global.name)
@@ -111,11 +112,26 @@ impl Reflection {
                                 .get(&global.name)
                                 .map_or_else(|| global.name.clone(), |o| o.name.clone())
                         }),
-                    target_name: slang_codegen::entry_point_name(&global.name, target),
-                    type_name: global.ty.to_string(),
+                    target_name: slang_codegen::entry_point_name(
+                        if checked.declaration_types[&slang_sema::span_key(global.span)]
+                            .is_resource()
+                        {
+                            &global.name
+                        } else {
+                            module
+                                .uniform_value_functions
+                                .get(&global.name)
+                                .unwrap_or(&global.name)
+                        },
+                        target,
+                    ),
+                    type_name: checked.declaration_types[&slang_sema::span_key(global.span)]
+                        .to_string(),
                     binding: global.binding,
                     uniform_layout: global.uniform_layout.clone(),
-                    resource_access: match resource_element(&global.ty) {
+                    resource_access: match resource_element(
+                        &checked.declaration_types[&slang_sema::span_key(global.span)],
+                    ) {
                         Type::ConstantBuffer(_) => Some("read".into()),
                         Type::ByteBuffer { writable }
                         | Type::Buffer { writable, .. }

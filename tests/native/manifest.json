@@ -718,6 +718,195 @@
           }
         }
       }
+    },
+    {
+      "file": "../conformance/positive/packed-struct-template.slang",
+      "entry": "main",
+      "uniform_layouts": {
+        "params": {
+          "offset": 0,
+          "size": 68
+        },
+        "params.a": {
+          "offset": 36,
+          "size": 4
+        },
+        "params.b": {
+          "offset": 40,
+          "size": 4
+        },
+        "params.v": {
+          "offset": 48,
+          "size": 20
+        }
+      },
+      "dxc_layouts": {
+        "params": {
+          "size": 68,
+          "offsets": {
+            "_slang__slang_uniform_view_0": 36,
+            "_slang__slang_uniform_view_1": 40,
+            "_slang__slang_uniform_view_2": 48
+          }
+        }
+      }
+    },
+    {
+      "file": "../conformance/positive/packed-struct-parameter.slang",
+      "entry": "main",
+      "uniform_layouts": {
+        "params": {
+          "offset": 0,
+          "size": 44
+        },
+        "params.a": {
+          "offset": 36,
+          "size": 4
+        },
+        "params.b": {
+          "offset": 40,
+          "size": 4
+        }
+      },
+      "dxc_layouts": {
+        "params": {
+          "size": 44,
+          "offsets": {
+            "_slang__slang_uniform_view_0": 36,
+            "_slang__slang_uniform_view_1": 40
+          }
+        }
+      }
+    },
+    {
+      "file": "../conformance/positive/packed-struct-nested.slang",
+      "entry": "main",
+      "uniform_layouts": {
+        "params": {
+          "offset": 0,
+          "size": 64
+        },
+        "params.child": {
+          "offset": 16,
+          "size": 44
+        },
+        "params.child.a": {
+          "offset": 52,
+          "size": 4
+        },
+        "params.y": {
+          "offset": 60,
+          "size": 4
+        }
+      },
+      "dxc_layouts": {
+        "params": {
+          "size": 64,
+          "offsets": {
+            "_slang__slang_uniform_view_0": 0,
+            "_slang__slang_uniform_view_1": 52,
+            "_slang__slang_uniform_view_2": 56,
+            "_slang__slang_uniform_view_3": 60
+          }
+        }
+      }
+    },
+    {
+      "file": "../conformance/positive/packed-struct-global.slang",
+      "entry": "main",
+      "uniform_layouts": {
+        "x": {
+          "offset": 0,
+          "size": 4
+        },
+        "data": {
+          "offset": 16,
+          "size": 92
+        },
+        "data[]": {
+          "offset": 16,
+          "size": 44
+        },
+        "y": {
+          "offset": 108,
+          "size": 4
+        }
+      },
+      "dxc_layouts": {
+        "_slang_globals": {
+          "size": 112,
+          "offsets": {
+            "_slang__slang_uniform_view_0": 52,
+            "_slang__slang_uniform_view_1": 56,
+            "_slang__slang_uniform_view_2": 100,
+            "_slang__slang_uniform_view_3": 104,
+            "x": 0,
+            "y": 108
+          }
+        }
+      }
+    },
+    {
+      "file": "../conformance/positive/packed-struct-direct.slang",
+      "entry": "main",
+      "uniform_layouts": {
+        "Params": {
+          "offset": 0,
+          "size": 112
+        },
+        "Params.data": {
+          "offset": 16,
+          "size": 92
+        },
+        "Params.data[]": {
+          "offset": 16,
+          "size": 44
+        },
+        "Params.y": {
+          "offset": 108,
+          "size": 4
+        }
+      },
+      "dxc_layouts": {
+        "Params": {
+          "size": 112,
+          "offsets": {
+            "x": 0,
+            "_slang__slang_uniform_view_0": 52,
+            "_slang__slang_uniform_view_1": 56,
+            "_slang__slang_uniform_view_2": 100,
+            "_slang__slang_uniform_view_3": 104,
+            "y": 108
+          }
+        }
+      }
+    },
+    {
+      "file": "../conformance/positive/packed-struct-matrix.slang",
+      "entry": "main",
+      "uniform_layouts": {
+        "params": {
+          "offset": 0,
+          "size": 76
+        },
+        "params.matrix": {
+          "offset": 32,
+          "size": 40
+        },
+        "params.after": {
+          "offset": 72,
+          "size": 4
+        }
+      },
+      "dxc_layouts": {
+        "params": {
+          "size": 76,
+          "offsets": {
+            "_slang__slang_uniform_view_0": 32,
+            "_slang__slang_uniform_view_1": 72
+          }
+        }
+      }
     }
   ]
 }

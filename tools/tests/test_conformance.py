@@ -14,6 +14,11 @@ def result(accepted, stderr=""):
 
 
 class ConformanceComparison(unittest.TestCase):
+    def test_valid_hlsl_with_wrong_physical_layout_cannot_pass(self):
+        validator = {"accepted": True, "expected_accept": True, "layout_passed": False}
+        self.assertFalse(compare_results({"accept": True}, result(True), result(True), [validator]))
+        self.assertTrue(compare_results({"accept": True}, result(True), result(True), [{**validator,"layout_passed":True}]))
+
     def test_buffer_layouts_use_reflected_targets_and_reject_ambiguous_names(self):
         layout = {"size": 4, "offsets": {"value": 0}}
         reflection = {"globals": [

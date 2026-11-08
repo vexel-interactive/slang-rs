@@ -168,25 +168,38 @@ target buffer-size limit validation remain absent. Mixed resource aggregates
 omit shared-buffer byte metadata until their layout model is implemented.
 See [uniform-layout.slang](../examples/uniform-layout.slang) for a complete example.
 
-Direct `cbuffer` fields accept `: packoffset(c2.y)`. Register indices count
+Direct `cbuffer` fields and ordinary struct fields accept `: packoffset(c2.y)`. Register indices count
 16-byte slots; `x`, `y`, `z`, and `w` select byte offsets 0, 4, 8, and 12.
 Omitting the component selects `x`. Reflection preserves the explicit byte
 offset, and HLSL emits a normalized `packoffset`. All explicit fields are placed
 before automatic fields, which start after the largest occupied explicit end.
 Explicit fields may overlap. Static members ignore `packoffset` because they
 have private storage. The generated value struct carries no HLSL packing
-annotations; packing is applied to the direct buffer fields.
+annotations; packing is applied to direct buffer fields. Packed structs and
+arrays of packed values are flattened into buffer declarations at their
+reflected absolute offsets. Generated load functions reconstruct their values
+for field access, copies, defaults, and function arguments. Packed
+`ConstantBuffer<T>` parameters lower to value parameters. Source reflection
+continues to describe the original constant-buffer handle and its binding.
+For a packed ordinary global, `target_name` identifies its load function;
+resource globals retain their physical buffer name.
 
 Explicit placement bypasses the automatic alignment rules. As in upstream,
 the frontend preserves offsets that DXC may reject, such as a `float2` at
 `c0.w` or an array at `c1.y`. DXC validation is required to establish HLSL
-validity. Packoffsets on ordinary structs, standalone uniforms, function
-parameters, and locals remain unsupported. Indices use the resource parser's
+validity. Packoffsets on standalone uniforms, function parameters, and locals
+remain unsupported. Arrays of packed constant-buffer handles and materialization
+beyond 65,536 value nodes report `I004`. Indices use the resource parser's
 bounded decimal range; component masks require exactly one supported component.
+
+Slang 2026.21's HLSL drops packing inside nested structs and arrays, even though
+its reflection retains those offsets. Native HLSL preserves the reflected
+offsets. Tests check both physical buffer definitions against separate expected
+layouts; these cases do not establish shader execution parity with upstream.
 
 ## Current limits
 
-Vulkan binding attributes, explicit byte packing on ordinary structs,
+Vulkan binding attributes, packed constant-buffer handle arrays,
 other target layouts, and the upstream reflection API remain to be implemented.
 Resource register annotations select bindings on global resources. On data-only
 global uniforms, `b`, `t`, `u`, and `s` annotations are accepted and ignored;

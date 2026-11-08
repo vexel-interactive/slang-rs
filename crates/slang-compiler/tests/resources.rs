@@ -216,7 +216,7 @@ fn resource_methods_lower_receivers_and_preserve_output_arguments() {
     let json = serde_json::to_value(&compiled.ir).unwrap();
     assert_eq!(
         json["functions"][0]["body"]["kind"]["Block"][2]["kind"]["Expression"]["kind"]["MethodCall"]
-            ["receiver"]["kind"]["Name"],
+            ["receiver"]["kind"]["GlobalName"],
         "values"
     );
 }

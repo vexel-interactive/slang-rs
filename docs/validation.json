@@ -6,20 +6,20 @@
     "rustfmt": "passed",
     "clippy_all_targets_warnings_denied": "passed",
     "unit_tests": 28,
-    "integration_tests": 248,
+    "integration_tests": 253,
     "doc_tests": 1,
-    "conformance_comparison_tests": 17,
+    "conformance_comparison_tests": 18,
     "rustdoc": "passed",
     "release_build": "passed",
     "english_documentation_and_links": "passed"
   },
   "differential_validation": {
     "oracle": "Slang 2026.21",
-    "cases_passed": 373,
-    "cases_total": 373,
-    "matching_acceptance_cases": 363,
+    "cases_passed": 379,
+    "cases_total": 379,
+    "matching_acceptance_cases": 369,
     "documented_oracle_differences": 10,
-    "dxc_hlsl_artifacts_validated": 390,
+    "dxc_hlsl_artifacts_validated": 402,
     "dxc_invalid_hlsl_artifacts_rejected": 14,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
@@ -32,7 +32,9 @@
     "documented_oracle_artifact_differences": 1,
     "resource_binding_cases_compared": 29,
     "global_uniform_binding_cases_compared": 16,
-    "uniform_byte_layout_cases_compared": 15
+    "uniform_byte_layout_cases_compared": 21,
+    "documented_oracle_physical_layout_differences": 3,
+    "physical_buffer_layout_cases_compared": 6
   },
   "remote_ci_executed": false,
   "remote_ci": null,
@@ -329,7 +331,7 @@
   },
   "native_hlsl_suite": {
     "manifest": "tests/native/manifest.json",
-    "artifacts_validated": 19,
+    "artifacts_validated": 25,
     "profiles": [
       "cs_6_0",
       "ps_6_0"
@@ -355,9 +357,15 @@
       "../conformance/positive/cbuffer-module/main.slang",
       "../conformance/positive/cbuffer-packoffset.slang",
       "../conformance/positive/cbuffer-packed-array.slang",
-      "../conformance/positive/register-contexts.slang"
+      "../conformance/positive/register-contexts.slang",
+      "../conformance/positive/packed-struct-template.slang",
+      "../conformance/positive/packed-struct-parameter.slang",
+      "../conformance/positive/packed-struct-nested.slang",
+      "../conformance/positive/packed-struct-global.slang",
+      "../conformance/positive/packed-struct-direct.slang",
+      "../conformance/positive/packed-struct-matrix.slang"
     ],
-    "uniform_byte_layout_cases": 12,
+    "uniform_byte_layout_cases": 18,
     "matrix_layout_shapes": 48
   }
 }

@@ -118,6 +118,9 @@ impl UniformPacker {
         offset: u64,
         layout: &UniformTypeLayout,
     ) -> Result<(), UniformLayoutError> {
+        if layout.size == 0 {
+            return Ok(());
+        }
         self.size = self.size.max(
             offset
                 .checked_add(layout.size)

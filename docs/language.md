@@ -439,6 +439,8 @@ Empty constant buffers retain their declarations and zero-byte layouts without
 consuming a register. Duplicate buffer names within a module are rejected.
 Direct fields support `packoffset(c2.y)` with explicit fields placed before
 automatic ones; see [resources.md](resources.md#constant-buffer-byte-layout).
+Ordinary struct fields also support packing, including nested structs and
+arrays of values. Packed constant-buffer handle arrays remain unsupported.
 
 Nonstruct constant-buffer elements, automatic conversion
 of a constant-buffer handle to its element,

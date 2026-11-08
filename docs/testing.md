@@ -93,6 +93,12 @@ normalization, arrays, unaligned double storage, imports, static members, and
 invalid contexts. A crossing vector offset is accepted by both frontends and
 rejected by DXC; its rejection is checked explicitly rather than counted as a
 valid shader artifact.
+Packed struct tests cover constant-buffer parameters, nested values, fixed
+arrays, imports, defaults, source reflection, local shadowing without module
+linking, and bounded materialization. Physical DXC layout checks ensure that
+used buffers survive optimization, including when their values pass through
+functions. Separate expected layouts record the upstream HLSL's loss of nested
+packing. Valid HLSL with an incorrect physical layout fails the comparison.
 
 Discard tests cover fragment HLSL, clip signatures, selected overloads, unused
 defaults, imported source locations, and stage propagation through calls,

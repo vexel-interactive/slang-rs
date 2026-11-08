@@ -16,6 +16,13 @@ pub(crate) trait Visitor {
                 self.expression(value)?;
             }
         }
+        for buffer in &mut module.constant_buffers {
+            for view in &mut buffer.views {
+                if let Some(value) = &mut view.initializer {
+                    self.expression(value)?;
+                }
+            }
+        }
         for function in &mut module.functions {
             if let Some(body) = &mut function.body {
                 self.statement(body)?;
@@ -159,6 +166,15 @@ pub(crate) fn names(module: &Module) -> BTreeSet<String> {
         names.extend(s.fields.iter().map(|f| f.name.clone()));
     }
     names.extend(module.globals.iter().map(|g| g.name.clone()));
+    if let Some(fields) = &module.global_uniform_fields {
+        names.extend(fields.iter().map(|f| f.name.clone()));
+    }
+    names.extend(
+        module
+            .constant_buffers
+            .iter()
+            .flat_map(|b| b.views.iter().map(|v| v.name.clone())),
+    );
     names.extend(
         module
             .constant_buffers

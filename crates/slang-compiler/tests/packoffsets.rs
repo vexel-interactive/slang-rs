@@ -108,7 +108,6 @@ fn malformed_and_unsupported_packing_is_diagnosed() {
         "float value:packoffset(c0);",
         "void f(){float value:packoffset(c0)=1;}",
         "void f(float value:packoffset(c0)){}",
-        "struct S{float value:packoffset(c0);};",
     ] {
         assert!(
             compile_source(
@@ -121,4 +120,110 @@ fn malformed_and_unsupported_packing_is_diagnosed() {
             "{source}"
         );
     }
+}
+
+#[test]
+fn packed_struct_handles_lower_to_loaded_values_with_source_reflection() {
+    let compiled = compile(
+        "struct S{float a:packoffset(c2.y);float b;float values[2];};ConstantBuffer<S> params:register(b3);float f(ConstantBuffer<S> p){return p.a+p.b+p.values[1];}float g(){return f(params);}",
+    );
+    let buffer = &compiled.reflection.globals[0];
+    assert_eq!(buffer.type_name, "ConstantBuffer<S>");
+    assert_eq!(buffer.resource_access.as_deref(), Some("read"));
+    assert_eq!(buffer.binding.unwrap().register.index, 3);
+    assert_eq!(compiled.reflection.uniform_types["S"].size, 68);
+    let code = compiled.artifact.unwrap();
+    assert!(code.contains("float f(S p)"));
+    assert!(!code.contains("static const S params"));
+    assert!(code.contains("packoffset(c2.y)"));
+    assert!(code.contains("return _result;"));
+}
+
+#[test]
+fn nested_packed_uniform_arrays_keep_absolute_offsets_and_bounded_expansion() {
+    let compiled = compile(
+        "struct S{float a:packoffset(c2.y);float b;};float x;uniform S data[2];float y;float f(){return x+data[1].a+y;}",
+    );
+    assert_eq!(compiled.reflection.global_uniform_size, Some(112));
+    let data = &compiled.reflection.globals[1];
+    assert_eq!(data.type_name, "S[2]");
+    assert_eq!(data.uniform_layout.as_ref().unwrap().offset, 16);
+    let code = compiled.artifact.unwrap();
+    assert!(code.contains(&format!("{}()", data.target_name)));
+    assert!(code.contains("packoffset(c6.y)"));
+    for source in [
+        "struct S{float a:packoffset(c2);};S data[65537];",
+        "struct S{float a:packoffset(c2);};ConstantBuffer<S> params[2];",
+    ] {
+        let error = compile_source(
+            "invalid.slang",
+            source,
+            &CompileOptions::default(),
+            &MemoryIncludes::default(),
+        )
+        .unwrap_err();
+        assert!(error.diagnostics.iter().any(|d| d.code == "I004"));
+    }
+}
+
+#[test]
+fn imported_packed_templates_keep_original_names_and_field_access_rules() {
+    let includes=MemoryIncludes{files:[("library.slang".into(),"module library;public struct S{public float a:packoffset(c2.y);public float b;};public ConstantBuffer<S> params:register(b3);public float f(float value=params.a){return value+params.b;}".into())].into()};
+    let compiled = compile_source(
+        "root.slang",
+        "import library;float g(){return f();}",
+        &CompileOptions::default(),
+        &includes,
+    )
+    .unwrap();
+    assert_eq!(compiled.reflection.globals[0].name, "params");
+    assert_eq!(
+        compiled.reflection.globals[0].module.as_deref(),
+        Some("library")
+    );
+    let error = compile_source(
+        "root.slang",
+        "import library;void g(){params.a=1;}",
+        &CompileOptions::default(),
+        &includes,
+    )
+    .unwrap_err();
+    assert!(error.diagnostics.iter().any(|d| d.code == "T015"));
+}
+
+#[test]
+fn packed_global_loads_do_not_capture_local_bindings_without_module_linking() {
+    let source = "struct S{float a:packoffset(c2);float b;};S data;float f(){S data=S(1,2);return data.a;}float g(){return data.a;}";
+    let mut sources = slang_source::SourceMap::default();
+    let root = sources.add("root.slang", source);
+    let tokens = slang_preprocessor::preprocess(
+        &mut sources,
+        root,
+        &MemoryIncludes::default(),
+        &slang_preprocessor::Options::default(),
+    )
+    .tokens;
+    let syntax = slang_syntax::parse(&tokens).unwrap();
+    let checked = slang_sema::check(syntax).unwrap();
+    let ir = slang_ir::lower(&checked).unwrap();
+    let code = slang_codegen::emit(&ir, slang_codegen::Target::Hlsl).unwrap();
+    assert!(code.contains("return (data).a;"));
+    assert!(code.contains("uniform_view_load_"));
+}
+
+#[test]
+fn packing_empty_values_does_not_create_storage_or_consume_a_register() {
+    let compiled = compile(
+        "struct E{};struct S{E empty:packoffset(c4);};ConstantBuffer<S> empty;cbuffer Full{float value;};",
+    );
+    assert!(compiled.reflection.globals[0].binding.is_none());
+    assert_eq!(compiled.reflection.uniform_types["S"].size, 0);
+    assert_eq!(
+        compiled.reflection.globals[1]
+            .binding
+            .unwrap()
+            .register
+            .index,
+        0
+    );
 }

@@ -177,7 +177,7 @@ fn field_defaults_use_declaration_scope_but_supplied_values_use_caller_scope() {
             panic!()
         };
         assert!(
-            matches!(&value.kind, ExprKind::Binary { right, .. } if matches!(&right.kind, ExprKind::Name(n) if n == "value"))
+            matches!(&value.kind, ExprKind::Binary { right, .. } if matches!(&right.kind, ExprKind::GlobalName(n) if n == "value"))
         );
     }
 }

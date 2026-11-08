@@ -21,7 +21,7 @@ def compare_results(case, rust, oracle, validators):
         passed = passed and case["rust_warning"] in rust["stderr"]
     for compiler, result in [("rust", rust), ("oracle", oracle)]:
         passed = passed and all(text in result["stderr"] for text in case.get(f"{compiler}_stderr_contains", []))
-    return passed and all(v["accepted"] == v["expected_accept"] for v in validators)
+    return passed and all(v["accepted"] == v["expected_accept"] and v.get("layout_passed", True) for v in validators)
 
 
 def normalize_bindings(reflection, compiler):
@@ -193,7 +193,7 @@ def main():
             common.extend(["-profile", profile])
         rust_command = [str(args.rust.resolve()), *common, "-o", str(rust_output)]
         oracle_command = [str(args.oracle.resolve()), *common, "-o", str(oracle_output)]
-        if any(key in case for key in ["bindings", "global_uniform_binding", "uniform_layouts"]):
+        if any(key in case for key in ["bindings", "global_uniform_binding", "uniform_layouts", "rust_dxc_layouts"]):
             rust_command.extend(["--reflection", str(rust_output.with_suffix(".json"))])
             oracle_command.extend(["-reflection-json", str(oracle_output.with_suffix(".json"))])
         rust = run(rust_command)
@@ -206,6 +206,18 @@ def main():
                 validation = run([str(args.dxc.resolve()), "-T", case.get("profile", "cs_6_0"), "-E", case["entry"], "-Fo", str(output.with_suffix(".dxil")), str(output)])
                 validation["compiler"] = compiler
                 validation["expected_accept"] = case.get(f"{compiler}_validation_accept", True)
+                if expected := case.get(f"{compiler}_dxc_layouts"):
+                    validation["layout_passed"] = False
+                    if validation["accepted"]:
+                        dump = run([str(args.dxc.resolve()), "-dumpbin", str(output.with_suffix(".dxil"))])
+                        try:
+                            if compiler == "rust":
+                                reflection = json.loads(output.with_suffix(".json").read_text(encoding="utf-8"))
+                                expected = target_buffer_layouts(expected, reflection)
+                            validation["layout_passed"] = dump["accepted"] and compare_dxc_uniform_layouts(expected, dump["stdout"])
+                            validation["layout_actual"] = normalize_dxc_uniform_layouts(dump["stdout"])
+                        except (OSError, ValueError, KeyError, TypeError) as error:
+                            validation["layout_error"] = str(error)
                 validators.append(validation)
         passed = compare_results(case, rust, oracle, validators)
         binding_checks = []

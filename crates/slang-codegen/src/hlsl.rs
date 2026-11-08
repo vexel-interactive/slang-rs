@@ -28,14 +28,17 @@ pub(crate) fn emit(module: &Module) -> String {
         emitter.line(&format!("cbuffer _slang_globals : {}", binding.register));
         emitter.line("{");
         emitter.indent += 1;
-        let mut uniforms: Vec<_> = module
-            .globals
-            .iter()
-            .filter(|g| g.is_global_uniform())
-            .collect();
+        let mut uniforms: Vec<_> = match &module.global_uniform_fields {
+            Some(fields) => fields.iter().collect(),
+            None => module
+                .globals
+                .iter()
+                .filter(|g| g.is_global_uniform())
+                .collect(),
+        };
         uniforms.sort_by_key(|g| g.uniform_layout.as_ref().map(|layout| layout.offset));
         for global in uniforms {
-            emitter.line(&format!("{};", variable(global)));
+            emitter.line(&format!("{};", uniform_variable(global)));
         }
         emitter.indent -= 1;
         emitter.line("};");
@@ -58,17 +61,15 @@ pub(crate) fn emit(module: &Module) -> String {
             emitter.line("{");
             emitter.indent += 1;
             for field in &buffer.fields {
-                let packing = field.pack_offset.map_or_else(String::new, |offset| {
-                    let component = ["", ".y", ".z", ".w"][(offset % 16 / 4) as usize];
-                    format!(" : packoffset(c{}{component})", offset / 16)
-                });
-                emitter.line(&format!("{}{packing};", variable(field)));
+                emitter.line(&format!("{};", uniform_variable(field)));
             }
             emitter.indent -= 1;
             emitter.line("};");
             continue;
         }
-        if module.global_uniform_binding.is_none() || !global.is_global_uniform() {
+        if !module.uniform_value_functions.contains_key(&global.name)
+            && (module.global_uniform_binding.is_none() || !global.is_global_uniform())
+        {
             emitter.line(&format!("{};", variable(global)));
         }
     }
@@ -247,6 +248,14 @@ impl Emitter {
     }
 }
 
+fn uniform_variable(value: &Variable) -> String {
+    let packing = value.pack_offset.map_or_else(String::new, |offset| {
+        let component = ["", ".y", ".z", ".w"][(offset % 16 / 4) as usize];
+        format!(" : packoffset(c{}{component})", offset / 16)
+    });
+    format!("{}{packing}", variable(value))
+}
+
 fn variable(variable: &Variable) -> String {
     let mut text = String::new();
     for modifier in &variable.modifiers {
@@ -312,7 +321,7 @@ fn expression(expr: &Expr) -> String {
             }
         }
         ExprKind::Integer(text) | ExprKind::Float(text) => text.clone(),
-        ExprKind::Name(name) => identifier(name),
+        ExprKind::Name(name) | ExprKind::GlobalName(name) => identifier(name),
         ExprKind::Bool(value) => value.to_string(),
         ExprKind::Unary { op, value } => format!("({op}{})", expression(value)),
         ExprKind::Cast { value } => format!("(({}){})", type_name(&expr.ty), expression(value)),

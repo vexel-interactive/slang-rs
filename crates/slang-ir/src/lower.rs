@@ -15,6 +15,8 @@ pub fn lower(checked: &CheckedModule) -> Result<Module, Diagnostic> {
         globals: vec![],
         global_uniform_binding: checked.global_uniform_binding,
         global_uniform_size: None,
+        global_uniform_fields: None,
+        uniform_value_functions: Default::default(),
         uniform_types: Default::default(),
         functions: vec![],
         entry_points: checked.entry_points.clone(),
@@ -115,6 +117,7 @@ pub fn lower(checked: &CheckedModule) -> Result<Module, Diagnostic> {
             name: buffer.name.clone(),
             variable_name: buffer.variable_name.clone(),
             fields,
+            views: vec![],
         });
     }
     crate::initialization::lower(&mut module)?;
@@ -125,6 +128,7 @@ pub fn lower(checked: &CheckedModule) -> Result<Module, Diagnostic> {
     crate::static_local::lower(&mut module)?;
     crate::scope::lower(&mut module);
     crate::uniform::lower(&mut module, checked)?;
+    crate::packed_uniform::lower(&mut module)?;
     Ok(module)
 }
 
@@ -306,7 +310,13 @@ impl Lowerer<'_> {
             ast::ExprKind::Integer(value) => ExprKind::Integer(value.clone()),
             ast::ExprKind::Float(value) => ExprKind::Float(value.clone()),
             ast::ExprKind::Bool(value) => ExprKind::Bool(*value),
-            ast::ExprKind::Name(name) => ExprKind::Name(name.clone()),
+            ast::ExprKind::Name(name) => {
+                if self.checked.global_references.contains_key(&expression.id) {
+                    ExprKind::GlobalName(name.clone())
+                } else {
+                    ExprKind::Name(name.clone())
+                }
+            }
             ast::ExprKind::Unary { op, value } => ExprKind::Unary {
                 op: op.clone(),
                 value: Box::new(self.expression(value)?),

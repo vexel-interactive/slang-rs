@@ -11,6 +11,10 @@ pub struct Module {
     pub global_uniform_binding: Option<slang_layout::ResourceBinding>,
     /// Occupied bytes in the shared global uniform buffer.
     pub global_uniform_size: Option<u64>,
+    /// Flattened shared-buffer declarations when packed aggregates require value views.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub global_uniform_fields: Option<Vec<Variable>>,
+    pub uniform_value_functions: std::collections::BTreeMap<String, String>,
     /// Constant-buffer value layouts, keyed by canonical type names.
     pub uniform_types: std::collections::BTreeMap<String, slang_layout::UniformTypeLayout>,
     pub functions: Vec<Function>,
@@ -29,6 +33,7 @@ pub struct ConstantBuffer {
     pub name: String,
     pub variable_name: String,
     pub fields: Vec<Variable>,
+    pub views: Vec<Variable>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -136,6 +141,8 @@ pub enum ExprKind {
     Float(String),
     Bool(bool),
     Name(String),
+    /// A source global reference, distinguished from lexical local bindings.
+    GlobalName(String),
     Unary {
         op: String,
         value: Box<Expr>,

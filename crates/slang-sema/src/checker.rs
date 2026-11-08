@@ -253,18 +253,6 @@ fn check_with_metadata(
                     }
                     checker.check_interpolation(&field.modifiers, field.span);
                     checker.check_visibility_modifiers(&field.modifiers, field.span);
-                    if let Some(pack) = field.pack_offset
-                        && !module
-                            .constant_buffers
-                            .iter()
-                            .any(|b| b.element_type == structure.name)
-                    {
-                        checker.error(
-                            "T022",
-                            pack.span,
-                            "packoffset on ordinary struct fields is not implemented",
-                        );
-                    }
                     if field.initializer.is_some() {
                         checker.initializer(field);
                     }
