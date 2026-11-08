@@ -20,9 +20,12 @@ pub(crate) fn signature(value: &str, types: &[Type]) -> Option<Type> {
     name(value)?;
     let [ty] = types else { return None };
     Some(match ty.scalar()? {
-        Scalar::Int | Scalar::Uint | Scalar::Int64 | Scalar::Uint64 => {
-            ty.with_scalar(Scalar::Float)
-        }
+        Scalar::Int
+        | Scalar::Uint
+        | Scalar::Int64
+        | Scalar::Uint64
+        | Scalar::IntPtr
+        | Scalar::UintPtr => ty.with_scalar(Scalar::Float),
         Scalar::Half | Scalar::Float | Scalar::Double => ty.clone(),
         Scalar::Bool => return None,
     })

@@ -7,7 +7,7 @@ and octal (a leading zero). Octal tokens warn with `L005`; invalid base digits
 report `L004`. Magnitudes fit in 64 bits. A single `l`/`L` denotes 32-bit long;
 matching-case `ll`/`LL` starts type selection at 64 bits. One `u`/`U` marker
 may precede or follow the width suffix. Mixed-case `lL` and repeated markers
-are rejected. Pointer-sized `z`/`Z` suffixes remain unimplemented.
+are rejected. Pointer-sized `z`/`Z` accepts one unsigned marker in either order.
 
 Unsigned decimal literals select `uint` when they fit, then `uint64_t`.
 Signed decimal literals select `int`, then `int64_t`. Decimal values beyond
@@ -20,6 +20,14 @@ Direct prefix minus gives `-2147483648` type `int` and
 that exception: `-(2147483648)` retains `int64_t`. An explicit `LL` keeps
 `-2147483648LL` at 64 bits. HLSL emission preserves these types and bit patterns,
 including the two signed minima.
+
+Decimal `z`/`Z` literals select `intptr_t` through the signed 64-bit maximum,
+then `uintptr_t` with `T030`. Direct `-9223372036854775808Z` is `intptr_t`;
+parenthesizing its magnitude retains `uintptr_t`. Nondecimal pointer literals
+without `u`/`U` remain signed, including `0xffffffffffffffffZ`, which is -1
+for the implemented HLSL target. An unsigned marker always selects `uintptr_t`.
+Pointer and fixed-width integer types retain separate identities. See the
+[pointer literal cases](../tests/conformance/positive/integer-pointer-literals.slang).
 
 Floating literals support decimal fractions and `e` exponents, hexadecimal
 fractions and `p` exponents, leading-dot forms, and the legacy `#INF` spelling.
@@ -237,7 +245,7 @@ signed/unsigned evaluation rules are not implemented.
 
 - Functions, prototypes, overloads, and `in`, `out`, `inout` parameters.
 - Global and local variables, and simple structures with fields.
-- `bool`, `int`, `uint`, `int64_t`, `uint64_t`, `half`, `float`, `double`, and vectors with 1-4 components.
+- `bool`, `int`, `uint`, `int64_t`, `uint64_t`, `intptr_t`, `uintptr_t`, `half`, `float`, and `double`.
 - Scalar names `int32_t`, `uint32_t`, `float32_t`, and `float64_t` resolve to the
   corresponding native scalar types.
 - Matrix aliases such as `float2x3`, with 1-4 rows and 1-4 columns.
@@ -250,7 +258,7 @@ signed/unsigned evaluation rules are not implemented.
   `SamplerComparisonState`. Texture elements are half/float/int/uint scalar or
   vector types; omitting `T` selects `float4`.
 
-Pointers, pointer-sized integers, and user-defined generics are not implemented.
+Pointers and user-defined generics are not implemented.
 
 Wide integer aliases include `int64_t2` and `uint64_t2x3`; numeric templates,
 constructors, casts, overloads, arrays, and structured buffers use the same
@@ -258,6 +266,30 @@ canonical types. HLSL uses `vector<int64_t, N>` and `matrix<uint64_t, R, C>`.
 Overloaded functions involving wide integers receive distinct target names
 to preserve Slang's literal and conversion ranking. Mixed 64-bit arithmetic
 operands are explicitly converted to the checked common type.
+
+Pointer integers support numeric templates, constructors, casts, arrays,
+structured buffers, constants and switches. `ssize_t` aliases `intptr_t`;
+`size_t` and `usize_t` alias `uintptr_t`. Pointer vectors and matrices use
+`vector<intptr_t, N>` and `matrix<uintptr_t, R, C>` with dimensions 1-4;
+core aliases such as `intptr_t2` are absent. HLSL maps pointer integers to
+`int64_t`/`uint64_t` using upstream's eight-byte generic pointer size,
+independently of the compiler host. Other target pointer widths remain unported.
+
+Binary arithmetic selects the larger component size; floating types take
+precedence over integers. For distinct equal-width integer types, a signed
+left operand selects the right type, and an unsigned left operand selects its
+own type. Thus `intptr_t + int64_t` yields `int64_t`, while reversing those
+operands yields `intptr_t`. Conditional branches and generic math functions
+instead join by conversion cost, so both signed pairs select `int64_t`.
+Pointer conversion rank lies between 32 and 64 bits; unsigned-to-signed pointer
+conversions do not receive a lossless-promotion exemption.
+
+Direct integer literals that fit a parameter's bit size receive upstream's
+value-aware conversion ranking. A literal and a variable of the same type can
+therefore select different overloads. Exact types remain preferred; tied
+conversions remain ambiguous. See the
+[promotion cases](../tests/conformance/positive/integer-pointer-promotions.slang) and
+[inference cases](../tests/conformance/positive/integer-pointer-intrinsics.slang).
 
 Compound arithmetic and bitwise assignments select their operand type from
 the writable left argument. The right argument converts to that type before
@@ -528,7 +560,7 @@ overflow. An iterative parser remains necessary for deeper upstream programs.
 
 ## Switches and control flow
 
-Switch selectors require scalar 32-bit or 64-bit integers. Labels support integer
+Switch selectors require scalar 32-bit, 64-bit, or pointer-sized integers. Labels support integer
 literals, const bindings, unary/binary integer operations, conditional
 expressions, and scalar integer conversions. The evaluator tracks 32-bit and
 64-bit signed and unsigned expression types, retaining unsigned bit patterns.
@@ -547,7 +579,7 @@ behavior: the pinned `slang-ir-sccp.cpp` dispatches comparisons by their boolean
 result type and compares signed `intVal` operands, while `slang-ast-val.cpp`
 also uses signed comparisons. Values with bit 63 set can therefore compare
 differently after upstream folding. The differential corpus checks both exact
-results with separate goldens for the five affected words. Full constant-folding
+results with separate goldens for seven affected fixed-width/pointer-width words. Full constant-folding
 and execution parity remain incomplete.
 
 Consecutive labels and fallthrough are preserved. `break` exits the nearest
@@ -757,9 +789,9 @@ equivalence and automatic differentiation remain unverified. See
 `countbits`, `firstbithigh`, and `firstbitlow` return `uint` counts or positions
 with the same scalar/vector width as their input. `reversebits` reverses all
 32 or 64 bits and preserves the input's integer sign and width. Supported
-integer types are `int`, `uint`, `int64_t`, and `uint64_t`. Boolean scalar/vector
-arguments promote to `int`. Floating inputs, matrices, 8/16-bit integers, and
-pointer-sized integers are outside these signatures.
+integer types are `int`, `uint`, `int64_t`, `uint64_t`, `intptr_t`, and `uintptr_t`.
+Boolean scalar/vector arguments promote to `int`. Floating inputs, matrices,
+and 8/16-bit integers are outside these signatures.
 
 The highest-bit search retains signed inputs: negative `int` values search for
 the highest zero bit, while unsigned values search for the highest set bit.
@@ -775,6 +807,13 @@ preserving scalar, vector, or matrix shape. An input already having the result's
 component type passes through unchanged. Boolean components first convert to
 `int`, and half components first convert to `float`, matching the upstream
 overload selection. These operations differ from numeric casts such as `float(bits)`.
+
+Wide integer inputs can select a 32-bit overload through a numeric conversion.
+Variables of fixed-width or pointer-width integer type first convert to `float`;
+in-range scalar literals can select `int` or `uint` using their value-aware
+conversion cost. For example, `asfloat(1Z)` reinterprets the integer bits of 1,
+whereas `asfloat(pointerVariable)` numerically converts that variable to float.
+These conversions do not implement a 64-bit bit reinterpretation overload.
 
 `asuint(doubleValue, low, high)` splits a scalar double into its low and high
 32-bit words. Both outputs must be writable scalar `uint` or `int` locations;

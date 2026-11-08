@@ -203,7 +203,7 @@ fn hexadecimal(number: &str) -> Result<(f64, bool, bool), FloatLiteralError> {
 /// Decode an integer token's magnitude. Width/type suffixes are checked by
 /// the caller; this also serves preprocessor expressions.
 pub fn integer_literal_value(text: &str) -> Option<u64> {
-    let digits = text.trim_end_matches(['u', 'U', 'l', 'L']);
+    let digits = text.trim_end_matches(['u', 'U', 'l', 'L', 'z', 'Z']);
     if let Some(digits) = digits
         .strip_prefix("0x")
         .or_else(|| digits.strip_prefix("0X"))

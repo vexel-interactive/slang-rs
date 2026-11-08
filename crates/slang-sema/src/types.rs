@@ -8,9 +8,73 @@ pub enum Scalar {
     Uint,
     Int64,
     Uint64,
+    IntPtr,
+    UintPtr,
     Half,
     Float,
     Double,
+}
+
+impl Scalar {
+    pub fn is_pointer_sized(self) -> bool {
+        matches!(self, Self::IntPtr | Self::UintPtr)
+    }
+
+    /// HLSL uses the upstream target's 64-bit generic pointer size, independent
+    /// of the compiler host. Pointer integers retain their own type identity.
+    pub fn bit_width(self) -> u8 {
+        match self {
+            Self::Bool => 1,
+            Self::Half => 16,
+            Self::Int | Self::Uint | Self::Float => 32,
+            Self::Int64 | Self::Uint64 | Self::IntPtr | Self::UintPtr | Self::Double => 64,
+        }
+    }
+
+    /// Builtin arithmetic unification preserves operand order for distinct
+    /// equal-width integers: signed selects the right, unsigned the left.
+    pub fn common(self, other: Self) -> Self {
+        if self == other || other == Self::Bool {
+            return self;
+        }
+        if self == Self::Bool {
+            return other;
+        }
+        let floating = |s| matches!(s, Self::Half | Self::Float | Self::Double);
+        match (floating(self), floating(other)) {
+            (true, false) => self,
+            (false, true) => other,
+            (true, true) => {
+                if self.bit_width() >= other.bit_width() {
+                    self
+                } else {
+                    other
+                }
+            }
+            (false, false) => {
+                if self.bit_width() > other.bit_width() {
+                    self
+                } else if self.bit_width() < other.bit_width()
+                    || matches!(self, Self::Int | Self::Int64 | Self::IntPtr)
+                {
+                    other
+                } else {
+                    self
+                }
+            }
+        }
+    }
+
+    /// Generic inference joins by conversion cost rather than arithmetic size.
+    pub fn inferred_common(self, other: Self) -> Self {
+        let a = Type::Scalar(self);
+        let b = Type::Scalar(other);
+        if b.conversion_cost(&a) > a.conversion_cost(&b) {
+            other
+        } else {
+            self
+        }
+    }
 }
 
 /// Texture topology supported by the HLSL resource model.
@@ -105,6 +169,8 @@ impl Type {
         if let Some(scalar) = match name {
             "int32_t" => Some(Scalar::Int),
             "uint32_t" => Some(Scalar::Uint),
+            "intptr_t" | "ssize_t" => Some(Scalar::IntPtr),
+            "uintptr_t" | "size_t" | "usize_t" => Some(Scalar::UintPtr),
             "float32_t" => Some(Scalar::Float),
             "float64_t" => Some(Scalar::Double),
             _ => None,
@@ -231,7 +297,14 @@ impl Type {
     pub fn integral(&self) -> bool {
         matches!(
             self.scalar(),
-            Some(Scalar::Int | Scalar::Uint | Scalar::Int64 | Scalar::Uint64)
+            Some(
+                Scalar::Int
+                    | Scalar::Uint
+                    | Scalar::Int64
+                    | Scalar::Uint64
+                    | Scalar::IntPtr
+                    | Scalar::UintPtr
+            )
         )
     }
 
@@ -252,27 +325,40 @@ impl Type {
                 Scalar::Bool => (0, 1),
                 Scalar::Int => (1, 32),
                 Scalar::Int64 => (1, 64),
+                Scalar::IntPtr => (1, 48),
                 Scalar::Uint => (2, 32),
                 Scalar::Uint64 => (2, 64),
+                Scalar::UintPtr => (2, 48),
                 Scalar::Half => (3, 16),
                 Scalar::Float => (3, 32),
                 Scalar::Double => (3, 64),
             };
-            let (from_kind, from_bits) = info(from);
-            let (to_kind, to_bits) = info(to);
-            // Core scalar conversion costs, before scalar/shape conversion.
+            let (from_kind, from_rank) = info(from);
+            let (to_kind, to_rank) = info(to);
+            // Logical conversion ranks place pointer integers between 32 and 64 bits.
+            // Core scalar conversion costs precede scalar/shape conversion.
             let cost = if from == to {
                 0
-            } else if from_kind == to_kind && to_bits > from_bits {
+            } else if from_kind == to_kind && to_rank > from_rank {
                 150
-            } else if from_kind == 2 && to_kind == 1 && to_bits > from_bits {
+            } else if from_kind == 2
+                && to_kind == 1
+                && to_rank > from_rank
+                && !from.is_pointer_sized()
+                && !to.is_pointer_sized()
+            {
                 200
-            } else if from_kind == 1 && to_kind == 2 && to_bits >= from_bits {
+            } else if from_kind == 1 && to_kind == 2 && to_rank >= from_rank {
                 250
-            } else if from_kind == 2 && to_kind == 1 && to_bits == from_bits {
+            } else if from_kind == 2
+                && to_kind == 1
+                && to_rank == from_rank
+                && !from.is_pointer_sized()
+                && !to.is_pointer_sized()
+            {
                 300
             } else if matches!(from_kind, 1 | 2) && to_kind == 3 {
-                if to_bits == 16 { 500 } else { 400 }
+                if to_rank == 16 { 500 } else { 400 }
             } else {
                 900
             };
@@ -285,6 +371,30 @@ impl Type {
             }
         } else {
             1
+        }
+    }
+
+    pub(crate) fn literal_conversion_cost(
+        &self,
+        target: &Self,
+        literal: Option<slang_lexer::IntegerLiteral>,
+    ) -> usize {
+        let cost = self.conversion_cost(target);
+        if cost == 0 || !matches!(target, Self::Scalar(_)) || !target.integral() {
+            return cost;
+        }
+        let Some(literal) = literal else { return cost };
+        // Upstream stores every literal as signed bits when counting magnitude.
+        let magnitude = (literal.bits as i64).unsigned_abs();
+        let bits = (64 - magnitude.leading_zeros()).max(1);
+        if bits > u32::from(target.scalar().unwrap().bit_width()) {
+            return cost;
+        }
+        let unsigned = |s| matches!(s, Scalar::Uint | Scalar::Uint64 | Scalar::UintPtr);
+        match (self.scalar().map(unsigned), target.scalar().map(unsigned)) {
+            (Some(a), Some(b)) if a == b => 23,
+            (_, Some(false)) => 81,
+            _ => 32,
         }
     }
 
@@ -337,21 +447,21 @@ impl Type {
         }
         if let Self::Matrix(_, rows, columns) = a {
             return match b {
-                Self::Scalar(_) => Some(a.with_scalar(sa.max(sb))),
+                Self::Scalar(_) => Some(a.with_scalar(sa.common(sb))),
                 Self::Matrix(_, r, c) if (r, c) == (rows, columns) => {
-                    Some(a.with_scalar(sa.max(sb)))
+                    Some(a.with_scalar(sa.common(sb)))
                 }
                 _ => None,
             };
         }
-        if matches!(b, Self::Matrix(..)) {
-            return Self::common(b, a);
+        if matches!((a, b), (Self::Scalar(_), Self::Matrix(..))) {
+            return Some(b.with_scalar(sa.common(sb)));
         }
         let (wa, wb) = (a.width()?, b.width()?);
         if wa != wb && wa != 1 && wb != 1 {
             return None;
         }
-        let scalar = sa.max(sb);
+        let scalar = sa.common(sb);
         let width = wa.max(wb);
         Some(
             if width == 1 && matches!((a, b), (Self::Scalar(_), Self::Scalar(_))) {
@@ -360,6 +470,21 @@ impl Type {
                 Self::Vector(scalar, width)
             },
         )
+    }
+
+    pub fn inferred_common(a: &Self, b: &Self) -> Option<Self> {
+        let shape = Self::common(a, b)?;
+        if shape == Self::Error {
+            return Some(shape);
+        }
+        let (sa, sb) = (a.scalar()?, b.scalar()?);
+        // Generic scalar/vector joins consider the vector element first.
+        let scalar = if matches!((a, b), (Self::Scalar(_), Self::Vector(..))) {
+            sb.inferred_common(sa)
+        } else {
+            sa.inferred_common(sb)
+        };
+        Some(shape.with_scalar(scalar))
     }
 
     pub fn boolean_shape(&self) -> Self {
@@ -375,6 +500,8 @@ impl fmt::Display for Scalar {
             Self::Uint => "uint",
             Self::Int64 => "int64_t",
             Self::Uint64 => "uint64_t",
+            Self::IntPtr => "intptr_t",
+            Self::UintPtr => "uintptr_t",
             Self::Half => "half",
             Self::Float => "float",
             Self::Double => "double",
@@ -389,7 +516,11 @@ impl fmt::Display for Type {
             Self::InitializerList => f.write_str("<initializer list>"),
             Self::Error => f.write_str("<error>"),
             Self::Scalar(s) => write!(f, "{s}"),
+            Self::Vector(s, n) if s.is_pointer_sized() => write!(f, "vector<{s}, {n}>"),
             Self::Vector(s, n) => write!(f, "{s}{n}"),
+            Self::Matrix(s, rows, columns) if s.is_pointer_sized() => {
+                write!(f, "matrix<{s}, {rows}, {columns}>")
+            }
             Self::Matrix(s, rows, columns) => write!(f, "{s}{rows}x{columns}"),
             Self::Array(..) => {
                 let mut ty = self;
@@ -453,5 +584,72 @@ impl fmt::Display for Type {
             Self::Callable { .. } => f.write_str("<function>"),
             Self::Meta(ty) => write!(f, "<type {ty}>"),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Scalar::*, Type};
+
+    #[test]
+    fn pointer_arithmetic_and_inference_use_distinct_common_type_rules() {
+        for (a, b, arithmetic, inferred) in [
+            (IntPtr, Int64, Int64, Int64),
+            (Int64, IntPtr, IntPtr, Int64),
+            (UintPtr, Uint64, UintPtr, Uint64),
+            (Uint64, UintPtr, Uint64, Uint64),
+            (IntPtr, Uint64, Uint64, Uint64),
+            (UintPtr, Int64, UintPtr, UintPtr),
+            (IntPtr, Uint, IntPtr, IntPtr),
+            (Uint, IntPtr, IntPtr, Uint),
+        ] {
+            assert_eq!(a.common(b), arithmetic);
+            assert_eq!(a.inferred_common(b), inferred);
+            let scalar = Type::Scalar(a);
+            let matrix = Type::Matrix(b, 2, 3);
+            assert_eq!(
+                Type::common(&scalar, &matrix),
+                Some(matrix.with_scalar(arithmetic))
+            );
+            assert_eq!(
+                Type::common(&matrix, &scalar),
+                Some(matrix.with_scalar(b.common(a)))
+            );
+        }
+    }
+
+    #[test]
+    fn pointer_conversion_rank_does_not_assume_lossless_unsigned_to_signed() {
+        for (from, to, cost) in [
+            (Int, IntPtr, 150),
+            (IntPtr, Int64, 150),
+            (Int64, IntPtr, 900),
+            (Uint, IntPtr, 900),
+            (UintPtr, Int64, 900),
+            (UintPtr, IntPtr, 900),
+            (IntPtr, UintPtr, 250),
+            (IntPtr, Uint64, 250),
+            (UintPtr, Float, 400),
+        ] {
+            assert_eq!(Type::Scalar(from).conversion_cost(&Type::Scalar(to)), cost);
+        }
+        let literal = slang_lexer::parse_integer_literal("1UZ").unwrap();
+        assert_eq!(
+            Type::Scalar(UintPtr).literal_conversion_cost(&Type::Scalar(Int), Some(literal)),
+            81
+        );
+        assert_eq!(
+            Type::Scalar(UintPtr).literal_conversion_cost(&Type::Scalar(Uint), Some(literal)),
+            23
+        );
+        assert_eq!(
+            Type::Scalar(UintPtr).literal_conversion_cost(&Type::Scalar(UintPtr), Some(literal)),
+            0
+        );
+        let literal = slang_lexer::parse_integer_literal("4294967296UZ").unwrap();
+        assert_eq!(
+            Type::Scalar(UintPtr).literal_conversion_cost(&Type::Scalar(Uint), Some(literal)),
+            900
+        );
     }
 }

@@ -38,8 +38,17 @@ pub(crate) fn signature(name: &str, types: &[Type]) -> Option<Signature> {
     let scalar = if name == "dot" {
         arithmetic_component(types)?
     } else {
-        match types.iter().filter_map(Type::scalar).max()? {
-            Scalar::Int | Scalar::Uint | Scalar::Int64 | Scalar::Uint64 => Scalar::Float,
+        match types
+            .iter()
+            .filter_map(Type::scalar)
+            .reduce(Scalar::inferred_common)?
+        {
+            Scalar::Int
+            | Scalar::Uint
+            | Scalar::Int64
+            | Scalar::Uint64
+            | Scalar::IntPtr
+            | Scalar::UintPtr => Scalar::Float,
             scalar => scalar,
         }
     };
@@ -88,7 +97,10 @@ fn arithmetic_component(types: &[Type]) -> Option<Scalar> {
             Scalar::Int
         }
     } else {
-        types.iter().filter_map(Type::scalar).max()?
+        types
+            .iter()
+            .filter_map(Type::scalar)
+            .reduce(Scalar::inferred_common)?
     };
     Some(scalar)
 }

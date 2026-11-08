@@ -397,39 +397,56 @@ impl Lowerer<'_> {
                         }
                     }
                 }
-                match &callee.kind {
-                    ast::ExprKind::TypeApplication(_) => ExprKind::Call {
-                        name: self
-                            .checked
-                            .call_names
-                            .get(&callee.id)
-                            .cloned()
-                            .ok_or_else(|| error(callee.span))?,
-                        arguments,
-                    },
-                    ast::ExprKind::Name(name)
-                        if !self.checked.call_names.contains_key(&callee.id) =>
-                    {
-                        ExprKind::IntrinsicCall {
+                // Pointer-shaped numeric types have no core alias such as
+                // intptr_t2. Preserve their constructors as typed IR nodes.
+                if let Some(Type::Meta(target)) = self.checked.expression_types.get(&callee.id)
+                    && target
+                        .scalar()
+                        .is_some_and(slang_sema::Scalar::is_pointer_sized)
+                    && matches!(target.as_ref(), Type::Vector(..) | Type::Matrix(..))
+                {
+                    if arguments.len() == 1 && matches!(arguments[0].ty, Type::Scalar(_)) {
+                        ExprKind::Cast {
+                            value: Box::new(arguments.remove(0)),
+                        }
+                    } else {
+                        ExprKind::Construct(arguments)
+                    }
+                } else {
+                    match &callee.kind {
+                        ast::ExprKind::TypeApplication(_) => ExprKind::Call {
+                            name: self
+                                .checked
+                                .call_names
+                                .get(&callee.id)
+                                .cloned()
+                                .ok_or_else(|| error(callee.span))?,
+                            arguments,
+                        },
+                        ast::ExprKind::Name(name)
+                            if !self.checked.call_names.contains_key(&callee.id) =>
+                        {
+                            ExprKind::IntrinsicCall {
+                                name: name.clone(),
+                                arguments,
+                            }
+                        }
+                        ast::ExprKind::Name(name) => ExprKind::Call {
+                            name: self
+                                .checked
+                                .call_names
+                                .get(&callee.id)
+                                .cloned()
+                                .unwrap_or_else(|| name.clone()),
+                            arguments,
+                        },
+                        ast::ExprKind::Member { base, name } => ExprKind::MethodCall {
+                            receiver: Box::new(self.expression(base)?),
                             name: name.clone(),
                             arguments,
-                        }
+                        },
+                        _ => return Err(error(callee.span)),
                     }
-                    ast::ExprKind::Name(name) => ExprKind::Call {
-                        name: self
-                            .checked
-                            .call_names
-                            .get(&callee.id)
-                            .cloned()
-                            .unwrap_or_else(|| name.clone()),
-                        arguments,
-                    },
-                    ast::ExprKind::Member { base, name } => ExprKind::MethodCall {
-                        receiver: Box::new(self.expression(base)?),
-                        name: name.clone(),
-                        arguments,
-                    },
-                    _ => return Err(error(callee.span)),
                 }
             }
             ast::ExprKind::Member { base, name } => ExprKind::Member {

@@ -56,6 +56,8 @@ impl Checker {
                                 | crate::Scalar::Uint
                                 | crate::Scalar::Int64
                                 | crate::Scalar::Uint64
+                                | crate::Scalar::IntPtr
+                                | crate::Scalar::UintPtr
                                 | crate::Scalar::Bool
                         ))
                     )
@@ -231,6 +233,8 @@ impl Checker {
                             | crate::Scalar::Uint
                             | crate::Scalar::Int64
                             | crate::Scalar::Uint64
+                            | crate::Scalar::IntPtr
+                            | crate::Scalar::UintPtr
                     ) | Type::Error
                 ) {
                     self.error(
@@ -254,6 +258,8 @@ impl Checker {
                                     | crate::Scalar::Uint
                                     | crate::Scalar::Int64
                                     | crate::Scalar::Uint64
+                                    | crate::Scalar::IntPtr
+                                    | crate::Scalar::UintPtr
                             ) | Type::Error
                         ) {
                             self.error(

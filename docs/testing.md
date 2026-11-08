@@ -37,6 +37,21 @@ searches across both 32-bit halves, signed negative inputs, zero search results,
 and one evaluation of a postfix argument. A dynamic structured-buffer fixture
 also validates all four operations on signed 64-bit vectors through DXC.
 
+Pointer-integer fixtures add 51 literal type cases (including all 11 pointer
+cases in the pinned type/minimum tests), 80 ordered scalar/vector/matrix binary
+promotions, 25 arithmetic/conversion words, 37 inference/overload words, ten
+default/switch/index context words, and 112 bit-operation words. Of these 315
+compiled words, 313 match and two have separate exact goldens for upstream's
+signed folding of high-bit unsigned comparisons. Pointer templates retain
+their own source types while producing 64-bit HLSL storage. Both compilers'
+DXC artifacts verify the same 120-byte buffer layout. Native reflection also
+verifies its fields and strides; Slang 2026.21 JSON reflection omits pointer
+field sizes/offsets despite emitting the correct HLSL. The pinned scalar layout
+implementation uses the target pointer size. Other target widths remain unverified.
+Mixed scalar/vector inference covers `dot`, `min`, `mul` and conditional
+expressions, including 32-bit results requiring input truncation before arithmetic.
+Matrix minimum overloads reject scalar arguments in both frontends.
+
 `tools/check.ps1` runs rustfmt, Clippy, workspace tests, and rustdoc using Rust
 1.99.1. Tests cover precedence, scopes, const/read-only locations, overloads,
 macro recursion and operators, include guards, diagnostic locations, IR lowering,

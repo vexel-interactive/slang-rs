@@ -128,9 +128,23 @@ fn reserved(name: &str) -> bool {
 
 pub(crate) fn type_name(ty: &Type) -> String {
     match ty {
-        Type::Vector(s @ (Scalar::Int64 | Scalar::Uint64), n) => format!("vector<{s}, {n}>"),
-        Type::Matrix(s @ (Scalar::Int64 | Scalar::Uint64), rows, columns) => {
-            format!("matrix<{s}, {rows}, {columns}>")
+        Type::Scalar(Scalar::IntPtr) => "int64_t".into(),
+        Type::Scalar(Scalar::UintPtr) => "uint64_t".into(),
+        Type::Vector(
+            s @ (Scalar::Int64 | Scalar::Uint64 | Scalar::IntPtr | Scalar::UintPtr),
+            n,
+        ) => {
+            format!("vector<{}, {n}>", type_name(&Type::Scalar(*s)))
+        }
+        Type::Matrix(
+            s @ (Scalar::Int64 | Scalar::Uint64 | Scalar::IntPtr | Scalar::UintPtr),
+            rows,
+            columns,
+        ) => {
+            format!(
+                "matrix<{}, {rows}, {columns}>",
+                type_name(&Type::Scalar(*s))
+            )
         }
         Type::Struct(name) => identifier(name),
         Type::ConstantBuffer { element, .. } => {

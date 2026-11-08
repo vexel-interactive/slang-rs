@@ -330,6 +330,8 @@ fn check_with_metadata(
                                 | crate::Scalar::Uint
                                 | crate::Scalar::Int64
                                 | crate::Scalar::Uint64
+                                | crate::Scalar::IntPtr
+                                | crate::Scalar::UintPtr
                                 | crate::Scalar::Bool
                         )
                     )

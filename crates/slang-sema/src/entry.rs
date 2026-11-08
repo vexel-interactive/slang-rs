@@ -53,6 +53,8 @@ impl Checker {
                                     | Scalar::Uint
                                     | Scalar::Int64
                                     | Scalar::Uint64
+                                    | Scalar::IntPtr
+                                    | Scalar::UintPtr
                                     | Scalar::Bool,
                                 ) => self.integer_constant(expr),
                                 Type::Scalar(Scalar::Half | Scalar::Float | Scalar::Double) => {

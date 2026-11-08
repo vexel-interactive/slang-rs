@@ -44,6 +44,8 @@ impl Visitor for Lowerer {
                             | Scalar::Uint
                             | Scalar::Int64
                             | Scalar::Uint64
+                            | Scalar::IntPtr
+                            | Scalar::UintPtr
                             | Scalar::Double
                     )
                 )

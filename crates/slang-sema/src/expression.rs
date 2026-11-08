@@ -28,6 +28,8 @@ impl Checker {
                     slang_lexer::IntegerKind::Uint => Scalar::Uint,
                     slang_lexer::IntegerKind::Int64 => Scalar::Int64,
                     slang_lexer::IntegerKind::Uint64 => Scalar::Uint64,
+                    slang_lexer::IntegerKind::IntPtr => Scalar::IntPtr,
+                    slang_lexer::IntegerKind::UintPtr => Scalar::UintPtr,
                 };
                 if literal.signed_overflow
                     && !self
@@ -45,13 +47,12 @@ impl Checker {
                 self.expression_types.insert(expression.id, ty.clone());
                 return ty;
             }
-            Err(error) => {
-                let (code, message) = if error == slang_lexer::IntegerLiteralError::Pointer {
-                    ("T001", "pointer-sized integer literals are not implemented")
-                } else {
-                    ("T010", "invalid or overflowing integer literal")
-                };
-                self.error(code, expression.span, message);
+            Err(_) => {
+                self.error(
+                    "T010",
+                    expression.span,
+                    "invalid or overflowing integer literal",
+                );
                 self.expression_types.insert(expression.id, Type::Error);
                 return Type::Error;
             }
@@ -352,7 +353,7 @@ impl Checker {
                 if a == b {
                     a
                 } else {
-                    Type::common(&a, &b).unwrap_or_else(|| {
+                    Type::inferred_common(&a, &b).unwrap_or_else(|| {
                         self.error("T008", expression.span, "incompatible conditional branches");
                         Type::Error
                     })

@@ -56,12 +56,12 @@ impl Visitor for Lowerer {
                 then_value,
                 else_value,
                 ..
-            } if wide(&expression.ty) => {
+            } if wide(&expression.ty) || wide(&then_value.ty) || wide(&else_value.ty) => {
                 coerce(then_value, &expression.ty);
                 coerce(else_value, &expression.ty);
             }
             ExprKind::IntrinsicCall { name, arguments }
-                if wide(&expression.ty)
+                if (wide(&expression.ty) || arguments.iter().any(|a| wide(&a.ty)))
                     && matches!(name.as_str(), "min" | "max" | "clamp" | "mul") =>
             {
                 for argument in arguments {
@@ -80,7 +80,10 @@ impl Visitor for Lowerer {
 }
 
 fn wide(ty: &Type) -> bool {
-    matches!(ty.scalar(), Some(Scalar::Int64 | Scalar::Uint64))
+    matches!(
+        ty.scalar(),
+        Some(Scalar::Int64 | Scalar::Uint64 | Scalar::IntPtr | Scalar::UintPtr)
+    )
 }
 
 fn coerce(expression: &mut Expr, ty: &Type) {

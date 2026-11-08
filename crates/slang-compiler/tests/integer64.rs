@@ -107,23 +107,18 @@ fn wide_case_values_convert_to_selector_types_without_aliasing() {
 }
 
 #[test]
-fn wide_values_do_not_enter_unimplemented_32_bit_intrinsics() {
-    for source in [
-        "float f(int64_t x){return asfloat(x);}",
+fn wide_values_do_not_enter_unimplemented_32_bit_atomics() {
+    let error = compile_source(
+        "unsupported.slang",
         "groupshared uint64_t value;void f(){InterlockedAdd(value,1ULL);}",
-    ] {
-        let error = compile_source(
-            "unsupported.slang",
-            source,
-            &CompileOptions::default(),
-            &MemoryIncludes::default(),
-        )
-        .unwrap_err();
-        assert!(
-            error.diagnostics.iter().any(|d| d.code == "T014"),
-            "{error}"
-        );
-    }
+        &CompileOptions::default(),
+        &MemoryIncludes::default(),
+    )
+    .unwrap_err();
+    assert!(
+        error.diagnostics.iter().any(|d| d.code == "T014"),
+        "{error}"
+    );
 }
 
 #[test]

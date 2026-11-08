@@ -36,6 +36,11 @@ Unsigned 64-bit constants store their bit pattern in signed storage; division,
 remainder, comparisons and right shifts interpret it through the checked type.
 Literal width and signed-minimum selection are shared between syntax checking
 and IR lowering. Target integer literals explicitly preserve the selected width.
+Pointer integer identities survive semantic checking and reflection. Arithmetic
+unification uses component byte sizes and operand order; generic inference joins
+by scalar conversion costs. The HLSL backend maps pointer integers to its 64-bit
+target width, and uniform layouts use eight-byte components. Typed numeric
+constructor nodes preserve pointer shapes without inventing core vector aliases.
 
 Arithmetic normalization runs before local and resource storage lowering.
 It converts wide binary operands, conditional branches and arithmetic intrinsic

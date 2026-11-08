@@ -47,14 +47,14 @@ pub enum IntegerKind {
     Uint,
     Int64,
     Uint64,
+    IntPtr,
+    UintPtr,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum IntegerLiteralError {
     Number,
     Suffix,
-    /// Pointer-sized types require a separate target/ABI implementation.
-    Pointer,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -70,7 +70,9 @@ impl IntegerLiteral {
     /// Fold a parser prefix, preserving the literal type and minimum exception.
     pub fn prefix(mut self, op: &str) -> Self {
         if op == "-" && self.signed_minimum_exception {
-            self.kind = if self.bits == 1_u64 << 31 {
+            self.kind = if self.kind == IntegerKind::UintPtr {
+                IntegerKind::IntPtr
+            } else if self.bits == 1_u64 << 31 {
                 IntegerKind::Int
             } else {
                 IntegerKind::Int64
@@ -90,13 +92,17 @@ impl IntegerLiteral {
 pub fn parse_integer_literal(text: &str) -> Result<IntegerLiteral, IntegerLiteralError> {
     let digits = text.trim_end_matches(['u', 'U', 'l', 'L', 'z', 'Z']);
     let suffix = parse_integer_suffix(&text[digits.len()..]).ok_or(IntegerLiteralError::Suffix)?;
-    if suffix.width == IntegerWidth::Pointer {
-        return Err(IntegerLiteralError::Pointer);
-    }
     let bits = crate::integer_literal_value(text).ok_or(IntegerLiteralError::Number)?;
     let decimal = !digits.starts_with(['0']) || digits == "0";
-    let narrow = suffix.width != IntegerWidth::LongLong;
-    let kind = if narrow && !suffix.unsigned && bits <= i32::MAX as u64 {
+    let pointer = suffix.width == IntegerWidth::Pointer;
+    let narrow = matches!(suffix.width, IntegerWidth::Default | IntegerWidth::Long);
+    let kind = if pointer {
+        if !suffix.unsigned && (!decimal || bits <= i64::MAX as u64) {
+            IntegerKind::IntPtr
+        } else {
+            IntegerKind::UintPtr
+        }
+    } else if narrow && !suffix.unsigned && bits <= i32::MAX as u64 {
         IntegerKind::Int
     } else if narrow && (suffix.unsigned || !decimal) && bits <= u32::MAX as u64 {
         IntegerKind::Uint
@@ -201,5 +207,30 @@ mod tests {
                 .prefix("-")
                 .signed_overflow
         );
+    }
+
+    #[test]
+    fn pointer_literals_preserve_identity_and_nondecimal_signed_bits() {
+        for (text, kind) in [
+            ("1Z", IntegerKind::IntPtr),
+            ("2147483648z", IntegerKind::IntPtr),
+            ("9223372036854775808Z", IntegerKind::UintPtr),
+            ("0xffffffffffffffffZ", IntegerKind::IntPtr),
+            ("01777777777777777777777z", IntegerKind::IntPtr),
+            ("18446744073709551615UZ", IntegerKind::UintPtr),
+            ("1zU", IntegerKind::UintPtr),
+        ] {
+            assert_eq!(parse_integer_literal(text).unwrap().kind, kind, "{text}");
+        }
+        let minimum = parse_integer_literal("9223372036854775808Z")
+            .unwrap()
+            .prefix("-");
+        assert_eq!(minimum.kind, IntegerKind::IntPtr);
+        assert_eq!(minimum.bits as i64, i64::MIN);
+        assert!(!minimum.signed_overflow);
+        let smaller = parse_integer_literal("2147483648Z").unwrap().prefix("-");
+        assert_eq!(smaller.kind, IntegerKind::IntPtr);
+        assert_eq!(smaller.bits as i64, -2147483648);
+        assert!(parse_integer_literal("18446744073709551616UZ").is_err());
     }
 }

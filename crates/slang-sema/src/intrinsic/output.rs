@@ -18,13 +18,13 @@ pub(crate) fn signature(name: &str, types: &[Type]) -> Option<Signature> {
     let mut target = types[0].clone();
     if name == "frexp" {
         let shape = types[1].with_scalar(target.scalar()?);
-        target = Type::common(&target, &shape)?;
+        target = Type::inferred_common(&target, &shape)?;
     } else {
         for ty in &types[1..] {
             target = if target == Type::InitializerList {
                 ty.clone()
             } else {
-                Type::common(&target, ty)?
+                Type::inferred_common(&target, ty)?
             };
         }
     }
@@ -34,7 +34,12 @@ pub(crate) fn signature(name: &str, types: &[Type]) -> Option<Signature> {
     let scalar = target.scalar()?;
     if matches!(
         scalar,
-        Scalar::Int | Scalar::Uint | Scalar::Int64 | Scalar::Uint64
+        Scalar::Int
+            | Scalar::Uint
+            | Scalar::Int64
+            | Scalar::Uint64
+            | Scalar::IntPtr
+            | Scalar::UintPtr
     ) {
         target = target.with_scalar(Scalar::Float);
     }

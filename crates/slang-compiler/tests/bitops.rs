@@ -19,6 +19,8 @@ fn integer_bit_functions_preserve_signedness_width_and_unsigned_result_types() {
         Scalar::Uint,
         Scalar::Int64,
         Scalar::Uint64,
+        Scalar::IntPtr,
+        Scalar::UintPtr,
     ] {
         let mut types = vec![Type::Scalar(scalar)];
         types.extend((1..=4).map(|n| Type::Vector(scalar, n)));

@@ -21,6 +21,8 @@ impl Checker {
                                 | Scalar::Uint
                                 | Scalar::Int64
                                 | Scalar::Uint64
+                                | Scalar::IntPtr
+                                | Scalar::UintPtr
                                 | Scalar::Bool
                         ))
                     ))
@@ -158,11 +160,15 @@ impl Checker {
                 } else {
                     common.as_ref()
                 };
-                let unsigned64 =
-                    operation_type.is_some_and(|ty| ty.scalar() == Some(Scalar::Uint64));
+                let unsigned64 = operation_type.is_some_and(|ty| {
+                    matches!(ty.scalar(), Some(Scalar::Uint64 | Scalar::UintPtr))
+                });
                 let shift_bits = if shape
                     || operation_type.is_some_and(|ty| {
-                        matches!(ty.scalar(), Some(Scalar::Int64 | Scalar::Uint64))
+                        matches!(
+                            ty.scalar(),
+                            Some(Scalar::Int64 | Scalar::Uint64 | Scalar::IntPtr | Scalar::UintPtr)
+                        )
                     }) {
                     64
                 } else {
@@ -212,7 +218,7 @@ impl Checker {
             ExprKind::Cast { value, .. } => self.constant_conversion_mode(value, shape)?,
             ExprKind::Call { callee, arguments }
                 if arguments.len() == 1
-                    && matches!(self.expression_types.get(&callee.id), Some(Type::Meta(target)) if matches!(target.as_ref(), Type::Scalar(Scalar::Int | Scalar::Uint | Scalar::Int64 | Scalar::Uint64 | Scalar::Bool))) =>
+                    && matches!(self.expression_types.get(&callee.id), Some(Type::Meta(target)) if matches!(target.as_ref(), Type::Scalar(Scalar::Int | Scalar::Uint | Scalar::Int64 | Scalar::Uint64 | Scalar::IntPtr | Scalar::UintPtr | Scalar::Bool))) =>
             {
                 self.constant_conversion_mode(&arguments[0], shape)?
             }

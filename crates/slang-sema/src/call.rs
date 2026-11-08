@@ -145,7 +145,13 @@ impl Checker {
                 types
                     .iter()
                     .zip(&s.parameters)
-                    .map(|(a, b)| a.conversion_cost(b))
+                    .zip(arguments)
+                    .map(|((a, b), expr)| {
+                        a.literal_conversion_cost(
+                            b,
+                            slang_syntax::integer_literal(expr).ok().flatten(),
+                        )
+                    })
                     .sum::<usize>()
             });
             let best = matches.first();
@@ -153,13 +159,25 @@ impl Checker {
                 let score = types
                     .iter()
                     .zip(&best.parameters)
-                    .map(|(a, b)| a.conversion_cost(b))
+                    .zip(arguments)
+                    .map(|((a, b), expr)| {
+                        a.literal_conversion_cost(
+                            b,
+                            slang_syntax::integer_literal(expr).ok().flatten(),
+                        )
+                    })
                     .sum::<usize>();
                 if matches.get(1).is_some_and(|s| {
                     types
                         .iter()
                         .zip(&s.parameters)
-                        .map(|(a, b)| a.conversion_cost(b))
+                        .zip(arguments)
+                        .map(|((a, b), expr)| {
+                            a.literal_conversion_cost(
+                                b,
+                                slang_syntax::integer_literal(expr).ok().flatten(),
+                            )
+                        })
                         .sum::<usize>()
                         == score
                 }) {
@@ -237,9 +255,15 @@ impl Checker {
                 }
             }
         }
-        if let Some(signature) = crate::intrinsic::bitcast_signature(name, &types)
-            .or_else(|| crate::intrinsic::bitops_signature(name, &types))
-            .or_else(|| crate::intrinsic::geometric_signature(name, &types))
+        if let Some(signature) = crate::intrinsic::bitcast_signature(
+            name,
+            &types,
+            arguments
+                .first()
+                .and_then(|expr| slang_syntax::integer_literal(expr).ok().flatten()),
+        )
+        .or_else(|| crate::intrinsic::bitops_signature(name, &types))
+        .or_else(|| crate::intrinsic::geometric_signature(name, &types))
         {
             if let Some(start) = signature.outputs_start {
                 for argument in &arguments[start..] {

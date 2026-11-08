@@ -83,7 +83,13 @@ impl Checker {
             && matches!(
                 ty,
                 Type::Scalar(
-                    Scalar::Int | Scalar::Uint | Scalar::Int64 | Scalar::Uint64 | Scalar::Bool
+                    Scalar::Int
+                        | Scalar::Uint
+                        | Scalar::Int64
+                        | Scalar::Uint64
+                        | Scalar::IntPtr
+                        | Scalar::UintPtr
+                        | Scalar::Bool
                 )
             ) {
             variable.initializer.as_ref().and_then(|initializer| {

@@ -111,9 +111,9 @@ pub(crate) fn intrinsic(name: &str, types: &[Type]) -> Option<Type> {
         {
             Some(a.clone())
         }
-        ("min" | "max" | "pow", [a, b]) if a.numeric() && b.numeric() => Type::common(a, b),
+        ("min" | "max" | "pow", [a, b]) if a.numeric() && b.numeric() => common_arguments(a, b),
         ("clamp" | "lerp", [a, b, c]) if a.numeric() && b.numeric() && c.numeric() => {
-            Type::common(&Type::common(a, b)?, c)
+            common_arguments(&common_arguments(a, b)?, c)
         }
         ("all" | "any", [a]) if a.scalar().is_some() => Some(Type::Scalar(Scalar::Bool)),
         (
@@ -129,9 +129,19 @@ pub(crate) fn intrinsic(name: &str, types: &[Type]) -> Option<Type> {
     }
 }
 
+/// Numeric generic parameters join component constraints in argument order.
+/// Matrix overloads require matrices on both sides rather than scalar splats.
+fn common_arguments(a: &Type, b: &Type) -> Option<Type> {
+    if matches!(a, Type::Matrix(..)) != matches!(b, Type::Matrix(..)) {
+        return None;
+    }
+    let shape = Type::common(a, b)?;
+    Some(shape.with_scalar(a.scalar()?.inferred_common(b.scalar()?)))
+}
+
 /// Algebraic multiplication: matrix dimensions contract rather than broadcast.
 fn product(a: &Type, b: &Type) -> Option<Type> {
-    let scalar = a.scalar()?.max(b.scalar()?);
+    let scalar = a.scalar()?.inferred_common(b.scalar()?);
     match (a, b) {
         (Type::Scalar(_), _) => Some(b.with_scalar(scalar)),
         (_, Type::Scalar(_)) => Some(a.with_scalar(scalar)),
