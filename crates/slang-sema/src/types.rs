@@ -56,6 +56,9 @@ pub enum Type {
     Buffer {
         element: Box<Type>,
         writable: bool,
+        /// An explicit element layout differing from the compilation default.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        matrix_major: Option<slang_layout::MatrixMajor>,
     },
     Texture {
         element: Box<Type>,
@@ -319,10 +322,19 @@ impl fmt::Display for Type {
             Self::ByteBuffer { writable } => {
                 write!(f, "{}ByteAddressBuffer", if *writable { "RW" } else { "" })
             }
-            Self::Buffer { element, writable } => write!(
+            Self::Buffer {
+                element,
+                writable,
+                matrix_major,
+            } => write!(
                 f,
-                "{}StructuredBuffer<{element}>",
-                if *writable { "RW" } else { "" }
+                "{}StructuredBuffer<{}{element}>",
+                if *writable { "RW" } else { "" },
+                match matrix_major {
+                    Some(slang_layout::MatrixMajor::Row) => "row_major ",
+                    Some(slang_layout::MatrixMajor::Column) => "column_major ",
+                    None => "",
+                }
             ),
             Self::Texture {
                 element,

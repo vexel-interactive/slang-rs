@@ -23,6 +23,8 @@ impl Parser {
                     | "inline"
                     | "precise"
                     | "nointerpolation"
+                    | "row_major"
+                    | "column_major"
             )
         }) {
             result.push(self.current().unwrap().text.clone());
@@ -188,6 +190,16 @@ impl Parser {
     }
 
     fn ty_inner(&mut self) -> Result<TypeRef, Diagnostic> {
+        let start = self.span();
+        let mut matrix_major = None;
+        while self.at("row_major") || self.at("column_major") {
+            matrix_major = Some(if self.eat("row_major") {
+                slang_layout::MatrixMajor::Row
+            } else {
+                self.expect("column_major")?;
+                slang_layout::MatrixMajor::Column
+            });
+        }
         let token = self.identifier()?;
         let mut arguments = vec![];
         if self.eat("<") {
@@ -237,8 +249,9 @@ impl Parser {
         Ok(TypeRef {
             name: token.text,
             arguments,
+            matrix_major,
             arrays,
-            span: token.span.join(self.tokens[self.offset - 1].span),
+            span: start.join(self.tokens[self.offset - 1].span),
         })
     }
 

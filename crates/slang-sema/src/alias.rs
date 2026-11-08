@@ -74,6 +74,8 @@ impl Checker {
             .get(name)
             .map_or(slang_module::ModuleId(0), |o| o.module);
         let ty = self.resolve_type(&target);
+        self.alias_matrix_layouts
+            .insert(name.into(), self.reference_matrix_major(&target));
         self.current_module = previous_module;
         self.resolving_aliases.remove(name);
         self.alias_types.insert(name.into(), ty.clone());

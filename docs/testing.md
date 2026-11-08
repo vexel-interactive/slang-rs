@@ -337,6 +337,25 @@ offsets. Those selected DXC cases require unambiguous field names within each
 buffer. All 48 float/double/half matrix shapes are checked this way, including
 single-column shapes whose legacy DXC packing differs from Slang reflection.
 
+Matrix storage tests cover declaration contexts, qualifiers through forward and
+imported aliases, multidimensional arrays, casts, last-modifier selection,
+resource element types, overloads, and matching default resource types. CLI
+tests compare emitted pragmas and check-only reflection under both defaults.
+DXC verifies all 96 float/double/half matrix shapes and both storage orders,
+including single-row alignment and reused tail space. Differential cases compare
+mixed layouts, row-major aliases, array element locations, and packed matrices.
+Structured-buffer copies exercise nested arrays, Load, side-effecting indices,
+output arguments, and atomic destinations. Excessive materialization fails with
+a bounded diagnostic.
+
+The qualified numeric structured-buffer example records an upstream artifact
+difference: Slang 2026.21 emits incompatible storage wrappers for a resource
+parameter or Load result, depending on the default order. Both frontends accept
+the source; DXC must accept the native artifact and reject the upstream one.
+These checks establish shader validity and selected physical layouts, without
+claiming GPU execution equivalence. A manifest's `matrix_major` value (`row` or
+`column`) applies the same compiler option to both frontends.
+
 [validation.json](validation.json) records the Windows validation run for this
 checkpoint. It includes the pinned compiler version, workspace checks, and
 differential corpus counts. It is a snapshot of that run, not a promise of

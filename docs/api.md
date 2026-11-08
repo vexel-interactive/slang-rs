@@ -20,7 +20,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 Compilation returns `Result<Compilation, CompileError>`. `Compilation` contains
 a text artifact, typed IR, declaration reflection, a source map, and warnings.
-Reflection schema version 9 reports `compute`, `vertex`, or `fragment` stages;
+Reflection schema version 10 reports `compute`, `vertex`, or `fragment` stages;
 `thread_group_size` is present only for compute entries. The Rust model uses
 `slang_sema::ShaderStage` and `Option<[u32; 3]>` for these fields.
 `EntryPointInfo` and `GlobalInfo` retain the source `name` and add `target_name`
@@ -51,7 +51,9 @@ Packed ordinary globals use generated load functions; their `target_name`
 identifies that function. Packed resource globals retain the target buffer name.
 `Reflection.uniform_types` maps these names to shared `UniformTypeLayout` entries:
 occupied byte size, alignment, struct field offsets, array strides and element
-types, and column-major matrix strides. `Reflection.global_uniform_size` reports
+types, matrix strides, and `matrix_major` (`row` or `column`). A row-major matrix
+or matrix array uses a layout key such as `row_major float2x3`; its algebraic
+value type remains `float2x3`. `Reflection.global_uniform_size` reports
 the occupied size of the shared buffer. Private storage and structured-buffer
 elements omit this metadata. These models are reexported from `slang-compiler`.
 See [resources.md](resources.md#constant-buffer-byte-layout) for legacy HLSL rules,
@@ -62,6 +64,14 @@ Overlapping explicit ranges produce warning `T023` in `Compilation.diagnostics`;
 compilation and `check_only` still succeed. Such HLSL may fail target validation.
 With `check_only: true`, the artifact is `None`. Errors retain diagnostics and
 source files; their `Display` implementation reports source locations and text.
+
+`CompileOptions.matrix_major` selects the default matrix storage order using
+`MatrixMajor::Column` (the native default) or `MatrixMajor::Row`. This option
+controls type checking, HLSL emission, and byte layout together; the selected
+default is recorded in `Reflection.matrix_major`. Source `row_major` and
+`column_major` qualifiers override it, including through aliases. For direct
+semantic-crate callers, `check_program_with_matrix_major` records the same
+choice in `CheckedModule`, which the IR lowerer preserves.
 
 `compile_file(path, options)` loads a UTF-8 file and uses the filesystem resolver.
 Its `include_paths` option controls include, import, and module-member lookup. `compile_source` uses the

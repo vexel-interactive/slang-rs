@@ -1,12 +1,14 @@
 use crate::Module;
 use slang_layout::{
-    UniformFieldLayout, UniformLayoutError, UniformPacker, UniformTypeLayout, UniformVariableLayout,
+    MatrixMajor, UniformFieldLayout, UniformLayoutError, UniformPacker, UniformTypeLayout,
+    UniformVariableLayout,
 };
 use slang_sema::{CheckedModule, Scalar, Type};
 use slang_source::{Diagnostic, Span};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub(crate) fn lower(module: &mut Module, checked: &CheckedModule) -> Result<(), Diagnostic> {
+    let default_major = module.matrix_major;
     let structures: BTreeMap<_, _> = module
         .structures
         .iter()
@@ -16,7 +18,14 @@ pub(crate) fn lower(module: &mut Module, checked: &CheckedModule) -> Result<(), 
     let mut uniforms = vec![];
     for (index, global) in module.globals.iter().enumerate() {
         if global.is_global_uniform() {
-            calculate(&global.ty, &structures, &mut layouts).map_err(|e| error(global.span, e))?;
+            calculate(
+                &global.ty,
+                row_major(global, default_major),
+                default_major,
+                &structures,
+                &mut layouts,
+            )
+            .map_err(|e| error(global.span, e))?;
             uniforms.push(index);
         } else {
             let mut ty = &global.ty;
@@ -24,7 +33,8 @@ pub(crate) fn lower(module: &mut Module, checked: &CheckedModule) -> Result<(), 
                 ty = element;
             }
             if let Type::ConstantBuffer(element) = ty {
-                calculate(element, &structures, &mut layouts).map_err(|e| error(global.span, e))?;
+                calculate(element, false, default_major, &structures, &mut layouts)
+                    .map_err(|e| error(global.span, e))?;
             }
         }
     }
@@ -39,7 +49,7 @@ pub(crate) fn lower(module: &mut Module, checked: &CheckedModule) -> Result<(), 
     let mut packer = UniformPacker::default();
     for &index in &uniforms {
         let global = &module.globals[index];
-        let name = global.ty.to_string();
+        let name = layout_name(&global.ty, row_major(global, default_major));
         let Some(layout) = layouts.get(&name).and_then(Option::as_ref) else {
             // Resource-valued aggregates need a separate mixed-layout model.
             offsets.clear();
@@ -85,13 +95,15 @@ pub(crate) fn lower(module: &mut Module, checked: &CheckedModule) -> Result<(), 
 /// Visit the type graph explicitly, memoizing layouts rather than expanding paths.
 fn calculate<'a>(
     root: &'a Type,
+    row: bool,
+    default_major: MatrixMajor,
     structures: &BTreeMap<&str, &'a crate::Struct>,
     layouts: &mut BTreeMap<String, Option<UniformTypeLayout>>,
 ) -> Result<(), UniformLayoutError> {
-    let mut stack = vec![(root, false)];
+    let mut stack = vec![(root, row, false)];
     let mut active = BTreeSet::new();
-    while let Some((ty, exiting)) = stack.pop() {
-        let name = ty.to_string();
+    while let Some((ty, row, exiting)) = stack.pop() {
+        let name = layout_name(ty, row);
         if layouts.contains_key(&name) {
             continue;
         }
@@ -99,14 +111,20 @@ fn calculate<'a>(
             if !active.insert(name.clone()) {
                 return Err(UniformLayoutError::InvalidShape);
             }
-            stack.push((ty, true));
+            stack.push((ty, row, true));
             match ty {
-                Type::Array(element, _) => stack.push((element, false)),
+                Type::Array(element, _) => stack.push((element, row, false)),
                 Type::Struct(name) => {
                     let structure = structures
                         .get(name.as_str())
                         .ok_or(UniformLayoutError::InvalidShape)?;
-                    stack.extend(structure.fields.iter().rev().map(|f| (&f.ty, false)));
+                    stack.extend(
+                        structure
+                            .fields
+                            .iter()
+                            .rev()
+                            .map(|f| (&f.ty, row_major(f, default_major), false)),
+                    );
                 }
                 _ => {}
             }
@@ -119,15 +137,20 @@ fn calculate<'a>(
                 component_bytes(*scalar),
                 *width,
             )?),
-            Type::Matrix(scalar, rows, columns) => Some(UniformTypeLayout::matrix(
+            Type::Matrix(scalar, rows, columns) => Some(UniformTypeLayout::matrix_with_major(
                 component_bytes(*scalar),
                 *rows,
                 *columns,
+                if row {
+                    MatrixMajor::Row
+                } else {
+                    MatrixMajor::Column
+                },
             )?),
             Type::Array(element, count) => layouts
-                .get(&element.to_string())
+                .get(&layout_name(element, row))
                 .and_then(Option::as_ref)
-                .map(|layout| layout.array(element.to_string(), *count))
+                .map(|layout| layout.array(layout_name(element, row), *count))
                 .transpose()?,
             Type::Struct(name) => {
                 let structure = structures[name.as_str()];
@@ -136,14 +159,14 @@ fn calculate<'a>(
                 let mut supported = true;
                 for field in &structure.fields {
                     if let Some(offset) = field.pack_offset {
-                        let name = field.ty.to_string();
+                        let name = layout_name(&field.ty, row_major(field, default_major));
                         if let Some(layout) = layouts.get(&name).and_then(Option::as_ref) {
                             packer.place(offset, layout)?;
                         }
                     }
                 }
                 for field in &structure.fields {
-                    let name = field.ty.to_string();
+                    let name = layout_name(&field.ty, row_major(field, default_major));
                     let Some(layout) = layouts.get(&name).and_then(Option::as_ref) else {
                         supported = false;
                         break;
@@ -164,6 +187,27 @@ fn calculate<'a>(
         layouts.insert(name, layout);
     }
     Ok(())
+}
+
+fn row_major(value: &crate::Variable, default_major: MatrixMajor) -> bool {
+    value
+        .modifiers
+        .iter()
+        .rev()
+        .find(|m| matches!(m.as_str(), "row_major" | "column_major"))
+        .map_or(default_major == MatrixMajor::Row, |m| m == "row_major")
+}
+
+fn layout_name(ty: &Type, row: bool) -> String {
+    let mut element = ty;
+    while let Type::Array(inner, _) = element {
+        element = inner;
+    }
+    if row && matches!(element, Type::Matrix(..)) {
+        format!("row_major {ty}")
+    } else {
+        ty.to_string()
+    }
 }
 
 fn component_bytes(scalar: Scalar) -> u32 {

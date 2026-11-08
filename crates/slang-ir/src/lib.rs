@@ -6,6 +6,8 @@ mod geometric;
 mod initialization;
 mod intrinsic;
 mod lower;
+mod matrix_resource;
+mod matrix_storage;
 mod model;
 mod packed_uniform;
 mod scope;

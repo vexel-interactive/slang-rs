@@ -212,16 +212,23 @@ impl Parser {
     }
 
     fn cast_type(&self) -> bool {
-        let Some(token) = self.current() else {
+        let mut start = self.offset;
+        while self
+            .tokens
+            .get(start)
+            .is_some_and(|t| matches!(t.text.as_str(), "row_major" | "column_major"))
+        {
+            start += 1;
+        }
+        let Some(token) = self.tokens.get(start) else {
             return false;
         };
         if matches!(token.text.as_str(), "vector" | "matrix") {
             return self
-                .type_application_end(self.offset)
+                .type_application_end(start)
                 .is_some_and(|end| self.tokens.get(end).is_some_and(|t| t.is(")")));
         }
-        self.tokens.get(self.offset + 1).is_some_and(|t| t.is(")"))
-            && builtin_cast_type(&token.text)
+        self.tokens.get(start + 1).is_some_and(|t| t.is(")")) && builtin_cast_type(&token.text)
     }
 
     /// Recognize angle brackets without consuming comparisons or shifting tokens.

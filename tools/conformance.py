@@ -191,6 +191,10 @@ def main():
         profile = case.get("compile_profile", case.get("profile"))
         if profile:
             common.extend(["-profile", profile])
+        if major := case.get("matrix_major"):
+            if major not in {"row", "column"}:
+                raise ValueError(f"invalid matrix_major: {major}")
+            common.append(f"-matrix-layout-{major}-major")
         rust_command = [str(args.rust.resolve()), *common, "-o", str(rust_output)]
         oracle_command = [str(args.oracle.resolve()), *common, "-o", str(oracle_output)]
         if any(key in case for key in ["bindings", "global_uniform_binding", "uniform_layouts", "rust_dxc_layouts"]):

@@ -131,7 +131,9 @@ pub(crate) fn type_name(ty: &Type) -> String {
         Type::Struct(name) => identifier(name),
         Type::ConstantBuffer(element) => format!("ConstantBuffer<{}>", type_name(element)),
         Type::Array(element, length) => format!("{}[{length}]", type_name(element)),
-        Type::Buffer { element, writable } => format!(
+        Type::Buffer {
+            element, writable, ..
+        } => format!(
             "{}StructuredBuffer<{}>",
             if *writable { "RW" } else { "" },
             type_name(element)

@@ -9,7 +9,10 @@ pub(crate) fn emit(module: &Module) -> String {
         indent: 0,
     };
     let mut emitted = BTreeSet::new();
-    emitter.line("#pragma pack_matrix(column_major)");
+    emitter.line(match module.matrix_major {
+        slang_layout::MatrixMajor::Row => "#pragma pack_matrix(row_major)",
+        slang_layout::MatrixMajor::Column => "#pragma pack_matrix(column_major)",
+    });
     emitter.line("");
     for structure in &module.structures {
         emitter.structure(module, structure, &mut emitted);

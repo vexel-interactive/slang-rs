@@ -23,7 +23,10 @@ mod value_type;
 mod visibility;
 
 pub use capability::{EntryPointRequirements, RequiredOperation};
-pub use checker::{CheckedModule, EntryPoint, ShaderStage, check, check_program, span_key};
+pub use checker::{
+    CheckedModule, EntryPoint, ShaderStage, check, check_program, check_program_with_matrix_major,
+    span_key,
+};
 pub use initialization::{Initialization, InitializationKind};
 pub use intrinsic::is_intrinsic_name;
 pub use types::{Scalar, TextureDimension, Type};

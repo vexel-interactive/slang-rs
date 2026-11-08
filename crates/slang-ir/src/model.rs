@@ -4,6 +4,7 @@ use slang_source::Span;
 
 #[derive(Clone, Debug, Serialize)]
 pub struct Module {
+    pub matrix_major: slang_layout::MatrixMajor,
     pub structures: Vec<Struct>,
     pub constant_buffers: Vec<ConstantBuffer>,
     pub globals: Vec<Variable>,

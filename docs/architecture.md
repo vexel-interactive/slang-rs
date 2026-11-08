@@ -15,6 +15,15 @@ AST; lowering replaces them with the selected canonical constructor. The typed I
 and HLSL emitter therefore use one representation for `vector<float, 3>` and
 `float3`.
 
+Matrix storage qualifiers are separate from algebraic matrix value types.
+Semantic checking records declaration and alias layouts and normalizes qualified
+structured-buffer elements against the compilation default. `CheckedModule`
+carries that default through IR generation and reflection. Uniform type layouts
+cache distinct row-major matrix and array entries. Aggregate loading reconstructs
+matrix arrays when DXC cannot safely copy their storage order; structured-buffer
+helpers evaluate the source index once and preserve writable locations. Qualified
+numeric resource elements lower to one-field HLSL storage structs.
+
 Atomic normalization adds a private typed output when Slang omits the old value
 of an exchange. HLSL requires that output. Its per-invocation scalar storage is
 declared before source globals so global initializers can also use it. The atomic

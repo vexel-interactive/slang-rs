@@ -1,6 +1,53 @@
 use std::{fs, process::Command};
 
 #[test]
+fn cli_matrix_layout_controls_emission_and_check_only_reflection() {
+    let root = std::env::temp_dir().join(format!("slang-rs-cli-major-{}", std::process::id()));
+    fs::create_dir_all(&root).unwrap();
+    let input = root.join("major.slang");
+    let reflection = root.join("reflection.json");
+    fs::write(&input, "float2x3 data;").unwrap();
+    for (option, major, size) in [
+        ("-matrix-layout-row-major", "row", 28),
+        ("-matrix-layout-column-major", "column", 40),
+    ] {
+        let result = Command::new(env!("CARGO_BIN_EXE_slangc-rs"))
+            .arg(&input)
+            .args([option, "--reflection"])
+            .arg(&reflection)
+            .output()
+            .unwrap();
+        assert!(
+            result.status.success(),
+            "{}",
+            String::from_utf8_lossy(&result.stderr)
+        );
+        assert!(
+            String::from_utf8_lossy(&result.stdout)
+                .starts_with(&format!("#pragma pack_matrix({major}_major)"))
+        );
+        let json: serde_json::Value =
+            serde_json::from_slice(&fs::read(&reflection).unwrap()).unwrap();
+        assert_eq!(json["matrix_major"], major);
+        assert_eq!(json["global_uniform_size"], size);
+        let result = Command::new(env!("CARGO_BIN_EXE_slangc-rs"))
+            .arg(&input)
+            .args([option, "--check", "--reflection"])
+            .arg(&reflection)
+            .output()
+            .unwrap();
+        assert!(result.status.success());
+        assert!(result.stdout.is_empty());
+        let json: serde_json::Value =
+            serde_json::from_slice(&fs::read(&reflection).unwrap()).unwrap();
+        assert_eq!(json["global_uniform_size"], size);
+    }
+    fs::remove_file(input).unwrap();
+    fs::remove_file(reflection).unwrap();
+    fs::remove_dir(root).unwrap();
+}
+
+#[test]
 fn cli_reports_upgraded_profiles_in_warnings_and_reflection() {
     let root = std::env::temp_dir().join(format!("slang-rs-cli-profile-{}", std::process::id()));
     fs::create_dir_all(&root).unwrap();

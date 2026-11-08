@@ -10,6 +10,7 @@ pub fn lower(checked: &CheckedModule) -> Result<Module, Diagnostic> {
         initialization_nodes: std::cell::Cell::new(65536),
     };
     let mut module = Module {
+        matrix_major: checked.matrix_major,
         structures: vec![],
         constant_buffers: vec![],
         globals: vec![],
@@ -92,7 +93,7 @@ pub fn lower(checked: &CheckedModule) -> Result<Module, Diagnostic> {
                         lowerer.variable(&parameter)
                     })
                     .collect::<Result<_, _>>()?,
-                modifiers: target_modifiers(&function.modifiers),
+                modifiers: lowerer.target_modifiers(&function.modifiers, function.span),
                 semantic: function.semantic.clone(),
                 body: function
                     .body
@@ -129,6 +130,8 @@ pub fn lower(checked: &CheckedModule) -> Result<Module, Diagnostic> {
     crate::scope::lower(&mut module);
     crate::uniform::lower(&mut module, checked)?;
     crate::packed_uniform::lower(&mut module)?;
+    crate::matrix_storage::lower(&mut module)?;
+    crate::matrix_resource::lower(&mut module)?;
     Ok(module)
 }
 
@@ -146,15 +149,30 @@ fn error(span: Span) -> Diagnostic {
     )
 }
 
-fn target_modifiers(modifiers: &[String]) -> Vec<String> {
-    modifiers
-        .iter()
-        .filter(|m| !matches!(m.as_str(), "public" | "internal"))
-        .cloned()
-        .collect()
-}
-
 impl Lowerer<'_> {
+    fn target_modifiers(&self, modifiers: &[String], span: Span) -> Vec<String> {
+        let mut result: Vec<_> = modifiers
+            .iter()
+            .filter(|m| {
+                !matches!(
+                    m.as_str(),
+                    "public" | "internal" | "row_major" | "column_major"
+                )
+            })
+            .cloned()
+            .collect();
+        if let Some(major) = self.checked.matrix_layouts.get(&span_key(span)) {
+            result.push(
+                match major {
+                    slang_layout::MatrixMajor::Row => "row_major",
+                    slang_layout::MatrixMajor::Column => "column_major",
+                }
+                .into(),
+            );
+        }
+        result
+    }
+
     fn declaration_type(&self, span: Span) -> Result<Type, Diagnostic> {
         self.checked
             .declaration_types
@@ -168,7 +186,7 @@ impl Lowerer<'_> {
         Ok(Variable {
             name: variable.name.clone(),
             ty: self.declaration_type(variable.span)?,
-            modifiers: target_modifiers(&variable.modifiers),
+            modifiers: self.target_modifiers(&variable.modifiers, variable.span),
             semantic: variable.semantic.clone(),
             binding: self
                 .checked

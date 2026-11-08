@@ -8,6 +8,7 @@ use std::collections::{BTreeMap, BTreeSet};
 #[derive(Clone, Debug, Serialize)]
 pub struct Reflection {
     pub schema_version: u32,
+    pub matrix_major: slang_layout::MatrixMajor,
     pub entry_points: Vec<EntryPointInfo>,
     pub globals: Vec<GlobalInfo>,
     /// Shared constant-buffer binding; absent when there are no global uniform values.
@@ -79,7 +80,8 @@ impl Reflection {
             })
             .collect();
         Self {
-            schema_version: 9,
+            schema_version: 10,
+            matrix_major: module.matrix_major,
             global_uniform_binding: module.global_uniform_binding,
             global_uniform_size: module.global_uniform_size,
             uniform_types: module.uniform_types.clone(),

@@ -25,9 +25,11 @@ pub enum ShaderStage {
 
 #[derive(Clone, Debug)]
 pub struct CheckedModule {
+    pub matrix_major: slang_layout::MatrixMajor,
     pub module: Module,
     pub expression_types: BTreeMap<ExprId, Type>,
     pub declaration_types: BTreeMap<SpanKey, Type>,
+    pub matrix_layouts: BTreeMap<SpanKey, slang_layout::MatrixMajor>,
     pub entry_points: Vec<EntryPoint>,
     pub modules: Vec<ModuleInfo>,
     pub symbols: BTreeMap<String, SymbolOrigin>,
@@ -82,11 +84,13 @@ pub(crate) struct Signature {
 }
 
 pub(crate) struct Checker {
+    pub default_matrix_major: slang_layout::MatrixMajor,
     pub scopes: Vec<BTreeMap<String, Binding>>,
     pub functions: BTreeMap<String, Vec<Signature>>,
     pub structures: BTreeMap<String, BTreeMap<String, Type>>,
     pub expression_types: BTreeMap<ExprId, Type>,
     pub declaration_types: BTreeMap<SpanKey, Type>,
+    pub matrix_layouts: BTreeMap<SpanKey, slang_layout::MatrixMajor>,
     pub diagnostics: Vec<Diagnostic>,
     pub return_type: Type,
     pub loops: usize,
@@ -101,6 +105,7 @@ pub(crate) struct Checker {
     pub global_references: BTreeMap<ExprId, SpanKey>,
     pub aliases: BTreeMap<String, TypeRef>,
     pub alias_types: BTreeMap<String, Type>,
+    pub alias_matrix_layouts: BTreeMap<String, Option<slang_layout::MatrixMajor>>,
     pub resolving_aliases: BTreeSet<String>,
     pub struct_definitions: BTreeMap<String, Struct>,
     pub initializations: BTreeMap<ExprId, crate::Initialization>,
@@ -112,18 +117,31 @@ pub(crate) struct Checker {
 
 pub fn check(mut module: Module) -> Result<CheckedModule, Vec<Diagnostic>> {
     module.apply_legacy_visibility();
-    check_with_metadata(module, vec![], BTreeMap::new())
+    check_with_metadata(
+        module,
+        vec![],
+        BTreeMap::new(),
+        slang_layout::MatrixMajor::Column,
+    )
 }
 
 /// Check a program after imports and lexical module names have been resolved.
 pub fn check_program(program: Program) -> Result<CheckedModule, Vec<Diagnostic>> {
-    check_with_metadata(program.syntax, program.modules, program.symbols)
+    check_program_with_matrix_major(program, slang_layout::MatrixMajor::Column)
+}
+
+pub fn check_program_with_matrix_major(
+    program: Program,
+    major: slang_layout::MatrixMajor,
+) -> Result<CheckedModule, Vec<Diagnostic>> {
+    check_with_metadata(program.syntax, program.modules, program.symbols, major)
 }
 
 fn check_with_metadata(
     module: Module,
     modules: Vec<ModuleInfo>,
     symbols: BTreeMap<String, SymbolOrigin>,
+    default_matrix_major: slang_layout::MatrixMajor,
 ) -> Result<CheckedModule, Vec<Diagnostic>> {
     if let Some(import) = module.imports.first() {
         return Err(vec![Diagnostic::error(
@@ -140,11 +158,13 @@ fn check_with_metadata(
         )]);
     }
     let mut checker = Checker {
+        default_matrix_major,
         scopes: vec![BTreeMap::new()],
         functions: BTreeMap::new(),
         structures: BTreeMap::new(),
         expression_types: BTreeMap::new(),
         declaration_types: BTreeMap::new(),
+        matrix_layouts: BTreeMap::new(),
         diagnostics: vec![],
         return_type: Type::Void,
         loops: 0,
@@ -159,6 +179,7 @@ fn check_with_metadata(
         global_references: BTreeMap::new(),
         aliases: BTreeMap::new(),
         alias_types: BTreeMap::new(),
+        alias_matrix_layouts: BTreeMap::new(),
         resolving_aliases: BTreeSet::new(),
         struct_definitions: BTreeMap::new(),
         initializations: BTreeMap::new(),
@@ -240,11 +261,16 @@ fn check_with_metadata(
             }
             Declaration::Struct(structure) => {
                 for field in &structure.fields {
-                    if field
-                        .modifiers
-                        .iter()
-                        .any(|m| !matches!(m.as_str(), "nointerpolation" | "public" | "internal"))
-                    {
+                    if field.modifiers.iter().any(|m| {
+                        !matches!(
+                            m.as_str(),
+                            "nointerpolation"
+                                | "public"
+                                | "internal"
+                                | "row_major"
+                                | "column_major"
+                        )
+                    }) {
                         checker.error(
                             "T001",
                             field.span,
@@ -252,6 +278,8 @@ fn check_with_metadata(
                         );
                     }
                     checker.check_interpolation(&field.modifiers, field.span);
+                    let ty = checker.declaration_types[&span_key(field.span)].clone();
+                    checker.check_matrix_layout(&ty, &field.ty, &field.modifiers, field.span);
                     checker.check_visibility_modifiers(&field.modifiers, field.span);
                     if field.initializer.is_some() {
                         checker.initializer(field);
@@ -286,9 +314,11 @@ fn check_with_metadata(
             })
             .collect();
         let mut checked = CheckedModule {
+            matrix_major: checker.default_matrix_major,
             module,
             expression_types: checker.expression_types,
             declaration_types: checker.declaration_types,
+            matrix_layouts: checker.matrix_layouts,
             entry_points,
             modules,
             symbols: checker.symbols,
@@ -312,6 +342,53 @@ fn check_with_metadata(
 }
 
 impl Checker {
+    pub(crate) fn reference_matrix_major(
+        &self,
+        reference: &TypeRef,
+    ) -> Option<slang_layout::MatrixMajor> {
+        reference.matrix_major.or_else(|| {
+            self.alias_matrix_layouts
+                .get(&reference.name)
+                .copied()
+                .flatten()
+        })
+    }
+
+    pub(crate) fn check_matrix_layout(
+        &mut self,
+        ty: &Type,
+        reference: &TypeRef,
+        modifiers: &[String],
+        span: Span,
+    ) {
+        let major = modifiers
+            .iter()
+            .rev()
+            .find_map(|m| match m.as_str() {
+                "row_major" => Some(slang_layout::MatrixMajor::Row),
+                "column_major" => Some(slang_layout::MatrixMajor::Column),
+                _ => None,
+            })
+            .or_else(|| self.reference_matrix_major(reference));
+        if let Some(major) = major {
+            self.check_matrix_type(ty, span);
+            self.matrix_layouts.insert(span_key(span), major);
+        }
+    }
+
+    pub(crate) fn check_matrix_type(&mut self, mut ty: &Type, span: Span) {
+        while let Type::Array(element, _) = ty {
+            ty = element;
+        }
+        if !matches!(ty, Type::Matrix(..) | Type::Error) {
+            self.error(
+                "T001",
+                span,
+                "matrix layout modifiers require a matrix or an array of matrices",
+            );
+        }
+    }
+
     pub fn error(&mut self, code: &str, span: Span, message: impl Into<String>) {
         self.diagnostics
             .push(Diagnostic::error(code, span, message));

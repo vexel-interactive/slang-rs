@@ -90,7 +90,7 @@ impl Checker {
         for modifier in &function.modifiers {
             if !matches!(
                 modifier.as_str(),
-                "static" | "inline" | "public" | "internal"
+                "static" | "inline" | "public" | "internal" | "row_major" | "column_major"
             ) {
                 self.error(
                     "T001",
@@ -101,6 +101,12 @@ impl Checker {
         }
         self.check_visibility_modifiers(&function.modifiers, function.span);
         self.return_type = self.resolve_type(&function.return_type);
+        self.check_matrix_layout(
+            &self.return_type.clone(),
+            &function.return_type,
+            &function.modifiers,
+            function.span,
+        );
         self.scopes.push(BTreeMap::new());
         for parameter in &function.parameters {
             self.bind(parameter, VariableScope::Parameter);

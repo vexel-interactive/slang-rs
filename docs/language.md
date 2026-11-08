@@ -56,6 +56,30 @@ elements, and temporary values are not writable. Struct fields named `_m00`
 continue to use ordinary member lookup. See
 [matrix-swizzles.slang](../examples/matrix-swizzles.slang).
 
+## Matrix storage order
+
+`row_major` and `column_major` qualify matrix globals, struct and constant-buffer
+fields, parameters, locals, return types, aliases, and numeric casts. Arrays of
+matrices preserve the element qualifier at every dimension. Applying either
+modifier to a non-matrix type reports `T001`; repeated modifiers select the
+last one, and a declaration qualifier overrides an inherited alias qualifier.
+The modifier affects storage while preserving matrix arithmetic, dimensions,
+indexing, and value overloads.
+
+The compilation default is column-major. Select another default with
+`-matrix-layout-row-major` or `CompileOptions.matrix_major`; explicit source
+qualifiers still take precedence. Structured-buffer matrix elements can also
+be qualified inside their type argument, such as
+`RWStructuredBuffer<column_major float2x3>`. Resource handles with different
+element storage orders remain distinct types. A qualifier matching the default
+resolves to the ordinary resource type.
+
+Matrix arrays loaded from buffers convert by logical element values when their
+order differs from the default. Copies, nested arrays, function arguments, and
+read/write structured-buffer locations are covered by DXC checks. Matrix layout
+template arguments, non-struct constant-buffer elements, native 16-bit storage,
+and layouts for other targets remain unimplemented.
+
 ## Preprocessing
 
 Object and function macros support fixed and variadic parameters, nested calls,
@@ -412,9 +436,9 @@ vector/matrix forms contract the matching dimension. A vector on the left is a
 row vector; a vector on the right is a column vector. `transpose` swaps the
 dimensions and `determinant` requires a square floating-point matrix.
 
-One-dimensional matrix aliases, generic `matrix<T,R,C>` syntax, matrix member
-swizzles, and explicit matrix storage-layout options remain unimplemented.
-Row/column vector algebra does not itself define buffer storage layout.
+Matrix dimensions one through four, numeric type applications, component
+selectors, and explicit storage qualifiers use the same logical row/column
+algebra. Buffer storage follows the selected matrix layout.
 
 ## Resource operations
 

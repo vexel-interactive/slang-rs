@@ -89,6 +89,7 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "slang-ir",
+ "slang-layout",
  "slang-sema",
  "slang-source",
 ]

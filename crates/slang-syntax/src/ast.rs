@@ -66,6 +66,9 @@ pub enum Declaration {
 pub struct TypeRef {
     pub name: String,
     pub arguments: Vec<TypeArgument>,
+    /// Storage qualification; numeric value types retain their algebraic shape.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub matrix_major: Option<slang_layout::MatrixMajor>,
     /// Array dimensions from outermost to innermost.
     pub arrays: Vec<u32>,
     pub span: Span,

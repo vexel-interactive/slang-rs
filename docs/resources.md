@@ -49,7 +49,7 @@ also accepts these source declarations with a warning.
 
 ## Reflection
 
-Reflection schema version 9 includes the allocated binding on each global shader resource:
+Reflection schema version 10 includes the allocated binding on each global shader resource:
 
 ```json
 {
@@ -152,9 +152,18 @@ use eight, and vectors align to their components. A value that would cross a
 occupy its remaining tail space. `size` is the occupied extent, so host buffer
 allocation must apply the alignment required by the graphics API.
 
-Matrices use column-major storage, fixed by an emitted HLSL pragma.
-`matrix_stride` is the byte distance between columns. A single-column matrix
-packs like a vector in legacy DXC. Native `half` values use four-byte storage
+Matrices default to column-major storage. `row_major` and `column_major`
+qualify matrix declarations and arrays of matrices; aliases preserve their
+qualifier. `-matrix-layout-row-major` and `-matrix-layout-column-major` select
+the compilation default, also available as `CompileOptions.matrix_major`.
+The emitter records that default with an HLSL pragma. `matrix_major` reports
+the selected order for each matrix layout, and `matrix_stride` is the byte
+distance between stored rows or columns. Row-major layouts use distinct
+keys such as `row_major float2x3` in the shared type table.
+
+A single-column column-major matrix packs like a vector in legacy DXC.
+Single-row row-major matrices still start on a 16-byte boundary; a following
+scalar can reuse the last row's tail space. Native `half` values use four-byte storage
 because the current HLSL pipeline does not enable native 16-bit types. Slang
 2026.21's reflection instead reports two-byte half components and 16-byte
 alignment for single-column matrices; those cases are checked against DXC's
@@ -163,10 +172,20 @@ actual native buffer definitions rather than claimed as upstream layout parity.
 Offsets, sizes, and strides use checked 64-bit arithmetic. Overflow reports
 `I002` at the global declaration without expanding array elements. Referenced
 types are visited and cached once. Mixed resource-valued aggregate layouts,
-16-bit storage, explicit row-major selection, other buffer packing modes, and
+16-bit storage, other buffer packing modes, and
 target buffer-size limit validation remain absent. Mixed resource aggregates
 omit shared-buffer byte metadata until their layout model is implemented.
 See [uniform-layout.slang](../examples/uniform-layout.slang) for a complete example.
+
+Matrix arrays with a storage order different from the compilation default are
+loaded as logical values before aggregate copies or function arguments. Constant
+buffers use flattened matrix declarations; structured-buffer loads reconstruct
+the values from their components. Dynamic indices are evaluated once, and writable
+locations remain available for assignments, output parameters, and atomics.
+Materialization is bounded to 65,536 generated nodes and reports `I004` if it
+exceeds that limit. Explicit matrix element types such as
+`StructuredBuffer<row_major float2x3>` use a generated storage struct in HLSL;
+source reflection retains the resource's matrix type.
 
 Direct `cbuffer` fields and ordinary struct fields accept `: packoffset(c2.y)`. Register indices count
 16-byte slots; `x`, `y`, `z`, and `w` select byte offsets 0, 4, 8, and 12.

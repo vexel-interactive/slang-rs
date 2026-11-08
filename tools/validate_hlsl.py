@@ -28,6 +28,10 @@ def main():
         ]
         if profile := case.get("compile_profile"):
             command.extend(["-profile", profile])
+        if major := case.get("matrix_major"):
+            if major not in {"row", "column"}:
+                raise ValueError(f"invalid matrix_major: {major}")
+            command.append(f"-matrix-layout-{major}-major")
         compilation = run(command)
         validation = None
         entry = None

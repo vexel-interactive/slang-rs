@@ -171,7 +171,14 @@ impl Parser {
         while self.tokens.get(i).is_some_and(|t| {
             matches!(
                 t.text.as_str(),
-                "const" | "static" | "uniform" | "groupshared" | "precise" | "nointerpolation"
+                "const"
+                    | "static"
+                    | "uniform"
+                    | "groupshared"
+                    | "precise"
+                    | "nointerpolation"
+                    | "row_major"
+                    | "column_major"
             )
         }) {
             i += 1;

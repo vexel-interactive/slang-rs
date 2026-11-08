@@ -18,6 +18,7 @@ subsystem is absent. No subsystem currently claims complete upstream parity.
 | Numeric type applications | slang-syntax, slang-sema | Partial | Vector/matrix dimensions 1-4, literal shape arguments, core defaults, constructors, nested resource arguments; expression dimensions and layout arguments absent |
 | Explicit numeric casts | slang-syntax, slang-sema, slang-ir | Partial | Scalar splats, same-width vectors, matrix component conversions and truncation, boolean conversions; standalone alias and aggregate cast syntax absent |
 | Matrix component selectors | slang-sema, slang-codegen | Partial | Zero/one-based scalar and vector selections, checked bounds, distinct writable components, resource and atomic locations across dimensions 1-4 |
+| Matrix storage order | slang-syntax, slang-sema, slang-ir, slang-layout | Partial | Row/column qualifiers, aliases, casts, resource elements, API/CLI defaults, legacy uniform reflection, logical matrix-array loads; layout template arguments and other target rules absent |
 | Aggregate initialization | slang-syntax, slang-sema, slang-ir | Partial | Struct and fixed-array constructors, copies, defaults, contextual brace lists, nested/flat arrays, numeric padding/splats; user constructors and full generic inference absent |
 | Core module | slang-sema | Partial | Small built-in signature set |
 | Bit reinterpretation | slang-sema, slang-ir | Partial | 32-bit scalar/vector/matrix conversions, bool/half promotions, scalar double splitting, scalar/double2 packing; 16/64-bit integer variants absent |

@@ -1,6 +1,14 @@
 use serde::Serialize;
 use std::fmt;
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MatrixMajor {
+    #[default]
+    Column,
+    Row,
+}
+
 /// Legacy HLSL constant-buffer layout, with unrounded occupied byte sizes.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct UniformTypeLayout {
@@ -10,6 +18,8 @@ pub struct UniformTypeLayout {
     pub array_stride: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub matrix_stride: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub matrix_major: Option<MatrixMajor>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub element_type: Option<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
@@ -63,14 +73,36 @@ impl UniformTypeLayout {
 
     /// Column-major matrices; a single column packs as a vector in legacy DXC.
     pub fn matrix(component_bytes: u32, rows: u8, columns: u8) -> Result<Self, UniformLayoutError> {
-        if !(1..=4).contains(&columns) {
+        Self::matrix_with_major(component_bytes, rows, columns, MatrixMajor::Column)
+    }
+
+    pub fn matrix_with_major(
+        component_bytes: u32,
+        rows: u8,
+        columns: u8,
+        major: MatrixMajor,
+    ) -> Result<Self, UniformLayoutError> {
+        if !(1..=4).contains(&columns) || !(1..=4).contains(&rows) {
             return Err(UniformLayoutError::InvalidShape);
         }
-        let column = Self::numeric(component_bytes, rows)?;
-        let stride = align(column.size, 16)?;
-        let size = stride * u64::from(columns - 1) + column.size;
-        let mut layout = Self::value(size, if columns == 1 { component_bytes } else { 16 });
+        let (width, count) = if major == MatrixMajor::Row {
+            (columns, rows)
+        } else {
+            (rows, columns)
+        };
+        let vector = Self::numeric(component_bytes, width)?;
+        let stride = align(vector.size, 16)?;
+        let size = stride * u64::from(count - 1) + vector.size;
+        // DXC collapses single-column column-major matrices to vectors, but
+        // keeps single-row row-major matrices aligned to a whole register.
+        let alignment = if major == MatrixMajor::Column && count == 1 {
+            component_bytes
+        } else {
+            16
+        };
+        let mut layout = Self::value(size, alignment);
         layout.matrix_stride = Some(stride);
+        layout.matrix_major = Some(major);
         Ok(layout)
     }
 
@@ -98,6 +130,7 @@ impl UniformTypeLayout {
             alignment,
             array_stride: None,
             matrix_stride: None,
+            matrix_major: None,
             element_type: None,
             fields: vec![],
         }

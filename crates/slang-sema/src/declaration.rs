@@ -60,6 +60,12 @@ impl Checker {
                 Type::Buffer {
                     element: Box::new(element),
                     writable: reference.name.starts_with("RW"),
+                    matrix_major: match &reference.arguments[0] {
+                        TypeArgument::Type(element) => self
+                            .reference_matrix_major(element)
+                            .filter(|major| *major != self.default_matrix_major),
+                        _ => None,
+                    },
                 }
             }
         } else if Type::texture(&reference.name, Type::Error).is_some() {
@@ -139,6 +145,9 @@ impl Checker {
                 return Type::Error;
             }
             ty = Type::Array(Box::new(ty), *size);
+        }
+        if reference.matrix_major.is_some() {
+            self.check_matrix_type(&ty, reference.span);
         }
         ty
     }
@@ -406,6 +415,7 @@ impl Checker {
             self.error("T003", variable.span, "variable name conflicts with a type");
         }
         let ty = self.resolve_type(&variable.ty);
+        self.check_matrix_layout(&ty, &variable.ty, &variable.modifiers, variable.span);
         if let Some(pack) = variable.pack_offset
             && (!matches!(context, VariableScope::Global)
                 || !variable.modifiers.iter().any(|m| m == "static"))
@@ -429,13 +439,29 @@ impl Checker {
             let valid = match context {
                 VariableScope::Global => matches!(
                     modifier.as_str(),
-                    "const" | "static" | "uniform" | "groupshared" | "public" | "internal"
+                    "const"
+                        | "static"
+                        | "uniform"
+                        | "groupshared"
+                        | "public"
+                        | "internal"
+                        | "row_major"
+                        | "column_major"
                 ),
-                VariableScope::Local => matches!(modifier.as_str(), "const" | "static"),
+                VariableScope::Local => matches!(
+                    modifier.as_str(),
+                    "const" | "static" | "row_major" | "column_major"
+                ),
                 VariableScope::Parameter => {
                     matches!(
                         modifier.as_str(),
-                        "const" | "in" | "out" | "inout" | "nointerpolation"
+                        "const"
+                            | "in"
+                            | "out"
+                            | "inout"
+                            | "nointerpolation"
+                            | "row_major"
+                            | "column_major"
                     )
                 }
             };

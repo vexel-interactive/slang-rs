@@ -3377,6 +3377,299 @@
           "offsets": {}
         }
       }
+    },
+    {
+      "file": "positive/matrix-layout-major.slang",
+      "accept": true,
+      "entry": "main",
+      "uniform_layouts": {
+        "parameters": {
+          "offset": 0,
+          "size": 176
+        },
+        "parameters.row": {
+          "offset": 0,
+          "size": 28
+        },
+        "parameters.column": {
+          "offset": 32,
+          "size": 40
+        },
+        "parameters.overridden": {
+          "offset": 80,
+          "size": 28
+        },
+        "parameters.values": {
+          "offset": 112,
+          "size": 60
+        },
+        "parameters.values[]": {
+          "offset": 112,
+          "size": 28
+        },
+        "parameters.tail": {
+          "offset": 172,
+          "size": 4
+        },
+        "globals": {
+          "offset": 0,
+          "size": 60
+        },
+        "globals[]": {
+          "offset": 0,
+          "size": 28
+        }
+      },
+      "rust_dxc_layouts": {
+        "parameters": {
+          "size": 176,
+          "offsets": {
+            "_slang__slang_uniform_view_0": 0,
+            "_slang__slang_uniform_view_1": 32,
+            "_slang__slang_uniform_view_2": 80,
+            "_slang__slang_uniform_view_3": 112,
+            "_slang__slang_uniform_view_4": 144,
+            "_slang__slang_uniform_view_5": 172
+          }
+        },
+        "_slang_globals": {
+          "size": 60,
+          "offsets": {
+            "_slang__slang_uniform_view_6": 0,
+            "_slang__slang_uniform_view_7": 32
+          }
+        }
+      }
+    },
+    {
+      "file": "positive/matrix-layout-packed.slang",
+      "accept": true,
+      "entry": "main",
+      "uniform_layouts": {
+        "parameters": {
+          "offset": 0,
+          "size": 108
+        },
+        "parameters.matrix": {
+          "offset": 32,
+          "size": 28
+        },
+        "parameters.column": {
+          "offset": 64,
+          "size": 40
+        },
+        "parameters.tail": {
+          "offset": 104,
+          "size": 4
+        }
+      },
+      "rust_dxc_layouts": {
+        "parameters": {
+          "size": 108,
+          "offsets": {
+            "_slang__slang_uniform_view_0": 32,
+            "_slang__slang_uniform_view_1": 64,
+            "_slang__slang_uniform_view_2": 104
+          }
+        }
+      },
+      "oracle_dxc_layouts": {
+        "parameters_0": {
+          "size": 108,
+          "offsets": {
+            "matrix_0": 32,
+            "column_0": 64,
+            "tail_0": 104
+          }
+        }
+      }
+    },
+    {
+      "file": "positive/matrix-layout-default.slang",
+      "accept": true,
+      "entry": "main",
+      "matrix_major": "row",
+      "uniform_layouts": {
+        "parameters": {
+          "offset": 0,
+          "size": 112
+        },
+        "data": {
+          "offset": 0,
+          "size": 28
+        },
+        "parameters.implicit": {
+          "offset": 0,
+          "size": 28
+        },
+        "parameters.column": {
+          "offset": 32,
+          "size": 40
+        },
+        "parameters.row": {
+          "offset": 80,
+          "size": 28
+        },
+        "parameters.tail": {
+          "offset": 108,
+          "size": 4
+        }
+      },
+      "rust_dxc_layouts": {
+        "parameters": {
+          "size": 112,
+          "offsets": {
+            "implicit": 0,
+            "column": 32,
+            "row": 80,
+            "tail": 108
+          }
+        },
+        "_slang_globals": {
+          "size": 28,
+          "offsets": {
+            "data": 0
+          }
+        }
+      },
+      "oracle_dxc_layouts": {
+        "parameters_0": {
+          "size": 112,
+          "offsets": {
+            "implicit_0": 0,
+            "column_0": 32,
+            "row_0": 80,
+            "tail_0": 108
+          }
+        },
+        "globalParams_0": {
+          "size": 28,
+          "offsets": {
+            "data_1": 0
+          }
+        }
+      }
+    },
+    {
+      "file": "positive/matrix-layout-default.slang",
+      "accept": true,
+      "entry": "main",
+      "matrix_major": "column",
+      "uniform_layouts": {
+        "parameters": {
+          "offset": 0,
+          "size": 128
+        },
+        "data": {
+          "offset": 0,
+          "size": 40
+        },
+        "parameters.implicit": {
+          "offset": 0,
+          "size": 40
+        },
+        "parameters.column": {
+          "offset": 48,
+          "size": 40
+        },
+        "parameters.row": {
+          "offset": 96,
+          "size": 28
+        },
+        "parameters.tail": {
+          "offset": 124,
+          "size": 4
+        }
+      },
+      "rust_dxc_layouts": {
+        "parameters": {
+          "size": 128,
+          "offsets": {
+            "implicit": 0,
+            "column": 48,
+            "row": 96,
+            "tail": 124
+          }
+        },
+        "_slang_globals": {
+          "size": 40,
+          "offsets": {
+            "data": 0
+          }
+        }
+      },
+      "oracle_dxc_layouts": {
+        "parameters_0": {
+          "size": 128,
+          "offsets": {
+            "implicit_0": 0,
+            "column_0": 48,
+            "row_0": 96,
+            "tail_0": 124
+          }
+        },
+        "globalParams_0": {
+          "size": 40,
+          "offsets": {
+            "data_1": 0
+          }
+        }
+      }
+    },
+    {
+      "file": "negative/matrix-layout-nonmatrix.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T001",
+      "oracle_stderr_contains": [
+        "E39026"
+      ]
+    },
+    {
+      "file": "negative/matrix-layout-alias-nonmatrix.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T001",
+      "oracle_stderr_contains": [
+        "E39026"
+      ]
+    },
+    {
+      "file": "negative/matrix-layout-return-nonmatrix.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T001",
+      "oracle_stderr_contains": [
+        "E39026"
+      ]
+    },
+    {
+      "file": "positive/matrix-layout-resource-arrays.slang",
+      "accept": true,
+      "entry": "main",
+      "matrix_major": "row"
+    },
+    {
+      "file": "positive/matrix-layout-resource-elements.slang",
+      "accept": true,
+      "entry": "main",
+      "matrix_major": "row",
+      "oracle_validation_accept": false,
+      "reason": "Slang 2026.21 emits inconsistent numeric matrix storage wrappers for qualified StructuredBuffer elements: row-major mode fails on Load subscripting, and column-major mode emits an incompatible resource parameter. Both frontends accept this source, and DXC validates the native output while rejecting the upstream artifact."
+    },
+    {
+      "file": "positive/matrix-layout-resource-arrays.slang",
+      "accept": true,
+      "entry": "main",
+      "matrix_major": "column"
+    },
+    {
+      "file": "positive/matrix-layout-resource-elements.slang",
+      "accept": true,
+      "entry": "main",
+      "matrix_major": "column",
+      "oracle_validation_accept": false,
+      "reason": "Slang 2026.21 emits inconsistent numeric matrix storage wrappers for qualified StructuredBuffer elements: row-major mode fails on Load subscripting, and column-major mode emits an incompatible resource parameter. Both frontends accept this source, and DXC validates the native output while rejecting the upstream artifact."
     }
   ]
 }

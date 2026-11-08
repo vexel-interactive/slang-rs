@@ -6,11 +6,17 @@ use slang_sema::Type;
 use slang_source::{Diagnostic, Span};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
-/// HLSL permits packoffset on direct buffer fields, so reconstruct packed values
-/// from flattened declarations instead of attaching annotations to HLSL structs.
+/// Reconstruct values whose source storage cannot be copied directly by DXC:
+/// packed structures and matrix arrays with a different default storage order.
 pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
-    let packed = packed_structures(&module.structures);
-    if packed.is_empty() {
+    let default_major = module.matrix_major;
+    let packed = packed_structures(&module.structures, default_major);
+    if packed.is_empty()
+        && !module
+            .globals
+            .iter()
+            .any(|g| field_matrix_view(g, default_major))
+    {
         return Ok(());
     }
     let direct: BTreeSet<_> = module
@@ -31,6 +37,7 @@ pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
             .collect(),
         layouts: &module.uniform_types,
         packed: &packed,
+        default_major,
         prefix,
         next: 0,
         remaining: 65536,
@@ -38,7 +45,11 @@ pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
     let mut resource_indices = vec![];
     let mut shared_views = vec![];
     for buffer in &mut module.constant_buffers {
-        if !buffer.fields.iter().any(|f| contains(&f.ty, &packed)) {
+        if !buffer
+            .fields
+            .iter()
+            .any(|f| contains(&f.ty, &packed) || field_matrix_view(f, default_major))
+        {
             continue;
         }
         let global = module
@@ -53,9 +64,14 @@ pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
         let offsets = &module.uniform_types[&layout.type_name].fields;
         let mut fields = vec![];
         for (field, offset) in buffer.fields.iter().zip(offsets) {
-            if contains(&field.ty, &packed) {
-                let initializer =
-                    builder.value(&field.ty, offset.offset, field.span, &mut fields)?;
+            if requires_view(&field.ty, &offset.type_name, &packed, default_major) {
+                let initializer = builder.value(
+                    &field.ty,
+                    &offset.type_name,
+                    offset.offset,
+                    field.span,
+                    &mut fields,
+                )?;
                 buffer.views.push(view(field, initializer));
             } else {
                 let mut field = field.clone();
@@ -72,7 +88,8 @@ pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
         match &global.ty {
             Type::ConstantBuffer(element) if contains(element, &packed) => {
                 let mut fields = vec![];
-                let initializer = builder.value(element, 0, global.span, &mut fields)?;
+                let initializer =
+                    builder.value(element, &element.to_string(), 0, global.span, &mut fields)?;
                 let mut value = view(global, initializer);
                 value.ty = *element.clone();
                 module.constant_buffers.push(ConstantBuffer {
@@ -99,10 +116,10 @@ pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
         .filter(|(_, g)| g.is_global_uniform())
         .map(|(i, _)| i)
         .collect();
-    if uniforms
-        .iter()
-        .any(|&i| contains(&module.globals[i].ty, &packed))
-    {
+    if uniforms.iter().any(|&i| {
+        contains(&module.globals[i].ty, &packed)
+            || field_matrix_view(&module.globals[i], default_major)
+    }) {
         let mut fields = vec![];
         for &index in &uniforms {
             let global = &module.globals[index];
@@ -111,8 +128,19 @@ pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
                 .as_ref()
                 .ok_or_else(|| error(global.span, "packed uniform has no data layout"))?
                 .offset;
-            if contains(&global.ty, &packed) {
-                let initializer = builder.value(&global.ty, offset, global.span, &mut fields)?;
+            if requires_view(
+                &global.ty,
+                &global.uniform_layout.as_ref().unwrap().type_name,
+                &packed,
+                default_major,
+            ) {
+                let initializer = builder.value(
+                    &global.ty,
+                    &global.uniform_layout.as_ref().unwrap().type_name,
+                    offset,
+                    global.span,
+                    &mut fields,
+                )?;
                 module.globals[index] = view(global, initializer);
                 shared_views.push(module.globals[index].clone());
             } else {
@@ -170,12 +198,19 @@ pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
     converter.module(module)
 }
 
-fn packed_structures(structures: &[Struct]) -> BTreeSet<String> {
+fn packed_structures(
+    structures: &[Struct],
+    default_major: slang_layout::MatrixMajor,
+) -> BTreeSet<String> {
     let mut reverse: BTreeMap<String, Vec<String>> = BTreeMap::new();
     let mut packed = BTreeSet::new();
     let mut queue = VecDeque::new();
     for structure in structures {
-        if structure.fields.iter().any(|f| f.pack_offset.is_some()) {
+        if structure
+            .fields
+            .iter()
+            .any(|f| f.pack_offset.is_some() || field_matrix_view(f, default_major))
+        {
             packed.insert(structure.name.clone());
             queue.push_back(structure.name.clone());
         }
@@ -211,6 +246,44 @@ fn contains(mut ty: &Type, packed: &BTreeSet<String>) -> bool {
     matches!(ty, Type::Struct(name) if packed.contains(name))
 }
 
+fn matrix_array(mut ty: &Type) -> bool {
+    if !matches!(ty, Type::Array(..)) {
+        return false;
+    }
+    while let Type::Array(element, _) = ty {
+        ty = element;
+    }
+    matches!(ty, Type::Matrix(..))
+}
+
+fn field_matrix_view(field: &Variable, default_major: slang_layout::MatrixMajor) -> bool {
+    let major = field
+        .modifiers
+        .iter()
+        .rev()
+        .find_map(|m| match m.as_str() {
+            "row_major" => Some(slang_layout::MatrixMajor::Row),
+            "column_major" => Some(slang_layout::MatrixMajor::Column),
+            _ => None,
+        })
+        .unwrap_or(default_major);
+    matrix_array(&field.ty) && major != default_major
+}
+
+fn requires_view(
+    ty: &Type,
+    layout_name: &str,
+    packed: &BTreeSet<String>,
+    default_major: slang_layout::MatrixMajor,
+) -> bool {
+    let major = if layout_name.starts_with("row_major ") {
+        slang_layout::MatrixMajor::Row
+    } else {
+        slang_layout::MatrixMajor::Column
+    };
+    contains(ty, packed) || (matrix_array(ty) && major != default_major)
+}
+
 fn packed_handle(mut ty: &Type, packed: &BTreeSet<String>) -> bool {
     while let Type::Array(element, _) = ty {
         ty = element;
@@ -232,6 +305,7 @@ struct Builder<'a> {
     structures: BTreeMap<String, Struct>,
     layouts: &'a BTreeMap<String, slang_layout::UniformTypeLayout>,
     packed: &'a BTreeSet<String>,
+    default_major: slang_layout::MatrixMajor,
     prefix: String,
     next: usize,
     remaining: usize,
@@ -328,6 +402,7 @@ impl Builder<'_> {
     fn value(
         &mut self,
         ty: &Type,
+        layout_name: &str,
         offset: u64,
         span: Span,
         fields: &mut Vec<Variable>,
@@ -338,12 +413,12 @@ impl Builder<'_> {
             .ok_or_else(|| error(span, "packed uniform expansion limit exceeded"))?;
         let layout = self
             .layouts
-            .get(&ty.to_string())
+            .get(layout_name)
             .ok_or_else(|| error(span, "packed uniform has no value layout"))?
             .clone();
         let kind = if layout.size == 0 {
             ExprKind::Zero
-        } else if contains(ty, self.packed) {
+        } else if requires_view(ty, layout_name, self.packed, self.default_major) {
             match ty {
                 Type::Struct(name) => {
                     let structure = self.structures[name].clone();
@@ -352,7 +427,13 @@ impl Builder<'_> {
                         let at = offset
                             .checked_add(location.offset)
                             .ok_or_else(|| error(span, "packed uniform offset overflow"))?;
-                        values.push(self.value(&field.ty, at, span, fields)?);
+                        values.push(self.value(
+                            &field.ty,
+                            &location.type_name,
+                            at,
+                            span,
+                            fields,
+                        )?);
                     }
                     ExprKind::Construct(values)
                 }
@@ -367,7 +448,13 @@ impl Builder<'_> {
                             .checked_mul(u64::from(i))
                             .and_then(|at| offset.checked_add(at))
                             .ok_or_else(|| error(span, "packed uniform offset overflow"))?;
-                        values.push(self.value(element, at, span, fields)?);
+                        values.push(self.value(
+                            element,
+                            layout.element_type.as_ref().unwrap(),
+                            at,
+                            span,
+                            fields,
+                        )?);
                     }
                     ExprKind::Construct(values)
                 }
@@ -379,7 +466,11 @@ impl Builder<'_> {
             fields.push(Variable {
                 name: name.clone(),
                 ty: ty.clone(),
-                modifiers: vec![],
+                modifiers: match layout.matrix_major {
+                    Some(slang_layout::MatrixMajor::Row) => vec!["row_major".into()],
+                    Some(slang_layout::MatrixMajor::Column) => vec!["column_major".into()],
+                    None => vec![],
+                },
                 semantic: None,
                 binding: None,
                 uniform_layout: None,

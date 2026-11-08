@@ -76,8 +76,10 @@ impl Parser {
                 name: variable_name,
                 ty: TypeRef {
                     name: "ConstantBuffer".into(),
+                    matrix_major: None,
                     arguments: vec![TypeArgument::Type(TypeRef {
                         name: element_type,
+                        matrix_major: None,
                         arguments: vec![],
                         arrays: vec![],
                         span,

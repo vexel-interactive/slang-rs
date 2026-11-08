@@ -11,6 +11,7 @@ authors.workspace = true
 slang-source.workspace = true
 slang-sema.workspace = true
 slang-ir.workspace = true
+slang-layout.workspace = true
 serde.workspace = true
 
 [lints]

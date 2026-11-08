@@ -11,6 +11,7 @@ use std::{
 #[derive(Clone, Debug, Default)]
 pub struct CompileOptions {
     pub target: Target,
+    pub matrix_major: slang_layout::MatrixMajor,
     pub entry_point: Option<String>,
     pub profile: Option<crate::ShaderProfile>,
     pub defines: BTreeMap<String, String>,
@@ -73,10 +74,11 @@ pub fn compile_source(
         sources: sources.clone(),
     })?;
     let mut warnings = program.diagnostics.clone();
-    let checked = slang_sema::check_program(program).map_err(|diagnostics| CompileError {
-        diagnostics,
-        sources: sources.clone(),
-    })?;
+    let checked = slang_sema::check_program_with_matrix_major(program, options.matrix_major)
+        .map_err(|diagnostics| CompileError {
+            diagnostics,
+            sources: sources.clone(),
+        })?;
     warnings.extend(checked.diagnostics.iter().cloned());
     if let Some(entry) = &options.entry_point
         && !checked.entry_points.iter().any(|e| &e.name == entry)

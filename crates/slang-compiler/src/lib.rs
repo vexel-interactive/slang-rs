@@ -17,6 +17,7 @@ pub use include::{FileIncludes, MemoryIncludes};
 pub use profile::ShaderProfile;
 pub use reflection::{EntryPointInfo, GlobalInfo, Reflection};
 pub use slang_codegen::Target;
+pub use slang_layout::MatrixMajor;
 pub use slang_layout::{RegisterBinding, RegisterClass, ResourceBinding};
 pub use slang_layout::{UniformFieldLayout, UniformTypeLayout, UniformVariableLayout};
 pub use slang_preprocessor::IncludeResolver;

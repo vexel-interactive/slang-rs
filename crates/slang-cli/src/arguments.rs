@@ -8,6 +8,8 @@ Usage: slangc-rs <file.slang> [options]
   -target <name>       Output target (hlsl implemented)
   -entry <name>        Require a shader entry point
   -profile <profile>   HLSL shader model 6 profile (cs_6_N, vs_6_N, ps_6_N)
+  -matrix-layout-row-major     Default matrix storage by rows
+  -matrix-layout-column-major  Default matrix storage by columns (default)
   -o <path>            Write output atomically (default: stdout)
   -I <directory>       Add include search path (also -Idirectory)
   -D <NAME[=value]>    Define macro (also -DNAME=value)
@@ -84,6 +86,12 @@ impl Arguments {
                     );
                 }
                 Some("--check") => options.check_only = true,
+                Some("-matrix-layout-row-major") => {
+                    options.matrix_major = slang_compiler::MatrixMajor::Row
+                }
+                Some("-matrix-layout-column-major") => {
+                    options.matrix_major = slang_compiler::MatrixMajor::Column
+                }
                 Some("--dump-ir") => {
                     dump_ir = true;
                     options.check_only = true;
@@ -163,6 +171,29 @@ mod tests {
     fn args(values: &[&str]) -> Result<Action, String> {
         Arguments::parse(values.iter().map(OsString::from))
     }
+    #[test]
+    fn matrix_layout_options_use_the_last_requested_default() {
+        for (values, major) in [
+            (
+                &["a.slang", "-matrix-layout-row-major"][..],
+                slang_compiler::MatrixMajor::Row,
+            ),
+            (
+                &[
+                    "a.slang",
+                    "-matrix-layout-row-major",
+                    "-matrix-layout-column-major",
+                ][..],
+                slang_compiler::MatrixMajor::Column,
+            ),
+        ] {
+            let Ok(Action::Compile(a)) = args(values) else {
+                panic!()
+            };
+            assert_eq!(a.options.matrix_major, major);
+        }
+    }
+
     #[test]
     fn options_and_invalid_combinations() {
         assert!(matches!(args(&["--help"]), Ok(Action::Help)));
