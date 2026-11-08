@@ -198,15 +198,24 @@ impl Parser {
             i = end;
         }
         while self.tokens.get(i).is_some_and(|t| t.is("[")) {
-            if !self
-                .tokens
-                .get(i + 1)
-                .is_some_and(|t| t.kind == TokenKind::Integer)
-                || !self.tokens.get(i + 2).is_some_and(|t| t.is("]"))
-            {
+            let mut depth = 1;
+            i += 1;
+            while let Some(token) = self.tokens.get(i) {
+                if token.is("[") {
+                    depth += 1;
+                } else if token.is("]") {
+                    depth -= 1;
+                } else if token.is(";") || token.is("{") || token.is("}") {
+                    return false;
+                }
+                i += 1;
+                if depth == 0 {
+                    break;
+                }
+            }
+            if depth != 0 {
                 return false;
             }
-            i += 3;
         }
         self.tokens
             .get(i)

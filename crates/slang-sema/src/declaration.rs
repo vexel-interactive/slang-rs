@@ -24,7 +24,7 @@ impl Checker {
                         _ => None,
                     };
                     let element = self.type_argument(element);
-                    if element.is_resource() {
+                    if element.is_resource() && !self.is_empty_type(&element) {
                         self.error(
                             "T002",
                             reference.span,
@@ -153,7 +153,18 @@ impl Checker {
                 self.error("T002", reference.span, "array type nesting limit exceeded");
                 return Type::Error;
             }
-            ty = Type::Array(Box::new(ty), *size);
+            let Some(size) = self
+                .numeric_shape_value(size)
+                .and_then(|value| u32::try_from(value).ok())
+            else {
+                self.error(
+                    "T002",
+                    size.span,
+                    "array size must be a nonnegative constant integer",
+                );
+                return Type::Error;
+            };
+            ty = Type::Array(Box::new(ty), size);
         }
         if reference.matrix_major.is_some() {
             self.check_matrix_type(&ty, reference.span);
@@ -315,7 +326,7 @@ impl Checker {
                         );
                     }
                     let result = self.resolve_type(&function.return_type);
-                    if matches!(result, Type::Array(..)) {
+                    if matches!(result, Type::Array(..)) && !result.is_empty_array() {
                         self.error(
                             "T001",
                             function.span,

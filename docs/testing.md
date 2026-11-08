@@ -34,6 +34,14 @@ invalid copies, excess inner values, output arguments, and generic inference.
 Array constructor tests cover direct and aliased types, dimension order, exact
 copies, struct defaults, flat/nested arguments, imported types, and invalid sizes.
 Generated HLSL for direct constructors and imported arrays is checked with DXC.
+Array dimension tests include computed declarations and constructors, forward
+and imported constants, lexical shadowing, scalar conversions, cycles, and
+runtime rejection. Empty-array regressions check distinct overloads, copies,
+defaults, returns, nested dimensions, empty resources and packed buffers,
+neighboring uniform offsets, and range overflow avoided by zero dimensions.
+DXC verifies the physical buffer extents and offsets independently of source
+reflection. Native fixtures also exercise dynamic empty numeric locations and
+output arguments; undefined resource indexing reports a bounded diagnostic.
 Value-type tests include shared graphs with 128 levels, cached depth limits,
 array-mediated cycles, and source-located diagnostics. The Windows debug CLI
 also checks a deep shared graph whose first declaration is its outermost type.

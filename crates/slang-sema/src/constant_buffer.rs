@@ -45,6 +45,7 @@ impl Checker {
             Type::Void | Type::Scalar(_) | Type::Vector(..) | Type::Matrix(..) | Type::Error => {
                 true
             }
+            Type::Array(_, 0) => true,
             Type::Array(element, _) => self.data_type(element, path, cache),
             Type::Struct(name) => {
                 if path.len() >= 128 || !path.insert(name.clone()) {

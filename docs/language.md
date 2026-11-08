@@ -88,7 +88,7 @@ resolves to the ordinary resource type.
 Matrix arrays loaded from buffers convert by logical element values when their
 order differs from the default. Copies, nested arrays, function arguments, and
 read/write structured-buffer locations are covered by DXC checks. Matrix layout
-template arguments, non-struct constant-buffer elements, native 16-bit storage,
+template arguments, native 16-bit storage,
 and layouts for other targets remain unimplemented.
 
 ## Preprocessing
@@ -167,7 +167,7 @@ signed/unsigned evaluation rules are not implemented.
 - Scalar names `int32_t`, `uint32_t`, `float32_t`, and `float64_t` resolve to the
   corresponding native scalar types.
 - Matrix aliases such as `float2x3`, with 1-4 rows and 1-4 columns.
-- Fixed arrays with positive decimal literal dimensions, including nested arrays.
+- Fixed arrays with nonnegative constant dimensions, including nested and empty arrays.
 - Global `typedef` and nongeneric `typealias` declarations.
 - `StructuredBuffer<T>` and `RWStructuredBuffer<T>` with indexed element access.
 - `ConstantBuffer<T>` with scalar, vector, matrix, fixed-array, struct, or void elements and read-only value access.
@@ -263,9 +263,16 @@ Leading array suffixes wrap the type in source order:
 The same distinction applies to variable declarations. Reflection uses
 outer-to-inner dimensions and HLSL preserves that order in declarations.
 
-Arrays can appear as variables, struct fields, and parameters. Unsized arrays,
-symbolic sizes, array return types,
-and array elements inside resource types are not implemented. Alias chains and
+Array dimensions use the same scalar constant evaluation as numeric type
+applications. Declarations and constructors accept forward global constants,
+lexical local constants, arithmetic, bit operations, comparisons, booleans, and
+floating literals. For example, `float values[Count + 1]` and
+`float[6 >> 1](1, 2, 3)` resolve their dimensions before checking initialization.
+Negative or runtime dimensions report `T002`; dependency cycles report `T026`.
+
+Arrays can appear as variables, struct fields, parameters, and constant-buffer
+elements. Unsized arrays and nonempty array return types remain unimplemented.
+Alias chains and
 resolved array ranks are each limited to 32. Local/nested aliases, generic
 aliases, qualified type references, pointer declarators, and C-style casts using
 user alias names remain unported. See [the alias example](../examples/type-aliases.slang).
@@ -276,9 +283,21 @@ initializer-list rules, including flat multidimensional arguments and nested
 list boundaries. Remaining elements use zero or struct field defaults. A single
 argument of the exact array type copies the array without evaluating defaults.
 Leading dimensions wrap in source order: `float[3][2](...)` constructs two rows
-of three floats. Constructor dimensions currently require positive decimal
-literals and remain bounded to rank 32. See
+of three floats. Constructor dimensions use constant expressions and remain
+bounded to rank 32. See
 [array-construction.slang](../examples/array-construction.slang).
+
+Zero dimensions are valid: `float values[0]` stores no elements, and
+`float[0]()` constructs its empty value. Any zero dimension makes a nested array
+empty. Empty arrays retain their element types and dimension order in reflection
+and overload selection. Copies, empty-array returns, and struct defaults are
+supported. They occupy no uniform bytes or resource registers, including empty
+resource fields in structs. HLSL uses distinct empty structures and reconstructs
+empty fields outside physical buffers to preserve neighboring byte offsets.
+Constant indices into zero-length arrays report `T013`. Dynamic numeric indices
+have undefined source values; target legalization evaluates their operands once
+and uses private scratch locations. Dynamic indexing with resource-valued
+elements reports `I006` until undefined resource handles can be legalized.
 
 ## Struct construction and field defaults
 

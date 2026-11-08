@@ -363,20 +363,15 @@ impl Checker {
                 let Some(element) = self.constructor_target(base)? else {
                     return Ok(None);
                 };
-                let ExprKind::Integer(text) = &index.kind else {
-                    return Err(Diagnostic::error(
-                        "T002",
-                        index.span,
-                        "array constructor size must be a positive decimal literal",
-                    ));
-                };
-                let size = text
-                    .trim_end_matches(['u', 'U'])
-                    .parse::<u32>()
-                    .ok()
-                    .filter(|n| *n > 0)
+                let size = self
+                    .numeric_shape_value(index)
+                    .and_then(|value| u32::try_from(value).ok())
                     .ok_or_else(|| {
-                        Diagnostic::error("T002", index.span, "invalid array constructor size")
+                        Diagnostic::error(
+                            "T002",
+                            index.span,
+                            "array size must be a nonnegative constant integer",
+                        )
                     })?;
                 let mut rank = 0;
                 let mut ty = &element;
@@ -384,7 +379,10 @@ impl Checker {
                     rank += 1;
                     ty = inner;
                 }
-                if rank >= 32 || element == Type::Void || ty.is_resource() {
+                if rank >= 32
+                    || element == Type::Void
+                    || ty.is_resource() && size != 0 && !self.is_empty_type(&element)
+                {
                     return Err(Diagnostic::error(
                         "T002",
                         callee.span,

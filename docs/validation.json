@@ -6,7 +6,7 @@
     "rustfmt": "passed",
     "clippy_all_targets_warnings_denied": "passed",
     "unit_tests": 29,
-    "integration_tests": 284,
+    "integration_tests": 292,
     "doc_tests": 1,
     "conformance_comparison_tests": 18,
     "rustdoc": "passed",
@@ -15,11 +15,11 @@
   },
   "differential_validation": {
     "oracle": "Slang 2026.21",
-    "cases_passed": 412,
-    "cases_total": 412,
-    "matching_acceptance_cases": 402,
+    "cases_passed": 423,
+    "cases_total": 423,
+    "matching_acceptance_cases": 413,
     "documented_oracle_differences": 10,
-    "dxc_hlsl_artifacts_validated": 439,
+    "dxc_hlsl_artifacts_validated": 451,
     "dxc_invalid_hlsl_artifacts_rejected": 17,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
@@ -30,17 +30,17 @@
       "vs_6_0"
     ],
     "documented_oracle_artifact_differences": 4,
-    "resource_binding_cases_compared": 37,
-    "global_uniform_binding_cases_compared": 16,
-    "uniform_byte_layout_cases_compared": 37,
+    "resource_binding_cases_compared": 39,
+    "global_uniform_binding_cases_compared": 17,
+    "uniform_byte_layout_cases_compared": 41,
     "documented_oracle_physical_layout_differences": 3,
-    "physical_buffer_layout_cases_compared": 22
+    "physical_buffer_layout_cases_compared": 25
   },
   "remote_ci_executed": false,
   "remote_ci": null,
   "previous_remote_ci": {
-    "run_id": 42498506822,
-    "head_sha": "cb33d88cb3d7f944855f84b0f4cc9edb2a5c758e",
+    "run_id": 42501245123,
+    "head_sha": "ccd5d92f6fd058a23d01e551b36999432b51e40a",
     "conclusion": "success",
     "platforms": [
       "ubuntu-latest",
@@ -49,6 +49,16 @@
     ]
   },
   "earlier_remote_ci": [
+    {
+      "run_id": 42498506822,
+      "head_sha": "cb33d88cb3d7f944855f84b0f4cc9edb2a5c758e",
+      "conclusion": "success",
+      "platforms": [
+        "ubuntu-latest",
+        "windows-latest",
+        "macos-latest"
+      ]
+    },
     {
       "run_id": 42496870268,
       "head_sha": "fef701c622e3c9f595bbdd4e0a419ebd98550a85",
@@ -352,7 +362,7 @@
   },
   "native_hlsl_suite": {
     "manifest": "tests/native/manifest.json",
-    "artifacts_validated": 46,
+    "artifacts_validated": 53,
     "profiles": [
       "cs_6_0",
       "ps_6_0"
@@ -405,9 +415,16 @@
       "constant-buffer-elements-float.slang",
       "constant-buffer-elements-float.slang",
       "constant-buffer-elements-double.slang",
-      "constant-buffer-elements-double.slang"
+      "constant-buffer-elements-double.slang",
+      "../conformance/positive/computed-array-dimensions.slang",
+      "../conformance/positive/computed-array-module/main.slang",
+      "../conformance/positive/empty-array-bindings.slang",
+      "../conformance/positive/empty-array-layout.slang",
+      "../conformance/positive/empty-array-construction.slang",
+      "../conformance/positive/empty-array-packed.slang",
+      "empty-array-locations.slang"
     ],
-    "uniform_byte_layout_cases": 35,
+    "uniform_byte_layout_cases": 39,
     "matrix_layout_shapes": 96,
     "constant_buffer_numeric_layouts": 252
   }

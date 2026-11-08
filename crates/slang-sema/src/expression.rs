@@ -292,8 +292,9 @@ impl Checker {
                     }
                 };
                 if let Some(size) = size
-                    && let ExprKind::Integer(text) = &index.kind
-                    && text.parse::<u32>().is_ok_and(|v| v >= size)
+                    && self
+                        .integer_constant(index)
+                        .is_some_and(|v| v < 0 || v >= i64::from(size))
                 {
                     self.error("T013", index.span, "constant index is out of bounds");
                 }

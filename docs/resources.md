@@ -46,6 +46,9 @@ Fixed resource arrays occupy a contiguous range. A declaration such as
 `Texture2D<float> images[2][3] : register(t4, space2)` uses six registers,
 `t4` through `t9`, in space two. A range must fit entirely inside the supported
 index range. The compiler computes its count without expanding array elements.
+Dimensions can use compile-time scalar expressions. A zero dimension consumes
+no registers, even in a nested array, and is recognized before range
+multiplication. Explicit register classes are still checked on empty arrays.
 
 Explicit overlaps within the same class and space produce warning `T023`.
 Different classes and spaces have independent ranges. Warnings remain available
@@ -157,6 +160,12 @@ use eight, and vectors align to their components. A value that would cross a
 `float2 values[2]` occupies 24 bytes with a stride of 16; a following float can
 occupy its remaining tail space. `size` is the occupied extent, so host buffer
 allocation must apply the alignment required by the graphics API.
+
+Empty arrays and structs consume no uniform bytes and do not create a shared
+buffer by themselves. Empty constant-buffer elements consume no buffer register.
+The source type table retains zero sizes and array dimensions. HLSL storage
+omits empty fields and reconstructs their values, so DXC's empty-struct alignment
+cannot move adjacent nonempty fields.
 
 Matrices default to column-major storage. `row_major` and `column_major`
 qualify matrix declarations and arrays of matrices; aliases preserve their

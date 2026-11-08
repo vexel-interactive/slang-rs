@@ -82,6 +82,18 @@ pub enum Type {
 }
 
 impl Type {
+    /// A fixed-array chain containing a zero dimension has no elements to store.
+    pub fn is_empty_array(&self) -> bool {
+        let mut ty = self;
+        while let Self::Array(element, size) = ty {
+            if *size == 0 {
+                return true;
+            }
+            ty = element;
+        }
+        false
+    }
+
     pub fn builtin(name: &str) -> Option<Self> {
         if matches!(name, "ByteAddressBuffer" | "RWByteAddressBuffer") {
             return Some(Self::ByteBuffer {

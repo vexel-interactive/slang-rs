@@ -129,6 +129,7 @@ pub fn lower(checked: &CheckedModule) -> Result<Module, Diagnostic> {
     crate::static_local::lower(&mut module)?;
     crate::scope::lower(&mut module);
     crate::uniform::lower(&mut module, checked)?;
+    crate::empty_array::lower(&mut module)?;
     crate::packed_uniform::lower(&mut module)?;
     crate::matrix_storage::lower(&mut module)?;
     crate::matrix_resource::lower(&mut module)?;

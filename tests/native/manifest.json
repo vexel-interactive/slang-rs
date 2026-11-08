@@ -4007,6 +4007,126 @@
           }
         }
       }
+    },
+    {
+      "file": "../conformance/positive/computed-array-dimensions.slang",
+      "entry": "main",
+      "uniform_layouts": {
+        "input": {
+          "offset": 0,
+          "size": 36
+        }
+      },
+      "dxc_layouts": {
+        "input": {
+          "size": 36,
+          "offsets": {
+            "_value": 0
+          }
+        }
+      }
+    },
+    {
+      "file": "../conformance/positive/computed-array-module/main.slang",
+      "entry": "main",
+      "uniform_layouts": {
+        "input": {
+          "offset": 0,
+          "size": 36
+        }
+      }
+    },
+    {
+      "file": "../conformance/positive/empty-array-bindings.slang",
+      "entry": "main"
+    },
+    {
+      "file": "../conformance/positive/empty-array-layout.slang",
+      "entry": "main",
+      "uniform_layouts": {
+        "input": {
+          "offset": 0,
+          "size": 12
+        },
+        "input.first": {
+          "offset": 0,
+          "size": 4
+        },
+        "input.second": {
+          "offset": 4,
+          "size": 4
+        },
+        "input.third": {
+          "offset": 8,
+          "size": 4
+        },
+        "scale": {
+          "offset": 4,
+          "size": 4
+        },
+        "prefix": {
+          "offset": 0,
+          "size": 4
+        }
+      },
+      "dxc_layouts": {
+        "input": {
+          "size": 12,
+          "offsets": {
+            "_slang__slang_uniform_view_0": 0,
+            "_slang__slang_uniform_view_1": 4,
+            "_slang__slang_uniform_view_2": 8
+          }
+        },
+        "_slang_globals": {
+          "size": 8,
+          "offsets": {
+            "prefix": 0,
+            "scale": 4
+          }
+        }
+      }
+    },
+    {
+      "file": "../conformance/positive/empty-array-construction.slang",
+      "entry": "main"
+    },
+    {
+      "file": "../conformance/positive/empty-array-packed.slang",
+      "entry": "main",
+      "uniform_layouts": {
+        "input.scale": {
+          "offset": 16,
+          "size": 4
+        },
+        "Direct.offset": {
+          "offset": 0,
+          "size": 4
+        },
+        "Direct.tail": {
+          "offset": 4,
+          "size": 4
+        }
+      },
+      "dxc_layouts": {
+        "input": {
+          "size": 20,
+          "offsets": {
+            "_slang__slang_uniform_view_0": 16
+          }
+        },
+        "Direct": {
+          "size": 8,
+          "offsets": {
+            "offset": 0,
+            "tail": 4
+          }
+        }
+      }
+    },
+    {
+      "file": "empty-array-locations.slang",
+      "entry": "main"
     }
   ]
 }

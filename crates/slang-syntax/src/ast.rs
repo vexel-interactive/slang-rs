@@ -70,7 +70,7 @@ pub struct TypeRef {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub matrix_major: Option<slang_layout::MatrixMajor>,
     /// Array dimensions from outermost to innermost.
-    pub arrays: Vec<u32>,
+    pub arrays: Vec<Expr>,
     pub span: Span,
 }
 

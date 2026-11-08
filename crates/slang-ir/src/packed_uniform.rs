@@ -10,12 +10,12 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 /// packed structures and matrix arrays with a different default storage order.
 pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
     let default_major = module.matrix_major;
-    let packed = packed_structures(&module.structures, default_major);
+    let packed = packed_structures(&module.structures, &module.uniform_types, default_major);
     if packed.is_empty()
-        && !module
-            .globals
-            .iter()
-            .any(|g| field_matrix_view(g, default_major))
+        && !module.globals.iter().any(|g| {
+            field_matrix_view(g, default_major)
+                || g.is_global_uniform() && empty_layout(g, &module.uniform_types)
+        })
     {
         return Ok(());
     }
@@ -45,18 +45,26 @@ pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
     let mut resource_indices = vec![];
     let mut shared_views = vec![];
     for buffer in &mut module.constant_buffers {
-        if !buffer
-            .fields
-            .iter()
-            .any(|f| contains(&f.ty, &packed) || field_matrix_view(f, default_major))
-        {
-            continue;
-        }
         let global = module
             .globals
             .iter()
             .find(|g| g.name == buffer.variable_name)
             .unwrap();
+        let empty_fields = global.uniform_layout.as_ref().is_some_and(|layout| {
+            builder.layouts[&layout.type_name]
+                .fields
+                .iter()
+                .any(|field| builder.layouts[&field.type_name].size == 0)
+        });
+        if !empty_fields
+            && !buffer.fields.iter().any(|f| {
+                contains(&f.ty, &packed)
+                    || field_matrix_view(f, default_major)
+                    || empty_layout(f, &module.uniform_types)
+            })
+        {
+            continue;
+        }
         let layout = global
             .uniform_layout
             .as_ref()
@@ -64,7 +72,9 @@ pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
         let offsets = &module.uniform_types[&layout.type_name].fields;
         let mut fields = vec![];
         for (field, offset) in buffer.fields.iter().zip(offsets) {
-            if requires_view(&field.ty, &offset.type_name, &packed, default_major) {
+            if builder.layouts[&offset.type_name].size == 0
+                || requires_view(&field.ty, &offset.type_name, &packed, default_major)
+            {
                 let initializer = builder.value(
                     &field.ty,
                     &offset.type_name,
@@ -119,6 +129,7 @@ pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
     if uniforms.iter().any(|&i| {
         contains(&module.globals[i].ty, &packed)
             || field_matrix_view(&module.globals[i], default_major)
+            || empty_layout(&module.globals[i], &module.uniform_types)
     }) {
         let mut fields = vec![];
         for &index in &uniforms {
@@ -128,12 +139,14 @@ pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
                 .as_ref()
                 .ok_or_else(|| error(global.span, "packed uniform has no data layout"))?
                 .offset;
-            if requires_view(
-                &global.ty,
-                &global.uniform_layout.as_ref().unwrap().type_name,
-                &packed,
-                default_major,
-            ) {
+            if empty_layout(global, &module.uniform_types)
+                || requires_view(
+                    &global.ty,
+                    &global.uniform_layout.as_ref().unwrap().type_name,
+                    &packed,
+                    default_major,
+                )
+            {
                 let initializer = builder.value(
                     &global.ty,
                     &global.uniform_layout.as_ref().unwrap().type_name,
@@ -200,13 +213,19 @@ pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
 
 fn packed_structures(
     structures: &[Struct],
+    layouts: &BTreeMap<String, slang_layout::UniformTypeLayout>,
     default_major: slang_layout::MatrixMajor,
 ) -> BTreeSet<String> {
     let mut reverse: BTreeMap<String, Vec<String>> = BTreeMap::new();
     let mut packed = BTreeSet::new();
     let mut queue = VecDeque::new();
     for structure in structures {
-        if structure
+        if layouts.get(&structure.name).is_some_and(|layout| {
+            layout
+                .fields
+                .iter()
+                .any(|f| layouts[&f.type_name].size == 0)
+        }) || structure
             .fields
             .iter()
             .any(|f| f.pack_offset.is_some() || field_matrix_view(f, default_major))
@@ -237,6 +256,16 @@ fn packed_structures(
         }
     }
     packed
+}
+
+fn empty_layout(
+    field: &Variable,
+    layouts: &BTreeMap<String, slang_layout::UniformTypeLayout>,
+) -> bool {
+    field
+        .uniform_layout
+        .as_ref()
+        .is_some_and(|layout| layouts[&layout.type_name].size == 0)
 }
 
 fn contains(mut ty: &Type, packed: &BTreeSet<String>) -> bool {

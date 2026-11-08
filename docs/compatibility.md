@@ -10,7 +10,7 @@ subsystem is absent. No subsystem currently claims complete upstream parity.
 | Lexer | slang-lexer | Partial | Lossless tokens; incomplete literal grammar |
 | Preprocessor | slang-preprocessor | Partial | Macros, #, ##, variadics, includes, conditionals, __LINE__/__FILE__, #line remapping and resets; complete predefined macros and expansion stacks absent |
 | Parser and AST | slang-syntax | Partial | Functions, globals, structs, declaration groups, expressions, casts, loops, switches, discard |
-| Name and type checking | slang-sema | Partial | Scalars, vectors, matrices, fixed arrays, aliases, scopes, overloads, writable locations |
+| Name and type checking | slang-sema | Partial | Scalars, vectors, matrices, fixed arrays with computed and zero dimensions, aliases, scopes, overloads, writable locations |
 | Local storage and declaration scopes | slang-module, slang-sema, slang-ir | Partial | Lexical unbraced declarations, loop scopes, guarded local static initialization; definite-assignment analysis absent |
 | Function default arguments | slang-sema, slang-ir | Partial | Trailing input defaults, first-declaration prototype rules, declaration-scope evaluation; parameter-dependent defaults absent |
 | Compile-time scalar constants | slang-sema, slang-ir | Partial | Typed 32-bit integer and boolean expressions, forward globals, initializer cycle diagnostics, computed thread sizes; general floating evaluation and constant function execution absent |
@@ -19,7 +19,7 @@ subsystem is absent. No subsystem currently claims complete upstream parity.
 | Explicit numeric casts | slang-syntax, slang-sema, slang-ir | Partial | Scalar splats, same-width vectors, matrix component conversions and truncation, boolean conversions; standalone alias and aggregate cast syntax absent |
 | Matrix component selectors | slang-sema, slang-codegen | Partial | Zero/one-based scalar and vector selections, checked bounds, distinct writable components, resource and atomic locations across dimensions 1-4 |
 | Matrix storage order | slang-syntax, slang-sema, slang-ir, slang-layout | Partial | Row/column qualifiers, aliases, casts, resource elements, API/CLI defaults, legacy uniform reflection, logical matrix-array loads; layout template arguments and other target rules absent |
-| Aggregate initialization | slang-syntax, slang-sema, slang-ir | Partial | Struct and fixed-array constructors, copies, defaults, contextual brace lists, nested/flat arrays, numeric padding/splats; user constructors and full generic inference absent |
+| Aggregate initialization | slang-syntax, slang-sema, slang-ir | Partial | Struct and fixed-array constructors, copies, defaults, contextual brace lists, nested/flat arrays, empty arrays and their returns, numeric padding/splats; nonempty array returns, user constructors and full generic inference absent |
 | Core module | slang-sema | Partial | Small built-in signature set |
 | Bit reinterpretation | slang-sema, slang-ir | Partial | 32-bit scalar/vector/matrix conversions, bool/half promotions, scalar double splitting, scalar/double2 packing; 16/64-bit integer variants absent |
 | Integer bit operations | slang-sema | Partial | 32-bit scalar/vector count, reverse, and first-bit searches with signed inputs and bool promotion; wider integer types absent |

@@ -221,7 +221,7 @@ mod tests {
             "float f( {",
             "interface I {}",
             "float f(){return 1}",
-            "float x[0];",
+            "float x[];",
             "void f() { while(1) }",
         ] {
             assert!(module(text).is_err(), "{text}");

@@ -59,7 +59,7 @@ impl Checker {
             );
             return;
         }
-        if self.is_empty_constant_buffer(ty) {
+        if self.is_empty_type(ty) {
             return;
         }
         let binding = ResourceBinding {
@@ -171,10 +171,10 @@ impl Checker {
                 return;
             }
         }
-        if let Some(uniform) = globals
-            .iter()
-            .find(|v| !self.declaration_types[&span_key(v.span)].is_resource())
-        {
+        if let Some(uniform) = globals.iter().find(|v| {
+            let ty = &self.declaration_types[&span_key(v.span)];
+            !ty.is_resource() && !self.is_empty_type(ty)
+        }) {
             // Preserve the shared buffer's slot for IR, emission, and reflection.
             match allocator.allocate(RegisterClass::ConstantBuffer, 1, 0) {
                 Ok(binding) => self.global_uniform_binding = Some(binding),
@@ -186,7 +186,7 @@ impl Checker {
         }
         for global in globals {
             let key = span_key(global.span);
-            if self.is_empty_constant_buffer(&self.declaration_types[&key]) {
+            if self.is_empty_type(&self.declaration_types[&key]) {
                 continue;
             }
             if self.resource_bindings.contains_key(&key) {
@@ -209,20 +209,16 @@ impl Checker {
         }
     }
 
-    /// Empty value types do not consume a constant-buffer register.
-    fn is_empty_constant_buffer(&self, mut ty: &Type) -> bool {
-        while let Type::Array(element, _) = ty {
-            ty = element;
-        }
-        let Type::ConstantBuffer { element, .. } = ty else {
-            return false;
-        };
-        let mut stack = vec![element.as_ref()];
+    /// Empty aggregates and buffers consume neither data nor resource registers.
+    pub(crate) fn is_empty_type(&self, ty: &Type) -> bool {
+        let mut stack = vec![ty];
         let mut visited = std::collections::BTreeSet::new();
         while let Some(ty) = stack.pop() {
             match ty {
                 Type::Void => {}
+                Type::Array(_, 0) => {}
                 Type::Array(element, _) => stack.push(element),
+                Type::ConstantBuffer { element, .. } => stack.push(element),
                 Type::Struct(name) => {
                     if visited.insert(name) {
                         let Some(fields) = self.structures.get(name) else {
@@ -258,6 +254,9 @@ fn resource_range(mut ty: &Type) -> Result<Option<(RegisterClass, u32)>, Allocat
         Type::Sampler { .. } => RegisterClass::Sampler,
         _ => return Ok(None),
     };
+    if dimensions.contains(&0) {
+        return Ok(Some((class, 0)));
+    }
     let count = dimensions.into_iter().try_fold(1_u32, |count, size| {
         count.checked_mul(size).ok_or(AllocationError::InvalidRange)
     })?;

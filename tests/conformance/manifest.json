@@ -578,7 +578,7 @@
       "file": "negative/array-constructor-zero.slang",
       "entry": "main",
       "accept": false,
-      "rust_code": "T002"
+      "rust_code": "T008"
     },
     {
       "file": "negative/recursive-struct.slang",
@@ -4214,6 +4214,187 @@
       "entry": "main",
       "accept": false,
       "rust_code": "T002"
+    },
+    {
+      "file": "positive/computed-array-dimensions.slang",
+      "accept": true,
+      "entry": "main",
+      "uniform_layouts": {
+        "input": {
+          "offset": 0,
+          "size": 36
+        }
+      },
+      "rust_dxc_layouts": {
+        "input": {
+          "size": 36,
+          "offsets": {
+            "_value": 0
+          }
+        }
+      }
+    },
+    {
+      "file": "positive/computed-array-module/main.slang",
+      "accept": true,
+      "entry": "main",
+      "uniform_layouts": {
+        "input": {
+          "offset": 0,
+          "size": 36
+        }
+      }
+    },
+    {
+      "file": "positive/empty-array-bindings.slang",
+      "accept": true,
+      "entry": "main",
+      "bindings": {
+        "value": null,
+        "empty": null,
+        "textures": null,
+        "samplers": null,
+        "buffers": null,
+        "input": {
+          "class": "b",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        }
+      },
+      "global_uniform_binding": null
+    },
+    {
+      "file": "positive/empty-array-layout.slang",
+      "accept": true,
+      "entry": "main",
+      "uniform_layouts": {
+        "input": {
+          "offset": 0,
+          "size": 12
+        },
+        "input.first": {
+          "offset": 0,
+          "size": 4
+        },
+        "input.second": {
+          "offset": 4,
+          "size": 4
+        },
+        "input.third": {
+          "offset": 8,
+          "size": 4
+        },
+        "scale": {
+          "offset": 4,
+          "size": 4
+        },
+        "prefix": {
+          "offset": 0,
+          "size": 4
+        }
+      },
+      "rust_dxc_layouts": {
+        "input": {
+          "size": 12,
+          "offsets": {
+            "_slang__slang_uniform_view_0": 0,
+            "_slang__slang_uniform_view_1": 4,
+            "_slang__slang_uniform_view_2": 8
+          }
+        },
+        "_slang_globals": {
+          "size": 8,
+          "offsets": {
+            "prefix": 0,
+            "scale": 4
+          }
+        }
+      }
+    },
+    {
+      "file": "positive/empty-array-construction.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/empty-array-packed.slang",
+      "accept": true,
+      "entry": "main",
+      "bindings": {
+        "unused": null,
+        "input": {
+          "class": "b",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        },
+        "Direct": {
+          "class": "b",
+          "index": 1,
+          "space": 0,
+          "count": 1
+        }
+      },
+      "uniform_layouts": {
+        "input.scale": {
+          "offset": 16,
+          "size": 4
+        },
+        "Direct.offset": {
+          "offset": 0,
+          "size": 4
+        },
+        "Direct.tail": {
+          "offset": 4,
+          "size": 4
+        }
+      },
+      "rust_dxc_layouts": {
+        "input": {
+          "size": 20,
+          "offsets": {
+            "_slang__slang_uniform_view_0": 16
+          }
+        },
+        "Direct": {
+          "size": 8,
+          "offsets": {
+            "offset": 0,
+            "tail": 4
+          }
+        }
+      }
+    },
+    {
+      "file": "negative/computed-array-runtime.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T002"
+    },
+    {
+      "file": "negative/computed-array-cycle.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T026"
+    },
+    {
+      "file": "negative/computed-array-negative.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T002"
+    },
+    {
+      "file": "negative/empty-array-excess.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T021"
+    },
+    {
+      "file": "negative/empty-array-bounds.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T013"
     }
   ]
 }

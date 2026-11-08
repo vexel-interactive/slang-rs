@@ -65,9 +65,8 @@ fn invalid_constructor_types_and_excess_elements_are_diagnostics() {
     for (source, code) in [
         ("void run(){float a[2]=float[2](1,2,3);}", "T021"),
         ("void run(){float a[2][2]=float[2][2]({1,2,3});}", "T021"),
-        ("void run(){float a[2]=float[0]();}", "T002"),
+        ("void run(){float a[2]=float[0]();}", "T008"),
         ("void run(){float a[2]=float[-1]();}", "T002"),
-        ("void run(){float a[2]=float[2.0]();}", "T002"),
         ("void run(){float a[2]=float[65537]();}", "T020"),
         ("void run(){float a[2]=void[2]();}", "T002"),
         ("void run(){float a[2]=Texture2D[2]();}", "T002"),

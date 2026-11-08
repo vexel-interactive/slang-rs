@@ -130,6 +130,7 @@ fn calculate<'a>(
             }
             stack.push((ty, row, true));
             match ty {
+                Type::Array(_, 0) => {}
                 Type::Array(element, _) => stack.push((element, row, false)),
                 Type::Struct(name) => {
                     let structure = structures
@@ -164,6 +165,9 @@ fn calculate<'a>(
                     MatrixMajor::Column
                 },
             )?),
+            Type::Array(element, 0) => {
+                Some(UniformTypeLayout::empty_array(layout_name(element, row)))
+            }
             Type::Array(element, count) => layouts
                 .get(&layout_name(element, row))
                 .and_then(Option::as_ref)

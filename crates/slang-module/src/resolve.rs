@@ -56,6 +56,9 @@ impl<'a> Resolver<'a> {
                 slang_syntax::TypeArgument::Integer { .. } => {}
             }
         }
+        for dimension in &mut ty.arrays {
+            self.expression(dimension)?;
+        }
         Ok(())
     }
 

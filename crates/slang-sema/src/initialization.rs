@@ -81,7 +81,10 @@ impl Checker {
             };
             fields.push(value);
         }
-        if fields.iter().any(|f| f.ty.is_resource()) {
+        if fields
+            .iter()
+            .any(|f| f.ty.is_resource() && !self.is_empty_type(&f.ty))
+        {
             self.error(
                 "T020",
                 span,

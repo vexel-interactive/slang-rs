@@ -305,27 +305,13 @@ impl Parser {
         }
     }
 
-    pub(crate) fn array_sizes(&mut self) -> Result<Vec<u32>, Diagnostic> {
+    pub(crate) fn array_sizes(&mut self) -> Result<Vec<Expr>, Diagnostic> {
         let mut arrays = vec![];
         while self.eat("[") {
             if arrays.len() >= 32 {
                 return Err(self.error("array nesting limit exceeded"));
             }
-            let token = self
-                .current()
-                .filter(|t| t.kind == TokenKind::Integer)
-                .ok_or_else(|| self.error("array size must be a positive integer literal"))?
-                .clone();
-            self.offset += 1;
-            let size: u32 = token
-                .text
-                .trim_end_matches(['u', 'U'])
-                .parse()
-                .map_err(|_| self.error("invalid array size"))?;
-            if size == 0 {
-                return Err(self.error("array size must be positive"));
-            }
-            arrays.push(size);
+            arrays.push(self.expression(1)?);
             self.expect("]")?;
         }
         Ok(arrays)

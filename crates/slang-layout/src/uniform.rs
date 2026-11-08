@@ -60,6 +60,13 @@ impl fmt::Display for UniformLayoutError {
 impl std::error::Error for UniformLayoutError {}
 
 impl UniformTypeLayout {
+    /// A zero-length array has no storage even when its element is a resource.
+    pub fn empty_array(element_type: String) -> Self {
+        let mut layout = Self::value(0, 1);
+        layout.element_type = Some(element_type);
+        layout
+    }
+
     /// Scalars and vectors align to their 32-bit or 64-bit components.
     pub fn numeric(component_bytes: u32, width: u8) -> Result<Self, UniformLayoutError> {
         if !matches!(component_bytes, 4 | 8) || !(1..=4).contains(&width) {
