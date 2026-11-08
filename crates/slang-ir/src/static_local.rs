@@ -76,6 +76,7 @@ impl Lowerer {
             modifiers: vec!["static".into()],
             semantic: None,
             binding: None,
+            uniform_layout: None,
             initializer: Some(Expr {
                 kind: ExprKind::Bool(false),
                 ty: Type::Scalar(Scalar::Bool),

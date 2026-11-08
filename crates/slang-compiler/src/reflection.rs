@@ -4,12 +4,20 @@ use slang_ir::Module;
 use slang_sema::{ShaderStage, Type};
 use std::collections::{BTreeMap, BTreeSet};
 
-/// Declaration and resource binding reflection. Uniform byte layout is not yet implemented.
+/// Declaration, resource binding, and legacy HLSL constant-buffer byte layout reflection.
 #[derive(Clone, Debug, Serialize)]
 pub struct Reflection {
     pub schema_version: u32,
     pub entry_points: Vec<EntryPointInfo>,
     pub globals: Vec<GlobalInfo>,
+    /// Shared constant-buffer binding; absent when there are no global uniform values.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub global_uniform_binding: Option<slang_layout::ResourceBinding>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub global_uniform_size: Option<u64>,
+    /// Value layouts, shared by reference through canonical type names.
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub uniform_types: BTreeMap<String, slang_layout::UniformTypeLayout>,
     pub modules: Vec<slang_module::ModuleInfo>,
 }
 
@@ -35,6 +43,9 @@ pub struct GlobalInfo {
     /// Checked binding for a global shader resource; absent for ordinary values and private storage.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub binding: Option<slang_layout::ResourceBinding>,
+    /// Byte offset and value type for a global uniform or ConstantBuffer element.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub uniform_layout: Option<slang_layout::UniformVariableLayout>,
     /// Source module for imported globals; absent for root-module globals.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub module: Option<String>,
@@ -60,7 +71,10 @@ impl Reflection {
             })
             .collect();
         Self {
-            schema_version: 7,
+            schema_version: 9,
+            global_uniform_binding: module.global_uniform_binding,
+            global_uniform_size: module.global_uniform_size,
+            uniform_types: module.uniform_types.clone(),
             modules: checked.modules.clone(),
             entry_points: module
                 .entry_points
@@ -85,6 +99,7 @@ impl Reflection {
                     target_name: slang_codegen::entry_point_name(&global.name, target),
                     type_name: global.ty.to_string(),
                     binding: global.binding,
+                    uniform_layout: global.uniform_layout.clone(),
                     resource_access: match resource_element(&global.ty) {
                         Type::ConstantBuffer(_) => Some("read".into()),
                         Type::ByteBuffer { writable }

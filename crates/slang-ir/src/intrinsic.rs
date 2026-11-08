@@ -101,6 +101,7 @@ fn matrix_helper(
         modifiers: vec![],
         semantic: None,
         binding: None,
+        uniform_layout: None,
         initializer: None,
         span,
     }];
@@ -112,6 +113,7 @@ fn matrix_helper(
             modifiers: vec!["out".into()],
             semantic: None,
             binding: None,
+            uniform_layout: None,
             initializer: None,
             span,
         });
@@ -126,6 +128,7 @@ fn matrix_helper(
                 modifiers: vec![],
                 semantic: None,
                 binding: None,
+                uniform_layout: None,
                 initializer: None,
                 span,
             }),

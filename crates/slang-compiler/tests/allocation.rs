@@ -71,26 +71,53 @@ fn automatic_resources_share_their_class_and_default_to_space_zero() {
 
 #[test]
 fn implicit_uniform_storage_reserves_a_constant_buffer_before_resources() {
-    for (source, expected) in [
+    for (source, expected, uniform_index) in [
         (
             "float value;ConstantBuffer<P> a;ConstantBuffer<P> b;",
             [1, 2],
+            Some(0),
         ),
         (
             "float value;ConstantBuffer<P> a:register(b0);ConstantBuffer<P> b;",
             [0, 2],
+            Some(1),
         ),
         (
             "static float value=1;ConstantBuffer<P> a;ConstantBuffer<P> b;",
             [0, 1],
+            None,
         ),
         (
             "groupshared float value;ConstantBuffer<P> a;ConstantBuffer<P> b;",
             [0, 1],
+            None,
         ),
     ] {
         let compiled = compile(&format!("struct P{{float x;}};{source}"));
         assert_eq!([index(&compiled, "a"), index(&compiled, "b")], expected);
+        assert_eq!(
+            compiled
+                .reflection
+                .global_uniform_binding
+                .map(|b| b.register.index),
+            uniform_index
+        );
+        assert_eq!(
+            compiled.ir.global_uniform_binding,
+            compiled.reflection.global_uniform_binding
+        );
+        let code = compiled.artifact.as_ref().unwrap();
+        if let Some(slot) = uniform_index {
+            assert!(code.contains(&format!("cbuffer _slang_globals : register(b{slot})")));
+            let binding = compiled.reflection.global_uniform_binding.unwrap();
+            assert_eq!(binding.count, 1);
+            assert_eq!(binding.register.space, 0);
+            assert!(!binding.explicit);
+        } else {
+            assert!(!code.contains("cbuffer _slang_globals"));
+            let json = serde_json::to_value(&compiled.reflection).unwrap();
+            assert!(json.get("global_uniform_binding").is_none());
+        }
         assert!(
             compiled
                 .reflection
@@ -102,6 +129,79 @@ fn implicit_uniform_storage_reserves_a_constant_buffer_before_resources() {
                 .is_none()
         );
     }
+}
+
+#[test]
+fn global_uniform_buffer_groups_aggregates_arrays_and_imports_without_private_storage() {
+    let includes = MemoryIncludes {
+        files: [(
+            "library.slang".into(),
+            "module library;public uniform float imported;".into(),
+        )]
+        .into(),
+    };
+    let compiled = compile_source(
+        "root.slang",
+        "import library;struct P{float x;};uniform P values[2];float scale;
+        static float privateValue=1;groupshared float sharedValue;
+        ConstantBuffer<P> fixed:register(b0);ConstantBuffer<P> automatic;",
+        &CompileOptions::default(),
+        &includes,
+    )
+    .unwrap();
+    let binding = compiled.reflection.global_uniform_binding.unwrap();
+    assert_eq!(binding.register.index, 1);
+    assert_eq!(index(&compiled, "automatic"), 2);
+    let code = compiled.artifact.unwrap();
+    let buffer_start = code.find("cbuffer _slang_globals").unwrap();
+    let buffer_end = buffer_start + code[buffer_start..].find("};").unwrap();
+    let buffer = &code[buffer_start..buffer_end];
+    for name in ["values[2]", "scale", "imported"] {
+        assert!(buffer.contains(name), "{buffer}");
+    }
+    for name in ["privateValue", "sharedValue", "fixed", "automatic"] {
+        assert!(!buffer.contains(name), "{buffer}");
+        assert!(code[buffer_end..].contains(name));
+    }
+    assert_eq!(code.matches("cbuffer ").count(), 1);
+}
+
+#[test]
+fn global_uniform_binding_survives_check_only_and_does_not_leak_between_compilations() {
+    let compiled = compile_source(
+        "uniform.slang",
+        "float value;",
+        &CompileOptions {
+            check_only: true,
+            ..CompileOptions::default()
+        },
+        &MemoryIncludes::default(),
+    )
+    .unwrap();
+    assert!(compiled.artifact.is_none());
+    assert_eq!(
+        compiled
+            .reflection
+            .global_uniform_binding
+            .unwrap()
+            .register
+            .index,
+        0
+    );
+    let again = compile("struct P{float x;};ConstantBuffer<P> resource;");
+    assert!(again.reflection.global_uniform_binding.is_none());
+    assert_eq!(index(&again, "resource"), 0);
+}
+
+#[test]
+fn generated_uniform_buffer_name_cannot_collide_with_source_identifiers() {
+    let compiled =
+        compile("float _slang_globals;float globals;float f(){return _slang_globals+globals;}");
+    let code = compiled.artifact.unwrap();
+    assert!(code.contains("cbuffer _slang_globals : register(b0)"));
+    assert!(code.contains("float _slang__slang_globals;"));
+    assert!(code.contains("float globals;"));
+    assert!(code.contains("(_slang__slang_globals + globals)"));
 }
 
 #[test]

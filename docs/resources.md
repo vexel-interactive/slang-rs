@@ -49,7 +49,7 @@ also accepts these source declarations with a warning.
 
 ## Reflection
 
-Reflection schema version 7 includes the allocated binding on each global shader resource:
+Reflection schema version 9 includes the allocated binding on each global shader resource:
 
 ```json
 {
@@ -62,8 +62,19 @@ Reflection schema version 7 includes the allocated binding on each global shader
 ```
 
 The `explicit` flag is true for a source annotation and false for automatic
-assignment. Numeric/aggregate uniforms and private storage omit `binding`;
-their byte layout is not reflected yet.
+assignment. Numeric/aggregate uniforms and private storage omit their individual
+`binding`. Ordinary global uniform values share a constant buffer whose allocated
+register is reported by the top-level `global_uniform_binding` field:
+
+```json
+{
+  "global_uniform_binding": { "class": "b", "index": 1, "space": 0, "count": 1, "explicit": false }
+}
+```
+
+This field is absent when there are no ordinary global uniform values. It remains
+available during `--check`.
+
 Generated constructor helpers and private local-static storage do not appear
 as source globals. [resource-bindings.slang](../examples/resource-bindings.slang)
 provides a complete shader example.
@@ -84,9 +95,13 @@ Texture2D<float> image;                 // t0
 Allocation follows declaration order within the root module, then module
 discovery order for imports. Unused resources still receive slots, matching
 upstream parameter layout. Ordinary global uniforms reserve one implicit
-constant-buffer slot before resource allocation. This reservation keeps
-automatically assigned `ConstantBuffer` resources clear of that slot; the target
-compiler still supplies uniform byte packing. Static and groupshared variables
+constant-buffer slot before resource allocation. The HLSL emitter groups these
+values into `cbuffer _slang_globals` with that explicit register. For example,
+an explicit `ConstantBuffer` at `b0` moves this shared buffer to `b1`, and the
+next automatic `ConstantBuffer` uses `b2`. This keeps the emitted binding and
+reflection consistent even when explicit resources occupy the first slots.
+Numeric values, aggregates, fixed arrays, and imported uniforms share this buffer;
+their byte packing follows the reflected legacy HLSL layout. Static and groupshared variables
 do not consume shader resource bindings or implicit uniform slots. Allocation
 state belongs to one compilation and does not persist across API calls.
 
@@ -94,18 +109,77 @@ The HLSL emitter writes every selected resource register explicitly, so target
 compilation preserves the indices reported by reflection. Exhausted or
 overflowing contiguous ranges produce `T022` without expanding array elements.
 
+## Constant-buffer byte layout
+
+Global uniform values and `ConstantBuffer` elements expose `uniform_layout` with
+an `offset` and a canonical `type_name`. Look up that name in the top-level
+`uniform_types` table. Each table entry reports `size` and `alignment`, plus
+`fields` for structs, `array_stride` and `element_type` for arrays, or
+`matrix_stride` for matrices. Field offsets are relative to their containing
+struct. Array elements share one referenced layout instead of expanding into
+individual records.
+
+```json
+{
+  "uniform_layout": { "offset": 16, "type_name": "Parameters" },
+  "uniform_types": {
+    "Parameters": {
+      "size": 8,
+      "alignment": 16,
+      "fields": [
+        { "name": "scale", "offset": 0, "type_name": "float" },
+        { "name": "bias", "offset": 4, "type_name": "float" }
+      ]
+    },
+    "float": { "size": 4, "alignment": 4 }
+  }
+}
+```
+
+For a global value, `offset` is measured from the shared global uniform buffer.
+For `ConstantBuffer<T>` and arrays of those handles, it is zero and `type_name`
+identifies `T`; the resource binding still describes the handle array. The
+top-level `global_uniform_size` gives the occupied bytes in the shared buffer.
+Unused uniforms retain their offsets. Root-module values precede imported values
+in both the emitted buffer and reflection. Private storage and structured-buffer
+elements do not receive constant-buffer layouts.
+
+These layouts follow legacy DXC packing: 32-bit scalars use four bytes, doubles
+use eight, and vectors align to their components. A value that would cross a
+16-byte boundary starts at the next boundary. Structs and arrays start on
+16-byte boundaries, but their final size is not rounded up. For example,
+`float2 values[2]` occupies 24 bytes with a stride of 16; a following float can
+occupy its remaining tail space. `size` is the occupied extent, so host buffer
+allocation must apply the alignment required by the graphics API.
+
+Matrices use column-major storage, fixed by an emitted HLSL pragma.
+`matrix_stride` is the byte distance between columns. A single-column matrix
+packs like a vector in legacy DXC. Native `half` values use four-byte storage
+because the current HLSL pipeline does not enable native 16-bit types. Slang
+2026.21's reflection instead reports two-byte half components and 16-byte
+alignment for single-column matrices; those cases are checked against DXC's
+actual native buffer definitions rather than claimed as upstream layout parity.
+
+Offsets, sizes, and strides use checked 64-bit arithmetic. Overflow reports
+`I002` at the global declaration without expanding array elements. Referenced
+types are visited and cached once. Mixed resource-valued aggregate layouts,
+16-bit storage, explicit row-major selection, other buffer packing modes, and
+target buffer-size limit validation remain absent. Mixed resource aggregates
+omit shared-buffer byte metadata until their layout model is implemented.
+See [uniform-layout.slang](../examples/uniform-layout.slang) for a complete example.
+
 ## Current limits
 
-Default-space options, Vulkan binding attributes, direct
-`cbuffer` declarations, uniform byte offsets, packing, strides, and the upstream
-reflection API remain to be implemented. Register annotations currently require
+Vulkan binding attributes, direct `cbuffer` declarations, explicit byte packing,
+other target layouts, and the upstream reflection API remain to be implemented.
+Register annotations currently require
 global resources. Numeric/aggregate uniforms, struct fields, parameters, local
 variables, static storage, and groupshared storage cannot receive them. Global
 attributes such as `[allow("overlapping-bindings")]` are also unsupported.
 
 These context limits are stricter than upstream in some cases. Slang accepts
 numeric uniform annotations and supplies implicit uniform layout; this compiler
-reports `T022` until that layout is implemented. Slang can also wrap overflowing
+reports `T022` until explicit uniform annotations are implemented. Slang can also wrap overflowing
 register indices into invalid HLSL numbers; the native parser reports `S001`
 instead. Wrong classes report `T022`, and malformed register syntax reports
 `S001`. Diagnostic codes are native codes, independent of upstream numeric IDs.

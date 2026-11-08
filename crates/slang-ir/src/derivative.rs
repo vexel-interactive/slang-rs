@@ -136,6 +136,7 @@ fn width_helper(name: &str, intrinsic: &str, ty: &Type, span: Span) -> Function 
             modifiers: vec![],
             semantic: None,
             binding: None,
+            uniform_layout: None,
             initializer: None,
             span,
         }],

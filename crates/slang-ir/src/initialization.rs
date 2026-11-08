@@ -180,6 +180,7 @@ impl Lowerer {
                         modifiers: vec![],
                         semantic: None,
                         binding: None,
+                        uniform_layout: None,
                         initializer: None,
                         span: expression.span,
                     }],
@@ -214,6 +215,7 @@ impl Lowerer {
                     modifiers: vec![],
                     semantic: None,
                     binding: None,
+                    uniform_layout: None,
                     initializer: Some(Expr {
                         ty: result.ty.clone(),
                         kind: ExprKind::Zero,
@@ -316,6 +318,7 @@ impl Lowerer {
             modifiers: vec![],
             semantic: None,
             binding: None,
+            uniform_layout: None,
             initializer: None,
             span: value.span,
         });

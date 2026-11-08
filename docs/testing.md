@@ -225,6 +225,19 @@ four range fields, and requires every named range to match. Native origin flags
 are checked by workspace tests. Reports record the selected binding checks and
 their case count. Sources with ambiguous repeated resource names require a
 future module-qualified comparison model.
+The optional `global_uniform_binding` object checks the shared global uniform
+buffer register; `null` requires its absence. The runner compares native JSON
+reflection and both emitted HLSL containers. Slang 2026.21's `globalScope.binding`
+reports a relative zero even when its HLSL uses `b1`, so the upstream comparison
+reads the emitted `globalParams_N` container. These checks require unambiguous
+container names in the selected fixtures. They compare register bindings without
+claiming byte-layout or JSON-reflection parity. Reports count these cases separately.
+An optional `uniform_layouts` map compares selected global and nested field byte
+locations with Slang JSON reflection. Paths use source names separated by dots;
+`[]` selects the first element without expanding arrays. Entries can require
+`offset`, `size`, or both. Layouts are compared only for cases with matching
+legacy HLSL rules; native half and single-column matrix layouts are verified
+separately against DXC. Reports count these layout cases.
 Optional `rust_stderr_contains` and `oracle_stderr_contains` lists require every
 declared diagnostic fragment from the corresponding compiler. Source-line cases
 use them to compare displayed filenames and line numbers, including negative
@@ -287,6 +300,22 @@ Dot fixtures also cover boolean and integer components, mixed types, scalar
 inputs, one-component vectors, contextual lists, default bindings, and double
 component reductions. The workspace tests check helper reuse and input side
 effects independently of the DXC artifact checks.
+
+Global uniform buffer regressions cover explicit `b0` reservations, first-fit gaps,
+independent register spaces, aggregates, arrays, imports, private storage exclusion,
+generated identifier collisions, `check_only`, and isolated compilation state.
+Differential fixtures compare the shared register and direct resource ranges;
+DXC validates both compilers' HLSL.
+
+Constant-buffer byte layout tests cover vector register boundaries, nested struct
+tail reuse, nested arrays and aliases, resource arrays, root/import order,
+`check_only`, private storage, large arrays, shared type graphs, and 64-bit
+overflow diagnostics. The native HLSL manifest can additionally specify
+`uniform_layouts` and `dxc_layouts`. The runner compares reflection locations and
+DXC's buffer definitions, including occupied buffer sizes and selected field
+offsets. Those selected DXC cases require unambiguous field names within each
+buffer. All 48 float/double/half matrix shapes are checked this way, including
+single-column shapes whose legacy DXC packing differs from Slang reflection.
 
 [validation.json](validation.json) records the Windows validation run for this
 checkpoint. It includes the pinned compiler version, workspace checks, and

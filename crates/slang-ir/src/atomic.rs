@@ -42,6 +42,7 @@ impl Visitor for Lowerer {
                 modifiers: vec!["static".into()],
                 semantic: None,
                 binding: None,
+                uniform_layout: None,
                 initializer: None,
                 span: expression.span,
             });

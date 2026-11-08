@@ -4,7 +4,7 @@ import argparse
 import json
 from pathlib import Path
 
-from conformance import run
+from conformance import compare_dxc_uniform_layouts, compare_uniform_locations, run
 
 
 def main():
@@ -31,6 +31,7 @@ def main():
         compilation = run(command)
         validation = None
         entry = None
+        layout_checks = {}
         if compilation["accepted"]:
             reflection = json.loads(reflection_path.read_text(encoding="utf-8"))
             entry = next(e for e in reflection["entry_points"] if e["name"] == case["entry"])
@@ -39,16 +40,24 @@ def main():
                 "-E", entry["target_name"], "-Fo", str(output.with_suffix(".dxil")),
                 str(output),
             ])
+            if "uniform_layouts" in case:
+                layout_checks["reflection"] = compare_uniform_locations(case["uniform_layouts"], reflection, "rust")
+            if "dxc_layouts" in case and validation["accepted"]:
+                dump = run([str(args.dxc.resolve()), "-dumpbin", str(output.with_suffix(".dxil"))])
+                layout_checks["dxc"] = dump["accepted"] and compare_dxc_uniform_layouts(case["dxc_layouts"], dump["stdout"])
         passed = compilation["accepted"] and validation is not None and validation["accepted"]
+        passed = passed and all(layout_checks.values())
         results.append({
             "file": case["file"], "passed": passed, "entry": entry,
             "compilation": compilation, "validation": validation,
+            "uniform_layout_checks": layout_checks,
         })
         print(f"{'PASS' if passed else 'FAIL'} {case['file']}")
     report = {
         "kind": "native HLSL validity, not upstream parity or GPU execution",
         "passed": sum(r["passed"] for r in results),
         "total": len(results),
+        "uniform_layout_cases": sum(bool(r["uniform_layout_checks"]) for r in results),
         "cases": results,
     }
     args.output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8", newline="\n")

@@ -151,12 +151,13 @@ impl Checker {
             .iter()
             .find(|v| !self.declaration_types[&span_key(v.span)].is_resource())
         {
-            // Ordinary global uniforms share the target's implicit constant
-            // buffer. Reserve its first free b slot before resource allocation.
-            // Byte offsets and uniform reflection remain a separate phase.
-            if let Err(error) = allocator.allocate(RegisterClass::ConstantBuffer, 1, 0) {
-                self.error("T022", uniform.span, error.to_string());
-                return;
+            // Preserve the shared buffer's slot for IR, emission, and reflection.
+            match allocator.allocate(RegisterClass::ConstantBuffer, 1, 0) {
+                Ok(binding) => self.global_uniform_binding = Some(binding),
+                Err(error) => {
+                    self.error("T022", uniform.span, error.to_string());
+                    return;
+                }
             }
         }
         for global in globals {

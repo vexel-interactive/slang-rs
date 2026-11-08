@@ -248,6 +248,16 @@ IR layer. Backends must not depend on the AST or semantic checker.
 
 ## Backend boundaries
 
+Legacy HLSL uniform packing arithmetic and reflection models live in
+`slang-layout`, independent of syntax and semantic types. After typed lowering,
+`slang-ir` visits the required constant-buffer value graph with an explicit stack
+and caches each canonical type layout. Fields and array elements reference those
+cached layouts, avoiding expansion of shared graphs and large arrays. Global
+offsets follow root-module and import discovery order. Checked 64-bit arithmetic
+reports layout overflow at the source global. The HLSL emitter preserves that
+global order and fixes column-major matrix packing; declaration reflection copies
+the same layout metadata. Other targets will require their own layout policies.
+
 The HLSL emitter writes structures, function signatures, globals, and function
 bodies. It preserves names and system semantics, uses four-space indentation,
 and inserts parentheses to preserve evaluation order. Its `names` module maps

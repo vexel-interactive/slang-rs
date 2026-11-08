@@ -42,8 +42,10 @@ pub struct CheckedModule {
     pub entry_point_requirements: BTreeMap<String, crate::EntryPointRequirements>,
     /// Checked scalar integer and boolean global constant values.
     pub global_constants: BTreeMap<SpanKey, i64>,
-    /// Explicit resource ranges, keyed by their source declarations.
+    /// Allocated resource ranges, keyed by their source declarations.
     pub resource_bindings: BTreeMap<SpanKey, slang_layout::ResourceBinding>,
+    /// Shared constant-buffer register for ordinary global uniform values.
+    pub global_uniform_binding: Option<slang_layout::ResourceBinding>,
     pub diagnostics: Vec<Diagnostic>,
 }
 
@@ -105,6 +107,7 @@ pub(crate) struct Checker {
     pub default_arguments: BTreeMap<ExprId, Vec<crate::Initialization>>,
     pub case_values: BTreeMap<ExprId, i64>,
     pub resource_bindings: BTreeMap<SpanKey, slang_layout::ResourceBinding>,
+    pub global_uniform_binding: Option<slang_layout::ResourceBinding>,
 }
 
 pub fn check(mut module: Module) -> Result<CheckedModule, Vec<Diagnostic>> {
@@ -162,6 +165,7 @@ fn check_with_metadata(
         default_arguments: BTreeMap::new(),
         case_values: BTreeMap::new(),
         resource_bindings: BTreeMap::new(),
+        global_uniform_binding: None,
     };
     checker.declare(&module);
     for declaration in &module.declarations {
@@ -265,6 +269,7 @@ fn check_with_metadata(
             entry_point_requirements: BTreeMap::new(),
             global_constants,
             resource_bindings: checker.resource_bindings,
+            global_uniform_binding: checker.global_uniform_binding,
             diagnostics: checker.diagnostics,
         };
         checked.entry_point_requirements = crate::capability::validate(&checked)?;

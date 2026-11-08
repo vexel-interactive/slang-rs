@@ -144,6 +144,7 @@ fn integer_cross(name: &str, ty: &Type, span: Span) -> Function {
                 modifiers: vec![],
                 semantic: None,
                 binding: None,
+                uniform_layout: None,
                 initializer: None,
                 span,
             })
@@ -215,6 +216,7 @@ fn dot(name: &str, parameter: &Type, span: Span) -> Function {
                 modifiers: vec![],
                 semantic: None,
                 binding: None,
+                uniform_layout: None,
                 initializer: None,
                 span,
             })

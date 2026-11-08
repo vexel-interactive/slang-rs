@@ -6,6 +6,12 @@ use slang_source::Span;
 pub struct Module {
     pub structures: Vec<Struct>,
     pub globals: Vec<Variable>,
+    /// Shared constant-buffer register for global uniform values.
+    pub global_uniform_binding: Option<slang_layout::ResourceBinding>,
+    /// Occupied bytes in the shared global uniform buffer.
+    pub global_uniform_size: Option<u64>,
+    /// Constant-buffer value layouts, keyed by canonical type names.
+    pub uniform_types: std::collections::BTreeMap<String, slang_layout::UniformTypeLayout>,
     pub functions: Vec<Function>,
     pub entry_points: Vec<EntryPoint>,
 }
@@ -23,8 +29,21 @@ pub struct Variable {
     pub modifiers: Vec<String>,
     pub semantic: Option<String>,
     pub binding: Option<slang_layout::ResourceBinding>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub uniform_layout: Option<slang_layout::UniformVariableLayout>,
     pub initializer: Option<Expr>,
     pub span: Span,
+}
+
+impl Variable {
+    /// Classify a global declaration, excluding resource handles and private storage.
+    pub fn is_global_uniform(&self) -> bool {
+        !self.ty.is_resource()
+            && !self
+                .modifiers
+                .iter()
+                .any(|m| matches!(m.as_str(), "static" | "groupshared"))
+    }
 }
 
 #[derive(Clone, Debug, Serialize)]

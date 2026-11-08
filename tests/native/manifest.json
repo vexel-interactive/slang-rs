@@ -32,6 +32,428 @@
     {
       "file": "../../examples/resource-bindings.slang",
       "entry": "main"
+    },
+    {
+      "file": "../../examples/uniform-layout.slang",
+      "entry": "main",
+      "dxc_layouts": {
+        "_slang_globals": {
+          "size": 80,
+          "offsets": {
+            "prefix": 0,
+            "z": 16,
+            "x": 32,
+            "y": 36,
+            "pair": 32,
+            "b": 40,
+            "values": 48,
+            "tail": 72,
+            "data": 16,
+            "after": 76,
+            "_slang_globals": 0
+          }
+        },
+        "parameters": {
+          "size": 60,
+          "offsets": {
+            "z": 0,
+            "x": 16,
+            "y": 20,
+            "pair": 16,
+            "b": 24,
+            "values": 32,
+            "tail": 56,
+            "parameters": 0
+          }
+        }
+      },
+      "uniform_layouts": {
+        "prefix": {
+          "offset": 0,
+          "size": 4
+        },
+        "data": {
+          "offset": 16,
+          "size": 60
+        },
+        "data.pair": {
+          "offset": 32,
+          "size": 8
+        },
+        "data.pair.x": {
+          "offset": 32,
+          "size": 4
+        },
+        "data.values": {
+          "offset": 48,
+          "size": 24
+        },
+        "data.values[]": {
+          "offset": 48,
+          "size": 8
+        },
+        "data.tail": {
+          "offset": 72,
+          "size": 4
+        },
+        "after": {
+          "offset": 76,
+          "size": 4
+        },
+        "parameters": {
+          "offset": 0,
+          "size": 60
+        },
+        "parameters.pair.y": {
+          "offset": 20,
+          "size": 4
+        },
+        "parameters.values": {
+          "offset": 32,
+          "size": 24
+        }
+      }
+    },
+    {
+      "file": "../conformance/positive/uniform-layout-numeric.slang",
+      "entry": "main",
+      "dxc_layouts": {
+        "parameters": {
+          "size": 136,
+          "offsets": {
+            "scalar": 0,
+            "pair": 4,
+            "triple": 16,
+            "tail": 28,
+            "widePair": 32,
+            "wideTriple": 48,
+            "afterWide": 72,
+            "_slang_matrix": 80,
+            "afterMatrix": 120,
+            "enabled": 124,
+            "count": 128,
+            "mask": 132,
+            "parameters": 0
+          }
+        }
+      },
+      "uniform_layouts": {
+        "parameters": {
+          "offset": 0,
+          "size": 136
+        },
+        "parameters.scalar": {
+          "offset": 0,
+          "size": 4
+        },
+        "parameters.pair": {
+          "offset": 4,
+          "size": 8
+        },
+        "parameters.triple": {
+          "offset": 16,
+          "size": 12
+        },
+        "parameters.tail": {
+          "offset": 28,
+          "size": 4
+        },
+        "parameters.widePair": {
+          "offset": 32,
+          "size": 16
+        },
+        "parameters.wideTriple": {
+          "offset": 48,
+          "size": 24
+        },
+        "parameters.afterWide": {
+          "offset": 72,
+          "size": 4
+        },
+        "parameters.matrix": {
+          "offset": 80,
+          "size": 40
+        },
+        "parameters.afterMatrix": {
+          "offset": 120,
+          "size": 4
+        },
+        "parameters.enabled": {
+          "offset": 124,
+          "size": 4
+        },
+        "parameters.count": {
+          "offset": 128,
+          "size": 4
+        },
+        "parameters.mask": {
+          "offset": 132,
+          "size": 4
+        }
+      }
+    },
+    {
+      "file": "uniform-half-layout.slang",
+      "entry": "main",
+      "dxc_layouts": {
+        "parameters": {
+          "size": 36,
+          "offsets": {
+            "prefix": 0,
+            "scalar": 4,
+            "pair": 8,
+            "enabled": 16,
+            "column": 20,
+            "after": 32,
+            "parameters": 0
+          }
+        }
+      },
+      "uniform_layouts": {
+        "parameters": {
+          "offset": 0,
+          "size": 36
+        },
+        "parameters.prefix": {
+          "offset": 0,
+          "size": 4
+        },
+        "parameters.scalar": {
+          "offset": 4,
+          "size": 4
+        },
+        "parameters.pair": {
+          "offset": 8,
+          "size": 8
+        },
+        "parameters.enabled": {
+          "offset": 16,
+          "size": 4
+        },
+        "parameters.column": {
+          "offset": 20,
+          "size": 12
+        },
+        "parameters.after": {
+          "offset": 32,
+          "size": 4
+        }
+      }
+    },
+    {
+      "file": "uniform-matrix-layout.slang",
+      "entry": "main",
+      "dxc_layouts": {
+        "parameters": {
+          "size": 2212,
+          "offsets": {
+            "mfloat11": 0,
+            "mfloat12": 16,
+            "mfloat13": 48,
+            "mfloat14": 96,
+            "mfloat21": 148,
+            "mfloat22": 160,
+            "mfloat23": 192,
+            "mfloat24": 240,
+            "mfloat31": 304,
+            "mfloat32": 320,
+            "mfloat33": 352,
+            "mfloat34": 400,
+            "mfloat41": 464,
+            "mfloat42": 480,
+            "mfloat43": 512,
+            "mfloat44": 560,
+            "mdouble11": 624,
+            "mdouble12": 640,
+            "mdouble13": 672,
+            "mdouble14": 720,
+            "mdouble21": 784,
+            "mdouble22": 800,
+            "mdouble23": 832,
+            "mdouble24": 880,
+            "mdouble31": 944,
+            "mdouble32": 976,
+            "mdouble33": 1040,
+            "mdouble34": 1136,
+            "mdouble41": 1264,
+            "mdouble42": 1296,
+            "mdouble43": 1360,
+            "mdouble44": 1456,
+            "mhalf11": 1584,
+            "mhalf12": 1600,
+            "mhalf13": 1632,
+            "mhalf14": 1680,
+            "mhalf21": 1732,
+            "mhalf22": 1744,
+            "mhalf23": 1776,
+            "mhalf24": 1824,
+            "mhalf31": 1888,
+            "mhalf32": 1904,
+            "mhalf33": 1936,
+            "mhalf34": 1984,
+            "mhalf41": 2048,
+            "mhalf42": 2064,
+            "mhalf43": 2096,
+            "mhalf44": 2144,
+            "tail": 2208,
+            "parameters": 0
+          }
+        }
+      },
+      "uniform_layouts": {
+        "parameters": {
+          "offset": 0,
+          "size": 2212
+        },
+        "parameters.tail": {
+          "offset": 2208,
+          "size": 4
+        },
+        "parameters.mfloat11": {
+          "offset": 0
+        },
+        "parameters.mfloat12": {
+          "offset": 16
+        },
+        "parameters.mfloat13": {
+          "offset": 48
+        },
+        "parameters.mfloat14": {
+          "offset": 96
+        },
+        "parameters.mfloat21": {
+          "offset": 148
+        },
+        "parameters.mfloat22": {
+          "offset": 160
+        },
+        "parameters.mfloat23": {
+          "offset": 192
+        },
+        "parameters.mfloat24": {
+          "offset": 240
+        },
+        "parameters.mfloat31": {
+          "offset": 304
+        },
+        "parameters.mfloat32": {
+          "offset": 320
+        },
+        "parameters.mfloat33": {
+          "offset": 352
+        },
+        "parameters.mfloat34": {
+          "offset": 400
+        },
+        "parameters.mfloat41": {
+          "offset": 464
+        },
+        "parameters.mfloat42": {
+          "offset": 480
+        },
+        "parameters.mfloat43": {
+          "offset": 512
+        },
+        "parameters.mfloat44": {
+          "offset": 560
+        },
+        "parameters.mdouble11": {
+          "offset": 624
+        },
+        "parameters.mdouble12": {
+          "offset": 640
+        },
+        "parameters.mdouble13": {
+          "offset": 672
+        },
+        "parameters.mdouble14": {
+          "offset": 720
+        },
+        "parameters.mdouble21": {
+          "offset": 784
+        },
+        "parameters.mdouble22": {
+          "offset": 800
+        },
+        "parameters.mdouble23": {
+          "offset": 832
+        },
+        "parameters.mdouble24": {
+          "offset": 880
+        },
+        "parameters.mdouble31": {
+          "offset": 944
+        },
+        "parameters.mdouble32": {
+          "offset": 976
+        },
+        "parameters.mdouble33": {
+          "offset": 1040
+        },
+        "parameters.mdouble34": {
+          "offset": 1136
+        },
+        "parameters.mdouble41": {
+          "offset": 1264
+        },
+        "parameters.mdouble42": {
+          "offset": 1296
+        },
+        "parameters.mdouble43": {
+          "offset": 1360
+        },
+        "parameters.mdouble44": {
+          "offset": 1456
+        },
+        "parameters.mhalf11": {
+          "offset": 1584
+        },
+        "parameters.mhalf12": {
+          "offset": 1600
+        },
+        "parameters.mhalf13": {
+          "offset": 1632
+        },
+        "parameters.mhalf14": {
+          "offset": 1680
+        },
+        "parameters.mhalf21": {
+          "offset": 1732
+        },
+        "parameters.mhalf22": {
+          "offset": 1744
+        },
+        "parameters.mhalf23": {
+          "offset": 1776
+        },
+        "parameters.mhalf24": {
+          "offset": 1824
+        },
+        "parameters.mhalf31": {
+          "offset": 1888
+        },
+        "parameters.mhalf32": {
+          "offset": 1904
+        },
+        "parameters.mhalf33": {
+          "offset": 1936
+        },
+        "parameters.mhalf34": {
+          "offset": 1984
+        },
+        "parameters.mhalf41": {
+          "offset": 2048
+        },
+        "parameters.mhalf42": {
+          "offset": 2064
+        },
+        "parameters.mhalf43": {
+          "offset": 2096
+        },
+        "parameters.mhalf44": {
+          "offset": 2144
+        }
+      }
     }
   ]
 }

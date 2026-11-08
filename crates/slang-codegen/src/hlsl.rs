@@ -9,6 +9,8 @@ pub(crate) fn emit(module: &Module) -> String {
         indent: 0,
     };
     let mut emitted = BTreeSet::new();
+    emitter.line("#pragma pack_matrix(column_major)");
+    emitter.line("");
     for structure in &module.structures {
         emitter.structure(module, structure, &mut emitted);
     }
@@ -20,8 +22,29 @@ pub(crate) fn emit(module: &Module) -> String {
         }
     }
     emitter.line("");
+    if let Some(binding) = module.global_uniform_binding {
+        // This target name cannot be produced by identifier(): source names
+        // beginning with _slang_ receive another prefix, and globals is unreserved.
+        emitter.line(&format!("cbuffer _slang_globals : {}", binding.register));
+        emitter.line("{");
+        emitter.indent += 1;
+        let mut uniforms: Vec<_> = module
+            .globals
+            .iter()
+            .filter(|g| g.is_global_uniform())
+            .collect();
+        uniforms.sort_by_key(|g| g.uniform_layout.as_ref().map(|layout| layout.offset));
+        for global in uniforms {
+            emitter.line(&format!("{};", variable(global)));
+        }
+        emitter.indent -= 1;
+        emitter.line("};");
+        emitter.line("");
+    }
     for global in &module.globals {
-        emitter.line(&format!("{};", variable(global)));
+        if module.global_uniform_binding.is_none() || !global.is_global_uniform() {
+            emitter.line(&format!("{};", variable(global)));
+        }
     }
     if !module.globals.is_empty() {
         emitter.line("");

@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from conformance import compare_bindings, compare_results, normalize_bindings
+from conformance import compare_bindings, compare_results, normalize_bindings, normalize_global_uniform_binding, normalize_uniform_artifact_binding, normalize_uniform_locations, compare_uniform_locations, compare_dxc_uniform_layouts, normalize_dxc_uniform_layouts
 
 
 def result(accepted, stderr=""):
@@ -13,6 +13,70 @@ def result(accepted, stderr=""):
 
 
 class ConformanceComparison(unittest.TestCase):
+    def test_uniform_locations_follow_shared_types_fields_and_first_array_elements(self):
+        native = {"globals": [{"name": "data", "uniform_layout": {"offset": 16, "type_name": "P"}}], "uniform_types": {
+            "P": {"size": 40, "fields": [{"name": "values", "offset": 16, "type_name": "float2[2]"}]},
+            "float2[2]": {"size": 24, "element_type": "float2"}, "float2": {"size": 8},
+        }}
+        oracle = {"parameters": [{"name": "data", "binding": {"kind": "uniform", "offset": 16}, "type": {
+            "sizes": [{"kind": "uniform", "value": 40}], "fields": [{"name": "values", "binding": {"offset": 16}, "type": {
+                "sizes": [{"kind": "uniform", "value": 24}], "elementType": {"sizes": [{"kind": "uniform", "value": 8}]},
+            }}],
+        }}]}
+        expected = {"data": {"offset": 16, "size": 40}, "data.values": {"offset": 32, "size": 24}, "data.values[]": {"offset": 32, "size": 8}}
+        for compiler, reflection in [("rust", native), ("oracle", oracle)]:
+            self.assertEqual(normalize_uniform_locations(expected, reflection, compiler), expected)
+            self.assertTrue(compare_uniform_locations({"data.values": {"offset": 32}}, reflection, compiler))
+            self.assertFalse(compare_uniform_locations({"data.values": {"offset": 16}}, reflection, compiler))
+            self.assertFalse(compare_uniform_locations({"data.values": {"size": 32}}, reflection, compiler))
+            with self.assertRaises(ValueError):
+                normalize_uniform_locations(["data.values[1]"], reflection, compiler)
+
+    def test_missing_uniform_layouts_cannot_count_as_matching(self):
+        with self.assertRaises(KeyError):
+            normalize_uniform_locations(["value"], {"globals": [{"name": "value"}]}, "rust")
+        with self.assertRaises(ValueError):
+            normalize_uniform_locations(["value"], {"globals": []}, "rust")
+
+    def test_dxc_uniform_buffer_sizes_and_offsets_must_match(self):
+        dump = "; cbuffer parameters\n; {\n; float value; ; Offset: 4\n; } parameters; ; Offset: 0 Size: 8\n; }\n"
+        expected = {"parameters": {"size": 8, "offsets": {"value": 4}}}
+        self.assertTrue(compare_dxc_uniform_layouts(expected, dump))
+        self.assertFalse(compare_dxc_uniform_layouts({"parameters": {"size": 16, "offsets": {"value": 4}}}, dump))
+        self.assertFalse(compare_dxc_uniform_layouts({"parameters": {"size": 8, "offsets": {"value": 0}}}, dump))
+        self.assertFalse(compare_dxc_uniform_layouts(expected, ""))
+        with self.assertRaises(ValueError):
+            normalize_dxc_uniform_layouts(dump.replace("; } parameters", "; float value; ; Offset: 0\n; } parameters"))
+
+    def test_global_uniform_buffer_bindings_normalize_defaults_and_origin(self):
+        expected = {"class": "b", "index": 1, "space": 0, "count": 1}
+        self.assertEqual(normalize_global_uniform_binding({"global_uniform_binding": {**expected, "explicit": False}}, "rust"), expected)
+        scope = {"globalScope": {"kind": "constantBuffer", "binding": {"kind": "constantBuffer", "index": 0}}}
+        self.assertEqual(normalize_global_uniform_binding(scope, "oracle", "cbuffer globalParams_0 : register(b1) {}"), expected)
+        expected = {**expected, "space": 3}
+        self.assertEqual(normalize_global_uniform_binding(scope, "oracle", "cbuffer globalParams_0 : register(b1, space3) {}"), expected)
+
+    def test_absent_and_malformed_global_uniform_buffer_bindings_are_distinct(self):
+        self.assertIsNone(normalize_global_uniform_binding({}, "rust"))
+        self.assertIsNone(normalize_global_uniform_binding({"globalScope": {"kind": "struct"}}, "oracle"))
+        for compiler, reflection in [
+            ("rust", {"global_uniform_binding": {"class": "b"}}),
+            ("oracle", {}),
+        ]:
+            with self.assertRaises(KeyError):
+                normalize_global_uniform_binding(reflection, compiler)
+        with self.assertRaises(ValueError):
+            normalize_global_uniform_binding({"globalScope": {"kind": "constantBuffer"}}, "oracle")
+        with self.assertRaises(ValueError):
+            normalize_global_uniform_binding({"globalScope": {"kind": "constantBuffer"}}, "oracle", "")
+
+    def test_shared_uniform_hlsl_comparison_requires_unambiguous_named_buffers(self):
+        expected = {"class": "b", "index": 2, "space": 3, "count": 1}
+        self.assertEqual(normalize_uniform_artifact_binding("cbuffer _slang_globals : register(b2, space3) {}", "rust"), expected)
+        self.assertIsNone(normalize_uniform_artifact_binding("cbuffer other : register(b0) {}", "oracle"))
+        with self.assertRaises(ValueError):
+            normalize_uniform_artifact_binding("cbuffer globalParams_0 : register(b0) {} cbuffer globalParams_1 : register(b1) {}", "oracle")
+
     def test_resource_bindings_normalize_oracle_defaults_and_ignore_uniform_offsets(self):
         oracle = {"parameters": [
             {"name": "image", "binding": {"kind": "shaderResource", "index": 2}},

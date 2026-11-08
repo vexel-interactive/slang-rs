@@ -20,7 +20,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 Compilation returns `Result<Compilation, CompileError>`. `Compilation` contains
 a text artifact, typed IR, declaration reflection, a source map, and warnings.
-Reflection schema version 7 reports `compute`, `vertex`, or `fragment` stages;
+Reflection schema version 9 reports `compute`, `vertex`, or `fragment` stages;
 `thread_group_size` is present only for compute entries. The Rust model uses
 `slang_sema::ShaderStage` and `Option<[u32; 3]>` for these fields.
 `EntryPointInfo` and `GlobalInfo` retain the source `name` and add `target_name`
@@ -41,6 +41,19 @@ Its JSON object contains `class` (`b`, `t`, `u`, or `s`), `index`, `space`, and
 `count`, and `explicit`. Array dimensions multiply into `count`; automatic
 bindings use space zero. `explicit` distinguishes source annotations from
 automatic assignment. Numeric uniforms and private storage omit `binding`.
+`Reflection.global_uniform_binding: Option<ResourceBinding>` reports the shared
+constant-buffer register for ordinary global uniform values. It is absent when
+there are no such values; static and groupshared storage are excluded. The HLSL
+emitter uses this register explicitly, and `check_only` preserves it in reflection.
+`GlobalInfo.uniform_layout: Option<UniformVariableLayout>` holds an offset and
+canonical value type name for global uniforms and `ConstantBuffer` elements.
+`Reflection.uniform_types` maps these names to shared `UniformTypeLayout` entries:
+occupied byte size, alignment, struct field offsets, array strides and element
+types, and column-major matrix strides. `Reflection.global_uniform_size` reports
+the occupied size of the shared buffer. Private storage and structured-buffer
+elements omit this metadata. These models are reexported from `slang-compiler`.
+See [resources.md](resources.md#constant-buffer-byte-layout) for legacy HLSL rules,
+host allocation requirements, native half storage, and the remaining limits.
 The binding types are reexported from `slang-compiler` and defined
 in `slang-layout`. See [resources.md](resources.md) for the checked limits.
 Overlapping explicit ranges produce warning `T023` in `Compilation.diagnostics`;
@@ -127,7 +140,9 @@ It returns a linked `Program`; pass that to `slang_sema::check_program`.
 Direct `slang_sema::check` handles a single resolved AST and rejects unresolved
 imports or member directives. Loading a program owns no process-wide cache.
 Successful `CheckedModule` values expose semantic warnings in `diagnostics` and
-resource ranges in `resource_bindings`, keyed by declaration byte spans.
+resource ranges in `resource_bindings`, keyed by declaration byte spans, and the
+shared uniform buffer register in `global_uniform_binding`. IR lowering adds the
+constant-buffer byte layouts used by emission and declaration reflection.
 
 ## API compatibility
 

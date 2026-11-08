@@ -6,20 +6,20 @@
     "rustfmt": "passed",
     "clippy_all_targets_warnings_denied": "passed",
     "unit_tests": 27,
-    "integration_tests": 227,
+    "integration_tests": 236,
     "doc_tests": 1,
-    "conformance_comparison_tests": 10,
+    "conformance_comparison_tests": 16,
     "rustdoc": "passed",
     "release_build": "passed",
     "english_documentation_and_links": "passed"
   },
   "differential_validation": {
     "oracle": "Slang 2026.21",
-    "cases_passed": 341,
-    "cases_total": 341,
-    "matching_acceptance_cases": 331,
+    "cases_passed": 349,
+    "cases_total": 349,
+    "matching_acceptance_cases": 339,
     "documented_oracle_differences": 10,
-    "dxc_hlsl_artifacts_validated": 352,
+    "dxc_hlsl_artifacts_validated": 368,
     "dxc_invalid_hlsl_artifacts_rejected": 12,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
@@ -30,10 +30,13 @@
       "vs_6_0"
     ],
     "documented_oracle_artifact_differences": 1,
-    "resource_binding_cases_compared": 16
+    "resource_binding_cases_compared": 21,
+    "global_uniform_binding_cases_compared": 8,
+    "uniform_byte_layout_cases_compared": 4
   },
-  "remote_ci_executed": true,
-  "remote_ci": {
+  "remote_ci_executed": false,
+  "remote_ci": null,
+  "previous_remote_ci": {
     "run_id": 42418894045,
     "head_sha": "0d67faf29d6f165982668ffccbe1edcfe5f396e2",
     "conclusion": "success",
@@ -43,17 +46,17 @@
       "macos-latest"
     ]
   },
-  "previous_remote_ci": {
-    "run_id": 42418145228,
-    "head_sha": "818f87fbcccca32cf61bafdfcbc3b0fcf5e385ea",
-    "conclusion": "success",
-    "platforms": [
-      "ubuntu-latest",
-      "windows-latest",
-      "macos-latest"
-    ]
-  },
   "earlier_remote_ci": [
+    {
+      "run_id": 42418145228,
+      "head_sha": "818f87fbcccca32cf61bafdfcbc3b0fcf5e385ea",
+      "conclusion": "success",
+      "platforms": [
+        "ubuntu-latest",
+        "windows-latest",
+        "macos-latest"
+      ]
+    },
     {
       "run_id": 42416726583,
       "head_sha": "2570c0aecda750dab7927548552337136b9c088c",
@@ -306,7 +309,8 @@
     }
   ],
   "additional_dxc_checks": [
-    "HLSL reserved entry name through reflection target_name"
+    "HLSL reserved entry name through reflection target_name",
+    "Legacy DXC offsets and buffer size for fixed arrays of all 48 float/double/half matrix shapes"
   ],
   "native_validation": {
     "dxc_hlsl_artifacts_validated": 4,
@@ -325,7 +329,7 @@
   },
   "native_hlsl_suite": {
     "manifest": "tests/native/manifest.json",
-    "artifacts_validated": 7,
+    "artifacts_validated": 11,
     "profiles": [
       "cs_6_0",
       "ps_6_0"
@@ -339,7 +343,13 @@
       "one-component-output-double.slang",
       "one-component-derivatives-double.slang",
       "bitcast-entry-name.slang",
-      "../../examples/resource-bindings.slang"
-    ]
+      "../../examples/resource-bindings.slang",
+      "../../examples/uniform-layout.slang",
+      "../conformance/positive/uniform-layout-numeric.slang",
+      "uniform-half-layout.slang",
+      "uniform-matrix-layout.slang"
+    ],
+    "uniform_byte_layout_cases": 4,
+    "matrix_layout_shapes": 48
   }
 }

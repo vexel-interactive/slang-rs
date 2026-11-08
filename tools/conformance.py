@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import re
 import subprocess
 from pathlib import Path
 
@@ -50,6 +51,112 @@ def compare_bindings(expected, reflection, compiler):
     return all(actual.get(name) == binding for name, binding in expected.items())
 
 
+def normalize_uniform_artifact_binding(artifact, compiler):
+    """Inspect the named shared cbuffer in selected, unambiguous HLSL fixtures."""
+    name = r"_slang_globals" if compiler == "rust" else r"globalParams_\d+"
+    matches = re.findall(rf"\bcbuffer\s+{name}\s*:\s*register\(\s*b(\d+)\s*(?:,\s*space(\d+)\s*)?\)", artifact)
+    if len(matches) > 1:
+        raise ValueError("ambiguous global uniform buffer in HLSL")
+    if not matches:
+        return None
+    index, space = matches[0]
+    return {"class": "b", "index": int(index), "space": int(space or 0), "count": 1}
+
+
+def normalize_global_uniform_binding(reflection, compiler, artifact=None):
+    """Compare native reflection with the oracle's emitted shared buffer register."""
+    if compiler == "rust":
+        binding = reflection.get("global_uniform_binding")
+        return None if binding is None else {key: binding[key] for key in ["class", "index", "space", "count"]}
+    scope = reflection["globalScope"]
+    if scope["kind"] != "constantBuffer":
+        return None
+    # Slang 2026.21 reports a relative zero here even if the emitted buffer is b1.
+    # Read the target artifact rather than treating that zero as an absolute slot.
+    if artifact is None:
+        raise ValueError("oracle global uniform comparison requires HLSL")
+    binding = normalize_uniform_artifact_binding(artifact, compiler)
+    if binding is None:
+        raise ValueError("oracle global uniform buffer is missing from HLSL")
+    return binding
+
+
+def normalize_uniform_locations(paths, reflection, compiler):
+    """Resolve selected fields and first array elements without expanding arrays."""
+    globals_info = reflection["globals" if compiler == "rust" else "parameters"]
+    result = {}
+    for path in paths:
+        parts = path.split(".")
+        root = parts[0].split("[")[0]
+        matches = [g for g in globals_info if g["name"] == root]
+        if len(matches) != 1:
+            raise ValueError(f"missing or ambiguous uniform global: {root}")
+        global_info = matches[0]
+        if compiler == "rust":
+            location = global_info["uniform_layout"]
+            offset = location["offset"]
+            ty = reflection["uniform_types"][location["type_name"]]
+        else:
+            binding = global_info["binding"]
+            ty = global_info["type"]
+            if binding["kind"] == "constantBuffer":
+                while ty["kind"] == "array":
+                    ty = ty["elementType"]
+                ty = ty["elementType"]
+                offset = 0
+            else:
+                if binding["kind"] != "uniform":
+                    raise ValueError(f"global is not uniform data: {root}")
+                offset = binding["offset"]
+        for index, part in enumerate(parts):
+            field_name = part.split("[")[0]
+            if index:
+                fields = [f for f in ty["fields"] if f["name"] == field_name]
+                if len(fields) != 1:
+                    raise ValueError(f"missing or ambiguous uniform field: {path}")
+                field = fields[0]
+                offset += field["offset"] if compiler == "rust" else field["binding"]["offset"]
+                ty = reflection["uniform_types"][field["type_name"]] if compiler == "rust" else field["type"]
+            suffix = part[len(field_name):]
+            if suffix != "[]" * (len(suffix) // 2):
+                raise ValueError(f"uniform paths support only first-element [] selectors: {path}")
+            for _ in range(len(suffix) // 2):
+                ty = reflection["uniform_types"][ty["element_type"]] if compiler == "rust" else ty["elementType"]
+        size = ty["size"] if compiler == "rust" else next(s["value"] for s in ty["sizes"] if s["kind"] == "uniform")
+        result[path] = {"offset": offset, "size": size}
+    return result
+
+
+def normalize_dxc_uniform_layouts(dump):
+    """Read selected legacy DXC buffer definitions with unambiguous field names."""
+    result = {}
+    for name, body in re.findall(r"^; cbuffer (\S+)\n; \{\n(.*?)^; \}\n", dump, re.MULTILINE | re.DOTALL):
+        offsets = {}
+        for field, offset in re.findall(r"\b(\w+)(?:\[[^\]]+\])*\s*;\s*; Offset:\s*(\d+)", body):
+            offset = int(offset)
+            if field in offsets and offsets[field] != offset:
+                raise ValueError(f"ambiguous DXC uniform field: {name}.{field}")
+            offsets[field] = offset
+        sizes = re.findall(r"\bSize:\s*(\d+)", body)
+        if len(sizes) != 1 or name in result:
+            raise ValueError(f"missing or ambiguous DXC uniform buffer size: {name}")
+        result[name] = {"size": int(sizes[0]), "offsets": offsets}
+    return result
+
+
+def compare_uniform_locations(expected, reflection, compiler):
+    actual = normalize_uniform_locations(expected, reflection, compiler)
+    return all(all(actual[path].get(key) == value for key, value in location.items())
+               for path, location in expected.items())
+
+
+def compare_dxc_uniform_layouts(expected, dump):
+    actual = normalize_dxc_uniform_layouts(dump)
+    return all(name in actual and actual[name]["size"] == layout["size"]
+               and all(actual[name]["offsets"].get(field) == offset for field, offset in layout["offsets"].items())
+               for name, layout in expected.items())
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--rust", type=Path, required=True)
@@ -71,7 +178,7 @@ def main():
             common.extend(["-profile", profile])
         rust_command = [str(args.rust.resolve()), *common, "-o", str(rust_output)]
         oracle_command = [str(args.oracle.resolve()), *common, "-o", str(oracle_output)]
-        if "bindings" in case:
+        if any(key in case for key in ["bindings", "global_uniform_binding", "uniform_layouts"]):
             rust_command.extend(["--reflection", str(rust_output.with_suffix(".json"))])
             oracle_command.extend(["-reflection-json", str(oracle_output.with_suffix(".json"))])
         rust = run(rust_command)
@@ -87,6 +194,8 @@ def main():
                 validators.append(validation)
         passed = compare_results(case, rust, oracle, validators)
         binding_checks = []
+        uniform_binding_checks = []
+        layout_checks = []
         if "bindings" in case:
             for compiler, compilation, output in [("rust", rust, rust_output), ("oracle", oracle, oracle_output)]:
                 check = {"compiler": compiler, "passed": False, "expected": case["bindings"]}
@@ -99,7 +208,33 @@ def main():
                         check["error"] = str(error)
                 binding_checks.append(check)
             passed = passed and all(check["passed"] for check in binding_checks)
-        results.append({"file": case["file"], "passed": passed, "rust": rust, "oracle": oracle, "validators": validators, "binding_checks": binding_checks})
+        if "global_uniform_binding" in case:
+            for compiler, compilation, output in [("rust", rust, rust_output), ("oracle", oracle, oracle_output)]:
+                check = {"compiler": compiler, "passed": False, "expected": case["global_uniform_binding"]}
+                if compilation["accepted"]:
+                    try:
+                        reflection = json.loads(output.with_suffix(".json").read_text(encoding="utf-8"))
+                        artifact = output.read_text(encoding="utf-8")
+                        check["actual"] = normalize_global_uniform_binding(reflection, compiler, artifact)
+                        check["artifact"] = normalize_uniform_artifact_binding(artifact, compiler)
+                        check["passed"] = check["actual"] == check["expected"] == check["artifact"]
+                    except (OSError, ValueError, KeyError, TypeError) as error:
+                        check["error"] = str(error)
+                uniform_binding_checks.append(check)
+            passed = passed and all(check["passed"] for check in uniform_binding_checks)
+        if "uniform_layouts" in case:
+            for compiler, compilation, output in [("rust", rust, rust_output), ("oracle", oracle, oracle_output)]:
+                check = {"compiler": compiler, "passed": False, "expected": case["uniform_layouts"]}
+                if compilation["accepted"]:
+                    try:
+                        reflection = json.loads(output.with_suffix(".json").read_text(encoding="utf-8"))
+                        check["actual"] = normalize_uniform_locations(case["uniform_layouts"], reflection, compiler)
+                        check["passed"] = compare_uniform_locations(case["uniform_layouts"], reflection, compiler)
+                    except (OSError, ValueError, KeyError, TypeError, StopIteration) as error:
+                        check["error"] = str(error)
+                layout_checks.append(check)
+            passed = passed and all(check["passed"] for check in layout_checks)
+        results.append({"file": case["file"], "passed": passed, "rust": rust, "oracle": oracle, "validators": validators, "binding_checks": binding_checks, "uniform_binding_checks": uniform_binding_checks, "uniform_layout_checks": layout_checks})
         print(f"{'PASS' if passed else 'FAIL'} {case['file']}")
     report = {
         "kind": "acceptance, selected resource bindings, and HLSL validity, not execution equivalence",
@@ -108,6 +243,8 @@ def main():
         "dxc_valid_artifacts": sum(v["accepted"] and v["expected_accept"] for r in results for v in r["validators"]),
         "dxc_invalid_artifacts_rejected": sum(not v["accepted"] and not v["expected_accept"] for r in results for v in r["validators"]),
         "resource_binding_cases": sum(bool(r["binding_checks"]) for r in results),
+        "global_uniform_binding_cases": sum(bool(r["uniform_binding_checks"]) for r in results),
+        "uniform_layout_cases": sum(bool(r["uniform_layout_checks"]) for r in results),
         "cases": results,
     }
     args.output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8", newline="\n")

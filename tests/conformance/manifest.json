@@ -2275,6 +2275,12 @@
           "space": 0,
           "count": 1
         }
+      },
+      "global_uniform_binding": {
+        "class": "b",
+        "index": 0,
+        "space": 0,
+        "count": 1
       }
     },
     {
@@ -2300,6 +2306,12 @@
           "space": 0,
           "count": 1
         }
+      },
+      "global_uniform_binding": {
+        "class": "b",
+        "index": 1,
+        "space": 0,
+        "count": 1
       }
     },
     {
@@ -2404,6 +2416,315 @@
           "index": 2,
           "space": 0,
           "count": 1
+        }
+      },
+      "global_uniform_binding": null
+    },
+    {
+      "file": "positive/uniform-register-gap.slang",
+      "accept": true,
+      "entry": "main",
+      "global_uniform_binding": {
+        "class": "b",
+        "index": 1,
+        "space": 0,
+        "count": 1
+      },
+      "bindings": {
+        "first": {
+          "class": "b",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        },
+        "third": {
+          "class": "b",
+          "index": 2,
+          "space": 0,
+          "count": 1
+        },
+        "automatic": {
+          "class": "b",
+          "index": 3,
+          "space": 0,
+          "count": 1
+        },
+        "output": {
+          "class": "u",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        }
+      }
+    },
+    {
+      "file": "positive/uniform-aggregates.slang",
+      "accept": true,
+      "entry": "main",
+      "global_uniform_binding": {
+        "class": "b",
+        "index": 0,
+        "space": 0,
+        "count": 1
+      },
+      "bindings": {
+        "output": {
+          "class": "u",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        }
+      }
+    },
+    {
+      "file": "positive/uniform-generated-name.slang",
+      "accept": true,
+      "entry": "main",
+      "global_uniform_binding": {
+        "class": "b",
+        "index": 0,
+        "space": 0,
+        "count": 1
+      },
+      "bindings": {
+        "output": {
+          "class": "u",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        }
+      }
+    },
+    {
+      "file": "positive/uniform-register-space.slang",
+      "accept": true,
+      "entry": "main",
+      "global_uniform_binding": {
+        "class": "b",
+        "index": 0,
+        "space": 0,
+        "count": 1
+      },
+      "bindings": {
+        "otherSpace": {
+          "class": "b",
+          "index": 0,
+          "space": 3,
+          "count": 1
+        },
+        "automatic": {
+          "class": "b",
+          "index": 1,
+          "space": 0,
+          "count": 1
+        },
+        "output": {
+          "class": "u",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        }
+      }
+    },
+    {
+      "file": "modules/uniform-root.slang",
+      "accept": true,
+      "entry": "main",
+      "global_uniform_binding": {
+        "class": "b",
+        "index": 1,
+        "space": 0,
+        "count": 1
+      },
+      "bindings": {
+        "fixed": {
+          "class": "b",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        },
+        "automatic": {
+          "class": "b",
+          "index": 2,
+          "space": 0,
+          "count": 1
+        },
+        "output": {
+          "class": "u",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        }
+      },
+      "uniform_layouts": {
+        "rootValue": {
+          "offset": 0,
+          "size": 4
+        },
+        "importedValue": {
+          "offset": 4,
+          "size": 4
+        }
+      }
+    },
+    {
+      "file": "../../examples/uniform-layout.slang",
+      "accept": true,
+      "entry": "main",
+      "uniform_layouts": {
+        "prefix": {
+          "offset": 0,
+          "size": 4
+        },
+        "data": {
+          "offset": 16,
+          "size": 60
+        },
+        "data.pair": {
+          "offset": 32,
+          "size": 8
+        },
+        "data.pair.x": {
+          "offset": 32,
+          "size": 4
+        },
+        "data.values": {
+          "offset": 48,
+          "size": 24
+        },
+        "data.values[]": {
+          "offset": 48,
+          "size": 8
+        },
+        "data.tail": {
+          "offset": 72,
+          "size": 4
+        },
+        "after": {
+          "offset": 76,
+          "size": 4
+        },
+        "parameters": {
+          "offset": 0,
+          "size": 60
+        },
+        "parameters.pair.y": {
+          "offset": 20,
+          "size": 4
+        },
+        "parameters.values": {
+          "offset": 32,
+          "size": 24
+        }
+      }
+    },
+    {
+      "file": "positive/uniform-layout-numeric.slang",
+      "accept": true,
+      "entry": "main",
+      "uniform_layouts": {
+        "parameters": {
+          "offset": 0,
+          "size": 136
+        },
+        "parameters.scalar": {
+          "offset": 0,
+          "size": 4
+        },
+        "parameters.pair": {
+          "offset": 4,
+          "size": 8
+        },
+        "parameters.triple": {
+          "offset": 16,
+          "size": 12
+        },
+        "parameters.tail": {
+          "offset": 28,
+          "size": 4
+        },
+        "parameters.widePair": {
+          "offset": 32,
+          "size": 16
+        },
+        "parameters.wideTriple": {
+          "offset": 48,
+          "size": 24
+        },
+        "parameters.afterWide": {
+          "offset": 72,
+          "size": 4
+        },
+        "parameters.matrix": {
+          "offset": 80,
+          "size": 40
+        },
+        "parameters.afterMatrix": {
+          "offset": 120,
+          "size": 4
+        },
+        "parameters.enabled": {
+          "offset": 124,
+          "size": 4
+        },
+        "parameters.count": {
+          "offset": 128,
+          "size": 4
+        },
+        "parameters.mask": {
+          "offset": 132,
+          "size": 4
+        }
+      }
+    },
+    {
+      "file": "positive/uniform-layout-arrays.slang",
+      "accept": true,
+      "entry": "main",
+      "uniform_layouts": {
+        "parameters": {
+          "offset": 0,
+          "size": 108
+        },
+        "parameters.values": {
+          "offset": 16,
+          "size": 88
+        },
+        "parameters.values[]": {
+          "offset": 16,
+          "size": 40
+        },
+        "parameters.values[][]": {
+          "offset": 16,
+          "size": 8
+        },
+        "parameters.tail": {
+          "offset": 104,
+          "size": 4
+        },
+        "data": {
+          "offset": 0,
+          "size": 220
+        },
+        "data[]": {
+          "offset": 0,
+          "size": 108
+        },
+        "data[].values": {
+          "offset": 16,
+          "size": 88
+        },
+        "data[].values[]": {
+          "offset": 16,
+          "size": 40
+        },
+        "data[].values[][]": {
+          "offset": 16,
+          "size": 8
+        },
+        "data[].tail": {
+          "offset": 104,
+          "size": 4
         }
       }
     }

@@ -12,6 +12,9 @@ pub fn lower(checked: &CheckedModule) -> Result<Module, Diagnostic> {
     let mut module = Module {
         structures: vec![],
         globals: vec![],
+        global_uniform_binding: checked.global_uniform_binding,
+        global_uniform_size: None,
+        uniform_types: Default::default(),
         functions: vec![],
         entry_points: checked.entry_points.clone(),
     };
@@ -82,6 +85,7 @@ pub fn lower(checked: &CheckedModule) -> Result<Module, Diagnostic> {
     crate::atomic::lower(&mut module)?;
     crate::static_local::lower(&mut module)?;
     crate::scope::lower(&mut module);
+    crate::uniform::lower(&mut module, checked)?;
     Ok(module)
 }
 
@@ -128,6 +132,7 @@ impl Lowerer<'_> {
                 .resource_bindings
                 .get(&span_key(variable.span))
                 .copied(),
+            uniform_layout: None,
             initializer: variable
                 .initializer
                 .as_ref()

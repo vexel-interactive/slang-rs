@@ -423,11 +423,12 @@ the supported scalar, vector, matrix, array, and nested struct types. Access
 uses the usual field syntax, such as `parameters.scale`. Fields remain read-only,
 including nested array elements, swizzles, and `out` arguments. Imported constant
 buffers preserve their struct's field visibility. HLSL uses its native
-`ConstantBuffer<T>` template; reflection records read access.
+`ConstantBuffer<T>` template; reflection records read access and the legacy HLSL
+byte layout of the element. See [resources.md](resources.md#constant-buffer-byte-layout).
 
 Direct `cbuffer` syntax, nonstruct constant-buffer elements, automatic conversion
 of a constant-buffer handle to its element,
-resource-valued fields, and target-specific byte layout remain unimplemented.
+resource-valued fields, and byte layout for other targets remain unimplemented.
 
 Fixed arrays of the supported resource handles, including constant buffers,
 preserve their outer-to-inner dimensions. Indexing selects a resource handle;

@@ -9,6 +9,7 @@ mod lower;
 mod model;
 mod scope;
 mod static_local;
+mod uniform;
 mod visit;
 
 pub use lower::lower;
