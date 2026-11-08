@@ -2727,6 +2727,234 @@
           "size": 4
         }
       }
+    },
+    {
+      "file": "positive/cbuffer-basic.slang",
+      "accept": true,
+      "entry": "main",
+      "bindings": {
+        "Params": {
+          "class": "b",
+          "index": 2,
+          "space": 1,
+          "count": 1
+        }
+      },
+      "global_uniform_binding": null,
+      "uniform_layouts": {
+        "Params": {
+          "offset": 0,
+          "size": 40
+        },
+        "Params.scale": {
+          "offset": 0,
+          "size": 4
+        },
+        "Params.values": {
+          "offset": 16,
+          "size": 24
+        },
+        "Params.values[]": {
+          "offset": 16,
+          "size": 8
+        }
+      }
+    },
+    {
+      "file": "positive/cbuffer-multiple.slang",
+      "accept": true,
+      "entry": "main",
+      "bindings": {
+        "Fixed": {
+          "class": "b",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        },
+        "Automatic": {
+          "class": "b",
+          "index": 2,
+          "space": 0,
+          "count": 1
+        }
+      },
+      "global_uniform_binding": {
+        "class": "b",
+        "index": 1,
+        "space": 0,
+        "count": 1
+      },
+      "uniform_layouts": {
+        "Fixed.fixedValue": {
+          "offset": 0,
+          "size": 4
+        },
+        "Automatic.automaticValue": {
+          "offset": 0,
+          "size": 4
+        },
+        "root": {
+          "offset": 0,
+          "size": 4
+        }
+      }
+    },
+    {
+      "file": "positive/cbuffer-defaults.slang",
+      "accept": true,
+      "entry": "main",
+      "bindings": {
+        "Data": {
+          "class": "b",
+          "index": 1,
+          "space": 0,
+          "count": 1
+        }
+      },
+      "global_uniform_binding": {
+        "class": "b",
+        "index": 0,
+        "space": 0,
+        "count": 1
+      },
+      "uniform_layouts": {
+        "Data": {
+          "offset": 0,
+          "size": 8
+        },
+        "Data.scale": {
+          "offset": 0,
+          "size": 4
+        },
+        "Data.count": {
+          "offset": 4,
+          "size": 4
+        }
+      }
+    },
+    {
+      "file": "positive/cbuffer-static.slang",
+      "accept": true,
+      "entry": "main",
+      "bindings": {
+        "Params": {
+          "class": "b",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        }
+      },
+      "global_uniform_binding": null,
+      "uniform_layouts": {
+        "Params": {
+          "offset": 0,
+          "size": 4
+        },
+        "Params.scale": {
+          "offset": 0,
+          "size": 4
+        }
+      }
+    },
+    {
+      "file": "positive/cbuffer-module/main.slang",
+      "accept": true,
+      "entry": "main",
+      "bindings": {
+        "Params": {
+          "class": "b",
+          "index": 3,
+          "space": 0,
+          "count": 1
+        },
+        "Other": {
+          "class": "b",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        }
+      },
+      "global_uniform_binding": null,
+      "uniform_layouts": {
+        "Params.scale": {
+          "offset": 0,
+          "size": 4
+        },
+        "Other.offset": {
+          "offset": 0,
+          "size": 4
+        }
+      }
+    },
+    {
+      "file": "negative/cbuffer-write.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T015"
+    },
+    {
+      "file": "negative/cbuffer-out.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T015"
+    },
+    {
+      "file": "negative/cbuffer-name.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T011"
+    },
+    {
+      "file": "negative/cbuffer-register.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T022"
+    },
+    {
+      "file": "negative/cbuffer-resource.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T002",
+      "oracle_accept": true,
+      "reason": "Slang supports mixed resource-valued constant-buffer elements and eliminates this unused resource. Native constant buffers currently require data-only elements and report T002."
+    },
+    {
+      "file": "negative/cbuffer-conflict.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T003"
+    },
+    {
+      "file": "positive/cbuffer-module/hidden.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T011"
+    },
+    {
+      "file": "positive/cbuffer-empty.slang",
+      "accept": true,
+      "entry": "main",
+      "bindings": {
+        "Full": {
+          "class": "b",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        }
+      },
+      "global_uniform_binding": null,
+      "uniform_layouts": {
+        "Full.value": {
+          "offset": 0,
+          "size": 4
+        }
+      }
+    },
+    {
+      "file": "negative/cbuffer-duplicate-name.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T003"
     }
   ]
 }

@@ -18,7 +18,7 @@ pub(crate) fn lower(module: &mut Module, checked: &CheckedModule) -> Result<(), 
         if global.is_global_uniform() {
             calculate(&global.ty, &structures, &mut layouts).map_err(|e| error(global.span, e))?;
             uniforms.push(index);
-        } else if global.binding.is_some() {
+        } else {
             let mut ty = &global.ty;
             while let Type::Array(element, _) = ty {
                 ty = element;
@@ -61,9 +61,6 @@ pub(crate) fn lower(module: &mut Module, checked: &CheckedModule) -> Result<(), 
         }
     }
     for global in &mut module.globals {
-        if global.binding.is_none() {
-            continue;
-        }
         let mut ty = &global.ty;
         while let Type::Array(element, _) = ty {
             ty = element;

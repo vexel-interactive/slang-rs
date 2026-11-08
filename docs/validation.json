@@ -6,20 +6,20 @@
     "rustfmt": "passed",
     "clippy_all_targets_warnings_denied": "passed",
     "unit_tests": 27,
-    "integration_tests": 236,
+    "integration_tests": 243,
     "doc_tests": 1,
-    "conformance_comparison_tests": 16,
+    "conformance_comparison_tests": 17,
     "rustdoc": "passed",
     "release_build": "passed",
     "english_documentation_and_links": "passed"
   },
   "differential_validation": {
     "oracle": "Slang 2026.21",
-    "cases_passed": 349,
-    "cases_total": 349,
-    "matching_acceptance_cases": 339,
-    "documented_oracle_differences": 10,
-    "dxc_hlsl_artifacts_validated": 368,
+    "cases_passed": 363,
+    "cases_total": 363,
+    "matching_acceptance_cases": 352,
+    "documented_oracle_differences": 11,
+    "dxc_hlsl_artifacts_validated": 381,
     "dxc_invalid_hlsl_artifacts_rejected": 12,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
@@ -30,9 +30,9 @@
       "vs_6_0"
     ],
     "documented_oracle_artifact_differences": 1,
-    "resource_binding_cases_compared": 21,
-    "global_uniform_binding_cases_compared": 8,
-    "uniform_byte_layout_cases_compared": 4
+    "resource_binding_cases_compared": 27,
+    "global_uniform_binding_cases_compared": 14,
+    "uniform_byte_layout_cases_compared": 10
   },
   "remote_ci_executed": false,
   "remote_ci": null,
@@ -329,7 +329,7 @@
   },
   "native_hlsl_suite": {
     "manifest": "tests/native/manifest.json",
-    "artifacts_validated": 11,
+    "artifacts_validated": 16,
     "profiles": [
       "cs_6_0",
       "ps_6_0"
@@ -347,9 +347,14 @@
       "../../examples/uniform-layout.slang",
       "../conformance/positive/uniform-layout-numeric.slang",
       "uniform-half-layout.slang",
-      "uniform-matrix-layout.slang"
+      "uniform-matrix-layout.slang",
+      "../conformance/positive/cbuffer-basic.slang",
+      "../conformance/positive/cbuffer-multiple.slang",
+      "../conformance/positive/cbuffer-defaults.slang",
+      "../conformance/positive/cbuffer-static.slang",
+      "../conformance/positive/cbuffer-module/main.slang"
     ],
-    "uniform_byte_layout_cases": 4,
+    "uniform_byte_layout_cases": 9,
     "matrix_layout_shapes": 48
   }
 }

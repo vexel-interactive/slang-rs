@@ -111,7 +111,7 @@ overflowing contiguous ranges produce `T022` without expanding array elements.
 
 ## Constant-buffer byte layout
 
-Global uniform values and `ConstantBuffer` elements expose `uniform_layout` with
+Global uniform values, direct `cbuffer` declarations, and `ConstantBuffer` elements expose `uniform_layout` with
 an `offset` and a canonical `type_name`. Look up that name in the top-level
 `uniform_types` table. Each table entry reports `size` and `alignment`, plus
 `fields` for structs, `array_stride` and `element_type` for arrays, or
@@ -170,7 +170,7 @@ See [uniform-layout.slang](../examples/uniform-layout.slang) for a complete exam
 
 ## Current limits
 
-Vulkan binding attributes, direct `cbuffer` declarations, explicit byte packing,
+Vulkan binding attributes, explicit byte packing,
 other target layouts, and the upstream reflection API remain to be implemented.
 Register annotations currently require
 global resources. Numeric/aggregate uniforms, struct fields, parameters, local

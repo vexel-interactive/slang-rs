@@ -5,6 +5,7 @@ use slang_source::Span;
 #[derive(Clone, Debug, Serialize)]
 pub struct Module {
     pub structures: Vec<Struct>,
+    pub constant_buffers: Vec<ConstantBuffer>,
     pub globals: Vec<Variable>,
     /// Shared constant-buffer register for global uniform values.
     pub global_uniform_binding: Option<slang_layout::ResourceBinding>,
@@ -19,6 +20,14 @@ pub struct Module {
 #[derive(Clone, Debug, Serialize)]
 pub struct Struct {
     pub name: String,
+    pub fields: Vec<Variable>,
+}
+
+/// A direct cbuffer with anonymous fields visible in the global value scope.
+#[derive(Clone, Debug, Serialize)]
+pub struct ConstantBuffer {
+    pub name: String,
+    pub variable_name: String,
     pub fields: Vec<Variable>,
 }
 

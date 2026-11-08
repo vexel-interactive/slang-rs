@@ -157,6 +157,21 @@ def compare_dxc_uniform_layouts(expected, dump):
                for name, layout in expected.items())
 
 
+def target_buffer_layouts(expected, reflection):
+    """Translate source buffer names through reflection without assuming hidden identifiers."""
+    result = {}
+    for name, layout in expected.items():
+        buffers = [g for g in reflection["globals"] if g["name"] == name
+                   and g.get("binding", {}).get("class") == "b"]
+        if len(buffers) > 1:
+            raise ValueError(f"ambiguous constant-buffer name: {name}")
+        target = buffers[0]["target_name"] if buffers else name
+        if target in result:
+            raise ValueError(f"ambiguous target buffer name: {target}")
+        result[target] = layout
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--rust", type=Path, required=True)

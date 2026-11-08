@@ -47,6 +47,9 @@ impl Checker {
             );
             return;
         }
+        if self.is_empty_constant_buffer(ty) {
+            return;
+        }
         let binding = ResourceBinding {
             register: annotation.binding,
             count,
@@ -118,6 +121,12 @@ impl Checker {
         {
             return;
         }
+        let buffer_members: std::collections::BTreeSet<_> = module
+            .constant_buffers
+            .iter()
+            .flat_map(|b| &b.members)
+            .map(|m| span_key(m.span))
+            .collect();
         let mut globals: Vec<_> = module
             .declarations
             .iter()
@@ -125,6 +134,9 @@ impl Checker {
                 let Declaration::Global(variable) = declaration else {
                     return None;
                 };
+                if buffer_members.contains(&span_key(variable.span)) {
+                    return None;
+                }
                 (!variable
                     .modifiers
                     .iter()
@@ -162,6 +174,9 @@ impl Checker {
         }
         for global in globals {
             let key = span_key(global.span);
+            if self.is_empty_constant_buffer(&self.declaration_types[&key]) {
+                continue;
+            }
             if self.resource_bindings.contains_key(&key) {
                 continue;
             }
@@ -180,6 +195,33 @@ impl Checker {
                 Err(error) => self.error("T022", global.span, error.to_string()),
             }
         }
+    }
+
+    /// Empty value types do not consume a constant-buffer register.
+    fn is_empty_constant_buffer(&self, mut ty: &Type) -> bool {
+        while let Type::Array(element, _) = ty {
+            ty = element;
+        }
+        let Type::ConstantBuffer(element) = ty else {
+            return false;
+        };
+        let mut stack = vec![element.as_ref()];
+        let mut visited = std::collections::BTreeSet::new();
+        while let Some(ty) = stack.pop() {
+            match ty {
+                Type::Array(element, _) => stack.push(element),
+                Type::Struct(name) => {
+                    if visited.insert(name) {
+                        let Some(fields) = self.structures.get(name) else {
+                            return false;
+                        };
+                        stack.extend(fields.values());
+                    }
+                }
+                _ => return false,
+            }
+        }
+        true
     }
 }
 

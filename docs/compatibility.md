@@ -26,7 +26,7 @@ subsystem is absent. No subsystem currently claims complete upstream parity.
 | Screen derivatives | slang-sema, slang-ir | Partial | ddx/ddy/fwidth and coarse/fine variants, floating shapes and integer conversion, compute quads; full uniformity analysis absent |
 | Integer atomics | slang-sema, slang-ir | Partial | Global 32-bit Interlocked operations on groupshared and RW locations, checked outputs; float and 64-bit atomics absent |
 | Texture and sampler operations | slang-sema, slang-codegen | Partial | 1D/2D/3D/cube, indexed access, load/sample/bias/gradients/comparison/dimensions; advanced resources absent |
-| Constant buffers | slang-sema, slang-ir, slang-codegen | Partial | ConstantBuffer with a struct element, read-only fields and legacy HLSL byte layout; direct cbuffer syntax and explicit layout absent |
+| Constant buffers | slang-syntax, slang-module, slang-sema, slang-ir, slang-codegen | Partial | ConstantBuffer with a struct element, direct cbuffer fields, module visibility, static members, read-only locations and legacy HLSL byte layout; explicit layout and mixed resource fields absent |
 | Byte-address buffers | slang-sema, slang-codegen | Partial | Load/store widths, byte count, uint atomic operations with explicit outputs; typed access and advanced atomics absent |
 | Modules and imports | slang-module, slang-sema | Partial | Imports, reexports, member files, isolated preprocessing, public/internal, legacy visibility; session API and cross-module overload merging absent |
 | Interfaces and generics | ? | Not ported | Constraints, witnesses, specialization required |

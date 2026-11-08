@@ -5,11 +5,17 @@ use slang_source::{Diagnostic, Span};
 /// Parse a complete token stream. Errors never return a partially valid module.
 pub fn parse(tokens: &[Token]) -> Result<Module, Vec<Diagnostic>> {
     let tokens: Vec<Token> = tokens.iter().filter(|t| !t.is_trivia()).cloned().collect();
+    let mut buffer_prefix = "_slang_cbuffer_".to_owned();
+    while tokens.iter().any(|t| t.text.starts_with(&buffer_prefix)) {
+        buffer_prefix.push('_');
+    }
     let mut parser = Parser {
         tokens,
         offset: 0,
         next_expr: 0,
         depth: 0,
+        constant_buffers: vec![],
+        buffer_prefix,
     };
     let mut module = Module::default();
     let mut diagnostics = vec![];
@@ -39,6 +45,7 @@ pub fn parse(tokens: &[Token]) -> Result<Module, Vec<Diagnostic>> {
         }
     }
     if diagnostics.is_empty() {
+        module.constant_buffers = parser.constant_buffers;
         Ok(module)
     } else {
         Err(diagnostics)
@@ -50,6 +57,8 @@ pub(crate) struct Parser {
     pub offset: usize,
     pub next_expr: usize,
     pub depth: usize,
+    pub constant_buffers: Vec<ConstantBufferInfo>,
+    pub buffer_prefix: String,
 }
 
 impl Parser {
@@ -116,6 +125,7 @@ impl Parser {
                 | "let"
                 | "typealias"
                 | "typedef"
+                | "cbuffer"
         ) {
             return Err(self.error("reserved keyword cannot be used as an identifier"));
         }

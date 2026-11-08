@@ -42,6 +42,28 @@ pub(crate) fn emit(module: &Module) -> String {
         emitter.line("");
     }
     for global in &module.globals {
+        if let Some(buffer) = module
+            .constant_buffers
+            .iter()
+            .find(|b| b.variable_name == global.name)
+        {
+            let Some(binding) = global.binding else {
+                continue;
+            };
+            emitter.line(&format!(
+                "cbuffer {} : {}",
+                identifier(&global.name),
+                binding.register
+            ));
+            emitter.line("{");
+            emitter.indent += 1;
+            for field in &buffer.fields {
+                emitter.line(&format!("{};", variable(field)));
+            }
+            emitter.indent -= 1;
+            emitter.line("};");
+            continue;
+        }
         if module.global_uniform_binding.is_none() || !global.is_global_uniform() {
             emitter.line(&format!("{};", variable(global)));
         }

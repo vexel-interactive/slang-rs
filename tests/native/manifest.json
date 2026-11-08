@@ -454,6 +454,153 @@
           "offset": 2144
         }
       }
+    },
+    {
+      "file": "../conformance/positive/cbuffer-basic.slang",
+      "entry": "main",
+      "uniform_layouts": {
+        "Params": {
+          "offset": 0,
+          "size": 40
+        },
+        "Params.scale": {
+          "offset": 0,
+          "size": 4
+        },
+        "Params.values": {
+          "offset": 16,
+          "size": 24
+        },
+        "Params.values[]": {
+          "offset": 16,
+          "size": 8
+        }
+      },
+      "dxc_layouts": {
+        "Params": {
+          "size": 40,
+          "offsets": {
+            "scale": 0,
+            "values": 16
+          }
+        }
+      }
+    },
+    {
+      "file": "../conformance/positive/cbuffer-multiple.slang",
+      "entry": "main",
+      "uniform_layouts": {
+        "Fixed.fixedValue": {
+          "offset": 0,
+          "size": 4
+        },
+        "Automatic.automaticValue": {
+          "offset": 0,
+          "size": 4
+        },
+        "root": {
+          "offset": 0,
+          "size": 4
+        }
+      },
+      "dxc_layouts": {
+        "Fixed": {
+          "size": 4,
+          "offsets": {
+            "fixedValue": 0
+          }
+        },
+        "Automatic": {
+          "size": 4,
+          "offsets": {
+            "automaticValue": 0
+          }
+        },
+        "_slang_globals": {
+          "size": 4,
+          "offsets": {
+            "root": 0
+          }
+        }
+      }
+    },
+    {
+      "file": "../conformance/positive/cbuffer-defaults.slang",
+      "entry": "main",
+      "uniform_layouts": {
+        "Data": {
+          "offset": 0,
+          "size": 8
+        },
+        "Data.scale": {
+          "offset": 0,
+          "size": 4
+        },
+        "Data.count": {
+          "offset": 4,
+          "size": 4
+        }
+      },
+      "dxc_layouts": {
+        "Data": {
+          "size": 8,
+          "offsets": {
+            "scale": 0,
+            "count": 4
+          }
+        }
+      }
+    },
+    {
+      "file": "../conformance/positive/cbuffer-static.slang",
+      "entry": "main",
+      "uniform_layouts": {
+        "Params": {
+          "offset": 0,
+          "size": 4
+        },
+        "Params.scale": {
+          "offset": 0,
+          "size": 4
+        }
+      },
+      "dxc_layouts": {
+        "Params": {
+          "size": 4,
+          "offsets": {
+            "scale": 0
+          }
+        }
+      }
+    },
+    {
+      "file": "../conformance/positive/cbuffer-module/main.slang",
+      "entry": "main",
+      "uniform_layouts": {
+        "Params.scale": {
+          "offset": 0,
+          "size": 4
+        },
+        "Other.offset": {
+          "offset": 0,
+          "size": 4
+        }
+      },
+      "dxc_layouts": {
+        "Params": {
+          "size": 8,
+          "offsets": {
+            "_slang__slang_module_1_scale": 0,
+            "_slang__slang_module_1_hidden": 4
+          }
+        },
+        "Other": {
+          "size": 4,
+          "offsets": {
+            "_slang__slang_module_1_offset": 0
+          }
+        }
+      }
     }
   ]
 }

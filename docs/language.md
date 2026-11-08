@@ -141,7 +141,7 @@ signed/unsigned evaluation rules are not implemented.
   `SamplerComparisonState`. Texture elements are half/float/int/uint scalar or
   vector types; omitting `T` selects `float4`.
 
-Direct `cbuffer` declarations, pointers, 64-bit integers,
+Pointers, 64-bit integers,
 and user-defined generics are not implemented.
 
 Modules, imports, reexports, and member files are described in
@@ -426,7 +426,19 @@ buffers preserve their struct's field visibility. HLSL uses its native
 `ConstantBuffer<T>` template; reflection records read access and the legacy HLSL
 byte layout of the element. See [resources.md](resources.md#constant-buffer-byte-layout).
 
-Direct `cbuffer` syntax, nonstruct constant-buffer elements, automatic conversion
+Direct `cbuffer Name : register(b2, space1) { float scale; };` declarations
+inject read-only field names into global scope. The buffer name has its own
+namespace and cannot be used as a value or to qualify its fields. The trailing
+semicolon is optional. Nonstatic initializers are checked but do not initialize
+buffer data; `const` fields still contain runtime data. Static fields become
+private global storage and do not occupy buffer bytes. In declared modules,
+exporting a field requires both a public buffer and a public field.
+Reflection exposes one resource under the source buffer name and its element
+layout; injected fields and static members are omitted from the global list.
+Empty constant buffers retain their declarations and zero-byte layouts without
+consuming a register. Duplicate buffer names within a module are rejected.
+
+Nonstruct constant-buffer elements, automatic conversion
 of a constant-buffer handle to its element,
 resource-valued fields, and byte layout for other targets remain unimplemented.
 

@@ -159,6 +159,12 @@ pub(crate) fn names(module: &Module) -> BTreeSet<String> {
         names.extend(s.fields.iter().map(|f| f.name.clone()));
     }
     names.extend(module.globals.iter().map(|g| g.name.clone()));
+    names.extend(
+        module
+            .constant_buffers
+            .iter()
+            .flat_map(|b| b.fields.iter().map(|f| f.name.clone())),
+    );
     let mut work = vec![];
     for f in &module.functions {
         names.insert(f.name.clone());

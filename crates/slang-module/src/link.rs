@@ -134,9 +134,15 @@ pub(crate) fn link(
             }
             resolver.declaration(declaration).map_err(|d| vec![d])?;
         }
+        for buffer in &mut nodes[id.0].syntax.constant_buffers {
+            resolver.constant_buffer(buffer).map_err(|d| vec![d])?;
+        }
         syntax
             .declarations
             .append(&mut nodes[id.0].syntax.declarations);
+        syntax
+            .constant_buffers
+            .append(&mut nodes[id.0].syntax.constant_buffers);
     }
     Ok(Program {
         syntax,

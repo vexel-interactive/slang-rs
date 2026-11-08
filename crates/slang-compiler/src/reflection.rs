@@ -58,13 +58,21 @@ impl Reflection {
         checked: &slang_sema::CheckedModule,
         profiles: &BTreeMap<String, crate::ShaderProfile>,
     ) -> Self {
+        let buffer_members: BTreeSet<_> = checked
+            .module
+            .constant_buffers
+            .iter()
+            .flat_map(|b| &b.members)
+            .map(|m| slang_sema::span_key(m.span))
+            .collect();
         let source_globals: BTreeSet<_> = checked
             .module
             .declarations
             .iter()
             .filter_map(|declaration| {
                 if let slang_syntax::Declaration::Global(global) = declaration {
-                    Some(global.name.as_str())
+                    (!buffer_members.contains(&slang_sema::span_key(global.span)))
+                        .then_some(global.name.as_str())
                 } else {
                     None
                 }
@@ -92,10 +100,17 @@ impl Reflection {
                 .iter()
                 .filter(|global| source_globals.contains(global.name.as_str()))
                 .map(|global| GlobalInfo {
-                    name: checked
-                        .symbols
-                        .get(&global.name)
-                        .map_or_else(|| global.name.clone(), |o| o.name.clone()),
+                    name: module
+                        .constant_buffers
+                        .iter()
+                        .find(|b| b.variable_name == global.name)
+                        .map(|b| b.name.clone())
+                        .unwrap_or_else(|| {
+                            checked
+                                .symbols
+                                .get(&global.name)
+                                .map_or_else(|| global.name.clone(), |o| o.name.clone())
+                        }),
                     target_name: slang_codegen::entry_point_name(&global.name, target),
                     type_name: global.ty.to_string(),
                     binding: global.binding,

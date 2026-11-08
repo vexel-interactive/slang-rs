@@ -127,6 +127,10 @@ impl Loader<'_> {
             .syntax
             .declarations
             .append(&mut fragment.declarations);
+        self.nodes[module.0]
+            .syntax
+            .constant_buffers
+            .append(&mut fragment.constant_buffers);
         Ok(())
     }
 

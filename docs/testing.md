@@ -80,6 +80,13 @@ from both reflection outputs against declared golden ranges as well as validatin
 HLSL. They compare class, index, space, and count; uniform byte layout remains
 outside these checks.
 
+Direct constant-buffer tests check global field lookup, declaration defaults,
+runtime const fields, private static storage, lexical shadowing, module
+visibility, member files, empty elements, duplicate buffer names, and invalid
+writes or output arguments. Differential fixtures compare the buffers' resource
+bindings and field byte layouts. Native DXC buffer definitions independently
+verify those layouts using target buffer names from reflection.
+
 Discard tests cover fragment HLSL, clip signatures, selected overloads, unused
 defaults, imported source locations, and stage propagation through calls,
 globals, and aggregate defaults. Long chains and cyclic call graphs check that

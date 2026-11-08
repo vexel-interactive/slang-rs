@@ -11,6 +11,7 @@ pub fn lower(checked: &CheckedModule) -> Result<Module, Diagnostic> {
     };
     let mut module = Module {
         structures: vec![],
+        constant_buffers: vec![],
         globals: vec![],
         global_uniform_binding: checked.global_uniform_binding,
         global_uniform_size: None,
@@ -18,6 +19,22 @@ pub fn lower(checked: &CheckedModule) -> Result<Module, Diagnostic> {
         functions: vec![],
         entry_points: checked.entry_points.clone(),
     };
+    let buffer_members: std::collections::BTreeMap<_, _> = checked
+        .module
+        .constant_buffers
+        .iter()
+        .flat_map(|b| &b.members)
+        .map(|m| (span_key(m.span), m))
+        .collect();
+    let global_declarations: std::collections::BTreeMap<_, _> = checked
+        .module
+        .declarations
+        .iter()
+        .filter_map(|d| match d {
+            ast::Declaration::Global(v) => Some((v.name.as_str(), v)),
+            _ => None,
+        })
+        .collect();
     for declaration in &checked.module.declarations {
         match declaration {
             ast::Declaration::TypeAlias(_) => {}
@@ -34,6 +51,12 @@ pub fn lower(checked: &CheckedModule) -> Result<Module, Diagnostic> {
                     .collect::<Result<_, _>>()?,
             }),
             ast::Declaration::Global(variable) => {
+                if buffer_members
+                    .get(&span_key(variable.span))
+                    .is_some_and(|m| !m.static_storage)
+                {
+                    continue;
+                }
                 let mut global = lowerer.variable(variable)?;
                 if let Some(&value) = checked.global_constants.get(&span_key(variable.span)) {
                     let kind = match global.ty {
@@ -77,6 +100,20 @@ pub fn lower(checked: &CheckedModule) -> Result<Module, Diagnostic> {
                 span: function.span,
             }),
         }
+    }
+    for buffer in &checked.module.constant_buffers {
+        let mut fields = vec![];
+        for member in buffer.members.iter().filter(|m| !m.static_storage) {
+            let field = global_declarations
+                .get(member.variable_name.as_str())
+                .ok_or_else(|| error(member.span))?;
+            fields.push(lowerer.variable(field)?);
+        }
+        module.constant_buffers.push(ConstantBuffer {
+            name: buffer.name.clone(),
+            variable_name: buffer.variable_name.clone(),
+            fields,
+        });
     }
     crate::initialization::lower(&mut module)?;
     crate::intrinsic::lower(&mut module)?;

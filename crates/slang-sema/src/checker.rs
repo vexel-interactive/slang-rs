@@ -168,6 +168,45 @@ fn check_with_metadata(
         global_uniform_binding: None,
     };
     checker.declare(&module);
+    let global_declarations: BTreeMap<_, _> = module
+        .declarations
+        .iter()
+        .filter_map(|d| match d {
+            Declaration::Global(v) => Some((v.name.as_str(), v)),
+            _ => None,
+        })
+        .collect();
+    let mut buffer_names = BTreeSet::new();
+    for buffer in &module.constant_buffers {
+        let owner = checker
+            .symbols
+            .get(&buffer.variable_name)
+            .map_or(ModuleId(0), |origin| origin.module);
+        if !buffer_names.insert((owner, buffer.name.as_str())) {
+            checker.error(
+                "T003",
+                buffer.span,
+                format!("duplicate cbuffer '{}'", buffer.name),
+            );
+        }
+        let Some(handle) = global_declarations.get(buffer.variable_name.as_str()) else {
+            continue;
+        };
+        if !handle.modifiers.iter().any(|m| m == "public") {
+            for member in buffer.members.iter().filter(|m| m.static_storage) {
+                if global_declarations
+                    .get(member.variable_name.as_str())
+                    .is_some_and(|field| field.modifiers.iter().any(|m| m == "public"))
+                {
+                    checker.error(
+                        "T018",
+                        member.span,
+                        "a public cbuffer field requires a public cbuffer",
+                    );
+                }
+            }
+        }
+    }
     for declaration in &module.declarations {
         if let Declaration::Global(variable) = declaration {
             checker.current_module = checker

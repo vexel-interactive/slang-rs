@@ -35,6 +35,16 @@ impl Parser {
         let start = self.span();
         let attributes = self.attributes()?;
         let modifiers = self.modifiers();
+        if self.eat("cbuffer") {
+            if !attributes.is_empty()
+                || modifiers
+                    .iter()
+                    .any(|m| !matches!(m.as_str(), "public" | "internal"))
+            {
+                return Err(self.error("unsupported cbuffer attributes or modifiers"));
+            }
+            return self.constant_buffer(start, modifiers);
+        }
         if self.at("typedef") || self.at("typealias") {
             if !attributes.is_empty()
                 || modifiers
@@ -99,7 +109,6 @@ impl Parser {
                     | "extension"
                     | "typedef"
                     | "typealias"
-                    | "cbuffer"
                     | "namespace"
                     | "__generic"
                     | "let"

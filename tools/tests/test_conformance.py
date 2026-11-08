@@ -6,6 +6,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from conformance import compare_bindings, compare_results, normalize_bindings, normalize_global_uniform_binding, normalize_uniform_artifact_binding, normalize_uniform_locations, compare_uniform_locations, compare_dxc_uniform_layouts, normalize_dxc_uniform_layouts
+from conformance import target_buffer_layouts
 
 
 def result(accepted, stderr=""):
@@ -13,6 +14,19 @@ def result(accepted, stderr=""):
 
 
 class ConformanceComparison(unittest.TestCase):
+    def test_buffer_layouts_use_reflected_targets_and_reject_ambiguous_names(self):
+        layout = {"size": 4, "offsets": {"value": 0}}
+        reflection = {"globals": [
+            {"name": "Params", "target_name": "hidden", "binding": {"class": "b"}},
+            {"name": "Params", "target_name": "Params"},
+        ]}
+        self.assertEqual(target_buffer_layouts({"Params": layout, "_slang_globals": layout}, reflection),
+                         {"hidden": layout, "_slang_globals": layout})
+        with self.assertRaises(ValueError):
+            target_buffer_layouts({"Params": layout}, {"globals": [reflection["globals"][0]] * 2})
+        with self.assertRaises(ValueError):
+            target_buffer_layouts({"Params": layout, "hidden": layout}, reflection)
+
     def test_uniform_locations_follow_shared_types_fields_and_first_array_elements(self):
         native = {"globals": [{"name": "data", "uniform_layout": {"offset": 16, "type_name": "P"}}], "uniform_types": {
             "P": {"size": 40, "fields": [{"name": "values", "offset": 16, "type_name": "float2[2]"}]},

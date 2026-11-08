@@ -4,7 +4,7 @@ import argparse
 import json
 from pathlib import Path
 
-from conformance import compare_dxc_uniform_layouts, compare_uniform_locations, run
+from conformance import compare_dxc_uniform_layouts, compare_uniform_locations, run, target_buffer_layouts
 
 
 def main():
@@ -44,7 +44,8 @@ def main():
                 layout_checks["reflection"] = compare_uniform_locations(case["uniform_layouts"], reflection, "rust")
             if "dxc_layouts" in case and validation["accepted"]:
                 dump = run([str(args.dxc.resolve()), "-dumpbin", str(output.with_suffix(".dxil"))])
-                layout_checks["dxc"] = dump["accepted"] and compare_dxc_uniform_layouts(case["dxc_layouts"], dump["stdout"])
+                expected = target_buffer_layouts(case["dxc_layouts"], reflection)
+                layout_checks["dxc"] = dump["accepted"] and compare_dxc_uniform_layouts(expected, dump["stdout"])
         passed = compilation["accepted"] and validation is not None and validation["accepted"]
         passed = passed and all(layout_checks.values())
         results.append({

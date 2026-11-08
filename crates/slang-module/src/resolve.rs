@@ -224,6 +224,18 @@ impl<'a> Resolver<'a> {
         Ok(())
     }
 
+    pub fn constant_buffer(
+        &self,
+        buffer: &mut slang_syntax::ConstantBufferInfo,
+    ) -> Result<(), Diagnostic> {
+        buffer.variable_name = self.symbol(&buffer.variable_name, false, buffer.span)?;
+        buffer.element_type = self.symbol(&buffer.element_type, true, buffer.span)?;
+        for member in &mut buffer.members {
+            member.variable_name = self.symbol(&member.variable_name, false, member.span)?;
+        }
+        Ok(())
+    }
+
     fn expression(&mut self, expression: &mut Expr) -> Result<(), Diagnostic> {
         expression.id = ExprId(*self.next_expression);
         *self.next_expression += 1;

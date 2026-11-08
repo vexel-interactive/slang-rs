@@ -9,6 +9,34 @@ pub struct Module {
     pub imports: Vec<Import>,
     pub file_includes: Vec<FileInclude>,
     pub declarations: Vec<Declaration>,
+    /// Direct cbuffer declarations after their fields and hidden handles are normalized.
+    pub constant_buffers: Vec<ConstantBufferInfo>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct ConstantBufferInfo {
+    pub name: String,
+    pub variable_name: String,
+    pub element_type: String,
+    pub members: Vec<ConstantBufferMember>,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct ConstantBufferMember {
+    pub name: String,
+    pub variable_name: String,
+    pub static_storage: bool,
+    pub span: Span,
+}
+
+impl Module {
+    pub fn constant_buffer_member(&self, span: Span) -> Option<&ConstantBufferMember> {
+        self.constant_buffers
+            .iter()
+            .flat_map(|b| &b.members)
+            .find(|m| m.span == span)
+    }
 }
 
 #[derive(Clone, Debug, Serialize)]

@@ -234,7 +234,15 @@ impl Checker {
                                 self.error(
                                     "T018",
                                     field.span,
-                                    "a public field requires a public struct",
+                                    if module
+                                        .constant_buffers
+                                        .iter()
+                                        .any(|b| b.element_type == structure.name)
+                                    {
+                                        "a public cbuffer field requires a public cbuffer"
+                                    } else {
+                                        "a public field requires a public struct"
+                                    },
                                 );
                             }
                             self.require_public_type(&ty, field.span);
