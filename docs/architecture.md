@@ -32,6 +32,11 @@ bindings preserve local lexical priority, isolate global initializers from calle
 locals, and restore the ordinary checker environment after folding. Shape
 constants use 64-bit intermediate arithmetic, matching upstream's type-level
 folding; ordinary shader constants retain their checked 32-bit or 64-bit types.
+Shape conversions between different scalar types apply the destination's bit
+width. Identity constructors preserve wider shape intermediates, following
+`TypeCastIntVal::tryFoldImpl`; implicit global and local initializers follow
+the same conversion rule. Thus `uint16_t(65538)` is two, while an identity
+constructor around a widened uint16 arithmetic result preserves that result.
 Unsigned 64-bit constants store their bit pattern in signed storage; division,
 remainder, comparisons and right shifts interpret it through the checked type.
 Literal width and signed-minimum selection are shared between syntax checking

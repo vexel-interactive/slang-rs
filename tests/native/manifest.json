@@ -6563,6 +6563,25 @@
         "value4x3": 24,
         "value4x4": 32
       }
+    },
+    {
+      "file": "../conformance/positive/integer16-shapes.slang",
+      "entry": "main",
+      "compile_profile": "cs_6_2",
+      "dxc_constant_stores": {
+        "0": 2,
+        "1": 2,
+        "2": 2,
+        "3": 3,
+        "4": 23,
+        "5": 2
+      },
+      "uniform_layouts": {
+        "values": {
+          "offset": 0,
+          "size": 20
+        }
+      }
     }
   ]
 }

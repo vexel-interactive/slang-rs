@@ -6,7 +6,7 @@
     "rustfmt": "passed",
     "clippy_all_targets_warnings_denied": "passed",
     "unit_tests": 42,
-    "integration_tests": 340,
+    "integration_tests": 341,
     "doc_tests": 1,
     "conformance_comparison_tests": 26,
     "rustdoc": "passed",
@@ -15,11 +15,11 @@
   },
   "differential_validation": {
     "oracle": "Slang 2026.21",
-    "cases_passed": 518,
-    "cases_total": 518,
-    "matching_acceptance_cases": 507,
+    "cases_passed": 519,
+    "cases_total": 519,
+    "matching_acceptance_cases": 508,
     "documented_oracle_differences": 11,
-    "dxc_hlsl_artifacts_validated": 558,
+    "dxc_hlsl_artifacts_validated": 560,
     "dxc_invalid_hlsl_artifacts_rejected": 17,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
@@ -33,12 +33,12 @@
     "documented_oracle_artifact_differences": 4,
     "resource_binding_cases_compared": 40,
     "global_uniform_binding_cases_compared": 17,
-    "uniform_byte_layout_cases_compared": 60,
+    "uniform_byte_layout_cases_compared": 61,
     "documented_oracle_physical_layout_differences": 12,
     "physical_buffer_layout_cases_compared": 43,
-    "compiled_constant_cases_compared": 18,
-    "compiled_constant_words_compared": 973,
-    "compiled_constant_words_matching": 966,
+    "compiled_constant_cases_compared": 19,
+    "compiled_constant_words_compared": 979,
+    "compiled_constant_words_matching": 972,
     "documented_oracle_constant_words_differing": 7,
     "documented_oracle_constant_cases_differing": 2,
     "documented_oracle_uniform_reflection_differences": 1
@@ -46,8 +46,8 @@
   "remote_ci_executed": false,
   "remote_ci": null,
   "previous_remote_ci": {
-    "run_id": 42517600718,
-    "head_sha": "68420a463f316a19753ebe12d4a97052fa176296",
+    "run_id": 42520224468,
+    "head_sha": "973cfdb4fcd15a33e2e4c8a559503de6ca12f42a",
     "conclusion": "success",
     "platforms": [
       "ubuntu-latest",
@@ -449,7 +449,7 @@
   },
   "native_hlsl_suite": {
     "manifest": "tests/native/manifest.json",
-    "artifacts_validated": 106,
+    "artifacts_validated": 107,
     "profiles": [
       "cs_6_0",
       "cs_6_2",
@@ -563,13 +563,14 @@
       "../conformance/positive/native16-resource-shapes-int16_t.slang",
       "../conformance/positive/native16-matrix-elements-uint16_t-0.slang",
       "../conformance/positive/native16-matrix-elements-uint16_t-1.slang",
-      "../conformance/positive/native16-resource-shapes-uint16_t.slang"
+      "../conformance/positive/native16-resource-shapes-uint16_t.slang",
+      "../conformance/positive/integer16-shapes.slang"
     ],
-    "uniform_byte_layout_cases": 60,
+    "uniform_byte_layout_cases": 61,
     "matrix_layout_shapes": 96,
     "constant_buffer_numeric_layouts": 252,
-    "compiled_constant_cases": 18,
-    "compiled_constant_words": 973
+    "compiled_constant_cases": 19,
+    "compiled_constant_words": 979
   },
   "pointer_integer_validation": {
     "target_pointer_bits": 64,
@@ -604,8 +605,8 @@
     "integer_alias_shapes": 42,
     "ordered_arithmetic_type_words": 121,
     "arithmetic_and_conversion_words": 40,
-    "compiled_words": 203,
-    "matching_words": 203,
+    "compiled_words": 209,
+    "matching_words": 209,
     "uniform_matrix_shapes": 96,
     "constant_buffer_matrix_elements": 48,
     "structured_element_shapes": 60,
@@ -625,6 +626,7 @@
     ],
     "native_matrix_oracle_physical_layout_difference_cases": 9,
     "out_of_range_compound_shift_saturation_implemented": false,
-    "gpu_execution_compared": false
+    "gpu_execution_compared": false,
+    "shape_conversion_words": 6
   }
 }

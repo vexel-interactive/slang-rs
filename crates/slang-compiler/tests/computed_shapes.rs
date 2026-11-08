@@ -31,6 +31,30 @@ fn expressions_resolve_in_aliases_resources_casts_and_direct_constructors() {
 }
 
 #[test]
+fn shape_conversions_truncate_while_identity_and_arithmetic_keep_intermediates() {
+    let compiled = compile(
+        "static const uint16_t Explicit=uint16_t(65538);static const uint16_t Implicit=65538;static const int16_t Signed=65538;vector<float,Explicit> a;vector<float,Implicit> b;matrix<int16_t,Signed,uint16_t(65539)> c;static const uint16_t Wide=uint16_t(65535)+uint16_t(3);vector<float,Wide==2?3:2> d;float f(){const uint16_t Local=65538;vector<float,Local> v=1;return v[1];}",
+    );
+    let types = compiled
+        .reflection
+        .globals
+        .iter()
+        .map(|g| (g.name.as_str(), g.type_name.as_str()))
+        .collect::<std::collections::BTreeMap<_, _>>();
+    assert_eq!(types["a"], "float2");
+    assert_eq!(types["b"], "float2");
+    assert_eq!(types["c"], "int16_t2x3");
+    assert_eq!(types["d"], "float2");
+    let code = compiled.artifact.unwrap();
+    assert!(code.contains("float2 v"), "{code}");
+    let compiled = compile(
+        "vector<float,uint16_t(uint16_t(65535)+uint16_t(3))==2?3:2> identity;vector<float,uint16_t(int(uint16_t(65535)+uint16_t(3)))==2?3:2> converted;",
+    );
+    assert_eq!(compiled.reflection.globals[0].type_name, "float2");
+    assert_eq!(compiled.reflection.globals[1].type_name, "float3");
+}
+
+#[test]
 fn globals_use_forward_typed_constants_and_locals_keep_lexical_priority() {
     let compiled = compile(
         "typedef vector<float,Count> V;static const uint Count=Next+1u;static const uint Next=~0u+3u;V input;float f(){const int Count=2;vector<float,Count> local=1;return local.y+input.z;}",

@@ -73,6 +73,11 @@ accept DXC's native raw-buffer opcode, while rejecting dynamic, vector,
 repeated, or ambiguous stores. Structured resource size checks also reject
 missing or ambiguous element metadata. These checks compare compilation and
 physical storage, without GPU execution parity.
+Shape conversion regressions compare explicit and implicit narrow conversions,
+signed dimensions, identity constructors, type-changing constructor chains,
+and lexical local constants. The fixture checks exact overload results and
+the reflected two-element array, keeping wide arithmetic intermediates distinct
+from truncating conversions.
 
 `tools/check.ps1` runs rustfmt, Clippy, workspace tests, and rustdoc using Rust
 1.99.1. Tests cover precedence, scopes, const/read-only locations, overloads,

@@ -98,13 +98,15 @@ impl Checker {
                 self.prepare_shape_names(initializer);
                 let saved = self.install_shape_bindings(initializer);
                 self.expression(initializer);
-                let value = self.shape_constant_conversion(initializer).map(|v| {
-                    if ty == Type::Scalar(Scalar::Bool) {
-                        i64::from(v != 0)
-                    } else {
-                        v
-                    }
-                });
+                let value = self
+                    .shape_initializer_conversion(initializer, &ty)
+                    .map(|v| {
+                        if ty == Type::Scalar(Scalar::Bool) {
+                            i64::from(v != 0)
+                        } else {
+                            v
+                        }
+                    });
                 self.restore_shape_bindings(saved);
                 value
             })

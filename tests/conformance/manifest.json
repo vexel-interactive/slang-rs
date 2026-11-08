@@ -7662,6 +7662,26 @@
         "value4x3_0": 24,
         "value4x4_0": 32
       }
+    },
+    {
+      "file": "positive/integer16-shapes.slang",
+      "entry": "main",
+      "accept": true,
+      "profile": "cs_6_2",
+      "dxc_constant_stores": {
+        "0": 2,
+        "1": 2,
+        "2": 2,
+        "3": 3,
+        "4": 23,
+        "5": 2
+      },
+      "uniform_layouts": {
+        "values": {
+          "offset": 0,
+          "size": 20
+        }
+      }
     }
   ]
 }

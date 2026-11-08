@@ -226,12 +226,18 @@ impl Checker {
                 },
                 shape,
             )?,
-            ExprKind::Cast { value, .. } => self.constant_conversion_mode(value, shape)?,
+            ExprKind::Cast { value, .. } => {
+                self.convert_constant_to(value, self.expression_types.get(&expr.id)?, shape)?
+            }
             ExprKind::Call { callee, arguments }
                 if arguments.len() == 1
                     && matches!(self.expression_types.get(&callee.id), Some(Type::Meta(target)) if matches!(target.as_ref(), Type::Scalar(Scalar::Int16 | Scalar::Uint16 | Scalar::Int | Scalar::Uint | Scalar::Int64 | Scalar::Uint64 | Scalar::IntPtr | Scalar::UintPtr | Scalar::Bool))) =>
             {
-                self.constant_conversion_mode(&arguments[0], shape)?
+                self.convert_constant_to(
+                    &arguments[0],
+                    self.expression_types.get(&expr.id)?,
+                    shape,
+                )?
             }
             _ => return None,
         };
@@ -253,6 +259,24 @@ impl Checker {
     /// Type-level folding preserves 64-bit intermediates before shape checking.
     pub(crate) fn shape_constant_conversion(&self, expr: &Expr) -> Option<i64> {
         self.constant_conversion_mode(expr, true)
+    }
+
+    /// Shape arithmetic keeps wide intermediates, but a conversion between
+    /// different scalar types truncates at the target width. Identity
+    /// constructors retain the intermediate, as in TypeCastIntVal folding.
+    pub(crate) fn shape_initializer_conversion(&self, expr: &Expr, target: &Type) -> Option<i64> {
+        self.convert_constant_to(expr, target, true)
+    }
+
+    fn convert_constant_to(&self, expr: &Expr, target: &Type, shape: bool) -> Option<i64> {
+        let value = self.constant_conversion_mode(expr, shape)?;
+        Some(
+            if !shape || self.expression_types.get(&expr.id) != Some(target) {
+                normalize(value, target)
+            } else {
+                value
+            },
+        )
     }
 
     fn constant_conversion_mode(&self, expr: &Expr, shape: bool) -> Option<i64> {

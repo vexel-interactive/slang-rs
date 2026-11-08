@@ -577,8 +577,14 @@ impl Checker {
                 .as_ref()
                 .and_then(|expr| self.numeric_shape_value(expr))
                 .map(|v| {
-                    if ty == Type::Scalar(crate::Scalar::Bool) {
-                        i64::from(v != 0)
+                    if variable
+                        .initializer
+                        .as_ref()
+                        .and_then(|expr| self.expression_types.get(&expr.id))
+                        != Some(&ty)
+                        || ty == Type::Scalar(crate::Scalar::Bool)
+                    {
+                        crate::constant::normalize(v, &ty)
                     } else {
                         v
                     }
