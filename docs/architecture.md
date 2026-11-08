@@ -42,6 +42,16 @@ by scalar conversion costs. The HLSL backend maps pointer integers to its 64-bit
 target width, and uniform layouts use eight-byte components. Typed numeric
 constructor nodes preserve pointer shapes without inventing core vector aliases.
 
+Native 16-bit integer identities use two-byte storage and truncating constants.
+Profile resolution chooses one physical mode for the whole emitted module;
+the IR and reflection retain it. Default half-only compilations preserve legacy
+four-byte storage. Native uniform matrix views store vectors at the checked
+source offsets, avoiding DXC's direct-matrix tail padding. Register-aligned
+padding structs address fields in the second half of four-byte components.
+Native scalar shifts clamp unsigned counts at 16 before shifting promoted
+operands, matching pinned SCCP zero/sign saturation and evaluating each input
+once. Compound shifts retain native destination syntax.
+
 Arithmetic normalization runs before local and resource storage lowering.
 It converts wide binary operands, conditional branches and arithmetic intrinsic
 inputs to their checked types. Compound assignments convert only the right

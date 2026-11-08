@@ -4,6 +4,8 @@ use slang_sema::{Scalar, Type};
 /// unsigned type selection for the magnitude of a negative minimum literal.
 pub(crate) fn literal_text(bits: i64, ty: &Type) -> String {
     match ty.scalar() {
+        Some(Scalar::Int16) => format!("int16_t({})", bits as i16),
+        Some(Scalar::Uint16) => format!("uint16_t({}u)", bits as u16),
         Some(Scalar::Uint) => format!("{}u", bits as u32),
         Some(Scalar::Uint64 | Scalar::UintPtr) => format!("{}ull", bits as u64),
         Some(Scalar::Int64 | Scalar::IntPtr) if bits == i64::MIN => {

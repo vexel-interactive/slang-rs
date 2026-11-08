@@ -541,7 +541,9 @@ impl Checker {
                 matches!(
                     ty,
                     Type::Scalar(
-                        crate::Scalar::Int
+                        crate::Scalar::Int16
+                            | crate::Scalar::Uint16
+                            | crate::Scalar::Int
                             | crate::Scalar::Uint
                             | crate::Scalar::Int64
                             | crate::Scalar::Uint64
@@ -559,7 +561,9 @@ impl Checker {
             && matches!(
                 ty,
                 Type::Scalar(
-                    crate::Scalar::Int
+                    crate::Scalar::Int16
+                        | crate::Scalar::Uint16
+                        | crate::Scalar::Int
                         | crate::Scalar::Uint
                         | crate::Scalar::Int64
                         | crate::Scalar::Uint64
@@ -619,6 +623,8 @@ fn collapsed_hlsl_type(ty: &Type) -> bool {
     match ty {
         Type::Scalar(
             crate::Scalar::Half
+            | crate::Scalar::Int16
+            | crate::Scalar::Uint16
             | crate::Scalar::Int64
             | crate::Scalar::Uint64
             | crate::Scalar::IntPtr
@@ -626,6 +632,8 @@ fn collapsed_hlsl_type(ty: &Type) -> bool {
         )
         | Type::Vector(
             crate::Scalar::Half
+            | crate::Scalar::Int16
+            | crate::Scalar::Uint16
             | crate::Scalar::Int64
             | crate::Scalar::Uint64
             | crate::Scalar::IntPtr
@@ -634,6 +642,8 @@ fn collapsed_hlsl_type(ty: &Type) -> bool {
         )
         | Type::Matrix(
             crate::Scalar::Half
+            | crate::Scalar::Int16
+            | crate::Scalar::Uint16
             | crate::Scalar::Int64
             | crate::Scalar::Uint64
             | crate::Scalar::IntPtr

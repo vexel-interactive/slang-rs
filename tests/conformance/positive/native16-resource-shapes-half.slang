@@ -1,0 +1,44 @@
+// Native structured resource shapes with independent reads.
+StructuredBuffer<half> valueScalar;
+StructuredBuffer<half2> value2;
+StructuredBuffer<half3> value3;
+StructuredBuffer<half4> value4;
+StructuredBuffer<half1x1> value1x1;
+StructuredBuffer<half1x2> value1x2;
+StructuredBuffer<half1x3> value1x3;
+StructuredBuffer<half1x4> value1x4;
+StructuredBuffer<half2x1> value2x1;
+StructuredBuffer<half2x2> value2x2;
+StructuredBuffer<half2x3> value2x3;
+StructuredBuffer<half2x4> value2x4;
+StructuredBuffer<half3x1> value3x1;
+StructuredBuffer<half3x2> value3x2;
+StructuredBuffer<half3x3> value3x3;
+StructuredBuffer<half3x4> value3x4;
+StructuredBuffer<half4x1> value4x1;
+StructuredBuffer<half4x2> value4x2;
+StructuredBuffer<half4x3> value4x3;
+StructuredBuffer<half4x4> value4x4;
+RWStructuredBuffer<uint> output;
+[shader("compute")][numthreads(1,1,1)]void main(){
+output[0]=uint(valueScalar[0]);
+output[1]=uint(value2[0][0]);
+output[2]=uint(value3[0][0]);
+output[3]=uint(value4[0][0]);
+output[4]=uint(value1x1[0][0][0]);
+output[5]=uint(value1x2[0][0][1]);
+output[6]=uint(value1x3[0][0][2]);
+output[7]=uint(value1x4[0][0][3]);
+output[8]=uint(value2x1[0][1][0]);
+output[9]=uint(value2x2[0][1][1]);
+output[10]=uint(value2x3[0][1][2]);
+output[11]=uint(value2x4[0][1][3]);
+output[12]=uint(value3x1[0][2][0]);
+output[13]=uint(value3x2[0][2][1]);
+output[14]=uint(value3x3[0][2][2]);
+output[15]=uint(value3x4[0][2][3]);
+output[16]=uint(value4x1[0][3][0]);
+output[17]=uint(value4x2[0][3][1]);
+output[18]=uint(value4x3[0][3][2]);
+output[19]=uint(value4x4[0][3][3]);
+}

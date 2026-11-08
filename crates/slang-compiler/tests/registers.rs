@@ -320,7 +320,7 @@ fn reflection_serializes_binding_origins_and_omits_private_storage_bindings() {
         "Texture2D<float> a[2]:register(t3,space4),b;static float value=1;float f(){static float cache=value;return cache;}",
     );
     let reflection = serde_json::to_value(&compiled.reflection).unwrap();
-    assert_eq!(reflection["schema_version"], 10);
+    assert_eq!(reflection["schema_version"], 11);
     assert_eq!(
         reflection["globals"][0]["binding"],
         serde_json::json!({"class":"t","index":3,"space":4,"count":2,"explicit":true})

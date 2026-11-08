@@ -15,6 +15,51 @@ struct Lowerer;
 impl Visitor for Lowerer {
     fn expression(&mut self, expression: &mut Expr) -> Result<(), Diagnostic> {
         walk_expression(self, expression)?;
+        if let ExprKind::Binary { op, left, .. } = &expression.kind
+            && matches!(op.as_str(), "<<" | ">>")
+            && matches!(left.ty.scalar(), Some(Scalar::Int16 | Scalar::Uint16))
+        {
+            // DXC masks native 16-bit shift counts. Pinned SCCP saturates at
+            // the operand width: zero, or sign extension for signed right shifts.
+            let mut operation = expression.clone();
+            let ExprKind::Binary { left, right, .. } = &mut operation.kind else {
+                unreachable!()
+            };
+            let scalar = if left.ty.scalar() == Some(Scalar::Uint16) {
+                Scalar::Uint
+            } else {
+                Scalar::Int
+            };
+            let promoted = operation.ty.with_scalar(scalar);
+            coerce(left, &promoted);
+            let count_scalar = match right.ty.scalar().unwrap() {
+                Scalar::Int16 | Scalar::Uint16 => Scalar::Uint16,
+                Scalar::Int | Scalar::Uint => Scalar::Uint,
+                _ => Scalar::Uint64,
+            };
+            let count_type = right.ty.with_scalar(count_scalar);
+            coerce(right, &count_type);
+            **right = Expr {
+                ty: count_type.clone(),
+                span: right.span,
+                kind: ExprKind::IntrinsicCall {
+                    name: "min".into(),
+                    arguments: vec![
+                        right.as_ref().clone(),
+                        Expr {
+                            ty: Type::Scalar(count_scalar),
+                            span: right.span,
+                            kind: ExprKind::Integer("16u".into()),
+                        },
+                    ],
+                },
+            };
+            operation.ty = promoted;
+            expression.kind = ExprKind::Cast {
+                value: Box::new(operation),
+            };
+            return Ok(());
+        }
         match &mut expression.kind {
             ExprKind::Binary { op, left, right }
                 if matches!(
@@ -82,7 +127,14 @@ impl Visitor for Lowerer {
 fn wide(ty: &Type) -> bool {
     matches!(
         ty.scalar(),
-        Some(Scalar::Int64 | Scalar::Uint64 | Scalar::IntPtr | Scalar::UintPtr)
+        Some(
+            Scalar::Int16
+                | Scalar::Uint16
+                | Scalar::Int64
+                | Scalar::Uint64
+                | Scalar::IntPtr
+                | Scalar::UintPtr
+        )
     )
 }
 

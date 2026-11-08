@@ -17,7 +17,9 @@ impl Checker {
                     && matches!(
                         self.declaration_types.get(&crate::span_key(variable.span)),
                         Some(Type::Scalar(
-                            Scalar::Int
+                            Scalar::Int16
+                                | Scalar::Uint16
+                                | Scalar::Int
                                 | Scalar::Uint
                                 | Scalar::Int64
                                 | Scalar::Uint64
@@ -163,6 +165,15 @@ impl Checker {
                 let unsigned64 = operation_type.is_some_and(|ty| {
                     matches!(ty.scalar(), Some(Scalar::Uint64 | Scalar::UintPtr))
                 });
+                if !shape
+                    && matches!(op.as_str(), "<<" | ">>")
+                    && operation_type.is_some_and(|ty| {
+                        matches!(ty.scalar(), Some(Scalar::Int16 | Scalar::Uint16))
+                    })
+                    && !(0..16).contains(&b)
+                {
+                    return Some(i64::from(op == ">>" && a < 0).wrapping_neg());
+                }
                 let shift_bits = if shape
                     || operation_type.is_some_and(|ty| {
                         matches!(
@@ -218,7 +229,7 @@ impl Checker {
             ExprKind::Cast { value, .. } => self.constant_conversion_mode(value, shape)?,
             ExprKind::Call { callee, arguments }
                 if arguments.len() == 1
-                    && matches!(self.expression_types.get(&callee.id), Some(Type::Meta(target)) if matches!(target.as_ref(), Type::Scalar(Scalar::Int | Scalar::Uint | Scalar::Int64 | Scalar::Uint64 | Scalar::IntPtr | Scalar::UintPtr | Scalar::Bool))) =>
+                    && matches!(self.expression_types.get(&callee.id), Some(Type::Meta(target)) if matches!(target.as_ref(), Type::Scalar(Scalar::Int16 | Scalar::Uint16 | Scalar::Int | Scalar::Uint | Scalar::Int64 | Scalar::Uint64 | Scalar::IntPtr | Scalar::UintPtr | Scalar::Bool))) =>
             {
                 self.constant_conversion_mode(&arguments[0], shape)?
             }
@@ -365,6 +376,8 @@ fn global_dependencies(
 
 pub(crate) fn normalize(value: i64, ty: &Type) -> i64 {
     match ty {
+        Type::Scalar(Scalar::Int16) => i64::from(value as i16),
+        Type::Scalar(Scalar::Uint16) => i64::from(value as u16),
         Type::Scalar(Scalar::Int) => i64::from(value as i32),
         Type::Scalar(Scalar::Uint) => i64::from(value as u32),
         Type::Scalar(Scalar::Bool) => i64::from(value != 0),

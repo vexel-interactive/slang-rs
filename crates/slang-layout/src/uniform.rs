@@ -67,9 +67,9 @@ impl UniformTypeLayout {
         layout
     }
 
-    /// Scalars and vectors align to their 32-bit or 64-bit components.
+    /// Scalars and vectors align to their 16-bit, 32-bit or 64-bit components.
     pub fn numeric(component_bytes: u32, width: u8) -> Result<Self, UniformLayoutError> {
-        if !matches!(component_bytes, 4 | 8) || !(1..=4).contains(&width) {
+        if !matches!(component_bytes, 2 | 4 | 8) || !(1..=4).contains(&width) {
             return Err(UniformLayoutError::InvalidShape);
         }
         Ok(Self::value(
@@ -100,9 +100,9 @@ impl UniformTypeLayout {
         let vector = Self::numeric(component_bytes, width)?;
         let stride = align(vector.size, 16)?;
         let size = stride * u64::from(count - 1) + vector.size;
-        // DXC collapses single-column column-major matrices to vectors, but
-        // keeps single-row row-major matrices aligned to a whole register.
-        let alignment = if major == MatrixMajor::Column && count == 1 {
+        // Legacy DXC collapses a single column. Native two-byte matrix storage
+        // follows Slang's source layout, aligning every stored vector to a register.
+        let alignment = if component_bytes != 2 && major == MatrixMajor::Column && count == 1 {
             component_bytes
         } else {
             16

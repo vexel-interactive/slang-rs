@@ -34,7 +34,9 @@ pub(crate) fn signature(name: &str, types: &[Type]) -> Option<Signature> {
     let scalar = target.scalar()?;
     if matches!(
         scalar,
-        Scalar::Int
+        Scalar::Int16
+            | Scalar::Uint16
+            | Scalar::Int
             | Scalar::Uint
             | Scalar::Int64
             | Scalar::Uint64

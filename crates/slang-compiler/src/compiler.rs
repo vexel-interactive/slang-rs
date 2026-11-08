@@ -12,6 +12,9 @@ use std::{
 pub struct CompileOptions {
     pub target: Target,
     pub matrix_major: slang_layout::MatrixMajor,
+    /// Store half and 16-bit integer components in two bytes. HLSL profiles
+    /// at least 6.2 and declarations of 16-bit integers also enable this mode.
+    pub native_16bit_types: bool,
     pub entry_point: Option<String>,
     pub profile: Option<crate::ShaderProfile>,
     pub defines: BTreeMap<String, String>,
@@ -98,10 +101,12 @@ pub fn compile_source(
             sources: sources.clone(),
         })?;
     warnings.extend(profiles.diagnostics);
-    let ir = slang_ir::lower(&checked).map_err(|diagnostic| CompileError {
-        diagnostics: vec![diagnostic],
-        sources: sources.clone(),
-    })?;
+    let ir = slang_ir::lower_with_native_16bit(&checked, profiles.native_16bit_types).map_err(
+        |diagnostic| CompileError {
+            diagnostics: vec![diagnostic],
+            sources: sources.clone(),
+        },
+    )?;
     let artifact = if options.check_only {
         None
     } else {

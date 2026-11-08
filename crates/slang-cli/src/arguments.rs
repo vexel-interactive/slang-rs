@@ -8,6 +8,7 @@ Usage: slangc-rs <file.slang> [options]
   -target <name>       Output target (hlsl implemented)
   -entry <name>        Require a shader entry point
   -profile <profile>   HLSL shader model 6 profile (cs_6_N, vs_6_N, ps_6_N)
+  -enable-16bit-types  Use native 16-bit storage (requires shader model 6.2)
   -matrix-layout-row-major     Default matrix storage by rows
   -matrix-layout-column-major  Default matrix storage by columns (default)
   -o <path>            Write output atomically (default: stdout)
@@ -20,7 +21,7 @@ Usage: slangc-rs <file.slang> [options]
   --help, -h           Display this help
   --version            Display version
 
-Compute derivatives can upgrade the profile; use target_profile from reflection.
+Features can upgrade the profile; use target_profile and target_compiler_args from reflection.
 Targets spirv, dxil, glsl, wgsl, metal, cuda, cpp are tracked but unimplemented.
 Unsupported language constructs fail explicitly. See docs/compatibility.md.
 ";
@@ -86,6 +87,7 @@ impl Arguments {
                     );
                 }
                 Some("--check") => options.check_only = true,
+                Some("-enable-16bit-types") => options.native_16bit_types = true,
                 Some("-matrix-layout-row-major") => {
                     options.matrix_major = slang_compiler::MatrixMajor::Row
                 }
@@ -202,6 +204,10 @@ mod tests {
             panic!()
         };
         assert_eq!(a.options.defines["N"], "4");
+        let Ok(Action::Compile(a)) = args(&["a.slang", "-enable-16bit-types"]) else {
+            panic!()
+        };
+        assert!(a.options.native_16bit_types);
         for values in [
             &["a", "-o"][..],
             &["a", "b"],

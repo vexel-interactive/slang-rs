@@ -16,9 +16,10 @@ mod model;
 mod packed_uniform;
 mod scope;
 mod static_local;
+mod subword_uniform;
 mod uniform;
 mod visit;
 mod wide_arithmetic;
 
-pub use lower::lower;
+pub use lower::{lower, lower_with_native_16bit};
 pub use model::*;

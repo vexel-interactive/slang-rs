@@ -10,6 +10,8 @@ from conformance import target_buffer_layouts
 from conformance import normalize_dxc_constant_stores
 from conformance import expected_constant_stores
 from conformance import expected_uniform_locations
+from conformance import dxc_type_arguments
+from conformance import normalize_dxc_resource_strides, compare_dxc_resource_strides, target_resource_names
 
 
 def result(accepted, stderr=""):
@@ -17,6 +19,30 @@ def result(accepted, stderr=""):
 
 
 class ConformanceComparison(unittest.TestCase):
+    def test_structured_resource_strides_require_exact_physical_sizes(self):
+        dump = "; Resource bind info for input\n; {\n; int16_t2 $Element; ; Offset: 0 Size: 4\n; }\n"
+        self.assertEqual(normalize_dxc_resource_strides(dump), {"input": 4})
+        self.assertTrue(compare_dxc_resource_strides({"input": 4}, dump))
+        self.assertFalse(compare_dxc_resource_strides({"input": 8}, dump))
+        self.assertFalse(compare_dxc_resource_strides({"input": 4}, ""))
+        with self.assertRaises(ValueError):
+            normalize_dxc_resource_strides(dump + dump)
+        reflection = {"globals": [{"name": "source", "target_name": "input", "binding": {"class": "t"}}]}
+        self.assertEqual(target_resource_names({"source": 4}, reflection, {"t", "u"}), {"input": 4})
+    def test_native_type_flags_follow_reflection_and_upstream_profiles(self):
+        self.assertEqual(dxc_type_arguments("cs_6_0"), [])
+        self.assertEqual(dxc_type_arguments("ps_6_2"), ["-enable-16bit-types"])
+        self.assertEqual(dxc_type_arguments("cs_6_6", {"target_compiler_args": []}), [])
+        self.assertEqual(dxc_type_arguments("vs_6_2", {"target_compiler_args": ["-enable-16bit-types"]}), ["-enable-16bit-types"])
+
+    def test_native_structured_stores_use_raw_opcode_and_remain_strict(self):
+        store = "call void @dx.op.rawBufferStore.i32(i32 140, %dx.types.Handle %1, i32 2, i32 0, i32 -32768, i32 undef, i32 undef, i32 undef, i8 1, i32 4)"
+        self.assertEqual(normalize_dxc_constant_stores(store), {"2": 0xffff8000})
+        for dump in [store.replace("i32 -32768", "i32 %value"), store.replace("i32 4)", "i32 2)"),
+                     store.replace("i8 1", "i8 3"), store + "\n" + store]:
+            with self.assertRaises(ValueError):
+                normalize_dxc_constant_stores(dump)
+
     def test_documented_constant_differences_require_both_exact_goldens(self):
         case = {"dxc_constant_stores": {"0": 1}, "oracle_dxc_constant_stores": {"0": 0}, "reason": "Pinned SCCP compares integer bits as signed for boolean results."}
         self.assertEqual(expected_constant_stores(case, "rust"), {"0": 1})

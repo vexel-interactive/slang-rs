@@ -20,7 +20,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 Compilation returns `Result<Compilation, CompileError>`. `Compilation` contains
 a text artifact, typed IR, declaration reflection, a source map, and warnings.
-Reflection schema version 10 reports `compute`, `vertex`, or `fragment` stages;
+Reflection schema version 11 reports `compute`, `vertex`, or `fragment` stages;
 `thread_group_size` is present only for compute entries. The Rust model uses
 `slang_sema::ShaderStage` and `Option<[u32; 3]>` for these fields.
 `EntryPointInfo` and `GlobalInfo` retain the source `name` and add `target_name`
@@ -30,6 +30,14 @@ identifier; for common names such as `main` it is identical to `name`.
 `-T` option. Compute derivatives require `cs_6_6` or higher; callers must use the
 reflected profile after an automatic upgrade. The optional `CompileOptions.profile`
 accepts a parsed `ShaderProfile`, for example `Some("cs_6_6".parse()?)`.
+`CompileOptions.native_16bit_types` enables two-byte half/integer storage, also
+available as CLI `-enable-16bit-types`. A requested profile of 6.2 or higher,
+16-bit integer types, or a feature upgrade to 6.2 or higher enables the same
+mode for the entire module. All entries then require at least shader model 6.2.
+`Reflection.native_16bit_types` records the mode; pass every argument in
+`Reflection.target_compiler_args` to DXC, including `-enable-16bit-types` when
+present. Default half-only compilations without a profile upgrade retain
+four-byte legacy storage. The IR module carries the selected physical mode.
 Supported profile spellings are `cs_6_N`, `vs_6_N`, and `ps_6_N` for minor versions
 zero through nine. Parsing a profile does not establish support for every feature
 of that shader model; only implemented requirements are checked.

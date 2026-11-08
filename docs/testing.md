@@ -59,7 +59,20 @@ also verifies a 60-byte buffer and its offsets. Half's native HLSL storage is
 four bytes, while the pinned default source layout and released oracle JSON
 report two bytes. Separate reflection goldens verify this documented difference
 without dropping fields or size attributes; both physical DXC buffers remain
-checked against the same golden. Native 16-bit storage remains unported.
+checked against the same golden. Native 16-bit mode is tested separately.
+
+Native 16-bit tests compare 40 compiled arithmetic/conversion words, all 42
+integer alias shapes, and 121 ordered arithmetic type combinations. DXC checks
+96 native uniform matrix shapes in both storage orders, 48 direct matrix
+constant-buffer elements, and 60 structured scalar/vector/matrix element sizes.
+Mixed storage and packed fields verify two-byte offsets and logical value loads.
+Column matrix differences in the released oracle have exact separate physical
+goldens while native storage matches both compilers' source reflection. The
+validators consume schema 11's target compiler flags. Scalar constant stores
+accept DXC's native raw-buffer opcode, while rejecting dynamic, vector,
+repeated, or ambiguous stores. Structured resource size checks also reject
+missing or ambiguous element metadata. These checks compare compilation and
+physical storage, without GPU execution parity.
 
 `tools/check.ps1` runs rustfmt, Clippy, workspace tests, and rustdoc using Rust
 1.99.1. Tests cover precedence, scopes, const/read-only locations, overloads,

@@ -40,7 +40,9 @@ impl Visitor for Lowerer {
                 && matches!(
                     expression.ty.scalar(),
                     Some(
-                        Scalar::Int
+                        Scalar::Int16
+                            | Scalar::Uint16
+                            | Scalar::Int
                             | Scalar::Uint
                             | Scalar::Int64
                             | Scalar::Uint64

@@ -1,0 +1,1 @@
+struct Params{float lead;int16_t signedValue;uint16_t2 pair;half halfValue;};ConstantBuffer<Params> params;StructuredBuffer<int16_t2> input;RWStructuredBuffer<uint> output;[shader("compute")][numthreads(1,1,1)]void main(){int16_t2 value=input[0]+params.signedValue;output[0]=uint(value.x)+uint(params.pair.x)+uint(params.halfValue);}

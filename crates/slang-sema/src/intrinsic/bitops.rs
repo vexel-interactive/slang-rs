@@ -15,6 +15,7 @@ pub(crate) fn signature(name: &str, types: &[Type]) -> Option<Signature> {
     }
     let parameter = match input.scalar()? {
         Scalar::Bool => input.with_scalar(Scalar::Int),
+        Scalar::Int16 | Scalar::Uint16 => input.clone(),
         Scalar::Int
         | Scalar::Uint
         | Scalar::Int64

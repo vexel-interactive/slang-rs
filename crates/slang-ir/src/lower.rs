@@ -4,6 +4,19 @@ use slang_source::{Diagnostic, Span};
 use slang_syntax as ast;
 
 pub fn lower(checked: &CheckedModule) -> Result<Module, Diagnostic> {
+    let native = checked
+        .declaration_types
+        .values()
+        .chain(checked.expression_types.values())
+        .any(Type::requires_native_16bit);
+    lower_with_native_16bit(checked, native)
+}
+
+/// Lower with the target's physical half and integer storage mode.
+pub fn lower_with_native_16bit(
+    checked: &CheckedModule,
+    native_16bit_types: bool,
+) -> Result<Module, Diagnostic> {
     let lowerer = Lowerer {
         checked,
         initializing: std::cell::RefCell::new(vec![]),
@@ -11,6 +24,7 @@ pub fn lower(checked: &CheckedModule) -> Result<Module, Diagnostic> {
     };
     let mut module = Module {
         matrix_major: checked.matrix_major,
+        native_16bit_types,
         structures: vec![],
         constant_buffers: vec![],
         globals: vec![],
@@ -130,6 +144,7 @@ pub fn lower(checked: &CheckedModule) -> Result<Module, Diagnostic> {
     crate::uniform::lower(&mut module, checked)?;
     crate::empty_array::lower(&mut module)?;
     crate::packed_uniform::lower(&mut module)?;
+    crate::subword_uniform::lower(&mut module)?;
     crate::matrix_storage::lower(&mut module)?;
     crate::matrix_resource::lower(&mut module)?;
     crate::constant_buffer_value::lower(&mut module)?;

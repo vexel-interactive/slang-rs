@@ -5169,6 +5169,1400 @@
           }
         }
       }
+    },
+    {
+      "file": "../conformance/positive/integer16-constants.slang",
+      "entry": "main",
+      "compile_profile": "cs_6_2",
+      "dxc_constant_stores": {
+        "0": 4294967295,
+        "1": 0,
+        "2": 4294934528,
+        "3": 0,
+        "4": 32763,
+        "5": 1,
+        "6": 4294967295,
+        "7": 1,
+        "8": 0,
+        "9": 0,
+        "10": 16,
+        "11": 16,
+        "12": 4294934528,
+        "13": 32768,
+        "14": 4294967295,
+        "15": 0,
+        "16": 15,
+        "17": 15,
+        "18": 4294967295,
+        "19": 65535,
+        "20": 4294934528,
+        "21": 65535,
+        "22": 0,
+        "23": 2,
+        "24": 4294959104,
+        "25": 7,
+        "26": 4294967292,
+        "27": 4294967292,
+        "28": 1,
+        "29": 1,
+        "30": 4294967289,
+        "31": 4294967295,
+        "32": 4294967295,
+        "33": 65535,
+        "34": 4294941760,
+        "35": 464,
+        "36": 4294950912,
+        "37": 1,
+        "38": 4294967295,
+        "39": 65535
+      }
+    },
+    {
+      "file": "../conformance/positive/integer16-types.slang",
+      "entry": "main",
+      "compile_profile": "cs_6_2",
+      "dxc_constant_stores": {
+        "0": 1,
+        "1": 2,
+        "2": 3,
+        "3": 4,
+        "4": 5,
+        "5": 6,
+        "6": 7,
+        "7": 8,
+        "8": 9,
+        "9": 10,
+        "10": 11,
+        "11": 12,
+        "12": 13,
+        "13": 14,
+        "14": 15,
+        "15": 16,
+        "16": 17,
+        "17": 18,
+        "18": 19,
+        "19": 20,
+        "20": 21,
+        "21": 22,
+        "22": 23,
+        "23": 24,
+        "24": 25,
+        "25": 26,
+        "26": 27,
+        "27": 28,
+        "28": 29,
+        "29": 30,
+        "30": 31,
+        "31": 32,
+        "32": 33,
+        "33": 34,
+        "34": 35,
+        "35": 36,
+        "36": 37,
+        "37": 38,
+        "38": 39,
+        "39": 40,
+        "40": 41,
+        "41": 42
+      }
+    },
+    {
+      "file": "../conformance/positive/integer16-promotions.slang",
+      "entry": "main",
+      "compile_profile": "cs_6_2",
+      "dxc_constant_stores": {
+        "0": 1,
+        "1": 2,
+        "2": 3,
+        "3": 4,
+        "4": 5,
+        "5": 6,
+        "6": 7,
+        "7": 8,
+        "8": 9,
+        "9": 10,
+        "10": 11,
+        "11": 2,
+        "12": 2,
+        "13": 3,
+        "14": 4,
+        "15": 5,
+        "16": 6,
+        "17": 7,
+        "18": 8,
+        "19": 9,
+        "20": 10,
+        "21": 11,
+        "22": 3,
+        "23": 3,
+        "24": 3,
+        "25": 4,
+        "26": 5,
+        "27": 6,
+        "28": 7,
+        "29": 8,
+        "30": 9,
+        "31": 10,
+        "32": 11,
+        "33": 4,
+        "34": 4,
+        "35": 4,
+        "36": 4,
+        "37": 5,
+        "38": 6,
+        "39": 7,
+        "40": 8,
+        "41": 9,
+        "42": 10,
+        "43": 11,
+        "44": 5,
+        "45": 5,
+        "46": 5,
+        "47": 5,
+        "48": 5,
+        "49": 6,
+        "50": 7,
+        "51": 8,
+        "52": 9,
+        "53": 10,
+        "54": 11,
+        "55": 6,
+        "56": 6,
+        "57": 6,
+        "58": 6,
+        "59": 6,
+        "60": 6,
+        "61": 6,
+        "62": 6,
+        "63": 9,
+        "64": 10,
+        "65": 11,
+        "66": 7,
+        "67": 7,
+        "68": 7,
+        "69": 7,
+        "70": 5,
+        "71": 6,
+        "72": 7,
+        "73": 8,
+        "74": 9,
+        "75": 10,
+        "76": 11,
+        "77": 8,
+        "78": 8,
+        "79": 8,
+        "80": 8,
+        "81": 8,
+        "82": 8,
+        "83": 8,
+        "84": 8,
+        "85": 9,
+        "86": 10,
+        "87": 11,
+        "88": 9,
+        "89": 9,
+        "90": 9,
+        "91": 9,
+        "92": 9,
+        "93": 9,
+        "94": 9,
+        "95": 9,
+        "96": 9,
+        "97": 10,
+        "98": 11,
+        "99": 10,
+        "100": 10,
+        "101": 10,
+        "102": 10,
+        "103": 10,
+        "104": 10,
+        "105": 10,
+        "106": 10,
+        "107": 10,
+        "108": 10,
+        "109": 11,
+        "110": 11,
+        "111": 11,
+        "112": 11,
+        "113": 11,
+        "114": 11,
+        "115": 11,
+        "116": 11,
+        "117": 11,
+        "118": 11,
+        "119": 11,
+        "120": 11
+      }
+    },
+    {
+      "file": "../conformance/positive/integer16-storage.slang",
+      "entry": "main",
+      "compile_profile": "cs_6_2",
+      "uniform_layouts": {
+        "params": {
+          "offset": 0,
+          "size": 12
+        },
+        "params.lead": {
+          "offset": 0,
+          "size": 4
+        },
+        "params.signedValue": {
+          "offset": 4,
+          "size": 2
+        },
+        "params.pair": {
+          "offset": 6,
+          "size": 4
+        },
+        "params.halfValue": {
+          "offset": 10,
+          "size": 2
+        }
+      },
+      "dxc_layouts": {
+        "params": {
+          "size": 12,
+          "offsets": {
+            "lead": 0,
+            "signedValue": 4,
+            "pair": 6,
+            "halfValue": 10
+          }
+        }
+      },
+      "dxc_resource_strides": {
+        "input": 4,
+        "output": 4
+      }
+    },
+    {
+      "file": "../conformance/positive/native16-packed-uniform.slang",
+      "entry": "main",
+      "compile_profile": "cs_6_2",
+      "uniform_layouts": {
+        "params": {
+          "offset": 0,
+          "size": 24
+        },
+        "params.anchor": {
+          "offset": 16,
+          "size": 2
+        },
+        "params.value": {
+          "offset": 18,
+          "size": 2
+        },
+        "params.pair": {
+          "offset": 20,
+          "size": 4
+        }
+      },
+      "dxc_layouts": {
+        "params": {
+          "size": 24,
+          "offsets": {
+            "_value_0": 18
+          }
+        }
+      }
+    },
+    {
+      "file": "../conformance/positive/native16-array-matrix-uniform.slang",
+      "entry": "main",
+      "compile_profile": "cs_6_2",
+      "uniform_layouts": {
+        "params": {
+          "offset": 0,
+          "size": 72
+        },
+        "params.scalar": {
+          "offset": 0,
+          "size": 2
+        },
+        "params.values": {
+          "offset": 16,
+          "size": 18
+        },
+        "params.tail": {
+          "offset": 34,
+          "size": 2
+        },
+        "params.rows": {
+          "offset": 48,
+          "size": 22
+        },
+        "params.after": {
+          "offset": 70,
+          "size": 2
+        }
+      },
+      "dxc_layouts": {
+        "params": {
+          "size": 72,
+          "offsets": {
+            "_slang__slang_uniform_view_0": 0,
+            "_slang__slang_uniform_view_1": 16,
+            "_value_0": 34,
+            "_slang__slang_uniform_view_3": 48,
+            "_slang__slang_uniform_view_4": 64,
+            "_value_1": 70
+          }
+        }
+      }
+    },
+    {
+      "file": "../conformance/positive/native16-matrix-layout-half-row.slang",
+      "entry": "main",
+      "compile_profile": "cs_6_2",
+      "uniform_layouts": {
+        "params.lead": {
+          "offset": 0,
+          "size": 2
+        },
+        "params.m11": {
+          "offset": 16,
+          "size": 2
+        },
+        "params.m12": {
+          "offset": 32,
+          "size": 4
+        },
+        "params.m13": {
+          "offset": 48,
+          "size": 6
+        },
+        "params.m14": {
+          "offset": 64,
+          "size": 8
+        },
+        "params.m21": {
+          "offset": 80,
+          "size": 18
+        },
+        "params.m22": {
+          "offset": 112,
+          "size": 20
+        },
+        "params.m23": {
+          "offset": 144,
+          "size": 22
+        },
+        "params.m24": {
+          "offset": 176,
+          "size": 24
+        },
+        "params.m31": {
+          "offset": 208,
+          "size": 34
+        },
+        "params.m32": {
+          "offset": 256,
+          "size": 36
+        },
+        "params.m33": {
+          "offset": 304,
+          "size": 38
+        },
+        "params.m34": {
+          "offset": 352,
+          "size": 40
+        },
+        "params.m41": {
+          "offset": 400,
+          "size": 50
+        },
+        "params.m42": {
+          "offset": 464,
+          "size": 52
+        },
+        "params.m43": {
+          "offset": 528,
+          "size": 54
+        },
+        "params.m44": {
+          "offset": 592,
+          "size": 56
+        },
+        "params.tail": {
+          "offset": 648,
+          "size": 2
+        },
+        "params": {
+          "offset": 0,
+          "size": 650
+        }
+      },
+      "dxc_layouts": {
+        "params": {
+          "size": 650,
+          "offsets": {}
+        }
+      }
+    },
+    {
+      "file": "../conformance/positive/native16-matrix-layout-half-column.slang",
+      "entry": "main",
+      "compile_profile": "cs_6_2",
+      "uniform_layouts": {
+        "params.lead": {
+          "offset": 0,
+          "size": 2
+        },
+        "params.m11": {
+          "offset": 16,
+          "size": 2
+        },
+        "params.m12": {
+          "offset": 32,
+          "size": 18
+        },
+        "params.m13": {
+          "offset": 64,
+          "size": 34
+        },
+        "params.m14": {
+          "offset": 112,
+          "size": 50
+        },
+        "params.m21": {
+          "offset": 176,
+          "size": 4
+        },
+        "params.m22": {
+          "offset": 192,
+          "size": 20
+        },
+        "params.m23": {
+          "offset": 224,
+          "size": 36
+        },
+        "params.m24": {
+          "offset": 272,
+          "size": 52
+        },
+        "params.m31": {
+          "offset": 336,
+          "size": 6
+        },
+        "params.m32": {
+          "offset": 352,
+          "size": 22
+        },
+        "params.m33": {
+          "offset": 384,
+          "size": 38
+        },
+        "params.m34": {
+          "offset": 432,
+          "size": 54
+        },
+        "params.m41": {
+          "offset": 496,
+          "size": 8
+        },
+        "params.m42": {
+          "offset": 512,
+          "size": 24
+        },
+        "params.m43": {
+          "offset": 544,
+          "size": 40
+        },
+        "params.m44": {
+          "offset": 592,
+          "size": 56
+        },
+        "params.tail": {
+          "offset": 648,
+          "size": 2
+        },
+        "params": {
+          "offset": 0,
+          "size": 650
+        }
+      },
+      "dxc_layouts": {
+        "params": {
+          "size": 650,
+          "offsets": {}
+        }
+      }
+    },
+    {
+      "file": "../conformance/positive/native16-matrix-layout-int16_t-row.slang",
+      "entry": "main",
+      "compile_profile": "cs_6_2",
+      "uniform_layouts": {
+        "params.lead": {
+          "offset": 0,
+          "size": 2
+        },
+        "params.m11": {
+          "offset": 16,
+          "size": 2
+        },
+        "params.m12": {
+          "offset": 32,
+          "size": 4
+        },
+        "params.m13": {
+          "offset": 48,
+          "size": 6
+        },
+        "params.m14": {
+          "offset": 64,
+          "size": 8
+        },
+        "params.m21": {
+          "offset": 80,
+          "size": 18
+        },
+        "params.m22": {
+          "offset": 112,
+          "size": 20
+        },
+        "params.m23": {
+          "offset": 144,
+          "size": 22
+        },
+        "params.m24": {
+          "offset": 176,
+          "size": 24
+        },
+        "params.m31": {
+          "offset": 208,
+          "size": 34
+        },
+        "params.m32": {
+          "offset": 256,
+          "size": 36
+        },
+        "params.m33": {
+          "offset": 304,
+          "size": 38
+        },
+        "params.m34": {
+          "offset": 352,
+          "size": 40
+        },
+        "params.m41": {
+          "offset": 400,
+          "size": 50
+        },
+        "params.m42": {
+          "offset": 464,
+          "size": 52
+        },
+        "params.m43": {
+          "offset": 528,
+          "size": 54
+        },
+        "params.m44": {
+          "offset": 592,
+          "size": 56
+        },
+        "params.tail": {
+          "offset": 648,
+          "size": 2
+        },
+        "params": {
+          "offset": 0,
+          "size": 650
+        }
+      },
+      "dxc_layouts": {
+        "params": {
+          "size": 650,
+          "offsets": {}
+        }
+      }
+    },
+    {
+      "file": "../conformance/positive/native16-matrix-layout-int16_t-column.slang",
+      "entry": "main",
+      "compile_profile": "cs_6_2",
+      "uniform_layouts": {
+        "params.lead": {
+          "offset": 0,
+          "size": 2
+        },
+        "params.m11": {
+          "offset": 16,
+          "size": 2
+        },
+        "params.m12": {
+          "offset": 32,
+          "size": 18
+        },
+        "params.m13": {
+          "offset": 64,
+          "size": 34
+        },
+        "params.m14": {
+          "offset": 112,
+          "size": 50
+        },
+        "params.m21": {
+          "offset": 176,
+          "size": 4
+        },
+        "params.m22": {
+          "offset": 192,
+          "size": 20
+        },
+        "params.m23": {
+          "offset": 224,
+          "size": 36
+        },
+        "params.m24": {
+          "offset": 272,
+          "size": 52
+        },
+        "params.m31": {
+          "offset": 336,
+          "size": 6
+        },
+        "params.m32": {
+          "offset": 352,
+          "size": 22
+        },
+        "params.m33": {
+          "offset": 384,
+          "size": 38
+        },
+        "params.m34": {
+          "offset": 432,
+          "size": 54
+        },
+        "params.m41": {
+          "offset": 496,
+          "size": 8
+        },
+        "params.m42": {
+          "offset": 512,
+          "size": 24
+        },
+        "params.m43": {
+          "offset": 544,
+          "size": 40
+        },
+        "params.m44": {
+          "offset": 592,
+          "size": 56
+        },
+        "params.tail": {
+          "offset": 648,
+          "size": 2
+        },
+        "params": {
+          "offset": 0,
+          "size": 650
+        }
+      },
+      "dxc_layouts": {
+        "params": {
+          "size": 650,
+          "offsets": {}
+        }
+      }
+    },
+    {
+      "file": "../conformance/positive/native16-matrix-layout-uint16_t-row.slang",
+      "entry": "main",
+      "compile_profile": "cs_6_2",
+      "uniform_layouts": {
+        "params.lead": {
+          "offset": 0,
+          "size": 2
+        },
+        "params.m11": {
+          "offset": 16,
+          "size": 2
+        },
+        "params.m12": {
+          "offset": 32,
+          "size": 4
+        },
+        "params.m13": {
+          "offset": 48,
+          "size": 6
+        },
+        "params.m14": {
+          "offset": 64,
+          "size": 8
+        },
+        "params.m21": {
+          "offset": 80,
+          "size": 18
+        },
+        "params.m22": {
+          "offset": 112,
+          "size": 20
+        },
+        "params.m23": {
+          "offset": 144,
+          "size": 22
+        },
+        "params.m24": {
+          "offset": 176,
+          "size": 24
+        },
+        "params.m31": {
+          "offset": 208,
+          "size": 34
+        },
+        "params.m32": {
+          "offset": 256,
+          "size": 36
+        },
+        "params.m33": {
+          "offset": 304,
+          "size": 38
+        },
+        "params.m34": {
+          "offset": 352,
+          "size": 40
+        },
+        "params.m41": {
+          "offset": 400,
+          "size": 50
+        },
+        "params.m42": {
+          "offset": 464,
+          "size": 52
+        },
+        "params.m43": {
+          "offset": 528,
+          "size": 54
+        },
+        "params.m44": {
+          "offset": 592,
+          "size": 56
+        },
+        "params.tail": {
+          "offset": 648,
+          "size": 2
+        },
+        "params": {
+          "offset": 0,
+          "size": 650
+        }
+      },
+      "dxc_layouts": {
+        "params": {
+          "size": 650,
+          "offsets": {}
+        }
+      }
+    },
+    {
+      "file": "../conformance/positive/native16-matrix-layout-uint16_t-column.slang",
+      "entry": "main",
+      "compile_profile": "cs_6_2",
+      "uniform_layouts": {
+        "params.lead": {
+          "offset": 0,
+          "size": 2
+        },
+        "params.m11": {
+          "offset": 16,
+          "size": 2
+        },
+        "params.m12": {
+          "offset": 32,
+          "size": 18
+        },
+        "params.m13": {
+          "offset": 64,
+          "size": 34
+        },
+        "params.m14": {
+          "offset": 112,
+          "size": 50
+        },
+        "params.m21": {
+          "offset": 176,
+          "size": 4
+        },
+        "params.m22": {
+          "offset": 192,
+          "size": 20
+        },
+        "params.m23": {
+          "offset": 224,
+          "size": 36
+        },
+        "params.m24": {
+          "offset": 272,
+          "size": 52
+        },
+        "params.m31": {
+          "offset": 336,
+          "size": 6
+        },
+        "params.m32": {
+          "offset": 352,
+          "size": 22
+        },
+        "params.m33": {
+          "offset": 384,
+          "size": 38
+        },
+        "params.m34": {
+          "offset": 432,
+          "size": 54
+        },
+        "params.m41": {
+          "offset": 496,
+          "size": 8
+        },
+        "params.m42": {
+          "offset": 512,
+          "size": 24
+        },
+        "params.m43": {
+          "offset": 544,
+          "size": 40
+        },
+        "params.m44": {
+          "offset": 592,
+          "size": 56
+        },
+        "params.tail": {
+          "offset": 648,
+          "size": 2
+        },
+        "params": {
+          "offset": 0,
+          "size": 650
+        }
+      },
+      "dxc_layouts": {
+        "params": {
+          "size": 650,
+          "offsets": {}
+        }
+      }
+    },
+    {
+      "file": "../conformance/positive/native16-matrix-elements-half-0.slang",
+      "entry": "main",
+      "compile_profile": "cs_6_2",
+      "uniform_layouts": {
+        "value11": {
+          "offset": 0,
+          "size": 2
+        },
+        "value12": {
+          "offset": 0,
+          "size": 18
+        },
+        "value13": {
+          "offset": 0,
+          "size": 34
+        },
+        "value14": {
+          "offset": 0,
+          "size": 50
+        },
+        "value21": {
+          "offset": 0,
+          "size": 4
+        },
+        "value22": {
+          "offset": 0,
+          "size": 20
+        },
+        "value23": {
+          "offset": 0,
+          "size": 36
+        },
+        "value24": {
+          "offset": 0,
+          "size": 52
+        }
+      },
+      "dxc_layouts": {
+        "value11": {
+          "size": 2,
+          "offsets": {}
+        },
+        "value12": {
+          "size": 18,
+          "offsets": {}
+        },
+        "value13": {
+          "size": 34,
+          "offsets": {}
+        },
+        "value14": {
+          "size": 50,
+          "offsets": {}
+        },
+        "value21": {
+          "size": 4,
+          "offsets": {}
+        },
+        "value22": {
+          "size": 20,
+          "offsets": {}
+        },
+        "value23": {
+          "size": 36,
+          "offsets": {}
+        },
+        "value24": {
+          "size": 52,
+          "offsets": {}
+        }
+      }
+    },
+    {
+      "file": "../conformance/positive/native16-matrix-elements-half-1.slang",
+      "entry": "main",
+      "compile_profile": "cs_6_2",
+      "uniform_layouts": {
+        "value31": {
+          "offset": 0,
+          "size": 6
+        },
+        "value32": {
+          "offset": 0,
+          "size": 22
+        },
+        "value33": {
+          "offset": 0,
+          "size": 38
+        },
+        "value34": {
+          "offset": 0,
+          "size": 54
+        },
+        "value41": {
+          "offset": 0,
+          "size": 8
+        },
+        "value42": {
+          "offset": 0,
+          "size": 24
+        },
+        "value43": {
+          "offset": 0,
+          "size": 40
+        },
+        "value44": {
+          "offset": 0,
+          "size": 56
+        }
+      },
+      "dxc_layouts": {
+        "value31": {
+          "size": 6,
+          "offsets": {}
+        },
+        "value32": {
+          "size": 22,
+          "offsets": {}
+        },
+        "value33": {
+          "size": 38,
+          "offsets": {}
+        },
+        "value34": {
+          "size": 54,
+          "offsets": {}
+        },
+        "value41": {
+          "size": 8,
+          "offsets": {}
+        },
+        "value42": {
+          "size": 24,
+          "offsets": {}
+        },
+        "value43": {
+          "size": 40,
+          "offsets": {}
+        },
+        "value44": {
+          "size": 56,
+          "offsets": {}
+        }
+      }
+    },
+    {
+      "file": "../conformance/positive/native16-resource-shapes-half.slang",
+      "entry": "main",
+      "compile_profile": "cs_6_2",
+      "dxc_resource_strides": {
+        "valueScalar": 2,
+        "value2": 4,
+        "value3": 6,
+        "value4": 8,
+        "value1x1": 2,
+        "value1x2": 4,
+        "value1x3": 6,
+        "value1x4": 8,
+        "value2x1": 4,
+        "value2x2": 8,
+        "value2x3": 12,
+        "value2x4": 16,
+        "value3x1": 6,
+        "value3x2": 12,
+        "value3x3": 18,
+        "value3x4": 24,
+        "value4x1": 8,
+        "value4x2": 16,
+        "value4x3": 24,
+        "value4x4": 32
+      }
+    },
+    {
+      "file": "../conformance/positive/native16-matrix-elements-int16_t-0.slang",
+      "entry": "main",
+      "compile_profile": "cs_6_2",
+      "uniform_layouts": {
+        "value11": {
+          "offset": 0,
+          "size": 2
+        },
+        "value12": {
+          "offset": 0,
+          "size": 18
+        },
+        "value13": {
+          "offset": 0,
+          "size": 34
+        },
+        "value14": {
+          "offset": 0,
+          "size": 50
+        },
+        "value21": {
+          "offset": 0,
+          "size": 4
+        },
+        "value22": {
+          "offset": 0,
+          "size": 20
+        },
+        "value23": {
+          "offset": 0,
+          "size": 36
+        },
+        "value24": {
+          "offset": 0,
+          "size": 52
+        }
+      },
+      "dxc_layouts": {
+        "value11": {
+          "size": 2,
+          "offsets": {}
+        },
+        "value12": {
+          "size": 18,
+          "offsets": {}
+        },
+        "value13": {
+          "size": 34,
+          "offsets": {}
+        },
+        "value14": {
+          "size": 50,
+          "offsets": {}
+        },
+        "value21": {
+          "size": 4,
+          "offsets": {}
+        },
+        "value22": {
+          "size": 20,
+          "offsets": {}
+        },
+        "value23": {
+          "size": 36,
+          "offsets": {}
+        },
+        "value24": {
+          "size": 52,
+          "offsets": {}
+        }
+      }
+    },
+    {
+      "file": "../conformance/positive/native16-matrix-elements-int16_t-1.slang",
+      "entry": "main",
+      "compile_profile": "cs_6_2",
+      "uniform_layouts": {
+        "value31": {
+          "offset": 0,
+          "size": 6
+        },
+        "value32": {
+          "offset": 0,
+          "size": 22
+        },
+        "value33": {
+          "offset": 0,
+          "size": 38
+        },
+        "value34": {
+          "offset": 0,
+          "size": 54
+        },
+        "value41": {
+          "offset": 0,
+          "size": 8
+        },
+        "value42": {
+          "offset": 0,
+          "size": 24
+        },
+        "value43": {
+          "offset": 0,
+          "size": 40
+        },
+        "value44": {
+          "offset": 0,
+          "size": 56
+        }
+      },
+      "dxc_layouts": {
+        "value31": {
+          "size": 6,
+          "offsets": {}
+        },
+        "value32": {
+          "size": 22,
+          "offsets": {}
+        },
+        "value33": {
+          "size": 38,
+          "offsets": {}
+        },
+        "value34": {
+          "size": 54,
+          "offsets": {}
+        },
+        "value41": {
+          "size": 8,
+          "offsets": {}
+        },
+        "value42": {
+          "size": 24,
+          "offsets": {}
+        },
+        "value43": {
+          "size": 40,
+          "offsets": {}
+        },
+        "value44": {
+          "size": 56,
+          "offsets": {}
+        }
+      }
+    },
+    {
+      "file": "../conformance/positive/native16-resource-shapes-int16_t.slang",
+      "entry": "main",
+      "compile_profile": "cs_6_2",
+      "dxc_resource_strides": {
+        "valueScalar": 2,
+        "value2": 4,
+        "value3": 6,
+        "value4": 8,
+        "value1x1": 2,
+        "value1x2": 4,
+        "value1x3": 6,
+        "value1x4": 8,
+        "value2x1": 4,
+        "value2x2": 8,
+        "value2x3": 12,
+        "value2x4": 16,
+        "value3x1": 6,
+        "value3x2": 12,
+        "value3x3": 18,
+        "value3x4": 24,
+        "value4x1": 8,
+        "value4x2": 16,
+        "value4x3": 24,
+        "value4x4": 32
+      }
+    },
+    {
+      "file": "../conformance/positive/native16-matrix-elements-uint16_t-0.slang",
+      "entry": "main",
+      "compile_profile": "cs_6_2",
+      "uniform_layouts": {
+        "value11": {
+          "offset": 0,
+          "size": 2
+        },
+        "value12": {
+          "offset": 0,
+          "size": 18
+        },
+        "value13": {
+          "offset": 0,
+          "size": 34
+        },
+        "value14": {
+          "offset": 0,
+          "size": 50
+        },
+        "value21": {
+          "offset": 0,
+          "size": 4
+        },
+        "value22": {
+          "offset": 0,
+          "size": 20
+        },
+        "value23": {
+          "offset": 0,
+          "size": 36
+        },
+        "value24": {
+          "offset": 0,
+          "size": 52
+        }
+      },
+      "dxc_layouts": {
+        "value11": {
+          "size": 2,
+          "offsets": {}
+        },
+        "value12": {
+          "size": 18,
+          "offsets": {}
+        },
+        "value13": {
+          "size": 34,
+          "offsets": {}
+        },
+        "value14": {
+          "size": 50,
+          "offsets": {}
+        },
+        "value21": {
+          "size": 4,
+          "offsets": {}
+        },
+        "value22": {
+          "size": 20,
+          "offsets": {}
+        },
+        "value23": {
+          "size": 36,
+          "offsets": {}
+        },
+        "value24": {
+          "size": 52,
+          "offsets": {}
+        }
+      }
+    },
+    {
+      "file": "../conformance/positive/native16-matrix-elements-uint16_t-1.slang",
+      "entry": "main",
+      "compile_profile": "cs_6_2",
+      "uniform_layouts": {
+        "value31": {
+          "offset": 0,
+          "size": 6
+        },
+        "value32": {
+          "offset": 0,
+          "size": 22
+        },
+        "value33": {
+          "offset": 0,
+          "size": 38
+        },
+        "value34": {
+          "offset": 0,
+          "size": 54
+        },
+        "value41": {
+          "offset": 0,
+          "size": 8
+        },
+        "value42": {
+          "offset": 0,
+          "size": 24
+        },
+        "value43": {
+          "offset": 0,
+          "size": 40
+        },
+        "value44": {
+          "offset": 0,
+          "size": 56
+        }
+      },
+      "dxc_layouts": {
+        "value31": {
+          "size": 6,
+          "offsets": {}
+        },
+        "value32": {
+          "size": 22,
+          "offsets": {}
+        },
+        "value33": {
+          "size": 38,
+          "offsets": {}
+        },
+        "value34": {
+          "size": 54,
+          "offsets": {}
+        },
+        "value41": {
+          "size": 8,
+          "offsets": {}
+        },
+        "value42": {
+          "size": 24,
+          "offsets": {}
+        },
+        "value43": {
+          "size": 40,
+          "offsets": {}
+        },
+        "value44": {
+          "size": 56,
+          "offsets": {}
+        }
+      }
+    },
+    {
+      "file": "../conformance/positive/native16-resource-shapes-uint16_t.slang",
+      "entry": "main",
+      "compile_profile": "cs_6_2",
+      "dxc_resource_strides": {
+        "valueScalar": 2,
+        "value2": 4,
+        "value3": 6,
+        "value4": 8,
+        "value1x1": 2,
+        "value1x2": 4,
+        "value1x3": 6,
+        "value1x4": 8,
+        "value2x1": 4,
+        "value2x2": 8,
+        "value2x3": 12,
+        "value2x4": 16,
+        "value3x1": 6,
+        "value3x2": 12,
+        "value3x3": 18,
+        "value3x4": 24,
+        "value4x1": 8,
+        "value4x2": 16,
+        "value4x3": 24,
+        "value4x4": 32
+      }
     }
   ]
 }

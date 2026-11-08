@@ -64,6 +64,7 @@ impl fmt::Display for ShaderProfile {
 pub(crate) struct Profiles {
     pub entries: BTreeMap<String, ShaderProfile>,
     pub diagnostics: Vec<Diagnostic>,
+    pub native_16bit_types: bool,
 }
 
 /// Select minimum HLSL profiles without imposing target rules on semantic types.
@@ -74,13 +75,20 @@ pub(crate) fn resolve(
     let mut profiles = Profiles {
         entries: BTreeMap::new(),
         diagnostics: vec![],
+        native_16bit_types: options.native_16bit_types
+            || options.profile.is_some_and(|p| p.minor >= 2)
+            || checked
+                .declaration_types
+                .values()
+                .chain(checked.expression_types.values())
+                .any(slang_sema::Type::requires_native_16bit),
     };
     if options.target != Target::Hlsl {
-        return if options.profile.is_some() {
+        return if options.profile.is_some() || options.native_16bit_types {
             Err(vec![Diagnostic::error(
                 "C004",
                 Span::default(),
-                "shader profile selection currently supports only the HLSL target",
+                "shader profile and native 16-bit selection currently support only the HLSL target",
             )])
         } else {
             Ok(profiles)
@@ -125,6 +133,13 @@ pub(crate) fn resolve(
             stage: entry.stage,
             minor: 0,
         });
+        if profiles.native_16bit_types && selected.minor < 2 {
+            selected.minor = 2;
+            if let Some(requested) = requested {
+                profiles.diagnostics.push(Diagnostic::warning("C003", entry_span,
+                    format!("profile '{requested}' upgraded to '{selected}' because native 16-bit types are enabled")));
+            }
+        }
         if let Some(operation) = checked
             .entry_point_requirements
             .get(&entry.name)
@@ -139,6 +154,14 @@ pub(crate) fn resolve(
             }
         }
         profiles.entries.insert(entry.name.clone(), selected);
+    }
+    // One emitted module has one physical type mode, including helpers and
+    // globals shared by entries with different feature requirements.
+    profiles.native_16bit_types |= profiles.entries.values().any(|profile| profile.minor >= 2);
+    if profiles.native_16bit_types {
+        for profile in profiles.entries.values_mut() {
+            profile.minor = profile.minor.max(2);
+        }
     }
     if errors.is_empty() {
         Ok(profiles)

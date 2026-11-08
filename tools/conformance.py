@@ -22,7 +22,7 @@ def compare_results(case, rust, oracle, validators):
         passed = passed and case["rust_warning"] in rust["stderr"]
     for compiler, result in [("rust", rust), ("oracle", oracle)]:
         passed = passed and all(text in result["stderr"] for text in case.get(f"{compiler}_stderr_contains", []))
-    return passed and all(v["accepted"] == v["expected_accept"] and v.get("layout_passed", True)
+    return passed and all(v["accepted"] == v["expected_accept"] and v.get("layout_passed", True) and v.get("strides_passed", True)
                           and v.get("constant_stores_passed", True) for v in validators)
 
 
@@ -41,6 +41,8 @@ def normalize_dxc_constant_stores(dump):
     extract_pattern = re.compile(r"(%\w+) = extractvalue %dx\.types\.splitdouble (%\w+), ([01])\b")
     pattern = re.compile(r"call void @dx\.op\.bufferStore\.i32\(i32 69, %dx\.types\.Handle ([^,]+), "
                          r"i32 (\d+), i32 0, i32 (-?\d+|%\w+), i32 undef, i32 undef, i32 undef, i8 1\)")
+    raw_pattern = re.compile(r"call void @dx\.op\.rawBufferStore\.i32\(i32 140, %dx\.types\.Handle ([^,]+), "
+                             r"i32 (\d+), i32 0, i32 (-?\d+|%\w+), i32 undef, i32 undef, i32 undef, i8 1, i32 4\)")
     for line in dump.splitlines():
         if match := split_pattern.search(line):
             name, number = match.groups()
@@ -52,9 +54,9 @@ def normalize_dxc_constant_stores(dump):
             name, source, component = match.groups()
             if source in split_values:
                 values[name] = split_values[source][int(component)]
-        if "call void @dx.op.bufferStore." not in line:
+        if not any(op in line for op in ["call void @dx.op.bufferStore.", "call void @dx.op.rawBufferStore."]):
             continue
-        match = pattern.search(line)
+        match = pattern.search(line) or raw_pattern.search(line)
         if match is None:
             raise ValueError("expected scalar constant structured-buffer store")
         handle, index, value = match.groups()
@@ -68,6 +70,14 @@ def normalize_dxc_constant_stores(dump):
         else:
             stores[index] = int(value) & 0xffffffff
     return stores
+
+
+def dxc_type_arguments(profile, reflection=None):
+    """Follow native reflection, or Slang's DXC type mode for shader model 6.2+."""
+    if reflection is not None:
+        return reflection.get("target_compiler_args", [])
+    parts = profile.split("_")
+    return ["-enable-16bit-types"] if len(parts) == 3 and parts[1] == "6" and int(parts[2]) >= 2 else []
 
 
 def expected_constant_stores(case, compiler):
@@ -228,11 +238,15 @@ def compare_dxc_uniform_layouts(expected, dump):
 
 
 def target_buffer_layouts(expected, reflection):
+    return target_resource_names(expected, reflection, {"b"})
+
+
+def target_resource_names(expected, reflection, classes):
     """Translate source buffer names through reflection without assuming hidden identifiers."""
     result = {}
     for name, layout in expected.items():
         buffers = [g for g in reflection["globals"] if g["name"] == name
-                   and g.get("binding", {}).get("class") == "b"]
+                   and g.get("binding", {}).get("class") in classes]
         if len(buffers) > 1:
             raise ValueError(f"ambiguous constant-buffer name: {name}")
         target = buffers[0]["target_name"] if buffers else name
@@ -240,6 +254,22 @@ def target_buffer_layouts(expected, reflection):
             raise ValueError(f"ambiguous target buffer name: {target}")
         result[target] = layout
     return result
+
+
+def normalize_dxc_resource_strides(dump):
+    result = {}
+    for match in re.finditer(r"^; Resource bind info for (\w+)\r?\n; \{\r?\n(.*?)^; \}", dump, re.MULTILINE | re.DOTALL):
+        name, body = match.groups()
+        sizes = re.findall(r"\$Element;\s*; Offset:\s*0\s+Size:\s*(\d+)", body)
+        if len(sizes) != 1 or name in result:
+            raise ValueError(f"missing or ambiguous DXC resource element size: {name}")
+        result[name] = int(sizes[0])
+    return result
+
+
+def compare_dxc_resource_strides(expected, dump):
+    actual = normalize_dxc_resource_strides(dump)
+    return all(actual.get(name) == stride for name, stride in expected.items())
 
 
 def main():
@@ -265,10 +295,11 @@ def main():
             if major not in {"row", "column"}:
                 raise ValueError(f"invalid matrix_major: {major}")
             common.append(f"-matrix-layout-{major}-major")
-        rust_command = [str(args.rust.resolve()), *common, "-o", str(rust_output)]
+        rust_command = [str(args.rust.resolve()), *common, "-o", str(rust_output), "--reflection", str(rust_output.with_suffix(".json"))]
+        if case.get("native_16bit_types"):
+            rust_command.append("-enable-16bit-types")
         oracle_command = [str(args.oracle.resolve()), *common, "-o", str(oracle_output)]
         if any(key in case for key in ["bindings", "global_uniform_binding", "uniform_layouts", "rust_dxc_layouts"]):
-            rust_command.extend(["--reflection", str(rust_output.with_suffix(".json"))])
             oracle_command.extend(["-reflection-json", str(oracle_output.with_suffix(".json"))])
         rust = run(rust_command)
         oracle = run(oracle_command)
@@ -277,9 +308,18 @@ def main():
             for compiler, result, output in [("rust", rust, rust_output), ("oracle", oracle, oracle_output)]:
                 if not result["accepted"]:
                     continue
-                validation = run([str(args.dxc.resolve()), "-T", case.get("profile", "cs_6_0"), "-E", case["entry"], "-Fo", str(output.with_suffix(".dxil")), str(output)])
+                validation_profile = case.get("profile", "cs_6_0")
+                reflection = json.loads(output.with_suffix(".json").read_text(encoding="utf-8")) if compiler == "rust" and output.with_suffix(".json").exists() else None
+                validation = run([str(args.dxc.resolve()), "-T", validation_profile, *dxc_type_arguments(validation_profile, reflection), "-E", case["entry"], "-Fo", str(output.with_suffix(".dxil")), str(output)])
                 validation["compiler"] = compiler
                 validation["expected_accept"] = case.get(f"{compiler}_validation_accept", True)
+                if expected_strides := case.get(f"{compiler}_dxc_resource_strides"):
+                    validation["strides_passed"] = False
+                    if validation["accepted"]:
+                        dump = run([str(args.dxc.resolve()), "-dumpbin", str(output.with_suffix(".dxil"))])
+                        if compiler == "rust":
+                            expected_strides = target_resource_names(expected_strides, reflection, {"t", "u"})
+                        validation["strides_passed"] = dump["accepted"] and compare_dxc_resource_strides(expected_strides, dump["stdout"])
                 if expected := case.get(f"{compiler}_dxc_layouts"):
                     validation["layout_passed"] = False
                     if validation["accepted"]:

@@ -9,6 +9,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 pub(crate) fn lower(module: &mut Module, checked: &CheckedModule) -> Result<(), Diagnostic> {
     let default_major = module.matrix_major;
+    let native_16bit_types = module.native_16bit_types;
     let structures: BTreeMap<_, _> = module
         .structures
         .iter()
@@ -22,6 +23,7 @@ pub(crate) fn lower(module: &mut Module, checked: &CheckedModule) -> Result<(), 
                 &global.ty,
                 row_major(global, default_major),
                 default_major,
+                native_16bit_types,
                 &structures,
                 &mut layouts,
             )
@@ -41,6 +43,7 @@ pub(crate) fn lower(module: &mut Module, checked: &CheckedModule) -> Result<(), 
                     element,
                     matrix_major.unwrap_or(default_major) == MatrixMajor::Row,
                     default_major,
+                    native_16bit_types,
                     &structures,
                     &mut layouts,
                 )
@@ -114,6 +117,7 @@ fn calculate<'a>(
     root: &'a Type,
     row: bool,
     default_major: MatrixMajor,
+    native_16bit_types: bool,
     structures: &BTreeMap<&str, &'a crate::Struct>,
     layouts: &mut BTreeMap<String, Option<UniformTypeLayout>>,
 ) -> Result<(), UniformLayoutError> {
@@ -150,13 +154,16 @@ fn calculate<'a>(
         }
         active.remove(&name);
         let layout = match ty {
-            Type::Scalar(scalar) => Some(UniformTypeLayout::numeric(component_bytes(*scalar), 1)?),
+            Type::Scalar(scalar) => Some(UniformTypeLayout::numeric(
+                component_bytes(*scalar, native_16bit_types),
+                1,
+            )?),
             Type::Vector(scalar, width) => Some(UniformTypeLayout::numeric(
-                component_bytes(*scalar),
+                component_bytes(*scalar, native_16bit_types),
                 *width,
             )?),
             Type::Matrix(scalar, rows, columns) => Some(UniformTypeLayout::matrix_with_major(
-                component_bytes(*scalar),
+                component_bytes(*scalar, native_16bit_types),
                 *rows,
                 *columns,
                 if row {
@@ -231,7 +238,12 @@ fn layout_name(ty: &Type, row: bool) -> String {
     }
 }
 
-fn component_bytes(scalar: Scalar) -> u32 {
+fn component_bytes(scalar: Scalar, native_16bit_types: bool) -> u32 {
+    if matches!(scalar, Scalar::Int16 | Scalar::Uint16)
+        || scalar == Scalar::Half && native_16bit_types
+    {
+        return 2;
+    }
     // HLSL half uses 32-bit storage without DXC's enable-16bit-types option.
     if matches!(
         scalar,

@@ -49,7 +49,9 @@ impl Checker {
                             let ty = self.expression(expr);
                             let value = match ty {
                                 Type::Scalar(
-                                    Scalar::Int
+                                    Scalar::Int16
+                                    | Scalar::Uint16
+                                    | Scalar::Int
                                     | Scalar::Uint
                                     | Scalar::Int64
                                     | Scalar::Uint64

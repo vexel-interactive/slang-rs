@@ -4,7 +4,8 @@ import argparse
 import json
 from pathlib import Path
 
-from conformance import compare_dxc_uniform_layouts, compare_uniform_locations, normalize_dxc_constant_stores, run, target_buffer_layouts
+from conformance import compare_dxc_uniform_layouts, compare_uniform_locations, dxc_type_arguments, normalize_dxc_constant_stores, run, target_buffer_layouts
+from conformance import compare_dxc_resource_strides, target_resource_names
 
 
 def main():
@@ -28,6 +29,8 @@ def main():
         ]
         if profile := case.get("compile_profile"):
             command.extend(["-profile", profile])
+        if case.get("native_16bit_types"):
+            command.append("-enable-16bit-types")
         if major := case.get("matrix_major"):
             if major not in {"row", "column"}:
                 raise ValueError(f"invalid matrix_major: {major}")
@@ -42,11 +45,18 @@ def main():
             entry = next(e for e in reflection["entry_points"] if e["name"] == case["entry"])
             validation = run([
                 str(args.dxc.resolve()), "-T", entry["target_profile"],
+                *dxc_type_arguments(entry["target_profile"], reflection),
                 "-E", entry["target_name"], "-Fo", str(output.with_suffix(".dxil")),
                 str(output),
             ])
             if "uniform_layouts" in case:
                 layout_checks["reflection"] = compare_uniform_locations(case["uniform_layouts"], reflection, "rust")
+            if "dxc_resource_strides" in case:
+                layout_checks["strides"] = False
+                if validation["accepted"]:
+                    dump = run([str(args.dxc.resolve()), "-dumpbin", str(output.with_suffix(".dxil"))])
+                    expected = target_resource_names(case["dxc_resource_strides"], reflection, {"t", "u"})
+                    layout_checks["strides"] = dump["accepted"] and compare_dxc_resource_strides(expected, dump["stdout"])
             if "dxc_layouts" in case and validation["accepted"]:
                 dump = run([str(args.dxc.resolve()), "-dumpbin", str(output.with_suffix(".dxil"))])
                 expected = target_buffer_layouts(case["dxc_layouts"], reflection)

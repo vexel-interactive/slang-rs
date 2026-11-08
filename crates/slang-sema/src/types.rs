@@ -4,6 +4,8 @@ use std::fmt;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 pub enum Scalar {
     Bool,
+    Int16,
+    Uint16,
     Int,
     Uint,
     Int64,
@@ -16,6 +18,27 @@ pub enum Scalar {
 }
 
 impl Scalar {
+    pub fn is_unsigned(self) -> bool {
+        matches!(
+            self,
+            Self::Uint16 | Self::Uint | Self::Uint64 | Self::UintPtr
+        )
+    }
+
+    pub fn is_integral(self) -> bool {
+        matches!(
+            self,
+            Self::Int16
+                | Self::Uint16
+                | Self::Int
+                | Self::Uint
+                | Self::Int64
+                | Self::Uint64
+                | Self::IntPtr
+                | Self::UintPtr
+        )
+    }
+
     pub fn is_pointer_sized(self) -> bool {
         matches!(self, Self::IntPtr | Self::UintPtr)
     }
@@ -25,7 +48,7 @@ impl Scalar {
     pub fn bit_width(self) -> u8 {
         match self {
             Self::Bool => 1,
-            Self::Half => 16,
+            Self::Int16 | Self::Uint16 | Self::Half => 16,
             Self::Int | Self::Uint | Self::Float => 32,
             Self::Int64 | Self::Uint64 | Self::IntPtr | Self::UintPtr | Self::Double => 64,
         }
@@ -55,7 +78,7 @@ impl Scalar {
                 if self.bit_width() > other.bit_width() {
                     self
                 } else if self.bit_width() < other.bit_width()
-                    || matches!(self, Self::Int | Self::Int64 | Self::IntPtr)
+                    || matches!(self, Self::Int16 | Self::Int | Self::Int64 | Self::IntPtr)
                 {
                     other
                 } else {
@@ -185,6 +208,8 @@ impl Type {
             return Some(Self::Void);
         }
         for (prefix, scalar) in [
+            ("int16_t", Scalar::Int16),
+            ("uint16_t", Scalar::Uint16),
             ("float16_t", Scalar::Half),
             ("float32_t", Scalar::Float),
             ("float64_t", Scalar::Double),
@@ -296,17 +321,25 @@ impl Type {
         }
     }
     pub fn integral(&self) -> bool {
-        matches!(
-            self.scalar(),
-            Some(
-                Scalar::Int
-                    | Scalar::Uint
-                    | Scalar::Int64
-                    | Scalar::Uint64
-                    | Scalar::IntPtr
-                    | Scalar::UintPtr
-            )
-        )
+        self.scalar().is_some_and(Scalar::is_integral)
+    }
+
+    /// Native HLSL integer storage requires DXC's 16-bit type mode.
+    pub fn requires_native_16bit(&self) -> bool {
+        match self {
+            Self::Scalar(s) | Self::Vector(s, _) | Self::Matrix(s, _, _) => {
+                matches!(s, Scalar::Int16 | Scalar::Uint16)
+            }
+            Self::Array(element, _)
+            | Self::Buffer { element, .. }
+            | Self::Texture { element, .. }
+            | Self::ConstantBuffer { element, .. }
+            | Self::Meta(element) => element.requires_native_16bit(),
+            Self::Callable { parameters, result } => {
+                parameters.iter().any(Self::requires_native_16bit) || result.requires_native_16bit()
+            }
+            _ => false,
+        }
     }
 
     pub fn value_type(&self) -> &Self {
@@ -324,6 +357,8 @@ impl Type {
         } else if let (Some(from), Some(to)) = (self.scalar(), target.scalar()) {
             let info = |scalar| match scalar {
                 Scalar::Bool => (0, 1),
+                Scalar::Int16 => (1, 16),
+                Scalar::Uint16 => (2, 16),
                 Scalar::Int => (1, 32),
                 Scalar::Int64 => (1, 64),
                 Scalar::IntPtr => (1, 48),
@@ -391,7 +426,7 @@ impl Type {
         if bits > u32::from(target.scalar().unwrap().bit_width()) {
             return cost;
         }
-        let unsigned = |s| matches!(s, Scalar::Uint | Scalar::Uint64 | Scalar::UintPtr);
+        let unsigned = Scalar::is_unsigned;
         match (self.scalar().map(unsigned), target.scalar().map(unsigned)) {
             (Some(a), Some(b)) if a == b => 23,
             (_, Some(false)) => 81,
@@ -497,6 +532,8 @@ impl fmt::Display for Scalar {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
             Self::Bool => "bool",
+            Self::Int16 => "int16_t",
+            Self::Uint16 => "uint16_t",
             Self::Int => "int",
             Self::Uint => "uint",
             Self::Int64 => "int64_t",

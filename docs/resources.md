@@ -58,7 +58,7 @@ also accepts these source declarations with a warning.
 
 ## Reflection
 
-Reflection schema version 10 includes the allocated binding on each global shader resource:
+Reflection schema version 11 includes the allocated binding on each global shader resource:
 
 ```json
 {
@@ -178,16 +178,33 @@ keys such as `row_major float2x3` in the shared type table.
 
 A single-column column-major matrix packs like a vector in legacy DXC.
 Single-row row-major matrices still start on a 16-byte boundary; a following
-scalar can reuse the last row's tail space. Native `half` values use four-byte storage
-because the current HLSL pipeline does not enable native 16-bit types. Slang
+scalar can reuse the last row's tail space. Legacy `half` values use four-byte storage. Slang
 2026.21's reflection instead reports two-byte half components and 16-byte
 alignment for single-column matrices; those cases are checked against DXC's
 actual native buffer definitions rather than claimed as upstream layout parity.
 
+Native 16-bit mode stores `half`, `int16_t`, and `uint16_t` components in two
+bytes. It is selected by `-enable-16bit-types`, a profile of at least 6.2,
+16-bit integer declarations, or a feature profile upgrade. Reflection reports
+the mode, minimum profile, and required DXC flags. Native matrices align every
+stored vector to 16 bytes, including one-column matrices. Uniform lowering
+stores them as vectors and reconstructs logical matrix values. Subcomponent
+`packoffset` locations use register-aligned structs with native padding.
+The mixed [16-bit fixture](../tests/conformance/positive/integer16-storage.slang)
+occupies 12 bytes with offsets 0, 4, 6, and 10; its `int16_t2` structured element
+occupies four bytes.
+
+Released Slang 2026.21 leaves native column matrices to DXC, whose matrix
+annotations retain four-byte tail padding. Its physical buffer extent can
+differ from its own two-byte source reflection. Exact separate physical
+goldens document that difference; native vector storage matches source
+reflection. Native matrix arrays of packed constant-buffer handles remain
+unsupported, as do the other packed handle arrays.
+
 Offsets, sizes, and strides use checked 64-bit arithmetic. Overflow reports
 `I002` at the global declaration without expanding array elements. Referenced
 types are visited and cached once. Mixed resource-valued aggregate layouts,
-16-bit storage, other buffer packing modes, and
+other buffer packing modes, and
 target buffer-size limit validation remain absent. Mixed resource aggregates
 omit shared-buffer byte metadata until their layout model is implemented.
 See [uniform-layout.slang](../examples/uniform-layout.slang) for a complete example.

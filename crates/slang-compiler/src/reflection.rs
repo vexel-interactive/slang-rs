@@ -9,6 +9,10 @@ use std::collections::{BTreeMap, BTreeSet};
 pub struct Reflection {
     pub schema_version: u32,
     pub matrix_major: slang_layout::MatrixMajor,
+    pub native_16bit_types: bool,
+    /// Arguments required for an HLSL downstream compiler, in addition to
+    /// each entry point's target profile and target name.
+    pub target_compiler_args: Vec<String>,
     pub entry_points: Vec<EntryPointInfo>,
     pub globals: Vec<GlobalInfo>,
     /// Shared constant-buffer binding; absent when there are no global uniform values.
@@ -80,8 +84,14 @@ impl Reflection {
             })
             .collect();
         Self {
-            schema_version: 10,
+            schema_version: 11,
             matrix_major: module.matrix_major,
+            native_16bit_types: module.native_16bit_types,
+            target_compiler_args: if target == Target::Hlsl && module.native_16bit_types {
+                vec!["-enable-16bit-types".into()]
+            } else {
+                vec![]
+            },
             global_uniform_binding: module.global_uniform_binding,
             global_uniform_size: module.global_uniform_size,
             uniform_types: module.uniform_types.clone(),

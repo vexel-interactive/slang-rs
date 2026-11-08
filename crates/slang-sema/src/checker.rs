@@ -326,7 +326,9 @@ fn check_with_metadata(
                     && matches!(
                         binding.ty,
                         Type::Scalar(
-                            crate::Scalar::Int
+                            crate::Scalar::Int16
+                                | crate::Scalar::Uint16
+                                | crate::Scalar::Int
                                 | crate::Scalar::Uint
                                 | crate::Scalar::Int64
                                 | crate::Scalar::Uint64

@@ -131,13 +131,23 @@ pub(crate) fn type_name(ty: &Type) -> String {
         Type::Scalar(Scalar::IntPtr) => "int64_t".into(),
         Type::Scalar(Scalar::UintPtr) => "uint64_t".into(),
         Type::Vector(
-            s @ (Scalar::Int64 | Scalar::Uint64 | Scalar::IntPtr | Scalar::UintPtr),
+            s @ (Scalar::Int16
+            | Scalar::Uint16
+            | Scalar::Int64
+            | Scalar::Uint64
+            | Scalar::IntPtr
+            | Scalar::UintPtr),
             n,
         ) => {
             format!("vector<{}, {n}>", type_name(&Type::Scalar(*s)))
         }
         Type::Matrix(
-            s @ (Scalar::Int64 | Scalar::Uint64 | Scalar::IntPtr | Scalar::UintPtr),
+            s @ (Scalar::Int16
+            | Scalar::Uint16
+            | Scalar::Int64
+            | Scalar::Uint64
+            | Scalar::IntPtr
+            | Scalar::UintPtr),
             rows,
             columns,
         ) => {

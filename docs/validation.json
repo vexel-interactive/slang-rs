@@ -6,25 +6,26 @@
     "rustfmt": "passed",
     "clippy_all_targets_warnings_denied": "passed",
     "unit_tests": 42,
-    "integration_tests": 332,
+    "integration_tests": 340,
     "doc_tests": 1,
-    "conformance_comparison_tests": 23,
+    "conformance_comparison_tests": 26,
     "rustdoc": "passed",
     "release_build": "passed",
     "english_documentation_and_links": "passed"
   },
   "differential_validation": {
     "oracle": "Slang 2026.21",
-    "cases_passed": 494,
-    "cases_total": 494,
-    "matching_acceptance_cases": 483,
+    "cases_passed": 518,
+    "cases_total": 518,
+    "matching_acceptance_cases": 507,
     "documented_oracle_differences": 11,
-    "dxc_hlsl_artifacts_validated": 516,
+    "dxc_hlsl_artifacts_validated": 558,
     "dxc_invalid_hlsl_artifacts_rejected": 17,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
     "profiles": [
       "cs_6_0",
+      "cs_6_2",
       "cs_6_6",
       "ps_6_0",
       "vs_6_0"
@@ -32,12 +33,12 @@
     "documented_oracle_artifact_differences": 4,
     "resource_binding_cases_compared": 40,
     "global_uniform_binding_cases_compared": 17,
-    "uniform_byte_layout_cases_compared": 45,
-    "documented_oracle_physical_layout_differences": 3,
-    "physical_buffer_layout_cases_compared": 28,
-    "compiled_constant_cases_compared": 15,
-    "compiled_constant_words_compared": 770,
-    "compiled_constant_words_matching": 763,
+    "uniform_byte_layout_cases_compared": 60,
+    "documented_oracle_physical_layout_differences": 12,
+    "physical_buffer_layout_cases_compared": 43,
+    "compiled_constant_cases_compared": 18,
+    "compiled_constant_words_compared": 973,
+    "compiled_constant_words_matching": 966,
     "documented_oracle_constant_words_differing": 7,
     "documented_oracle_constant_cases_differing": 2,
     "documented_oracle_uniform_reflection_differences": 1
@@ -45,8 +46,8 @@
   "remote_ci_executed": false,
   "remote_ci": null,
   "previous_remote_ci": {
-    "run_id": 42516589381,
-    "head_sha": "6842b08580a5fd09cba354706085d634da1bfaa1",
+    "run_id": 42517600718,
+    "head_sha": "68420a463f316a19753ebe12d4a97052fa176296",
     "conclusion": "success",
     "platforms": [
       "ubuntu-latest",
@@ -448,9 +449,10 @@
   },
   "native_hlsl_suite": {
     "manifest": "tests/native/manifest.json",
-    "artifacts_validated": 85,
+    "artifacts_validated": 106,
     "profiles": [
       "cs_6_0",
+      "cs_6_2",
       "ps_6_0"
     ],
     "gpu_execution_compared": false,
@@ -540,13 +542,34 @@
       "../conformance/positive/integer-pointer-intrinsics.slang",
       "../conformance/positive/integer-pointer-contexts.slang",
       "../conformance/positive/core-numeric-aliases.slang",
-      "../conformance/positive/core-numeric-alias-storage.slang"
+      "../conformance/positive/core-numeric-alias-storage.slang",
+      "../conformance/positive/integer16-constants.slang",
+      "../conformance/positive/integer16-types.slang",
+      "../conformance/positive/integer16-promotions.slang",
+      "../conformance/positive/integer16-storage.slang",
+      "../conformance/positive/native16-packed-uniform.slang",
+      "../conformance/positive/native16-array-matrix-uniform.slang",
+      "../conformance/positive/native16-matrix-layout-half-row.slang",
+      "../conformance/positive/native16-matrix-layout-half-column.slang",
+      "../conformance/positive/native16-matrix-layout-int16_t-row.slang",
+      "../conformance/positive/native16-matrix-layout-int16_t-column.slang",
+      "../conformance/positive/native16-matrix-layout-uint16_t-row.slang",
+      "../conformance/positive/native16-matrix-layout-uint16_t-column.slang",
+      "../conformance/positive/native16-matrix-elements-half-0.slang",
+      "../conformance/positive/native16-matrix-elements-half-1.slang",
+      "../conformance/positive/native16-resource-shapes-half.slang",
+      "../conformance/positive/native16-matrix-elements-int16_t-0.slang",
+      "../conformance/positive/native16-matrix-elements-int16_t-1.slang",
+      "../conformance/positive/native16-resource-shapes-int16_t.slang",
+      "../conformance/positive/native16-matrix-elements-uint16_t-0.slang",
+      "../conformance/positive/native16-matrix-elements-uint16_t-1.slang",
+      "../conformance/positive/native16-resource-shapes-uint16_t.slang"
     ],
-    "uniform_byte_layout_cases": 42,
+    "uniform_byte_layout_cases": 60,
     "matrix_layout_shapes": 96,
     "constant_buffer_numeric_layouts": 252,
-    "compiled_constant_cases": 15,
-    "compiled_constant_words": 770
+    "compiled_constant_cases": 18,
+    "compiled_constant_words": 973
   },
   "pointer_integer_validation": {
     "target_pointer_bits": 64,
@@ -575,6 +598,33 @@
     "uniform_buffer_bytes": 60,
     "documented_source_half_bytes": 2,
     "native_hlsl_half_bytes": 4,
-    "native_16bit_storage_implemented": false
+    "native_16bit_storage_implemented": true
+  },
+  "native_16bit_validation": {
+    "integer_alias_shapes": 42,
+    "ordered_arithmetic_type_words": 121,
+    "arithmetic_and_conversion_words": 40,
+    "compiled_words": 203,
+    "matching_words": 203,
+    "uniform_matrix_shapes": 96,
+    "constant_buffer_matrix_elements": 48,
+    "structured_element_shapes": 60,
+    "uniform_buffer_bytes": 12,
+    "uniform_offsets": [
+      0,
+      4,
+      6,
+      10
+    ],
+    "structured_int16_vector2_stride": 4,
+    "native_matrix_column_register_alignment": 16,
+    "minimum_shader_model": "6.2",
+    "reflection_schema": 11,
+    "dxc_flags": [
+      "-enable-16bit-types"
+    ],
+    "native_matrix_oracle_physical_layout_difference_cases": 9,
+    "out_of_range_compound_shift_saturation_implemented": false,
+    "gpu_execution_compared": false
   }
 }

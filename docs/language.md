@@ -170,7 +170,7 @@ resolves to the ordinary resource type.
 Matrix arrays loaded from buffers convert by logical element values when their
 order differs from the default. Copies, nested arrays, function arguments, and
 read/write structured-buffer locations are covered by DXC checks. Matrix layout
-template arguments, native 16-bit storage,
+template arguments
 and layouts for other targets remain unimplemented.
 
 ## Preprocessing
@@ -245,7 +245,7 @@ signed/unsigned evaluation rules are not implemented.
 
 - Functions, prototypes, overloads, and `in`, `out`, `inout` parameters.
 - Global and local variables, and simple structures with fields.
-- `bool`, `int`, `uint`, `int64_t`, `uint64_t`, `intptr_t`, `uintptr_t`, `half`, `float`, and `double`.
+- `bool`, `int16_t`, `uint16_t`, `int`, `uint`, `int64_t`, `uint64_t`, `intptr_t`, `uintptr_t`, `half`, `float`, and `double`.
 - Core names `int32_t`, `uint32_t`, `float16_t`, `float32_t`, and `float64_t`
   resolve to the corresponding scalar types and their vector/matrix forms,
   such as `float32_t3` and `int32_t2x2`. `float16_t` aliases `half`.
@@ -268,8 +268,13 @@ Fixed-width core aliases preserve canonical identity through constructors,
 overloads, numeric templates and buffer elements. For example, `float16_t2`
 and `half2` are the same type. Without native 16-bit storage, emitted HLSL
 half components occupy four bytes; the alias does not enable a different
-storage mode. See the
+storage mode. `int16_t` and `uint16_t` have distinct types, core vector/matrix
+aliases, and truncating conversions. Their declarations select native storage
+and require shader model 6.2. `-enable-16bit-types` or a profile of at least 6.2
+also selects two-byte half storage. See the
 [core alias cases](../tests/conformance/positive/core-numeric-aliases.slang).
+Narrow scalar shifts saturate counts at 16, producing zero or signed right-shift
+extension. Out-of-range compound narrow shift counts still retain DXC behavior.
 Overloaded functions involving wide integers receive distinct target names
 to preserve Slang's literal and conversion ranking. Mixed 64-bit arithmetic
 operands are explicitly converted to the checked common type.
@@ -795,10 +800,10 @@ equivalence and automatic differentiation remain unverified. See
 
 `countbits`, `firstbithigh`, and `firstbitlow` return `uint` counts or positions
 with the same scalar/vector width as their input. `reversebits` reverses all
-32 or 64 bits and preserves the input's integer sign and width. Supported
-integer types are `int`, `uint`, `int64_t`, `uint64_t`, `intptr_t`, and `uintptr_t`.
+16, 32 or 64 bits and preserves the input's integer sign and width. Supported
+integer types are `int16_t`, `uint16_t`, `int`, `uint`, `int64_t`, `uint64_t`, `intptr_t`, and `uintptr_t`.
 Boolean scalar/vector arguments promote to `int`. Floating inputs, matrices,
-and 8/16-bit integers are outside these signatures.
+and 8-bit integers are outside these signatures.
 
 The highest-bit search retains signed inputs: negative `int` values search for
 the highest zero bit, while unsigned values search for the highest set bit.
@@ -913,7 +918,9 @@ accepts shader model 6.0 through 6.9 profiles for compute, vertex, and fragment.
 Absent a supplied profile, the compiler starts at 6.0 and chooses 6.6 for compute
 derivatives. An explicitly lower compute profile is upgraded with warning `C003`.
 Reflection schema version 5 introduced the resulting `target_profile`; use that
-profile when compiling the HLSL. A profile selection does not yet validate the
+profile and schema 11's `target_compiler_args` when compiling the HLSL. Native
+16-bit mode requires at least 6.2 and applies to all emitted entries and helpers.
+A profile selection does not yet validate the
 complete target capability set. Unsupported stages and older models are rejected.
 
 HLSL lacks coarse/fine `fwidth` builtins, so generated helpers evaluate their

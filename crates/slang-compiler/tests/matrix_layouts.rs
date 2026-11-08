@@ -15,7 +15,7 @@ fn row_and_column_layouts_share_value_types_but_keep_distinct_uniform_layouts() 
     let compiled = compile(
         "struct S{row_major float2x3 row;column_major float2x3 column;};ConstantBuffer<S> params;row_major float2x3 values[2];float tail;",
     );
-    assert_eq!(compiled.reflection.schema_version, 10);
+    assert_eq!(compiled.reflection.schema_version, 11);
     let row = &compiled.reflection.uniform_types["row_major float2x3"];
     let column = &compiled.reflection.uniform_types["float2x3"];
     assert_eq!(

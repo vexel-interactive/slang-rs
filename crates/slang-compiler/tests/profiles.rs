@@ -60,7 +60,7 @@ fn profiles_reject_stage_mismatches_and_apply_to_the_selected_entry() {
         compiled.reflection.entry_points[0]
             .target_profile
             .as_deref(),
-        Some("cs_6_0")
+        Some("cs_6_2")
     );
     assert_eq!(
         compiled.reflection.entry_points[1]

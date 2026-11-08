@@ -45,7 +45,12 @@ pub(crate) fn signature(
         Scalar::Half => input.with_scalar(Scalar::Float),
         Scalar::Int | Scalar::Uint | Scalar::Float => input.clone(),
         Scalar::Double => return None,
-        Scalar::Int64 | Scalar::Uint64 | Scalar::IntPtr | Scalar::UintPtr => {
+        Scalar::Int16
+        | Scalar::Uint16
+        | Scalar::Int64
+        | Scalar::Uint64
+        | Scalar::IntPtr
+        | Scalar::UintPtr => {
             let mut candidates = [Scalar::Int, Scalar::Uint, Scalar::Float].map(|scalar| {
                 let target = input.with_scalar(scalar);
                 (input.literal_conversion_cost(&target, literal), target)

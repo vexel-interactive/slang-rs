@@ -52,7 +52,9 @@ impl Checker {
                     matches!(
                         self.declaration_types.get(&crate::span_key(variable.span)),
                         Some(Type::Scalar(
-                            crate::Scalar::Int
+                            crate::Scalar::Int16
+                                | crate::Scalar::Uint16
+                                | crate::Scalar::Int
                                 | crate::Scalar::Uint
                                 | crate::Scalar::Int64
                                 | crate::Scalar::Uint64
@@ -229,7 +231,9 @@ impl Checker {
                 if !matches!(
                     ty,
                     Type::Scalar(
-                        crate::Scalar::Int
+                        crate::Scalar::Int16
+                            | crate::Scalar::Uint16
+                            | crate::Scalar::Int
                             | crate::Scalar::Uint
                             | crate::Scalar::Int64
                             | crate::Scalar::Uint64
@@ -254,7 +258,9 @@ impl Checker {
                         if !matches!(
                             value_type,
                             Type::Scalar(
-                                crate::Scalar::Int
+                                crate::Scalar::Int16
+                                    | crate::Scalar::Uint16
+                                    | crate::Scalar::Int
                                     | crate::Scalar::Uint
                                     | crate::Scalar::Int64
                                     | crate::Scalar::Uint64

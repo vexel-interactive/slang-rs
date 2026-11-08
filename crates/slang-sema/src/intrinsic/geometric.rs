@@ -43,7 +43,9 @@ pub(crate) fn signature(name: &str, types: &[Type]) -> Option<Signature> {
             .filter_map(Type::scalar)
             .reduce(Scalar::inferred_common)?
         {
-            Scalar::Int
+            Scalar::Int16
+            | Scalar::Uint16
+            | Scalar::Int
             | Scalar::Uint
             | Scalar::Int64
             | Scalar::Uint64
