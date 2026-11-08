@@ -135,9 +135,10 @@ language reference remains the specification for the complete port.
 
 ## Function inlining
 
-`[ForceInline]` takes no arguments and expands functions with numeric input
-parameters and a numeric result before scalar constant propagation. The body
-may contain numeric local declarations, nested lexical scopes, branches, loops,
+`[ForceInline]` takes no arguments and expands functions with numeric, aggregate,
+or resource input parameters and results before scalar constant propagation.
+Void functions also expand, including empty bodies and early returns. The body
+may contain ordinary value declarations, nested lexical scopes, branches, loops,
 switches, and multiple returns. Nested inline calls, prototypes, selected overloads, and imported
 functions are supported. Each argument evaluates once in source order, including
 unused inputs. Assignments to an input parameter affect its captured copy.
@@ -149,12 +150,18 @@ before later statement effects and retain writable indexes for assignments and
 output arguments. See [force-inline-values.slang](../tests/conformance/positive/force-inline-values.slang)
 and [force-inline-control.slang](../tests/conformance/positive/force-inline-control.slang).
 
-Inlining out/inout and resource parameters, aggregate/void results, shared/volatile
+Inlining out/inout parameters, shared/volatile
 local storage, and calls in global initializers is not implemented and reports
 `I005`. Statement-valued vector conditional/logical operands also report `I005`.
 Recursive or excessive
 expansion is bounded by depth and node limits. Ordinary calls retain their target
 call boundary; they are not evaluated as compile-time functions for type shapes.
+Array and struct inputs retain value-copy semantics. Resource inputs and results
+retain handle identity. See [aggregate/void examples](../tests/conformance/positive/force-inline-aggregates.slang)
+and [resource examples](../tests/conformance/positive/force-inline-resources.slang).
+Dynamic ConstantBuffer handle selection remains an HLSL lowering limitation:
+both the native and pinned upstream artifacts in the dedicated regression are
+rejected by DXC when the selected handle is loaded as a struct value.
 
 ## Matrix component selectors
 

@@ -310,7 +310,7 @@ checker records the selected callable in `CheckedModule`; lowering uses that
 selection so target compilation cannot select an internal overload by mistake.
 See [modules.md](modules.md) for file membership, access rules, and remaining limits.
 
-Explicit `[ForceInline]` requests expand numeric function bodies before
+Explicit `[ForceInline]` requests expand ordinary value function bodies before
 SSA construction. Prototypes and definitions use their checked target names;
 overloads and imported declarations retain the selected callable. Fresh local
 storage captures every argument in source order, including unused inputs, and
@@ -332,9 +332,18 @@ execute at the loop head. For increments and do/while conditions use a first
 iteration flag at the loop head, so continue targets still execute the correct
 increment or condition. Aggregate captures receive ordinary initialization
 lowering before SSA. Expansion has node/depth limits and reports unsupported
-output parameters, aggregate/resource signatures, vector condition regions, and
+output parameters, non-value signatures, vector condition regions, and
 global initializer calls explicitly. Ordinary calls remain opaque to SCCP,
 matching the tested upstream optimization boundary.
+
+Struct and fixed-array inputs use captured copies; array results use the existing
+return wrapper before inlining. Resource captures preserve handles. Aggregate
+local initialization and result assignment use ordinary initialization lowering.
+Void expansion has no result storage. Empty bodies still capture every input,
+early void returns set the same returned flag, and normalization removes the
+temporary no-value expression from standalone calls, comma operands, void
+conditionals, and returned void calls. Dynamic ConstantBuffer selection still
+needs target lowering before HLSL value loads can be emitted reliably.
 
 Target emission consumes **structured** IR: blocks, conditions, and loops remain
 explicit nodes. `slang_ir::flow` builds a separate typed scalar SSA graph after

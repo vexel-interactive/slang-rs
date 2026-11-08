@@ -268,6 +268,11 @@ impl Lowerer<'_> {
             ExprKind::Binary { op, left, right } => {
                 let mut prefix = self.value(left)?;
                 let mut right_prefix = self.value(right)?;
+                if op == "," && no_value(left) {
+                    prefix.append(&mut right_prefix);
+                    *value = *right.clone();
+                    return Ok(prefix);
+                }
                 if !right_prefix.is_empty() {
                     if op == "," {
                         prefix.push(expression(*left.clone()));
@@ -278,6 +283,10 @@ impl Lowerer<'_> {
                     self.save(left, &mut prefix);
                 }
                 prefix.append(&mut right_prefix);
+                if op == "," && no_value(right) {
+                    prefix.push(expression(*left.clone()));
+                    *value = *right.clone();
+                }
                 Ok(prefix)
             }
             ExprKind::Conditional {
@@ -298,9 +307,20 @@ impl Lowerer<'_> {
                         "statement-valued vector conditional arms are not implemented",
                     ));
                 }
-                let result = self.storage(&ty, span);
-                then_prefix.push(expression(assign(result.clone(), *then_value.clone())));
-                else_prefix.push(expression(assign(result.clone(), *else_value.clone())));
+                let result = if ty == Type::Void {
+                    then_prefix.push(expression(*then_value.clone()));
+                    else_prefix.push(expression(*else_value.clone()));
+                    Expr {
+                        kind: ExprKind::Zero,
+                        ty,
+                        span,
+                    }
+                } else {
+                    let result = self.storage(&ty, span);
+                    then_prefix.push(expression(assign(result.clone(), *then_value.clone())));
+                    else_prefix.push(expression(assign(result.clone(), *else_value.clone())));
+                    result
+                };
                 prefix.push(Stmt {
                     span,
                     kind: StmtKind::If {
@@ -470,6 +490,13 @@ impl Lowerer<'_> {
             }
             _ => vec![],
         };
+        match &statement.kind {
+            StmtKind::Expression(value) if no_value(value) => statement.kind = StmtKind::Empty,
+            StmtKind::Return(Some(value)) if no_value(value) => {
+                statement.kind = StmtKind::Return(None)
+            }
+            _ => {}
+        }
         if !prefix.is_empty() {
             let mut prefix = prefix;
             prefix.push(statement.clone());
@@ -559,8 +586,16 @@ pub(super) fn negate(value: Expr) -> Expr {
 pub(super) fn expression(value: Expr) -> Stmt {
     Stmt {
         span: value.span,
-        kind: StmtKind::Expression(value),
+        kind: if no_value(&value) {
+            StmtKind::Empty
+        } else {
+            StmtKind::Expression(value)
+        },
     }
+}
+
+fn no_value(value: &Expr) -> bool {
+    value.ty == Type::Void && matches!(value.kind, ExprKind::Zero)
 }
 
 pub(super) fn block(values: Vec<Stmt>, span: Span) -> Stmt {

@@ -23,10 +23,18 @@ impl Lowerer {
             statements.push(expression(assign(local.clone(), argument.clone())));
             bindings.insert(parameter.name.clone(), local);
         }
-        let result = self.storage(
-            &variable(String::new(), function.return_type.clone(), span),
-            span,
-        );
+        let result = if function.return_type == Type::Void {
+            Expr {
+                ty: Type::Void,
+                kind: ExprKind::Zero,
+                span,
+            }
+        } else {
+            self.storage(
+                &variable(String::new(), function.return_type.clone(), span),
+                span,
+            )
+        };
         let returned = self.storage(
             &variable(String::new(), Type::Scalar(Scalar::Bool), span),
             span,
@@ -96,14 +104,18 @@ impl Lowerer {
             }
             StmtKind::Expression(value) => StmtKind::Expression(capture(value, bindings)?),
             StmtKind::Return(Some(value)) => StmtKind::Block(vec![
-                expression(assign(result.clone(), capture(value, bindings)?)),
+                expression(if result.ty == Type::Void {
+                    capture(value, bindings)?
+                } else {
+                    assign(result.clone(), capture(value, bindings)?)
+                }),
                 expression(assign(returned.clone(), boolean(true, span))),
             ]),
             StmtKind::Return(None) => {
-                return Err(unsupported(
-                    span,
-                    "ForceInline requires a numeric return value",
-                ));
+                if result.ty != Type::Void {
+                    return Err(unsupported(span, "ForceInline requires a return value"));
+                }
+                StmtKind::Expression(assign(returned.clone(), boolean(true, span)))
             }
             StmtKind::If {
                 condition,

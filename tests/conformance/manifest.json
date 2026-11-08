@@ -7808,6 +7808,45 @@
       "file": "positive/force-inline-effects.slang",
       "entry": "main",
       "accept": true
+    },
+    {
+      "file": "positive/force-inline-aggregates.slang",
+      "entry": "main",
+      "accept": true,
+      "dxc_constant_stores": {
+        "0": 3,
+        "1": 5,
+        "2": 16,
+        "3": 8,
+        "4": 9,
+        "5": 15,
+        "6": 12,
+        "7": 1,
+        "8": 5,
+        "9": 4,
+        "10": 11,
+        "11": 12,
+        "12": 15,
+        "13": 14,
+        "14": 15,
+        "15": 7,
+        "16": 10,
+        "17": 9,
+        "18": 5
+      }
+    },
+    {
+      "file": "positive/force-inline-resources.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/force-inline-dynamic-cbuffer.slang",
+      "entry": "main",
+      "accept": true,
+      "rust_validation_accept": false,
+      "oracle_validation_accept": false,
+      "reason": "Both compilers emit HLSL that DXC rejects when a ConstantBuffer handle from a dynamic branch is loaded as a struct value. Dynamic constant-buffer handle selection is an unimplemented target lowering boundary."
     }
   ]
 }

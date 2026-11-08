@@ -11,7 +11,7 @@ mod control;
 const MAX_INLINE_NODES: usize = 65_536;
 const MAX_INLINE_DEPTH: usize = 32;
 
-/// Inline explicitly requested numeric functions before scalar SSA.
+/// Inline explicitly requested value functions before scalar SSA.
 /// Capture storage is declared at function scope. Linear bodies use comma
 /// expressions; control-flow bodies use statement expressions normalized at
 /// their source evaluation points, including conditional arms.
@@ -164,9 +164,9 @@ impl Lowerer {
             self.templates.get(name).cloned().ok_or_else(|| {
                 unsupported(span, "ForceInline requires an available function body")
             })?;
-        if !numeric(&function.return_type)
+        if !(storable(&function.return_type) || function.return_type == Type::Void)
             || function.parameters.iter().any(|p| {
-                !numeric(&p.ty)
+                !storable(&p.ty)
                     || p.modifiers
                         .iter()
                         .any(|m| matches!(m.as_str(), "out" | "inout"))
@@ -174,7 +174,7 @@ impl Lowerer {
         {
             return Err(unsupported(
                 span,
-                "ForceInline currently requires numeric input parameters and a numeric result",
+                "ForceInline output parameters and non-value signatures are not implemented",
             ));
         }
         let body = function.body.as_ref().unwrap();
@@ -274,7 +274,7 @@ impl Lowerer {
         values: &mut Vec<Expr>,
         span: Span,
     ) -> Result<(), Diagnostic> {
-        if !numeric(&variable.ty)
+        if !storable(&variable.ty)
             || variable
                 .modifiers
                 .iter()
@@ -282,7 +282,7 @@ impl Lowerer {
         {
             return Err(unsupported(
                 span,
-                "ForceInline local storage must be an ordinary numeric value",
+                "ForceInline local storage must be an ordinary value",
             ));
         }
         let local = self.storage(variable, span);
@@ -348,8 +348,11 @@ fn capture(value: &Expr, bindings: &BTreeMap<String, Expr>) -> Result<Expr, Diag
     Ok(result)
 }
 
-fn numeric(ty: &Type) -> bool {
-    matches!(ty, Type::Scalar(_) | Type::Vector(..) | Type::Matrix(..))
+fn storable(ty: &Type) -> bool {
+    !matches!(
+        ty,
+        Type::Void | Type::Error | Type::Meta(_) | Type::Callable { .. } | Type::InitializerList
+    )
 }
 
 /// Comma preserves left-to-right sequencing under either association. Balance

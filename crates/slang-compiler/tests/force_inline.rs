@@ -163,6 +163,55 @@ fn dynamic_lifted_conditions_preserve_continue_and_output_locations() {
 }
 
 #[test]
+fn aggregate_inputs_results_and_void_returns_expand_with_value_copies() {
+    let compiled = compile(include_str!(
+        "../../../tests/conformance/positive/force-inline-aggregates.slang"
+    ));
+    let json = serde_json::to_string(&compiled.ir).unwrap();
+    assert!(!json.contains("BlockExpression"));
+    let code = compiled.artifact.unwrap();
+    let main = code.split("void main()").last().unwrap();
+    for name in [
+        "makePair",
+        "transform",
+        "arrayValue",
+        "arrayResult",
+        "update",
+        "nestedVoid",
+        "unusedInput",
+        "scopedArray",
+        "matrixResult",
+        "localPair",
+    ] {
+        assert!(!main.contains(&format!("{name}(")), "{name}: {main}");
+    }
+    assert!(!main.contains("((void)0)"), "{main}");
+}
+
+#[test]
+fn resource_inputs_and_results_keep_selected_handles() {
+    let compiled = compile(include_str!(
+        "../../../tests/conformance/positive/force-inline-resources.slang"
+    ));
+    let json = serde_json::to_string(&compiled.ir).unwrap();
+    assert!(!json.contains("BlockExpression"));
+    let code = compiled.artifact.unwrap();
+    let main = code.split("void main(").last().unwrap();
+    for name in [
+        "loadBuffer",
+        "selected",
+        "selectedUniform",
+        "readUniform",
+        "sampleValue",
+        "storeBytes",
+    ] {
+        assert!(!main.contains(&format!("{name}(")), "{name}: {main}");
+    }
+    assert!(main.contains("SampleLevel("), "{main}");
+    assert!(main.contains("Store("), "{main}");
+}
+
+#[test]
 fn recursive_inline_expansion_is_bounded() {
     for source in [
         "[ForceInline]int f(int x){return f(x);}",

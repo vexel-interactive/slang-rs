@@ -115,6 +115,18 @@ also validates resource receiver captures, output coordinates, atomics, and
 constant-buffer handles with both compilers and DXC. General function inlining,
 SPIR-V debug scope checks, and compile-time function execution remain incomplete.
 
+[force-inline-aggregates.slang](../tests/conformance/positive/force-inline-aggregates.slang)
+compares nineteen additional constant words for struct/array input copies,
+aggregate locals and results, matrix returns, empty void bodies with effectful
+arguments, early void returns, nested returned calls, comma expressions, and
+void conditionals. Both compilers and DXC match the same exact golden.
+[force-inline-resources.slang](../tests/conformance/positive/force-inline-resources.slang)
+checks buffer handle selection, constant-buffer inputs and constant selections,
+texture/sampler inputs, and byte-buffer writes with both compilers and DXC.
+The [dynamic ConstantBuffer regression](../tests/conformance/positive/force-inline-dynamic-cbuffer.slang)
+records a shared target limitation: source compilation succeeds, but both HLSL
+artifacts are expected to fail DXC. It is not counted as a valid shader artifact.
+
 `tools/check.ps1` runs rustfmt, Clippy, workspace tests, and rustdoc using Rust
 1.99.1. Tests cover precedence, scopes, const/read-only locations, overloads,
 macro recursion and operators, include guards, diagnostic locations, IR lowering,
