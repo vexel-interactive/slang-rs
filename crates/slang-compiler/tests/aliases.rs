@@ -39,6 +39,65 @@ fn numeric_aliases_resolve_constructors_overloads_and_matrix_shapes() {
 }
 
 #[test]
+fn core_fixed_width_aliases_cover_every_supported_numeric_shape() {
+    for (alias, scalar) in [
+        ("float16_t", Scalar::Half),
+        ("float32_t", Scalar::Float),
+        ("float64_t", Scalar::Double),
+        ("int32_t", Scalar::Int),
+        ("uint32_t", Scalar::Uint),
+    ] {
+        assert_eq!(Type::builtin(alias), Some(Type::Scalar(scalar)));
+        for width in 1..=4 {
+            let name = format!("{alias}{width}");
+            assert_eq!(Type::builtin(&name), Some(Type::Vector(scalar, width)));
+            let compiled = compile(
+                &format!("{name} f({name} value){{return {name}(value);}}"),
+                &[],
+            );
+            assert_eq!(
+                compiled.ir.functions[0].return_type,
+                Type::Vector(scalar, width)
+            );
+        }
+        for rows in 1..=4 {
+            for columns in 1..=4 {
+                let name = format!("{alias}{rows}x{columns}");
+                let ty = Type::Matrix(scalar, rows, columns);
+                assert_eq!(Type::builtin(&name), Some(ty.clone()));
+                let compiled = compile(
+                    &format!("{name} f({name} value){{return {name}(value);}}"),
+                    &[],
+                );
+                assert_eq!(compiled.ir.functions[0].return_type, ty);
+            }
+        }
+    }
+}
+
+#[test]
+fn float16_alias_uses_existing_half_identity_and_legacy_hlsl_storage() {
+    let compiled = compile(
+        "uint choose(half x){return 1;}uint choose(float x){return 2;}float16_t value;uint f(){return choose(float16_t(1));}",
+        &[],
+    );
+    assert_eq!(compiled.reflection.globals[0].type_name, "half");
+    assert_eq!(compiled.reflection.uniform_types["half"].size, 4);
+    let code = compiled.artifact.unwrap();
+    assert!(code.contains("half value;"), "{code}");
+    assert!(code.contains("choose__overload_0"), "{code}");
+    assert!(!code.contains("float16_t"), "{code}");
+    let error = compile_source(
+        "duplicate.slang",
+        "float f(half x){return x;}float f(float16_t x){return x;}",
+        &CompileOptions::default(),
+        &MemoryIncludes::default(),
+    )
+    .unwrap_err();
+    assert!(error.diagnostics.iter().any(|d| d.code == "T003"));
+}
+
+#[test]
 fn aliases_support_forward_references_structs_and_resources() {
     let compiled = compile(
         "typealias Input=StructuredBuffer<Element>;typealias Element=Pair;

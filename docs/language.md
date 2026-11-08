@@ -246,8 +246,9 @@ signed/unsigned evaluation rules are not implemented.
 - Functions, prototypes, overloads, and `in`, `out`, `inout` parameters.
 - Global and local variables, and simple structures with fields.
 - `bool`, `int`, `uint`, `int64_t`, `uint64_t`, `intptr_t`, `uintptr_t`, `half`, `float`, and `double`.
-- Scalar names `int32_t`, `uint32_t`, `float32_t`, and `float64_t` resolve to the
-  corresponding native scalar types.
+- Core names `int32_t`, `uint32_t`, `float16_t`, `float32_t`, and `float64_t`
+  resolve to the corresponding scalar types and their vector/matrix forms,
+  such as `float32_t3` and `int32_t2x2`. `float16_t` aliases `half`.
 - Matrix aliases such as `float2x3`, with 1-4 rows and 1-4 columns.
 - Fixed arrays with nonnegative constant dimensions, including nested and empty arrays.
 - Global `typedef` and nongeneric `typealias` declarations.
@@ -263,6 +264,12 @@ Pointers and user-defined generics are not implemented.
 Wide integer aliases include `int64_t2` and `uint64_t2x3`; numeric templates,
 constructors, casts, overloads, arrays, and structured buffers use the same
 canonical types. HLSL uses `vector<int64_t, N>` and `matrix<uint64_t, R, C>`.
+Fixed-width core aliases preserve canonical identity through constructors,
+overloads, numeric templates and buffer elements. For example, `float16_t2`
+and `half2` are the same type. Without native 16-bit storage, emitted HLSL
+half components occupy four bytes; the alias does not enable a different
+storage mode. See the
+[core alias cases](../tests/conformance/positive/core-numeric-aliases.slang).
 Overloaded functions involving wide integers receive distinct target names
 to preserve Slang's literal and conversion ranking. Mixed 64-bit arithmetic
 operands are explicitly converted to the checked common type.

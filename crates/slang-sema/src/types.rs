@@ -167,12 +167,8 @@ impl Type {
             });
         }
         if let Some(scalar) = match name {
-            "int32_t" => Some(Scalar::Int),
-            "uint32_t" => Some(Scalar::Uint),
             "intptr_t" | "ssize_t" => Some(Scalar::IntPtr),
             "uintptr_t" | "size_t" | "usize_t" => Some(Scalar::UintPtr),
-            "float32_t" => Some(Scalar::Float),
-            "float64_t" => Some(Scalar::Double),
             _ => None,
         } {
             return Some(Self::Scalar(scalar));
@@ -189,6 +185,11 @@ impl Type {
             return Some(Self::Void);
         }
         for (prefix, scalar) in [
+            ("float16_t", Scalar::Half),
+            ("float32_t", Scalar::Float),
+            ("float64_t", Scalar::Double),
+            ("int32_t", Scalar::Int),
+            ("uint32_t", Scalar::Uint),
             ("int64_t", Scalar::Int64),
             ("uint64_t", Scalar::Uint64),
             ("bool", Scalar::Bool),

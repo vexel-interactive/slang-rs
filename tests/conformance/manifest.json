@@ -5665,6 +5665,218 @@
       "accept": false,
       "entry": "main",
       "rust_code": "T014"
+    },
+    {
+      "file": "positive/core-numeric-aliases.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 1,
+        "1": 2,
+        "2": 3,
+        "3": 4,
+        "4": 5,
+        "5": 6,
+        "6": 7,
+        "7": 8,
+        "8": 9,
+        "9": 10,
+        "10": 11,
+        "11": 12,
+        "12": 13,
+        "13": 14,
+        "14": 15,
+        "15": 16,
+        "16": 17,
+        "17": 18,
+        "18": 19,
+        "19": 20,
+        "20": 21,
+        "21": 22,
+        "22": 23,
+        "23": 24,
+        "24": 25,
+        "25": 26,
+        "26": 27,
+        "27": 28,
+        "28": 29,
+        "29": 30,
+        "30": 31,
+        "31": 32,
+        "32": 33,
+        "33": 34,
+        "34": 35,
+        "35": 36,
+        "36": 37,
+        "37": 38,
+        "38": 39,
+        "39": 40,
+        "40": 41,
+        "41": 42,
+        "42": 43,
+        "43": 44,
+        "44": 45,
+        "45": 46,
+        "46": 47,
+        "47": 48,
+        "48": 49,
+        "49": 50,
+        "50": 51,
+        "51": 52,
+        "52": 53,
+        "53": 54,
+        "54": 55,
+        "55": 56,
+        "56": 57,
+        "57": 58,
+        "58": 59,
+        "59": 60,
+        "60": 61,
+        "61": 62,
+        "62": 63,
+        "63": 64,
+        "64": 65,
+        "65": 66,
+        "66": 67,
+        "67": 68,
+        "68": 69,
+        "69": 70,
+        "70": 71,
+        "71": 72,
+        "72": 73,
+        "73": 74,
+        "74": 75,
+        "75": 76,
+        "76": 77,
+        "77": 78,
+        "78": 79,
+        "79": 80,
+        "80": 81,
+        "81": 82,
+        "82": 83,
+        "83": 84,
+        "84": 85,
+        "85": 86,
+        "86": 87,
+        "87": 88,
+        "88": 89,
+        "89": 90,
+        "90": 91,
+        "91": 92,
+        "92": 93,
+        "93": 94,
+        "94": 95,
+        "95": 96,
+        "96": 97,
+        "97": 98,
+        "98": 99,
+        "99": 100,
+        "100": 101,
+        "101": 102,
+        "102": 103,
+        "103": 104,
+        "104": 105
+      }
+    },
+    {
+      "file": "negative/core-alias-wide-vector.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T002"
+    },
+    {
+      "file": "negative/core-alias-wide-matrix.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T002"
+    },
+    {
+      "file": "negative/core-alias-same-half-overload.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T003"
+    },
+    {
+      "file": "positive/core-numeric-alias-storage.slang",
+      "accept": true,
+      "entry": "main",
+      "uniform_layouts": {
+        "params": {
+          "offset": 0,
+          "size": 60
+        },
+        "params.halfValue": {
+          "offset": 0,
+          "size": 4
+        },
+        "params.vectorValue": {
+          "offset": 4,
+          "size": 12
+        },
+        "params.doubleValue": {
+          "offset": 16,
+          "size": 8
+        },
+        "params.matrixValue": {
+          "offset": 32,
+          "size": 24
+        },
+        "params.count": {
+          "offset": 56,
+          "size": 4
+        }
+      },
+      "rust_dxc_layouts": {
+        "params": {
+          "size": 60,
+          "offsets": {
+            "halfValue": 0,
+            "vectorValue": 4,
+            "doubleValue": 16,
+            "matrixValue": 32,
+            "count": 56
+          }
+        }
+      },
+      "oracle_dxc_layouts": {
+        "params_0": {
+          "size": 60,
+          "offsets": {
+            "halfValue_0": 0,
+            "vectorValue_0": 4,
+            "doubleValue_0": 16,
+            "matrixValue_0": 32,
+            "count_0": 56
+          }
+        }
+      },
+      "oracle_uniform_layouts": {
+        "params": {
+          "offset": 0,
+          "size": 60
+        },
+        "params.halfValue": {
+          "offset": 0,
+          "size": 2
+        },
+        "params.vectorValue": {
+          "offset": 4,
+          "size": 12
+        },
+        "params.doubleValue": {
+          "offset": 16,
+          "size": 8
+        },
+        "params.matrixValue": {
+          "offset": 32,
+          "size": 24
+        },
+        "params.count": {
+          "offset": 56,
+          "size": 4
+        }
+      },
+      "reason": "Pinned DefaultLayoutRulesImpl reports half as two bytes, and Slang 2026.21 JSON reflection preserves that size. HLSL half occupies four bytes without DXC native 16-bit types. Native reflection describes that physical HLSL storage. Both reflection layouts and both 60-byte physical buffers must match separate exact goldens; complete source/target reflection parity remains incomplete."
     }
   ]
 }

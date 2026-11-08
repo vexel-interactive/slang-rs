@@ -6,20 +6,20 @@
     "rustfmt": "passed",
     "clippy_all_targets_warnings_denied": "passed",
     "unit_tests": 42,
-    "integration_tests": 330,
+    "integration_tests": 332,
     "doc_tests": 1,
-    "conformance_comparison_tests": 22,
+    "conformance_comparison_tests": 23,
     "rustdoc": "passed",
     "release_build": "passed",
     "english_documentation_and_links": "passed"
   },
   "differential_validation": {
     "oracle": "Slang 2026.21",
-    "cases_passed": 489,
-    "cases_total": 489,
-    "matching_acceptance_cases": 478,
+    "cases_passed": 494,
+    "cases_total": 494,
+    "matching_acceptance_cases": 483,
     "documented_oracle_differences": 11,
-    "dxc_hlsl_artifacts_validated": 512,
+    "dxc_hlsl_artifacts_validated": 516,
     "dxc_invalid_hlsl_artifacts_rejected": 17,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
@@ -32,20 +32,21 @@
     "documented_oracle_artifact_differences": 4,
     "resource_binding_cases_compared": 40,
     "global_uniform_binding_cases_compared": 17,
-    "uniform_byte_layout_cases_compared": 44,
+    "uniform_byte_layout_cases_compared": 45,
     "documented_oracle_physical_layout_differences": 3,
-    "physical_buffer_layout_cases_compared": 27,
-    "compiled_constant_cases_compared": 14,
-    "compiled_constant_words_compared": 665,
-    "compiled_constant_words_matching": 658,
+    "physical_buffer_layout_cases_compared": 28,
+    "compiled_constant_cases_compared": 15,
+    "compiled_constant_words_compared": 770,
+    "compiled_constant_words_matching": 763,
     "documented_oracle_constant_words_differing": 7,
-    "documented_oracle_constant_cases_differing": 2
+    "documented_oracle_constant_cases_differing": 2,
+    "documented_oracle_uniform_reflection_differences": 1
   },
   "remote_ci_executed": false,
   "remote_ci": null,
   "previous_remote_ci": {
-    "run_id": 42514024212,
-    "head_sha": "ca9f02b86cbc49886b015586001cdcebe8578476",
+    "run_id": 42516589381,
+    "head_sha": "6842b08580a5fd09cba354706085d634da1bfaa1",
     "conclusion": "success",
     "platforms": [
       "ubuntu-latest",
@@ -54,6 +55,16 @@
     ]
   },
   "earlier_remote_ci": [
+    {
+      "run_id": 42514024212,
+      "head_sha": "ca9f02b86cbc49886b015586001cdcebe8578476",
+      "conclusion": "success",
+      "platforms": [
+        "ubuntu-latest",
+        "windows-latest",
+        "macos-latest"
+      ]
+    },
     {
       "run_id": 42513119853,
       "head_sha": "e09d2de599bdbccbd70fc44a6a733ebb532cf48f",
@@ -437,7 +448,7 @@
   },
   "native_hlsl_suite": {
     "manifest": "tests/native/manifest.json",
-    "artifacts_validated": 83,
+    "artifacts_validated": 85,
     "profiles": [
       "cs_6_0",
       "ps_6_0"
@@ -527,13 +538,15 @@
       "../conformance/positive/integer-pointer-bitops.slang",
       "../conformance/positive/integer-pointer-bitops-buffer.slang",
       "../conformance/positive/integer-pointer-intrinsics.slang",
-      "../conformance/positive/integer-pointer-contexts.slang"
+      "../conformance/positive/integer-pointer-contexts.slang",
+      "../conformance/positive/core-numeric-aliases.slang",
+      "../conformance/positive/core-numeric-alias-storage.slang"
     ],
-    "uniform_byte_layout_cases": 41,
+    "uniform_byte_layout_cases": 42,
     "matrix_layout_shapes": 96,
     "constant_buffer_numeric_layouts": 252,
-    "compiled_constant_cases": 14,
-    "compiled_constant_words": 665
+    "compiled_constant_cases": 15,
+    "compiled_constant_words": 770
   },
   "pointer_integer_validation": {
     "target_pointer_bits": 64,
@@ -549,5 +562,19 @@
     "uniform_buffer_bytes": 120,
     "oracle_reflection_limit": "Slang 2026.21 omits pointer field sizes and offsets in JSON despite correct emitted HLSL. Native reflection and both DXC physical buffers are checked independently.",
     "other_target_pointer_widths_verified": false
+  },
+  "core_numeric_alias_validation": {
+    "alias_families": [
+      "float16_t",
+      "float32_t",
+      "float64_t",
+      "int32_t",
+      "uint32_t"
+    ],
+    "scalar_vector_matrix_type_words": 105,
+    "uniform_buffer_bytes": 60,
+    "documented_source_half_bytes": 2,
+    "native_hlsl_half_bytes": 4,
+    "native_16bit_storage_implemented": false
   }
 }

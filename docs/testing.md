@@ -52,6 +52,15 @@ Mixed scalar/vector inference covers `dot`, `min`, `mul` and conditional
 expressions, including 32-bit results requiring input truncation before arithmetic.
 Matrix minimum overloads reject scalar arguments in both frontends.
 
+Core fixed-width alias tests cover all 105 implemented scalar/vector/matrix
+forms of `float16_t`, `float32_t`, `float64_t`, `int32_t` and `uint32_t`.
+DXC compares exact overload results in both compilers. A dynamic alias fixture
+also verifies a 60-byte buffer and its offsets. Half's native HLSL storage is
+four bytes, while the pinned default source layout and released oracle JSON
+report two bytes. Separate reflection goldens verify this documented difference
+without dropping fields or size attributes; both physical DXC buffers remain
+checked against the same golden. Native 16-bit storage remains unported.
+
 `tools/check.ps1` runs rustfmt, Clippy, workspace tests, and rustdoc using Rust
 1.99.1. Tests cover precedence, scopes, const/read-only locations, overloads,
 macro recursion and operators, include guards, diagnostic locations, IR lowering,

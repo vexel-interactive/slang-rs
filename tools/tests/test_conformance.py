@@ -9,6 +9,7 @@ from conformance import compare_bindings, compare_results, normalize_bindings, n
 from conformance import target_buffer_layouts
 from conformance import normalize_dxc_constant_stores
 from conformance import expected_constant_stores
+from conformance import expected_uniform_locations
 
 
 def result(accepted, stderr=""):
@@ -91,6 +92,24 @@ class ConformanceComparison(unittest.TestCase):
             normalize_uniform_locations(["value"], {"globals": [{"name": "value"}]}, "rust")
         with self.assertRaises(ValueError):
             normalize_uniform_locations(["value"], {"globals": []}, "rust")
+
+    def test_documented_reflection_differences_require_both_complete_goldens(self):
+        native = {"value": {"offset": 0, "size": 4}}
+        oracle = {"value": {"offset": 0, "size": 2}}
+        case = {"uniform_layouts": native, "oracle_uniform_layouts": oracle, "reason": "Half physical storage differs from source reflection."}
+        self.assertEqual(expected_uniform_locations(case, "rust"), native)
+        self.assertEqual(expected_uniform_locations(case, "oracle"), oracle)
+        reflection = {"parameters": [{"name": "value", "binding": {"kind": "uniform", "offset": 0}, "type": {"sizes": [{"kind": "uniform", "value": 2}]}}]}
+        self.assertTrue(compare_uniform_locations(expected_uniform_locations(case, "oracle"), reflection, "oracle"))
+        self.assertFalse(compare_uniform_locations(native, reflection, "oracle"))
+        for invalid in [
+            {"oracle_uniform_layouts": oracle, "reason": "Missing native."},
+            {"uniform_layouts": native, "oracle_uniform_layouts": oracle},
+            {**case, "oracle_uniform_layouts": {}},
+            {**case, "oracle_uniform_layouts": {"value": {"offset": 0}}},
+        ]:
+            with self.assertRaises(ValueError):
+                expected_uniform_locations(invalid, "oracle")
 
     def test_dxc_uniform_buffer_sizes_and_offsets_must_match(self):
         dump = "; cbuffer parameters\n; {\n; float value; ; Offset: 4\n; } parameters; ; Offset: 0 Size: 8\n; }\n"

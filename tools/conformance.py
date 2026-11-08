@@ -80,6 +80,20 @@ def expected_constant_stores(case, compiler):
     return case["dxc_constant_stores"]
 
 
+def expected_uniform_locations(case, compiler):
+    """Use separate exact layouts for explicitly documented reflection differences."""
+    if "oracle_uniform_layouts" in case:
+        if "uniform_layouts" not in case or not case.get("reason"):
+            raise ValueError("oracle reflection differences require native layouts and a reason")
+        native = case["uniform_layouts"]
+        oracle = case["oracle_uniform_layouts"]
+        if native.keys() != oracle.keys() or any(native[path].keys() != oracle[path].keys() for path in native):
+            raise ValueError("oracle reflection layouts must check the same fields and attributes")
+        if compiler == "oracle":
+            return oracle
+    return case["uniform_layouts"]
+
+
 def normalize_bindings(reflection, compiler):
     """Compare direct global resource ranges without claiming uniform byte layout."""
     result = {}
@@ -320,12 +334,13 @@ def main():
             passed = passed and all(check["passed"] for check in uniform_binding_checks)
         if "uniform_layouts" in case:
             for compiler, compilation, output in [("rust", rust, rust_output), ("oracle", oracle, oracle_output)]:
-                check = {"compiler": compiler, "passed": False, "expected": case["uniform_layouts"]}
+                expected = expected_uniform_locations(case, compiler)
+                check = {"compiler": compiler, "passed": False, "expected": expected}
                 if compilation["accepted"]:
                     try:
                         reflection = json.loads(output.with_suffix(".json").read_text(encoding="utf-8"))
-                        check["actual"] = normalize_uniform_locations(case["uniform_layouts"], reflection, compiler)
-                        check["passed"] = compare_uniform_locations(case["uniform_layouts"], reflection, compiler)
+                        check["actual"] = normalize_uniform_locations(expected, reflection, compiler)
+                        check["passed"] = compare_uniform_locations(expected, reflection, compiler)
                     except (OSError, ValueError, KeyError, TypeError, StopIteration) as error:
                         check["error"] = str(error)
                 layout_checks.append(check)
