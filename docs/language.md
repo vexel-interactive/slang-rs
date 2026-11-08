@@ -159,7 +159,7 @@ signed/unsigned evaluation rules are not implemented.
 - Fixed arrays with positive decimal literal dimensions, including nested arrays.
 - Global `typedef` and nongeneric `typealias` declarations.
 - `StructuredBuffer<T>` and `RWStructuredBuffer<T>` with indexed element access.
-- `ConstantBuffer<T>` with a struct element and read-only field access.
+- `ConstantBuffer<T>` with scalar, vector, matrix, fixed-array, struct, or void elements and read-only value access.
 - `ByteAddressBuffer` and `RWByteAddressBuffer` with explicit byte-address methods.
 - `Texture1D/2D/3D/Cube<T>`, `RWTexture1D/2D/3D<T>`, `SamplerState`, and
   `SamplerComparisonState`. Texture elements are half/float/int/uint scalar or
@@ -442,13 +442,27 @@ algebra. Buffer storage follows the selected matrix layout.
 
 ## Resource operations
 
-`ConstantBuffer<T>` currently requires a struct element. Its fields can contain
-the supported scalar, vector, matrix, array, and nested struct types. Access
-uses the usual field syntax, such as `parameters.scale`. Fields remain read-only,
-including nested array elements, swizzles, and `out` arguments. Imported constant
-buffers preserve their struct's field visibility. HLSL uses its native
-`ConstantBuffer<T>` template; reflection records read access and the legacy HLSL
-byte layout of the element. See [resources.md](resources.md#constant-buffer-byte-layout).
+`ConstantBuffer<T>` supports scalar, vector, matrix, fixed-array, struct, and
+void elements. A handle implicitly loads its element in value contexts, including
+initialization, assignment, returns, constructors, input arguments, numeric
+operators, conditions, intrinsics, and indexing. For example,
+`ConstantBuffer<float> scale; float value = scale;` loads one float. Struct
+fields use the usual syntax, such as `parameters.scale`; imported fields retain
+their visibility. Buffer contents remain read-only through nested indices,
+swizzles, and output arguments; copies into local variables are ordinary values.
+
+Exact handle parameters retain the resource rather than loading its element.
+Overloads prefer an exact handle match, then an exact loaded element match over
+a numeric conversion. Handle returns, defaults, and arrays preserve this
+distinction. A switch requires an integer value: load an integer handle into a
+local or use an explicit numeric cast before switching on it. A void element
+uses no register or uniform byte layout; loading it still evaluates the source
+expression's side effects.
+
+HLSL uses generated storage structs for nonstruct elements. Reflection retains
+the source element type and its legacy HLSL byte layout. Matrix qualifiers and
+compilation defaults determine storage without changing logical value shapes.
+See [resources.md](resources.md#constant-buffer-byte-layout).
 
 Direct `cbuffer Name : register(b2, space1) { float scale; };` declarations
 inject read-only field names into global scope. The buffer name has its own
@@ -466,9 +480,8 @@ automatic ones; see [resources.md](resources.md#constant-buffer-byte-layout).
 Ordinary struct fields also support packing, including nested structs and
 arrays of values. Packed constant-buffer handle arrays remain unsupported.
 
-Nonstruct constant-buffer elements, automatic conversion
-of a constant-buffer handle to its element,
-resource-valued fields, and byte layout for other targets remain unimplemented.
+Resource-valued constant-buffer elements and fields, packed handle arrays, and
+byte layout for other targets remain unimplemented.
 
 Fixed arrays of the supported resource handles, including constant buffers,
 preserve their outer-to-inner dimensions. Indexing selects a resource handle;

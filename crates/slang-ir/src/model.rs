@@ -134,6 +134,8 @@ pub struct SwitchCase {
 
 #[derive(Clone, Debug, Serialize)]
 pub enum ExprKind {
+    /// Read an element value from a checked ConstantBuffer resource expression.
+    ConstantBufferLoad(Box<Expr>),
     /// Evaluate a checked default in declaration scope before passing its value.
     DeclarationDefault(Box<Expr>),
     Zero,

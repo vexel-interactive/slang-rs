@@ -132,6 +132,7 @@ pub fn lower(checked: &CheckedModule) -> Result<Module, Diagnostic> {
     crate::packed_uniform::lower(&mut module)?;
     crate::matrix_storage::lower(&mut module)?;
     crate::matrix_resource::lower(&mut module)?;
+    crate::constant_buffer_value::lower(&mut module)?;
     Ok(module)
 }
 
@@ -309,6 +310,17 @@ impl Lowerer<'_> {
     }
 
     fn expression(&self, expression: &ast::Expr) -> Result<Expr, Diagnostic> {
+        let value = self.expression_inner(expression)?;
+        Ok(
+            if self.checked.constant_buffer_loads.contains(&expression.id) {
+                constant_buffer_load(value)
+            } else {
+                value
+            },
+        )
+    }
+
+    fn expression_inner(&self, expression: &ast::Expr) -> Result<Expr, Diagnostic> {
         let ty = self
             .checked
             .expression_types
@@ -501,6 +513,11 @@ impl Lowerer<'_> {
             slang_sema::InitializationKind::Value(source)
             | slang_sema::InitializationKind::DeclarationDefault(source) => {
                 let expression = self.expression(source)?;
+                let expression = if !value.ty.is_resource() {
+                    constant_buffer_load(expression)
+                } else {
+                    expression
+                };
                 let expression = if expression.ty == value.ty {
                     expression
                 } else {
@@ -533,5 +550,17 @@ impl Lowerer<'_> {
             kind,
             span,
         })
+    }
+}
+
+fn constant_buffer_load(value: Expr) -> Expr {
+    if let Type::ConstantBuffer { element, .. } = &value.ty {
+        Expr {
+            ty: *element.clone(),
+            span: value.span,
+            kind: ExprKind::ConstantBufferLoad(Box::new(value)),
+        }
+    } else {
+        value
     }
 }

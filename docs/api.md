@@ -56,6 +56,11 @@ or matrix array uses a layout key such as `row_major float2x3`; its algebraic
 value type remains `float2x3`. `Reflection.global_uniform_size` reports
 the occupied size of the shared buffer. Private storage and structured-buffer
 elements omit this metadata. These models are reexported from `slang-compiler`.
+`ConstantBuffer` globals retain their source scalar, vector, matrix, array,
+struct, or void element in reflection even when HLSL uses generated storage.
+Void elements omit both `binding` and `uniform_layout`. In `slang-sema`,
+`Type::ConstantBuffer { element, matrix_major }` stores the value type and any
+matrix storage qualifier that differs from the compilation default.
 See [resources.md](resources.md#constant-buffer-byte-layout) for legacy HLSL rules,
 host allocation requirements, native half storage, and the remaining limits.
 The binding types are reexported from `slang-compiler` and defined

@@ -136,7 +136,8 @@ impl Lowerer {
                     self.expression(v)?;
                 }
             }
-            ExprKind::DeclarationDefault(value)
+            ExprKind::ConstantBufferLoad(value)
+            | ExprKind::DeclarationDefault(value)
             | ExprKind::Unary { value, .. }
             | ExprKind::Cast { value }
             | ExprKind::Postfix { value, .. } => self.expression(value)?,

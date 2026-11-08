@@ -313,6 +313,7 @@ fn signature(function: &Function) -> String {
 
 fn expression(expr: &Expr) -> String {
     match &expr.kind {
+        ExprKind::ConstantBufferLoad(value) => expression(value),
         ExprKind::DeclarationDefault(value) => expression(value),
         ExprKind::Zero => format!("(({})0)", type_name(&expr.ty)),
         ExprKind::Construct(values) => {

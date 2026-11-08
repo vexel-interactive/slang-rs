@@ -134,7 +134,7 @@ impl Reflection {
                     resource_access: match resource_element(
                         &checked.declaration_types[&slang_sema::span_key(global.span)],
                     ) {
-                        Type::ConstantBuffer(_) => Some("read".into()),
+                        Type::ConstantBuffer { .. } => Some("read".into()),
                         Type::ByteBuffer { writable }
                         | Type::Buffer { writable, .. }
                         | Type::Texture { writable, .. } => {

@@ -140,9 +140,9 @@ impl Lowerer {
                     )?;
                 }
             }
-            ExprKind::DeclarationDefault(value) | ExprKind::Cast { value } => {
-                self.transform(value, false)?
-            }
+            ExprKind::ConstantBufferLoad(value)
+            | ExprKind::DeclarationDefault(value)
+            | ExprKind::Cast { value } => self.transform(value, false)?,
             ExprKind::Unary { op, value } => {
                 self.transform(value, matches!(op.as_str(), "++" | "--"))?
             }

@@ -3670,6 +3670,412 @@
       "matrix_major": "column",
       "oracle_validation_accept": false,
       "reason": "Slang 2026.21 emits inconsistent numeric matrix storage wrappers for qualified StructuredBuffer elements: row-major mode fails on Load subscripting, and column-major mode emits an incompatible resource parameter. Both frontends accept this source, and DXC validates the native output while rejecting the upstream artifact."
+    },
+    {
+      "file": "negative/constant-buffer-array-write.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T015"
+    },
+    {
+      "file": "negative/constant-buffer-numeric-output.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T015"
+    },
+    {
+      "file": "positive/constant-buffer-array-values.slang",
+      "entry": "main",
+      "accept": true,
+      "uniform_layouts": {
+        "input": {
+          "offset": 0,
+          "size": 28
+        },
+        "input[]": {
+          "offset": 0,
+          "size": 12
+        }
+      },
+      "rust_dxc_layouts": {
+        "input": {
+          "size": 28,
+          "offsets": {
+            "_value": 0
+          }
+        }
+      },
+      "bindings": {
+        "input": {
+          "class": "b",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        },
+        "output": {
+          "class": "u",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        }
+      }
+    },
+    {
+      "file": "positive/constant-buffer-handle-values.slang",
+      "entry": "main",
+      "accept": true,
+      "oracle_validation_accept": false,
+      "uniform_layouts": {
+        "input": {
+          "offset": 0,
+          "size": 4
+        }
+      },
+      "rust_dxc_layouts": {
+        "input": {
+          "size": 4,
+          "offsets": {
+            "_value": 0
+          }
+        }
+      },
+      "bindings": {
+        "input": {
+          "class": "b",
+          "index": 0,
+          "space": 0,
+          "count": 2
+        },
+        "output": {
+          "class": "u",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        }
+      },
+      "reason": "Slang 2026.21 emits ConstantBuffer<float> handle arrays, which DXC rejects because the element must be a struct."
+    },
+    {
+      "file": "positive/constant-buffer-matrix-array-values.slang",
+      "entry": "main",
+      "accept": true,
+      "uniform_layouts": {
+        "input": {
+          "offset": 0,
+          "size": 60
+        },
+        "input[]": {
+          "offset": 0,
+          "size": 28
+        }
+      },
+      "rust_dxc_layouts": {
+        "input": {
+          "size": 60,
+          "offsets": {}
+        }
+      },
+      "bindings": {
+        "input": {
+          "class": "b",
+          "index": 3,
+          "space": 2,
+          "count": 2
+        },
+        "output": {
+          "class": "u",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        }
+      }
+    },
+    {
+      "file": "positive/constant-buffer-numeric.slang",
+      "entry": "main",
+      "accept": true,
+      "uniform_layouts": {
+        "scalar": {
+          "offset": 0,
+          "size": 4
+        },
+        "vector": {
+          "offset": 0,
+          "size": 12
+        },
+        "matrix": {
+          "offset": 0,
+          "size": 28
+        }
+      },
+      "rust_dxc_layouts": {
+        "scalar": {
+          "size": 4,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "vector": {
+          "size": 12,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "matrix": {
+          "size": 28,
+          "offsets": {
+            "_value": 0
+          }
+        }
+      },
+      "bindings": {
+        "scalar": {
+          "class": "b",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        },
+        "vector": {
+          "class": "b",
+          "index": 1,
+          "space": 0,
+          "count": 1
+        },
+        "matrix": {
+          "class": "b",
+          "index": 2,
+          "space": 0,
+          "count": 1
+        },
+        "output": {
+          "class": "u",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        }
+      }
+    },
+    {
+      "file": "positive/constant-buffer-struct-values.slang",
+      "entry": "main",
+      "accept": true,
+      "uniform_layouts": {
+        "input": {
+          "offset": 0,
+          "size": 4
+        },
+        "input.value": {
+          "offset": 0,
+          "size": 4
+        }
+      },
+      "rust_dxc_layouts": {
+        "input": {
+          "size": 4,
+          "offsets": {
+            "value": 0
+          }
+        }
+      },
+      "bindings": {
+        "input": {
+          "class": "b",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        },
+        "output": {
+          "class": "u",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        }
+      }
+    },
+    {
+      "file": "positive/constant-buffer-value-contexts.slang",
+      "entry": "main",
+      "accept": true,
+      "uniform_layouts": {
+        "scalar": {
+          "offset": 0,
+          "size": 4
+        },
+        "vector": {
+          "offset": 0,
+          "size": 8
+        },
+        "index": {
+          "offset": 0,
+          "size": 4
+        },
+        "condition": {
+          "offset": 0,
+          "size": 4
+        },
+        "input": {
+          "offset": 0,
+          "size": 28
+        },
+        "input[]": {
+          "offset": 0,
+          "size": 12
+        }
+      },
+      "rust_dxc_layouts": {
+        "scalar": {
+          "size": 4,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "vector": {
+          "size": 8,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "index": {
+          "size": 4,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "condition": {
+          "size": 4,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input": {
+          "size": 28,
+          "offsets": {
+            "_value": 0
+          }
+        }
+      },
+      "bindings": {
+        "scalar": {
+          "class": "b",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        },
+        "vector": {
+          "class": "b",
+          "index": 1,
+          "space": 0,
+          "count": 1
+        },
+        "index": {
+          "class": "b",
+          "index": 2,
+          "space": 0,
+          "count": 1
+        },
+        "condition": {
+          "class": "b",
+          "index": 3,
+          "space": 0,
+          "count": 1
+        },
+        "input": {
+          "class": "b",
+          "index": 4,
+          "space": 0,
+          "count": 1
+        },
+        "output": {
+          "class": "u",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        }
+      }
+    },
+    {
+      "file": "positive/constant-buffer-void.slang",
+      "entry": "main",
+      "accept": true,
+      "uniform_layouts": {
+        "value": {
+          "offset": 0,
+          "size": 4
+        }
+      },
+      "rust_dxc_layouts": {
+        "value": {
+          "size": 4,
+          "offsets": {
+            "_value": 0
+          }
+        }
+      },
+      "bindings": {
+        "value": {
+          "class": "b",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        },
+        "output": {
+          "class": "u",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        }
+      }
+    },
+    {
+      "file": "negative/constant-buffer-switch.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T009"
+    },
+    {
+      "file": "positive/constant-buffer-aggregate-handles.slang",
+      "entry": "main",
+      "accept": true,
+      "uniform_layouts": {
+        "input": {
+          "offset": 0,
+          "size": 124
+        },
+        "input[].values": {
+          "offset": 0,
+          "size": 28
+        },
+        "input[].matrix": {
+          "offset": 32,
+          "size": 28
+        },
+        "input[].values[]": {
+          "offset": 0,
+          "size": 12
+        }
+      },
+      "rust_dxc_layouts": {
+        "input": {
+          "size": 124,
+          "offsets": {
+            "values": 0
+          }
+        }
+      },
+      "bindings": {
+        "input": {
+          "class": "b",
+          "index": 0,
+          "space": 0,
+          "count": 2
+        },
+        "output": {
+          "class": "u",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        }
+      }
     }
   ]
 }

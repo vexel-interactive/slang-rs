@@ -214,13 +214,14 @@ impl Checker {
         while let Type::Array(element, _) = ty {
             ty = element;
         }
-        let Type::ConstantBuffer(element) = ty else {
+        let Type::ConstantBuffer { element, .. } = ty else {
             return false;
         };
         let mut stack = vec![element.as_ref()];
         let mut visited = std::collections::BTreeSet::new();
         while let Some(ty) = stack.pop() {
             match ty {
+                Type::Void => {}
                 Type::Array(element, _) => stack.push(element),
                 Type::Struct(name) => {
                     if visited.insert(name) {
@@ -244,7 +245,7 @@ fn resource_range(mut ty: &Type) -> Result<Option<(RegisterClass, u32)>, Allocat
         ty = element;
     }
     let class = match ty {
-        Type::ConstantBuffer(_) => RegisterClass::ConstantBuffer,
+        Type::ConstantBuffer { .. } => RegisterClass::ConstantBuffer,
         Type::ByteBuffer { writable }
         | Type::Buffer { writable, .. }
         | Type::Texture { writable, .. } => {

@@ -25,6 +25,11 @@ impl Checker {
             }
         };
         if let Some(target) = constructor {
+            for (argument, ty) in arguments.iter().zip(&mut types) {
+                if matches!(ty, Type::ConstantBuffer { .. }) {
+                    *ty = self.value_expression(argument);
+                }
+            }
             if matches!(target, Type::Array(..)) {
                 let result = self.array_constructor(&target, arguments, callee.id, span);
                 self.expression_types
@@ -140,22 +145,22 @@ impl Checker {
                 types
                     .iter()
                     .zip(&s.parameters)
-                    .filter(|(a, b)| **a != Type::InitializerList && a != b)
-                    .count()
+                    .map(|(a, b)| a.conversion_cost(b))
+                    .sum::<usize>()
             });
             let best = matches.first();
             if let Some(best) = best {
                 let score = types
                     .iter()
                     .zip(&best.parameters)
-                    .filter(|(a, b)| **a != Type::InitializerList && a != b)
-                    .count();
+                    .map(|(a, b)| a.conversion_cost(b))
+                    .sum::<usize>();
                 if matches.get(1).is_some_and(|s| {
                     types
                         .iter()
                         .zip(&s.parameters)
-                        .filter(|(a, b)| **a != Type::InitializerList && a != b)
-                        .count()
+                        .map(|(a, b)| a.conversion_cost(b))
+                        .sum::<usize>()
                         == score
                 }) {
                     self.error("T014", span, format!("ambiguous call to '{name}'"));
@@ -163,13 +168,13 @@ impl Checker {
                 if !best.defined {
                     self.error("T014", span, format!("function '{name}' has no definition"));
                 }
+                for (argument, target) in arguments.iter().zip(&best.parameters) {
+                    self.coerce_value(argument, target);
+                }
                 for (argument, output) in arguments.iter().zip(&best.output_parameters) {
                     if *output {
                         self.require_writable(argument);
                     }
-                }
-                for (argument, target) in arguments.iter().zip(&best.parameters) {
-                    self.coerce_value(argument, target);
                 }
                 self.expression_types.insert(
                     callee.id,
@@ -196,6 +201,11 @@ impl Checker {
             }
             self.error("T014", span, format!("no matching overload for '{name}'"));
             return Type::Error;
+        }
+        for (argument, ty) in arguments.iter().zip(&mut types) {
+            if matches!(ty, Type::ConstantBuffer { .. }) {
+                *ty = self.value_expression(argument);
+            }
         }
         if types.contains(&Type::InitializerList)
             && (name != "refract" || types.get(2) != Some(&Type::InitializerList))

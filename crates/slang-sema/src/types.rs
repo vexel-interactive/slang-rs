@@ -49,7 +49,11 @@ pub enum Type {
     Matrix(Scalar, u8, u8),
     Array(Box<Type>, u32),
     Struct(String),
-    ConstantBuffer(Box<Type>),
+    ConstantBuffer {
+        element: Box<Type>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        matrix_major: Option<slang_layout::MatrixMajor>,
+    },
     ByteBuffer {
         writable: bool,
     },
@@ -156,7 +160,7 @@ impl Type {
         }
         matches!(
             self,
-            Self::ConstantBuffer(_)
+            Self::ConstantBuffer { .. }
                 | Self::ByteBuffer { .. }
                 | Self::Buffer { .. }
                 | Self::Texture { .. }
@@ -212,7 +216,29 @@ impl Type {
         matches!(self.scalar(), Some(Scalar::Int | Scalar::Uint))
     }
 
+    pub fn value_type(&self) -> &Self {
+        match self {
+            Self::ConstantBuffer { element, .. } => element,
+            _ => self,
+        }
+    }
+
+    pub(crate) fn conversion_cost(&self, target: &Self) -> usize {
+        if self == target || *self == Self::InitializerList {
+            0
+        } else if matches!(self, Self::ConstantBuffer { .. }) && !target.is_resource() {
+            1 + usize::from(self.value_type() != target)
+        } else {
+            1
+        }
+    }
+
     pub fn convertible_to(&self, target: &Self) -> bool {
+        if let Self::ConstantBuffer { element, .. } = self
+            && !target.is_resource()
+        {
+            return element.convertible_to(target);
+        }
         if self == target || *self == Self::Error || *target == Self::Error {
             return true;
         }
@@ -318,7 +344,18 @@ impl fmt::Display for Type {
                 write!(f, "{ty}{suffix}")
             }
             Self::Struct(name) => f.write_str(name),
-            Self::ConstantBuffer(element) => write!(f, "ConstantBuffer<{element}>"),
+            Self::ConstantBuffer {
+                element,
+                matrix_major,
+            } => write!(
+                f,
+                "ConstantBuffer<{}{element}>",
+                match matrix_major {
+                    Some(slang_layout::MatrixMajor::Row) => "row_major ",
+                    Some(slang_layout::MatrixMajor::Column) => "column_major ",
+                    None => "",
+                }
+            ),
             Self::ByteBuffer { writable } => {
                 write!(f, "{}ByteAddressBuffer", if *writable { "RW" } else { "" })
             }

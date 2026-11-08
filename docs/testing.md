@@ -356,6 +356,23 @@ These checks establish shader validity and selected physical layouts, without
 claiming GPU execution equivalence. A manifest's `matrix_major` value (`row` or
 `column`) applies the same compiler option to both frontends.
 
+Constant-buffer element tests cover all 126 supported numeric types: six scalar
+families, vectors of widths one through four, and matrices with one through four
+rows and columns. Twelve native DXC cases verify 252 physical and reflected
+element layouts under both matrix defaults. Differential fixtures cover numeric
+and aggregate values, handle overloads and returns, declaration defaults, nested
+struct and matrix arrays, read-only outputs, and void-element index side effects.
+Selected bindings and byte locations are compared with upstream reflection;
+native DXC buffer definitions independently check physical storage. Large array
+reads stay compact, while excessive whole-array copies report `I004`.
+
+Slang 2026.21 emits `ConstantBuffer<float>` for a numeric handle array, which DXC
+rejects because it requires a struct element. That fixture requires both
+frontends to accept the source, DXC to accept native storage wrappers, and DXC
+to reject the upstream artifact. Direct switches on integer constant-buffer
+handles are rejected by both frontends; explicitly loaded integer selectors
+are accepted. These tests do not compare GPU execution.
+
 [validation.json](validation.json) records the Windows validation run for this
 checkpoint. It includes the pinned compiler version, workspace checks, and
 differential corpus counts. It is a snapshot of that run, not a promise of

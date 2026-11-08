@@ -88,7 +88,7 @@ impl Lowerer {
                 }
             }
             Type::Array(element, _)
-            | Type::ConstantBuffer(element)
+            | Type::ConstantBuffer { element, .. }
             | Type::Texture { element, .. }
             | Type::Meta(element) => self.ty(element, span),
             Type::Callable { parameters, result } => {

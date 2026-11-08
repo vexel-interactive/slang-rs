@@ -86,7 +86,7 @@ pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
             continue;
         }
         match &global.ty {
-            Type::ConstantBuffer(element) if contains(element, &packed) => {
+            Type::ConstantBuffer { element, .. } if contains(element, &packed) => {
                 let mut fields = vec![];
                 let initializer =
                     builder.value(element, &element.to_string(), 0, global.span, &mut fields)?;
@@ -288,7 +288,7 @@ fn packed_handle(mut ty: &Type, packed: &BTreeSet<String>) -> bool {
     while let Type::Array(element, _) = ty {
         ty = element;
     }
-    matches!(ty, Type::ConstantBuffer(element) if contains(element, packed))
+    matches!(ty, Type::ConstantBuffer { element, .. } if contains(element, packed))
 }
 
 fn view(source: &Variable, initializer: Expr) -> Variable {
@@ -495,7 +495,7 @@ struct Converter<'a> {
 impl Converter<'_> {
     fn ty(&self, ty: &mut Type) {
         match ty {
-            Type::ConstantBuffer(element) if contains(element, self.packed) => {
+            Type::ConstantBuffer { element, .. } if contains(element, self.packed) => {
                 *ty = *element.clone();
             }
             Type::Array(element, _) => self.ty(element),

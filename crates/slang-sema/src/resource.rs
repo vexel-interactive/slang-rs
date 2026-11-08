@@ -22,7 +22,8 @@ impl Checker {
         if receiver == Type::Error || types.contains(&Type::Error) {
             return Type::Error;
         }
-        let Some(method) = signature(&receiver, name, types) else {
+        let types: Vec<_> = types.iter().map(|ty| ty.value_type().clone()).collect();
+        let Some(method) = signature(&receiver, name, &types) else {
             self.error(
                 "T014",
                 span,
@@ -37,6 +38,16 @@ impl Checker {
             .enumerate()
         {
             if index >= method.output_start {
+                if matches!(
+                    self.expression_types.get(&argument.id),
+                    Some(Type::ConstantBuffer { .. })
+                ) {
+                    self.error(
+                        "T015",
+                        argument.span,
+                        "constant-buffer contents are not writable output locations",
+                    );
+                }
                 self.require_writable(argument);
                 if actual != expected {
                     self.error(

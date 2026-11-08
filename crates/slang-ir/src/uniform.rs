@@ -32,9 +32,19 @@ pub(crate) fn lower(module: &mut Module, checked: &CheckedModule) -> Result<(), 
             while let Type::Array(element, _) = ty {
                 ty = element;
             }
-            if let Type::ConstantBuffer(element) = ty {
-                calculate(element, false, default_major, &structures, &mut layouts)
-                    .map_err(|e| error(global.span, e))?;
+            if let Type::ConstantBuffer {
+                element,
+                matrix_major,
+            } = ty
+            {
+                calculate(
+                    element,
+                    matrix_major.unwrap_or(default_major) == MatrixMajor::Row,
+                    default_major,
+                    &structures,
+                    &mut layouts,
+                )
+                .map_err(|e| error(global.span, e))?;
             }
         }
     }
@@ -75,8 +85,15 @@ pub(crate) fn lower(module: &mut Module, checked: &CheckedModule) -> Result<(), 
         while let Type::Array(element, _) = ty {
             ty = element;
         }
-        if let Type::ConstantBuffer(element) = ty {
-            let name = element.to_string();
+        if let Type::ConstantBuffer {
+            element,
+            matrix_major,
+        } = ty
+        {
+            let name = layout_name(
+                element,
+                matrix_major.unwrap_or(default_major) == MatrixMajor::Row,
+            );
             if layouts.get(&name).is_some_and(Option::is_some) {
                 global.uniform_layout = Some(UniformVariableLayout {
                     offset: 0,

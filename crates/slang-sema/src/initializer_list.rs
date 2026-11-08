@@ -11,7 +11,11 @@ impl Checker {
         span: Span,
     ) -> Type {
         let plan = if arguments.len() == 1
-            && self.expression_types.get(&arguments[0].id) == Some(target)
+            && self
+                .expression_types
+                .get(&arguments[0].id)
+                .map(Type::value_type)
+                == Some(target)
         {
             Ok(Initialization {
                 ty: target.clone(),
@@ -76,6 +80,9 @@ impl Checker {
                 .get(&value.id)
                 .cloned()
                 .unwrap_or(Type::Error);
+            if matches!(actual, Type::ConstantBuffer { .. }) && !target.is_resource() {
+                self.constant_buffer_loads.insert(value.id);
+            }
             self.require_conversion(&actual, target, value.span);
         }
     }
@@ -235,6 +242,7 @@ impl Planner<'_> {
                     self.checker
                         .expression_types
                         .get(&v.id)
+                        .map(Type::value_type)
                         .cloned()
                         .unwrap_or(Type::Error)
                 })
@@ -314,7 +322,10 @@ impl Planner<'_> {
                     let actual = values
                         .get(*index)
                         .and_then(|v| self.checker.expression_types.get(&v.id));
-                    let count = actual.and_then(Type::width).unwrap_or(1);
+                    let count = actual
+                        .map(Type::value_type)
+                        .and_then(Type::width)
+                        .unwrap_or(1);
                     if components + count > *width {
                         return Err(self.invalid(span, target));
                     }

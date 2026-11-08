@@ -24,6 +24,16 @@ matrix arrays when DXC cannot safely copy their storage order; structured-buffer
 helpers evaluate the source index once and preserve writable locations. Qualified
 numeric resource elements lower to one-field HLSL storage structs.
 
+Constant-buffer checking distinguishes resource expressions from implicit value
+loads. `CheckedModule.constant_buffer_loads` records selected expression IDs;
+coercion preserves handles for exact resource parameters and returns. Lowering
+creates `ConstantBufferLoad` IR expressions. A late pass, after source layout
+and matrix/packing normalization, wraps nonstruct elements in HLSL storage
+structs and resolves those loads. Whole-array helpers reconstruct logical values
+while evaluating the handle once; direct indexing avoids materializing the
+array. Void storage structs have no fields and their load helpers preserve
+argument evaluation. Source reflection is captured before storage type rewriting.
+
 Atomic normalization adds a private typed output when Slang omits the old value
 of an exchange. HLSL requires that output. Its per-invocation scalar storage is
 declared before source globals so global initializers can also use it. The atomic

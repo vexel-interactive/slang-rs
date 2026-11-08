@@ -129,7 +129,7 @@ fn reserved(name: &str) -> bool {
 pub(crate) fn type_name(ty: &Type) -> String {
     match ty {
         Type::Struct(name) => identifier(name),
-        Type::ConstantBuffer(element) => format!("ConstantBuffer<{}>", type_name(element)),
+        Type::ConstantBuffer { element, .. } => format!("ConstantBuffer<{}>", type_name(element)),
         Type::Array(element, length) => format!("{}[{length}]", type_name(element)),
         Type::Buffer {
             element, writable, ..

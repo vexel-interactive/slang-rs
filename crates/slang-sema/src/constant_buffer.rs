@@ -13,7 +13,7 @@ impl Checker {
                 while let Type::Array(element, _) = ty {
                     ty = element;
                 }
-                if let Type::ConstantBuffer(element) = ty {
+                if let Type::ConstantBuffer { element, .. } = ty {
                     Some((*span, *element.clone()))
                 } else {
                     None
@@ -42,7 +42,9 @@ impl Checker {
         cache: &mut BTreeMap<String, bool>,
     ) -> bool {
         match ty {
-            Type::Scalar(_) | Type::Vector(..) | Type::Matrix(..) | Type::Error => true,
+            Type::Void | Type::Scalar(_) | Type::Vector(..) | Type::Matrix(..) | Type::Error => {
+                true
+            }
             Type::Array(element, _) => self.data_type(element, path, cache),
             Type::Struct(name) => {
                 if path.len() >= 128 || !path.insert(name.clone()) {

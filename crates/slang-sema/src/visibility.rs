@@ -36,7 +36,7 @@ impl Checker {
         match ty {
             Type::Struct(name) => self.public_types.contains(name),
             Type::Array(element, _)
-            | Type::ConstantBuffer(element)
+            | Type::ConstantBuffer { element, .. }
             | Type::Buffer { element, .. }
             | Type::Texture { element, .. } => self.public_type(element),
             _ => true,

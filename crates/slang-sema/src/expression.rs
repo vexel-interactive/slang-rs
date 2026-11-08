@@ -6,6 +6,20 @@ use slang_source::Span;
 use slang_syntax::{Expr, ExprKind};
 
 impl Checker {
+    pub(crate) fn value_expression(&mut self, expression: &Expr) -> Type {
+        let ty = self.expression(expression);
+        self.load_type(expression, ty)
+    }
+
+    fn load_type(&mut self, expression: &Expr, ty: Type) -> Type {
+        if let Type::ConstantBuffer { element, .. } = ty {
+            self.constant_buffer_loads.insert(expression.id);
+            *element
+        } else {
+            ty
+        }
+    }
+
     pub fn expression(&mut self, expression: &Expr) -> Type {
         let ty = match &expression.kind {
             ExprKind::InitializerList(values) => {
@@ -69,7 +83,7 @@ impl Checker {
             }
             ExprKind::Bool(_) => Type::Scalar(Scalar::Bool),
             ExprKind::Cast { target, value } => {
-                let actual = self.expression(value);
+                let actual = self.value_expression(value);
                 let target = self.resolve_type(target);
                 let valid = actual == Type::Error
                     || target == Type::Error
@@ -122,7 +136,7 @@ impl Checker {
                 Type::Error
             }
             ExprKind::Unary { op, value } => {
-                let ty = self.expression(value);
+                let ty = self.value_expression(value);
                 match op.as_str() {
                     "!" if ty.scalar().is_some() => ty.boolean_shape(),
                     "~" if ty.integral() => ty.clone(),
@@ -143,7 +157,7 @@ impl Checker {
                 }
             }
             ExprKind::Postfix { value, .. } => {
-                let ty = self.expression(value);
+                let ty = self.value_expression(value);
                 self.require_writable(value);
                 if !ty.numeric() && ty != Type::Error {
                     self.error(
@@ -164,23 +178,24 @@ impl Checker {
                     op.as_str(),
                     "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^=" | "<<=" | ">>="
                 ) {
-                    let b = self.expression(right);
+                    let b = self.value_expression(right);
                     self.require_writable(left);
                     let result = self.binary(op.trim_end_matches('='), &a, &b, expression.span);
                     self.require_conversion(&result, &a, expression.span);
                     a
                 } else {
-                    let b = self.expression(right);
+                    let a = self.load_type(left, a);
+                    let b = if op == "," {
+                        self.expression(right)
+                    } else {
+                        self.value_expression(right)
+                    };
                     self.binary(op, &a, &b, expression.span)
                 }
             }
             ExprKind::Call { callee, arguments } => self.call(callee, arguments, expression.span),
             ExprKind::Member { base, name } => {
-                let ty = self.expression(base);
-                let ty = match ty {
-                    Type::ConstantBuffer(element) => *element,
-                    ty => ty,
-                };
+                let ty = self.value_expression(base);
                 match ty {
                     Type::Struct(ref structure)
                         if self
@@ -247,8 +262,8 @@ impl Checker {
                 }
             }
             ExprKind::Index { base, index } => {
-                let ty = self.expression(base);
-                let index_type = self.expression(index);
+                let ty = self.value_expression(base);
+                let index_type = self.value_expression(index);
                 let width = match &ty {
                     Type::Texture { dimension, .. } => dimension.coordinates(),
                     _ => 1,
@@ -292,6 +307,10 @@ impl Checker {
                 self.condition(condition);
                 let mut a = self.expression(then_value);
                 let mut b = self.expression(else_value);
+                if a != b {
+                    a = self.load_type(then_value, a);
+                    b = self.load_type(else_value, b);
+                }
                 if a == Type::InitializerList && b == Type::InitializerList {
                     self.error(
                         "T021",
@@ -364,12 +383,15 @@ impl Checker {
     }
 
     fn writable(&self, expr: &Expr) -> bool {
+        if self.constant_buffer_loads.contains(&expr.id) {
+            return false;
+        }
         match &expr.kind {
             ExprKind::Name(name) => self.lookup(name).is_some_and(|b| b.writable),
             ExprKind::Member { base, name } => {
                 if matches!(
                     self.expression_types.get(&base.id),
-                    Some(Type::ConstantBuffer(_))
+                    Some(Type::ConstantBuffer { .. })
                 ) {
                     return false;
                 }
@@ -386,6 +408,7 @@ impl Checker {
                 unique && self.writable(base)
             }
             ExprKind::Index { base, .. } => match self.expression_types.get(&base.id) {
+                Some(Type::ConstantBuffer { .. }) => false,
                 Some(Type::Buffer { writable, .. } | Type::Texture { writable, .. }) => *writable,
                 _ => self.writable(base),
             },

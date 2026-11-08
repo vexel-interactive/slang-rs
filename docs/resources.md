@@ -5,6 +5,12 @@ buffers, 1D/2D/3D/cube textures, and ordinary/comparison samplers. Each supporte
 resource handle can appear in a fixed array. Index the array before using the
 selected handle's operations. See [language.md](language.md) for those operations.
 
+`ConstantBuffer<T>` accepts supported data types and void. Nonstruct elements
+use generated HLSL storage structs; reflection describes the original element
+and binding. Value contexts load the element, while handle parameters and
+returns preserve the resource. Void elements and empty structs consume no
+constant-buffer register. Their source expressions still evaluate when used.
+
 ## Explicit registers
 
 Global shader resources accept HLSL register annotations:
@@ -186,6 +192,13 @@ Materialization is bounded to 65,536 generated nodes and reports `I004` if it
 exceeds that limit. Explicit matrix element types such as
 `StructuredBuffer<row_major float2x3>` use a generated storage struct in HLSL;
 source reflection retains the resource's matrix type.
+
+Whole-array constant-buffer loads reconstruct logical elements before copies
+and function arguments. A helper receives the selected handle once, preserving
+side effects in its index or producing function. Direct array reads access only
+the selected element and do not expand the whole array. The same materialization
+limit applies to these copies. Scalar, vector, and matrix loads use the generated
+storage field directly; struct loads explicitly convert to their value type.
 
 Direct `cbuffer` fields and ordinary struct fields accept `: packoffset(c2.y)`. Register indices count
 16-byte slots; `x`, `y`, `z`, and `w` select byte offsets 0, 4, 8, and 12.

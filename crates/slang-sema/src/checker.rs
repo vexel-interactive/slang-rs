@@ -28,6 +28,8 @@ pub struct CheckedModule {
     pub matrix_major: slang_layout::MatrixMajor,
     pub module: Module,
     pub expression_types: BTreeMap<ExprId, Type>,
+    /// Resource expressions implicitly loaded in their checked value context.
+    pub constant_buffer_loads: BTreeSet<ExprId>,
     pub declaration_types: BTreeMap<SpanKey, Type>,
     pub matrix_layouts: BTreeMap<SpanKey, slang_layout::MatrixMajor>,
     pub entry_points: Vec<EntryPoint>,
@@ -89,6 +91,7 @@ pub(crate) struct Checker {
     pub functions: BTreeMap<String, Vec<Signature>>,
     pub structures: BTreeMap<String, BTreeMap<String, Type>>,
     pub expression_types: BTreeMap<ExprId, Type>,
+    pub constant_buffer_loads: BTreeSet<ExprId>,
     pub declaration_types: BTreeMap<SpanKey, Type>,
     pub matrix_layouts: BTreeMap<SpanKey, slang_layout::MatrixMajor>,
     pub diagnostics: Vec<Diagnostic>,
@@ -163,6 +166,7 @@ fn check_with_metadata(
         functions: BTreeMap::new(),
         structures: BTreeMap::new(),
         expression_types: BTreeMap::new(),
+        constant_buffer_loads: BTreeSet::new(),
         declaration_types: BTreeMap::new(),
         matrix_layouts: BTreeMap::new(),
         diagnostics: vec![],
@@ -317,6 +321,7 @@ fn check_with_metadata(
             matrix_major: checker.default_matrix_major,
             module,
             expression_types: checker.expression_types,
+            constant_buffer_loads: checker.constant_buffer_loads,
             declaration_types: checker.declaration_types,
             matrix_layouts: checker.matrix_layouts,
             entry_points,
@@ -405,7 +410,7 @@ impl Checker {
     }
 
     pub fn condition(&mut self, expression: &Expr) {
-        let ty = self.expression(expression);
+        let ty = self.value_expression(expression);
         if !matches!(ty, Type::Scalar(_) | Type::Vector(_, 1) | Type::Error) {
             self.error("T009", expression.span, "condition must have a scalar type");
         }

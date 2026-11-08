@@ -1379,6 +1379,2634 @@
       "file": "../conformance/positive/matrix-layout-resource-elements.slang",
       "entry": "main",
       "matrix_major": "column"
+    },
+    {
+      "file": "constant-buffer-elements-bool.slang",
+      "entry": "main",
+      "matrix_major": "row",
+      "uniform_layouts": {
+        "input0": {
+          "offset": 0,
+          "size": 4
+        },
+        "input1": {
+          "offset": 0,
+          "size": 4
+        },
+        "input2": {
+          "offset": 0,
+          "size": 8
+        },
+        "input3": {
+          "offset": 0,
+          "size": 12
+        },
+        "input4": {
+          "offset": 0,
+          "size": 16
+        },
+        "input5": {
+          "offset": 0,
+          "size": 4
+        },
+        "input6": {
+          "offset": 0,
+          "size": 8
+        },
+        "input7": {
+          "offset": 0,
+          "size": 12
+        },
+        "input8": {
+          "offset": 0,
+          "size": 16
+        },
+        "input9": {
+          "offset": 0,
+          "size": 20
+        },
+        "input10": {
+          "offset": 0,
+          "size": 24
+        },
+        "input11": {
+          "offset": 0,
+          "size": 28
+        },
+        "input12": {
+          "offset": 0,
+          "size": 32
+        },
+        "input13": {
+          "offset": 0,
+          "size": 36
+        },
+        "input14": {
+          "offset": 0,
+          "size": 40
+        },
+        "input15": {
+          "offset": 0,
+          "size": 44
+        },
+        "input16": {
+          "offset": 0,
+          "size": 48
+        },
+        "input17": {
+          "offset": 0,
+          "size": 52
+        },
+        "input18": {
+          "offset": 0,
+          "size": 56
+        },
+        "input19": {
+          "offset": 0,
+          "size": 60
+        },
+        "input20": {
+          "offset": 0,
+          "size": 64
+        }
+      },
+      "dxc_layouts": {
+        "input0": {
+          "size": 4,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input1": {
+          "size": 4,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input2": {
+          "size": 8,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input3": {
+          "size": 12,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input4": {
+          "size": 16,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input5": {
+          "size": 4,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input6": {
+          "size": 8,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input7": {
+          "size": 12,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input8": {
+          "size": 16,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input9": {
+          "size": 20,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input10": {
+          "size": 24,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input11": {
+          "size": 28,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input12": {
+          "size": 32,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input13": {
+          "size": 36,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input14": {
+          "size": 40,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input15": {
+          "size": 44,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input16": {
+          "size": 48,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input17": {
+          "size": 52,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input18": {
+          "size": 56,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input19": {
+          "size": 60,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input20": {
+          "size": 64,
+          "offsets": {
+            "_value": 0
+          }
+        }
+      }
+    },
+    {
+      "file": "constant-buffer-elements-bool.slang",
+      "entry": "main",
+      "matrix_major": "column",
+      "uniform_layouts": {
+        "input0": {
+          "offset": 0,
+          "size": 4
+        },
+        "input1": {
+          "offset": 0,
+          "size": 4
+        },
+        "input2": {
+          "offset": 0,
+          "size": 8
+        },
+        "input3": {
+          "offset": 0,
+          "size": 12
+        },
+        "input4": {
+          "offset": 0,
+          "size": 16
+        },
+        "input5": {
+          "offset": 0,
+          "size": 4
+        },
+        "input6": {
+          "offset": 0,
+          "size": 20
+        },
+        "input7": {
+          "offset": 0,
+          "size": 36
+        },
+        "input8": {
+          "offset": 0,
+          "size": 52
+        },
+        "input9": {
+          "offset": 0,
+          "size": 8
+        },
+        "input10": {
+          "offset": 0,
+          "size": 24
+        },
+        "input11": {
+          "offset": 0,
+          "size": 40
+        },
+        "input12": {
+          "offset": 0,
+          "size": 56
+        },
+        "input13": {
+          "offset": 0,
+          "size": 12
+        },
+        "input14": {
+          "offset": 0,
+          "size": 28
+        },
+        "input15": {
+          "offset": 0,
+          "size": 44
+        },
+        "input16": {
+          "offset": 0,
+          "size": 60
+        },
+        "input17": {
+          "offset": 0,
+          "size": 16
+        },
+        "input18": {
+          "offset": 0,
+          "size": 32
+        },
+        "input19": {
+          "offset": 0,
+          "size": 48
+        },
+        "input20": {
+          "offset": 0,
+          "size": 64
+        }
+      },
+      "dxc_layouts": {
+        "input0": {
+          "size": 4,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input1": {
+          "size": 4,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input2": {
+          "size": 8,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input3": {
+          "size": 12,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input4": {
+          "size": 16,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input5": {
+          "size": 4,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input6": {
+          "size": 20,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input7": {
+          "size": 36,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input8": {
+          "size": 52,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input9": {
+          "size": 8,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input10": {
+          "size": 24,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input11": {
+          "size": 40,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input12": {
+          "size": 56,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input13": {
+          "size": 12,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input14": {
+          "size": 28,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input15": {
+          "size": 44,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input16": {
+          "size": 60,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input17": {
+          "size": 16,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input18": {
+          "size": 32,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input19": {
+          "size": 48,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input20": {
+          "size": 64,
+          "offsets": {
+            "_value": 0
+          }
+        }
+      }
+    },
+    {
+      "file": "constant-buffer-elements-int.slang",
+      "entry": "main",
+      "matrix_major": "row",
+      "uniform_layouts": {
+        "input0": {
+          "offset": 0,
+          "size": 4
+        },
+        "input1": {
+          "offset": 0,
+          "size": 4
+        },
+        "input2": {
+          "offset": 0,
+          "size": 8
+        },
+        "input3": {
+          "offset": 0,
+          "size": 12
+        },
+        "input4": {
+          "offset": 0,
+          "size": 16
+        },
+        "input5": {
+          "offset": 0,
+          "size": 4
+        },
+        "input6": {
+          "offset": 0,
+          "size": 8
+        },
+        "input7": {
+          "offset": 0,
+          "size": 12
+        },
+        "input8": {
+          "offset": 0,
+          "size": 16
+        },
+        "input9": {
+          "offset": 0,
+          "size": 20
+        },
+        "input10": {
+          "offset": 0,
+          "size": 24
+        },
+        "input11": {
+          "offset": 0,
+          "size": 28
+        },
+        "input12": {
+          "offset": 0,
+          "size": 32
+        },
+        "input13": {
+          "offset": 0,
+          "size": 36
+        },
+        "input14": {
+          "offset": 0,
+          "size": 40
+        },
+        "input15": {
+          "offset": 0,
+          "size": 44
+        },
+        "input16": {
+          "offset": 0,
+          "size": 48
+        },
+        "input17": {
+          "offset": 0,
+          "size": 52
+        },
+        "input18": {
+          "offset": 0,
+          "size": 56
+        },
+        "input19": {
+          "offset": 0,
+          "size": 60
+        },
+        "input20": {
+          "offset": 0,
+          "size": 64
+        }
+      },
+      "dxc_layouts": {
+        "input0": {
+          "size": 4,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input1": {
+          "size": 4,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input2": {
+          "size": 8,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input3": {
+          "size": 12,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input4": {
+          "size": 16,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input5": {
+          "size": 4,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input6": {
+          "size": 8,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input7": {
+          "size": 12,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input8": {
+          "size": 16,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input9": {
+          "size": 20,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input10": {
+          "size": 24,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input11": {
+          "size": 28,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input12": {
+          "size": 32,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input13": {
+          "size": 36,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input14": {
+          "size": 40,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input15": {
+          "size": 44,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input16": {
+          "size": 48,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input17": {
+          "size": 52,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input18": {
+          "size": 56,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input19": {
+          "size": 60,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input20": {
+          "size": 64,
+          "offsets": {
+            "_value": 0
+          }
+        }
+      }
+    },
+    {
+      "file": "constant-buffer-elements-int.slang",
+      "entry": "main",
+      "matrix_major": "column",
+      "uniform_layouts": {
+        "input0": {
+          "offset": 0,
+          "size": 4
+        },
+        "input1": {
+          "offset": 0,
+          "size": 4
+        },
+        "input2": {
+          "offset": 0,
+          "size": 8
+        },
+        "input3": {
+          "offset": 0,
+          "size": 12
+        },
+        "input4": {
+          "offset": 0,
+          "size": 16
+        },
+        "input5": {
+          "offset": 0,
+          "size": 4
+        },
+        "input6": {
+          "offset": 0,
+          "size": 20
+        },
+        "input7": {
+          "offset": 0,
+          "size": 36
+        },
+        "input8": {
+          "offset": 0,
+          "size": 52
+        },
+        "input9": {
+          "offset": 0,
+          "size": 8
+        },
+        "input10": {
+          "offset": 0,
+          "size": 24
+        },
+        "input11": {
+          "offset": 0,
+          "size": 40
+        },
+        "input12": {
+          "offset": 0,
+          "size": 56
+        },
+        "input13": {
+          "offset": 0,
+          "size": 12
+        },
+        "input14": {
+          "offset": 0,
+          "size": 28
+        },
+        "input15": {
+          "offset": 0,
+          "size": 44
+        },
+        "input16": {
+          "offset": 0,
+          "size": 60
+        },
+        "input17": {
+          "offset": 0,
+          "size": 16
+        },
+        "input18": {
+          "offset": 0,
+          "size": 32
+        },
+        "input19": {
+          "offset": 0,
+          "size": 48
+        },
+        "input20": {
+          "offset": 0,
+          "size": 64
+        }
+      },
+      "dxc_layouts": {
+        "input0": {
+          "size": 4,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input1": {
+          "size": 4,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input2": {
+          "size": 8,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input3": {
+          "size": 12,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input4": {
+          "size": 16,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input5": {
+          "size": 4,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input6": {
+          "size": 20,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input7": {
+          "size": 36,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input8": {
+          "size": 52,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input9": {
+          "size": 8,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input10": {
+          "size": 24,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input11": {
+          "size": 40,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input12": {
+          "size": 56,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input13": {
+          "size": 12,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input14": {
+          "size": 28,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input15": {
+          "size": 44,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input16": {
+          "size": 60,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input17": {
+          "size": 16,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input18": {
+          "size": 32,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input19": {
+          "size": 48,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input20": {
+          "size": 64,
+          "offsets": {
+            "_value": 0
+          }
+        }
+      }
+    },
+    {
+      "file": "constant-buffer-elements-uint.slang",
+      "entry": "main",
+      "matrix_major": "row",
+      "uniform_layouts": {
+        "input0": {
+          "offset": 0,
+          "size": 4
+        },
+        "input1": {
+          "offset": 0,
+          "size": 4
+        },
+        "input2": {
+          "offset": 0,
+          "size": 8
+        },
+        "input3": {
+          "offset": 0,
+          "size": 12
+        },
+        "input4": {
+          "offset": 0,
+          "size": 16
+        },
+        "input5": {
+          "offset": 0,
+          "size": 4
+        },
+        "input6": {
+          "offset": 0,
+          "size": 8
+        },
+        "input7": {
+          "offset": 0,
+          "size": 12
+        },
+        "input8": {
+          "offset": 0,
+          "size": 16
+        },
+        "input9": {
+          "offset": 0,
+          "size": 20
+        },
+        "input10": {
+          "offset": 0,
+          "size": 24
+        },
+        "input11": {
+          "offset": 0,
+          "size": 28
+        },
+        "input12": {
+          "offset": 0,
+          "size": 32
+        },
+        "input13": {
+          "offset": 0,
+          "size": 36
+        },
+        "input14": {
+          "offset": 0,
+          "size": 40
+        },
+        "input15": {
+          "offset": 0,
+          "size": 44
+        },
+        "input16": {
+          "offset": 0,
+          "size": 48
+        },
+        "input17": {
+          "offset": 0,
+          "size": 52
+        },
+        "input18": {
+          "offset": 0,
+          "size": 56
+        },
+        "input19": {
+          "offset": 0,
+          "size": 60
+        },
+        "input20": {
+          "offset": 0,
+          "size": 64
+        }
+      },
+      "dxc_layouts": {
+        "input0": {
+          "size": 4,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input1": {
+          "size": 4,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input2": {
+          "size": 8,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input3": {
+          "size": 12,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input4": {
+          "size": 16,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input5": {
+          "size": 4,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input6": {
+          "size": 8,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input7": {
+          "size": 12,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input8": {
+          "size": 16,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input9": {
+          "size": 20,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input10": {
+          "size": 24,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input11": {
+          "size": 28,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input12": {
+          "size": 32,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input13": {
+          "size": 36,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input14": {
+          "size": 40,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input15": {
+          "size": 44,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input16": {
+          "size": 48,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input17": {
+          "size": 52,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input18": {
+          "size": 56,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input19": {
+          "size": 60,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input20": {
+          "size": 64,
+          "offsets": {
+            "_value": 0
+          }
+        }
+      }
+    },
+    {
+      "file": "constant-buffer-elements-uint.slang",
+      "entry": "main",
+      "matrix_major": "column",
+      "uniform_layouts": {
+        "input0": {
+          "offset": 0,
+          "size": 4
+        },
+        "input1": {
+          "offset": 0,
+          "size": 4
+        },
+        "input2": {
+          "offset": 0,
+          "size": 8
+        },
+        "input3": {
+          "offset": 0,
+          "size": 12
+        },
+        "input4": {
+          "offset": 0,
+          "size": 16
+        },
+        "input5": {
+          "offset": 0,
+          "size": 4
+        },
+        "input6": {
+          "offset": 0,
+          "size": 20
+        },
+        "input7": {
+          "offset": 0,
+          "size": 36
+        },
+        "input8": {
+          "offset": 0,
+          "size": 52
+        },
+        "input9": {
+          "offset": 0,
+          "size": 8
+        },
+        "input10": {
+          "offset": 0,
+          "size": 24
+        },
+        "input11": {
+          "offset": 0,
+          "size": 40
+        },
+        "input12": {
+          "offset": 0,
+          "size": 56
+        },
+        "input13": {
+          "offset": 0,
+          "size": 12
+        },
+        "input14": {
+          "offset": 0,
+          "size": 28
+        },
+        "input15": {
+          "offset": 0,
+          "size": 44
+        },
+        "input16": {
+          "offset": 0,
+          "size": 60
+        },
+        "input17": {
+          "offset": 0,
+          "size": 16
+        },
+        "input18": {
+          "offset": 0,
+          "size": 32
+        },
+        "input19": {
+          "offset": 0,
+          "size": 48
+        },
+        "input20": {
+          "offset": 0,
+          "size": 64
+        }
+      },
+      "dxc_layouts": {
+        "input0": {
+          "size": 4,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input1": {
+          "size": 4,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input2": {
+          "size": 8,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input3": {
+          "size": 12,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input4": {
+          "size": 16,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input5": {
+          "size": 4,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input6": {
+          "size": 20,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input7": {
+          "size": 36,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input8": {
+          "size": 52,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input9": {
+          "size": 8,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input10": {
+          "size": 24,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input11": {
+          "size": 40,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input12": {
+          "size": 56,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input13": {
+          "size": 12,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input14": {
+          "size": 28,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input15": {
+          "size": 44,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input16": {
+          "size": 60,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input17": {
+          "size": 16,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input18": {
+          "size": 32,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input19": {
+          "size": 48,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input20": {
+          "size": 64,
+          "offsets": {
+            "_value": 0
+          }
+        }
+      }
+    },
+    {
+      "file": "constant-buffer-elements-half.slang",
+      "entry": "main",
+      "matrix_major": "row",
+      "uniform_layouts": {
+        "input0": {
+          "offset": 0,
+          "size": 4
+        },
+        "input1": {
+          "offset": 0,
+          "size": 4
+        },
+        "input2": {
+          "offset": 0,
+          "size": 8
+        },
+        "input3": {
+          "offset": 0,
+          "size": 12
+        },
+        "input4": {
+          "offset": 0,
+          "size": 16
+        },
+        "input5": {
+          "offset": 0,
+          "size": 4
+        },
+        "input6": {
+          "offset": 0,
+          "size": 8
+        },
+        "input7": {
+          "offset": 0,
+          "size": 12
+        },
+        "input8": {
+          "offset": 0,
+          "size": 16
+        },
+        "input9": {
+          "offset": 0,
+          "size": 20
+        },
+        "input10": {
+          "offset": 0,
+          "size": 24
+        },
+        "input11": {
+          "offset": 0,
+          "size": 28
+        },
+        "input12": {
+          "offset": 0,
+          "size": 32
+        },
+        "input13": {
+          "offset": 0,
+          "size": 36
+        },
+        "input14": {
+          "offset": 0,
+          "size": 40
+        },
+        "input15": {
+          "offset": 0,
+          "size": 44
+        },
+        "input16": {
+          "offset": 0,
+          "size": 48
+        },
+        "input17": {
+          "offset": 0,
+          "size": 52
+        },
+        "input18": {
+          "offset": 0,
+          "size": 56
+        },
+        "input19": {
+          "offset": 0,
+          "size": 60
+        },
+        "input20": {
+          "offset": 0,
+          "size": 64
+        }
+      },
+      "dxc_layouts": {
+        "input0": {
+          "size": 4,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input1": {
+          "size": 4,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input2": {
+          "size": 8,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input3": {
+          "size": 12,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input4": {
+          "size": 16,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input5": {
+          "size": 4,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input6": {
+          "size": 8,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input7": {
+          "size": 12,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input8": {
+          "size": 16,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input9": {
+          "size": 20,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input10": {
+          "size": 24,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input11": {
+          "size": 28,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input12": {
+          "size": 32,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input13": {
+          "size": 36,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input14": {
+          "size": 40,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input15": {
+          "size": 44,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input16": {
+          "size": 48,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input17": {
+          "size": 52,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input18": {
+          "size": 56,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input19": {
+          "size": 60,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input20": {
+          "size": 64,
+          "offsets": {
+            "_value": 0
+          }
+        }
+      }
+    },
+    {
+      "file": "constant-buffer-elements-half.slang",
+      "entry": "main",
+      "matrix_major": "column",
+      "uniform_layouts": {
+        "input0": {
+          "offset": 0,
+          "size": 4
+        },
+        "input1": {
+          "offset": 0,
+          "size": 4
+        },
+        "input2": {
+          "offset": 0,
+          "size": 8
+        },
+        "input3": {
+          "offset": 0,
+          "size": 12
+        },
+        "input4": {
+          "offset": 0,
+          "size": 16
+        },
+        "input5": {
+          "offset": 0,
+          "size": 4
+        },
+        "input6": {
+          "offset": 0,
+          "size": 20
+        },
+        "input7": {
+          "offset": 0,
+          "size": 36
+        },
+        "input8": {
+          "offset": 0,
+          "size": 52
+        },
+        "input9": {
+          "offset": 0,
+          "size": 8
+        },
+        "input10": {
+          "offset": 0,
+          "size": 24
+        },
+        "input11": {
+          "offset": 0,
+          "size": 40
+        },
+        "input12": {
+          "offset": 0,
+          "size": 56
+        },
+        "input13": {
+          "offset": 0,
+          "size": 12
+        },
+        "input14": {
+          "offset": 0,
+          "size": 28
+        },
+        "input15": {
+          "offset": 0,
+          "size": 44
+        },
+        "input16": {
+          "offset": 0,
+          "size": 60
+        },
+        "input17": {
+          "offset": 0,
+          "size": 16
+        },
+        "input18": {
+          "offset": 0,
+          "size": 32
+        },
+        "input19": {
+          "offset": 0,
+          "size": 48
+        },
+        "input20": {
+          "offset": 0,
+          "size": 64
+        }
+      },
+      "dxc_layouts": {
+        "input0": {
+          "size": 4,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input1": {
+          "size": 4,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input2": {
+          "size": 8,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input3": {
+          "size": 12,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input4": {
+          "size": 16,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input5": {
+          "size": 4,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input6": {
+          "size": 20,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input7": {
+          "size": 36,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input8": {
+          "size": 52,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input9": {
+          "size": 8,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input10": {
+          "size": 24,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input11": {
+          "size": 40,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input12": {
+          "size": 56,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input13": {
+          "size": 12,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input14": {
+          "size": 28,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input15": {
+          "size": 44,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input16": {
+          "size": 60,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input17": {
+          "size": 16,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input18": {
+          "size": 32,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input19": {
+          "size": 48,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input20": {
+          "size": 64,
+          "offsets": {
+            "_value": 0
+          }
+        }
+      }
+    },
+    {
+      "file": "constant-buffer-elements-float.slang",
+      "entry": "main",
+      "matrix_major": "row",
+      "uniform_layouts": {
+        "input0": {
+          "offset": 0,
+          "size": 4
+        },
+        "input1": {
+          "offset": 0,
+          "size": 4
+        },
+        "input2": {
+          "offset": 0,
+          "size": 8
+        },
+        "input3": {
+          "offset": 0,
+          "size": 12
+        },
+        "input4": {
+          "offset": 0,
+          "size": 16
+        },
+        "input5": {
+          "offset": 0,
+          "size": 4
+        },
+        "input6": {
+          "offset": 0,
+          "size": 8
+        },
+        "input7": {
+          "offset": 0,
+          "size": 12
+        },
+        "input8": {
+          "offset": 0,
+          "size": 16
+        },
+        "input9": {
+          "offset": 0,
+          "size": 20
+        },
+        "input10": {
+          "offset": 0,
+          "size": 24
+        },
+        "input11": {
+          "offset": 0,
+          "size": 28
+        },
+        "input12": {
+          "offset": 0,
+          "size": 32
+        },
+        "input13": {
+          "offset": 0,
+          "size": 36
+        },
+        "input14": {
+          "offset": 0,
+          "size": 40
+        },
+        "input15": {
+          "offset": 0,
+          "size": 44
+        },
+        "input16": {
+          "offset": 0,
+          "size": 48
+        },
+        "input17": {
+          "offset": 0,
+          "size": 52
+        },
+        "input18": {
+          "offset": 0,
+          "size": 56
+        },
+        "input19": {
+          "offset": 0,
+          "size": 60
+        },
+        "input20": {
+          "offset": 0,
+          "size": 64
+        }
+      },
+      "dxc_layouts": {
+        "input0": {
+          "size": 4,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input1": {
+          "size": 4,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input2": {
+          "size": 8,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input3": {
+          "size": 12,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input4": {
+          "size": 16,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input5": {
+          "size": 4,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input6": {
+          "size": 8,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input7": {
+          "size": 12,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input8": {
+          "size": 16,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input9": {
+          "size": 20,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input10": {
+          "size": 24,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input11": {
+          "size": 28,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input12": {
+          "size": 32,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input13": {
+          "size": 36,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input14": {
+          "size": 40,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input15": {
+          "size": 44,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input16": {
+          "size": 48,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input17": {
+          "size": 52,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input18": {
+          "size": 56,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input19": {
+          "size": 60,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input20": {
+          "size": 64,
+          "offsets": {
+            "_value": 0
+          }
+        }
+      }
+    },
+    {
+      "file": "constant-buffer-elements-float.slang",
+      "entry": "main",
+      "matrix_major": "column",
+      "uniform_layouts": {
+        "input0": {
+          "offset": 0,
+          "size": 4
+        },
+        "input1": {
+          "offset": 0,
+          "size": 4
+        },
+        "input2": {
+          "offset": 0,
+          "size": 8
+        },
+        "input3": {
+          "offset": 0,
+          "size": 12
+        },
+        "input4": {
+          "offset": 0,
+          "size": 16
+        },
+        "input5": {
+          "offset": 0,
+          "size": 4
+        },
+        "input6": {
+          "offset": 0,
+          "size": 20
+        },
+        "input7": {
+          "offset": 0,
+          "size": 36
+        },
+        "input8": {
+          "offset": 0,
+          "size": 52
+        },
+        "input9": {
+          "offset": 0,
+          "size": 8
+        },
+        "input10": {
+          "offset": 0,
+          "size": 24
+        },
+        "input11": {
+          "offset": 0,
+          "size": 40
+        },
+        "input12": {
+          "offset": 0,
+          "size": 56
+        },
+        "input13": {
+          "offset": 0,
+          "size": 12
+        },
+        "input14": {
+          "offset": 0,
+          "size": 28
+        },
+        "input15": {
+          "offset": 0,
+          "size": 44
+        },
+        "input16": {
+          "offset": 0,
+          "size": 60
+        },
+        "input17": {
+          "offset": 0,
+          "size": 16
+        },
+        "input18": {
+          "offset": 0,
+          "size": 32
+        },
+        "input19": {
+          "offset": 0,
+          "size": 48
+        },
+        "input20": {
+          "offset": 0,
+          "size": 64
+        }
+      },
+      "dxc_layouts": {
+        "input0": {
+          "size": 4,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input1": {
+          "size": 4,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input2": {
+          "size": 8,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input3": {
+          "size": 12,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input4": {
+          "size": 16,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input5": {
+          "size": 4,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input6": {
+          "size": 20,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input7": {
+          "size": 36,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input8": {
+          "size": 52,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input9": {
+          "size": 8,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input10": {
+          "size": 24,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input11": {
+          "size": 40,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input12": {
+          "size": 56,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input13": {
+          "size": 12,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input14": {
+          "size": 28,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input15": {
+          "size": 44,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input16": {
+          "size": 60,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input17": {
+          "size": 16,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input18": {
+          "size": 32,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input19": {
+          "size": 48,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input20": {
+          "size": 64,
+          "offsets": {
+            "_value": 0
+          }
+        }
+      }
+    },
+    {
+      "file": "constant-buffer-elements-double.slang",
+      "entry": "main",
+      "matrix_major": "row",
+      "uniform_layouts": {
+        "input0": {
+          "offset": 0,
+          "size": 8
+        },
+        "input1": {
+          "offset": 0,
+          "size": 8
+        },
+        "input2": {
+          "offset": 0,
+          "size": 16
+        },
+        "input3": {
+          "offset": 0,
+          "size": 24
+        },
+        "input4": {
+          "offset": 0,
+          "size": 32
+        },
+        "input5": {
+          "offset": 0,
+          "size": 8
+        },
+        "input6": {
+          "offset": 0,
+          "size": 16
+        },
+        "input7": {
+          "offset": 0,
+          "size": 24
+        },
+        "input8": {
+          "offset": 0,
+          "size": 32
+        },
+        "input9": {
+          "offset": 0,
+          "size": 24
+        },
+        "input10": {
+          "offset": 0,
+          "size": 32
+        },
+        "input11": {
+          "offset": 0,
+          "size": 56
+        },
+        "input12": {
+          "offset": 0,
+          "size": 64
+        },
+        "input13": {
+          "offset": 0,
+          "size": 40
+        },
+        "input14": {
+          "offset": 0,
+          "size": 48
+        },
+        "input15": {
+          "offset": 0,
+          "size": 88
+        },
+        "input16": {
+          "offset": 0,
+          "size": 96
+        },
+        "input17": {
+          "offset": 0,
+          "size": 56
+        },
+        "input18": {
+          "offset": 0,
+          "size": 64
+        },
+        "input19": {
+          "offset": 0,
+          "size": 120
+        },
+        "input20": {
+          "offset": 0,
+          "size": 128
+        }
+      },
+      "dxc_layouts": {
+        "input0": {
+          "size": 8,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input1": {
+          "size": 8,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input2": {
+          "size": 16,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input3": {
+          "size": 24,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input4": {
+          "size": 32,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input5": {
+          "size": 8,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input6": {
+          "size": 16,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input7": {
+          "size": 24,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input8": {
+          "size": 32,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input9": {
+          "size": 24,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input10": {
+          "size": 32,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input11": {
+          "size": 56,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input12": {
+          "size": 64,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input13": {
+          "size": 40,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input14": {
+          "size": 48,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input15": {
+          "size": 88,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input16": {
+          "size": 96,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input17": {
+          "size": 56,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input18": {
+          "size": 64,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input19": {
+          "size": 120,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input20": {
+          "size": 128,
+          "offsets": {
+            "_value": 0
+          }
+        }
+      }
+    },
+    {
+      "file": "constant-buffer-elements-double.slang",
+      "entry": "main",
+      "matrix_major": "column",
+      "uniform_layouts": {
+        "input0": {
+          "offset": 0,
+          "size": 8
+        },
+        "input1": {
+          "offset": 0,
+          "size": 8
+        },
+        "input2": {
+          "offset": 0,
+          "size": 16
+        },
+        "input3": {
+          "offset": 0,
+          "size": 24
+        },
+        "input4": {
+          "offset": 0,
+          "size": 32
+        },
+        "input5": {
+          "offset": 0,
+          "size": 8
+        },
+        "input6": {
+          "offset": 0,
+          "size": 24
+        },
+        "input7": {
+          "offset": 0,
+          "size": 40
+        },
+        "input8": {
+          "offset": 0,
+          "size": 56
+        },
+        "input9": {
+          "offset": 0,
+          "size": 16
+        },
+        "input10": {
+          "offset": 0,
+          "size": 32
+        },
+        "input11": {
+          "offset": 0,
+          "size": 48
+        },
+        "input12": {
+          "offset": 0,
+          "size": 64
+        },
+        "input13": {
+          "offset": 0,
+          "size": 24
+        },
+        "input14": {
+          "offset": 0,
+          "size": 56
+        },
+        "input15": {
+          "offset": 0,
+          "size": 88
+        },
+        "input16": {
+          "offset": 0,
+          "size": 120
+        },
+        "input17": {
+          "offset": 0,
+          "size": 32
+        },
+        "input18": {
+          "offset": 0,
+          "size": 64
+        },
+        "input19": {
+          "offset": 0,
+          "size": 96
+        },
+        "input20": {
+          "offset": 0,
+          "size": 128
+        }
+      },
+      "dxc_layouts": {
+        "input0": {
+          "size": 8,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input1": {
+          "size": 8,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input2": {
+          "size": 16,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input3": {
+          "size": 24,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input4": {
+          "size": 32,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input5": {
+          "size": 8,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input6": {
+          "size": 24,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input7": {
+          "size": 40,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input8": {
+          "size": 56,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input9": {
+          "size": 16,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input10": {
+          "size": 32,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input11": {
+          "size": 48,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input12": {
+          "size": 64,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input13": {
+          "size": 24,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input14": {
+          "size": 56,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input15": {
+          "size": 88,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input16": {
+          "size": 120,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input17": {
+          "size": 32,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input18": {
+          "size": 64,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input19": {
+          "size": 96,
+          "offsets": {
+            "_value": 0
+          }
+        },
+        "input20": {
+          "size": 128,
+          "offsets": {
+            "_value": 0
+          }
+        }
+      }
     }
   ]
 }

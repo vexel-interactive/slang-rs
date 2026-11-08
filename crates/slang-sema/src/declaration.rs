@@ -19,15 +19,24 @@ impl Checker {
         } else if reference.name == "ConstantBuffer" {
             match reference.arguments.as_slice() {
                 [element] => {
+                    let matrix_major = match element {
+                        TypeArgument::Type(element) => Some(element),
+                        _ => None,
+                    };
                     let element = self.type_argument(element);
-                    if !matches!(element, Type::Struct(_) | Type::Error) {
+                    if element.is_resource() {
                         self.error(
                             "T002",
                             reference.span,
-                            "constant buffers currently require a struct element type",
+                            "constant buffers require a data element type",
                         );
                     }
-                    Type::ConstantBuffer(Box::new(element))
+                    Type::ConstantBuffer {
+                        element: Box::new(element),
+                        matrix_major: matrix_major
+                            .and_then(|r| self.reference_matrix_major(r))
+                            .filter(|m| *m != self.default_matrix_major),
+                    }
                 }
                 _ => {
                     self.error(

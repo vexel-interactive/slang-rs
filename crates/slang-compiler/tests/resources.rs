@@ -106,7 +106,7 @@ fn constant_buffer_fields_are_typed_and_read_only() {
     }
     let error = compile_source(
         "unsupported.slang",
-        "ConstantBuffer<float> p;",
+        "ConstantBuffer<Texture2D<float>> p;",
         &CompileOptions::default(),
         &MemoryIncludes::default(),
     )
