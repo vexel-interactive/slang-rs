@@ -37,6 +37,8 @@ pub struct CheckedModule {
     pub symbols: BTreeMap<String, SymbolOrigin>,
     pub function_names: BTreeMap<SpanKey, String>,
     pub call_names: BTreeMap<ExprId, String>,
+    /// Selected callee and writable argument positions, including resource methods.
+    pub call_output_parameters: BTreeMap<SpanKey, (String, Vec<bool>)>,
     /// Resolved global variable declarations, independent of lexical spelling.
     pub global_references: BTreeMap<ExprId, SpanKey>,
     pub initializations: BTreeMap<ExprId, crate::Initialization>,
@@ -108,6 +110,7 @@ pub(crate) struct Checker {
     pub source_types: BTreeSet<(ModuleId, String)>,
     pub function_names: BTreeMap<SpanKey, String>,
     pub call_names: BTreeMap<ExprId, String>,
+    pub call_output_parameters: BTreeMap<SpanKey, (String, Vec<bool>)>,
     pub global_references: BTreeMap<ExprId, SpanKey>,
     pub aliases: BTreeMap<String, TypeRef>,
     pub alias_types: BTreeMap<String, Type>,
@@ -186,6 +189,7 @@ fn check_with_metadata(
         source_types: BTreeSet::new(),
         function_names: BTreeMap::new(),
         call_names: BTreeMap::new(),
+        call_output_parameters: BTreeMap::new(),
         global_references: BTreeMap::new(),
         aliases: BTreeMap::new(),
         alias_types: BTreeMap::new(),
@@ -356,6 +360,7 @@ fn check_with_metadata(
             symbols: checker.symbols,
             function_names: checker.function_names,
             call_names: checker.call_names,
+            call_output_parameters: checker.call_output_parameters,
             global_references: checker.global_references,
             initializations: checker.initializations,
             default_arguments: checker.default_arguments,

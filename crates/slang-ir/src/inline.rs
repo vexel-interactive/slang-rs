@@ -6,12 +6,15 @@ use slang_sema::{CheckedModule, Type, span_key};
 use slang_source::{Diagnostic, Span};
 use std::collections::{BTreeMap, BTreeSet};
 
+mod control;
+
 const MAX_INLINE_NODES: usize = 65_536;
 const MAX_INLINE_DEPTH: usize = 32;
 
-/// Inline explicitly requested linear numeric functions before scalar SSA.
-/// Argument/local storage is declared at function scope, but assignments stay
-/// inside comma expressions at the call site, including conditional arms.
+/// Inline explicitly requested numeric functions before scalar SSA.
+/// Capture storage is declared at function scope. Linear bodies use comma
+/// expressions; control-flow bodies use statement expressions normalized at
+/// their source evaluation points, including conditional arms.
 pub(crate) fn lower(module: &mut Module, checked: &CheckedModule) -> Result<(), Diagnostic> {
     let forced: BTreeSet<_> = checked
         .module
@@ -81,7 +84,7 @@ pub(crate) fn lower(module: &mut Module, checked: &CheckedModule) -> Result<(), 
             }
         }
     }
-    Ok(())
+    crate::effects::lower(module, checked)
 }
 
 struct Lowerer {
@@ -181,6 +184,26 @@ impl Lowerer {
                 "ForceInline requires a linear function body",
             ));
         };
+        let linear_result = statements.last().and_then(|statement| {
+            if let StmtKind::Return(Some(result)) = &statement.kind {
+                Some(result)
+            } else {
+                None
+            }
+        });
+        let linear = linear_result.is_some()
+            && statements[..statements.len() - 1].iter().all(|statement| {
+                matches!(
+                    statement.kind,
+                    StmtKind::Variable(_)
+                        | StmtKind::Variables(_)
+                        | StmtKind::Expression(_)
+                        | StmtKind::Empty
+                )
+            });
+        if !linear {
+            return self.expand_control(&function, arguments, span);
+        }
         let Some(Stmt {
             kind: StmtKind::Return(Some(result)),
             ..
@@ -272,6 +295,19 @@ impl Lowerer {
 }
 
 impl Visitor for Lowerer {
+    fn statement(&mut self, statement: &mut Stmt) -> Result<(), Diagnostic> {
+        if self.active.len() > 1 {
+            if self.remaining == 0 {
+                return Err(unsupported(
+                    statement.span,
+                    "ForceInline expansion size limit exceeded",
+                ));
+            }
+            self.remaining -= 1;
+        }
+        crate::visit::walk_statement(self, statement)
+    }
+
     fn expression(&mut self, expression: &mut Expr) -> Result<(), Diagnostic> {
         if self.active.len() > 1 {
             if self.remaining == 0 {

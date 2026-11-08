@@ -202,6 +202,10 @@ impl Checker {
                     },
                 );
                 self.call_names.insert(callee.id, best.target_name.clone());
+                self.call_output_parameters.insert(
+                    crate::span_key(span),
+                    (best.target_name.clone(), best.output_parameters.clone()),
+                );
                 if arguments.len() < best.parameters.len() {
                     let defaults = best.defaults[arguments.len()..]
                         .iter()
@@ -270,6 +274,15 @@ impl Checker {
                     self.require_writable(argument);
                 }
             }
+            self.call_output_parameters.insert(
+                crate::span_key(span),
+                (
+                    name.clone(),
+                    (0..arguments.len())
+                        .map(|i| signature.outputs_start.is_some_and(|start| i >= start))
+                        .collect(),
+                ),
+            );
             // The signature records explicit input conversions. Output integer
             // signs stay intact: casting an output would destroy its location.
             self.expression_types.insert(
@@ -282,6 +295,15 @@ impl Checker {
             return signature.result;
         }
         if let Some(signature) = crate::intrinsic::atomic_signature(name, &types) {
+            self.call_output_parameters.insert(
+                crate::span_key(span),
+                (
+                    name.clone(),
+                    (0..arguments.len())
+                        .map(|i| i == 0 || signature.output == Some(i))
+                        .collect(),
+                ),
+            );
             for (index, ((argument, actual), target)) in arguments
                 .iter()
                 .zip(&types)
@@ -313,6 +335,10 @@ impl Checker {
             return Type::Void;
         }
         if let Some(signature) = crate::intrinsic::output_signature(name, &types) {
+            self.call_output_parameters.insert(
+                crate::span_key(span),
+                (name.clone(), (0..arguments.len()).map(|i| i > 0).collect()),
+            );
             for (index, ((argument, actual), target)) in arguments
                 .iter()
                 .zip(&types)

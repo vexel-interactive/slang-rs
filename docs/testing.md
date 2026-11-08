@@ -97,8 +97,23 @@ unsupported/recursive forms. A differential fixture compares twenty compiled
 words from narrow shifts, ordinary call boundaries, postfix arguments, local
 declarations, conditionals, vectors, and matrices. A thousand-local function
 checks generated traversal depth; exponential nesting checks the expansion node
-budget. Both DXC artifacts match the same exact golden. General function
-inlining and compile-time function execution remain incomplete.
+budget. Both DXC artifacts match the same exact golden.
+
+[force-inline-control.slang](../tests/conformance/positive/force-inline-control.slang)
+adds 49 exact results from nested scopes, branch returns, loops, switch
+fallthrough/continue, static state, short-circuit effects, argument ordering,
+aggregate captures, indexed destinations, and return before a for increment.
+DXC leaves some of these loops in its compiled output. The independent bounded
+[integer DXIL interpreter](../tools/dxil_integer.py) follows the emitted blocks,
+simultaneous phi arguments, integer operations, branches, switches, and scalar
+structured-buffer stores. Both compiled programs match the same golden. This
+check does not execute a GPU shader or implement a general DXIL runtime.
+Undefined observed values, resource reads, floating/pointer operations,
+unsupported instructions, and an exhausted instruction budget fail explicitly.
+The dynamic [effect fixture](../tests/conformance/positive/force-inline-effects.slang)
+also validates resource receiver captures, output coordinates, atomics, and
+constant-buffer handles with both compilers and DXC. General function inlining,
+SPIR-V debug scope checks, and compile-time function execution remain incomplete.
 
 `tools/check.ps1` runs rustfmt, Clippy, workspace tests, and rustdoc using Rust
 1.99.1. Tests cover precedence, scopes, const/read-only locations, overloads,

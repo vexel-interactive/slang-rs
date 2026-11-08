@@ -135,6 +135,12 @@ pub struct SwitchCase {
 
 #[derive(Clone, Debug, Serialize)]
 pub enum ExprKind {
+    /// Temporary statement-valued expression, eliminated by effect normalization
+    /// before scalar SSA and target lowering.
+    BlockExpression {
+        statements: Vec<Stmt>,
+        value: Box<Expr>,
+    },
     /// Read an element value from a checked ConstantBuffer resource expression.
     ConstantBufferLoad(Box<Expr>),
     /// Evaluate a checked default in declaration scope before passing its value.

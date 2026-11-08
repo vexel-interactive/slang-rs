@@ -6,20 +6,21 @@
     "rustfmt": "passed",
     "clippy_all_targets_warnings_denied": "passed",
     "unit_tests": 42,
-    "integration_tests": 365,
+    "integration_tests": 367,
     "doc_tests": 1,
-    "conformance_comparison_tests": 26,
+    "conformance_comparison_tests": 27,
     "rustdoc": "passed",
     "release_build": "passed",
-    "english_documentation_and_links": "passed"
+    "english_documentation_and_links": "passed",
+    "dxil_integer_interpreter_tests": 7
   },
   "differential_validation": {
     "oracle": "Slang 2026.21",
-    "cases_passed": 522,
-    "cases_total": 522,
-    "matching_acceptance_cases": 511,
+    "cases_passed": 524,
+    "cases_total": 524,
+    "matching_acceptance_cases": 513,
     "documented_oracle_differences": 11,
-    "dxc_hlsl_artifacts_validated": 566,
+    "dxc_hlsl_artifacts_validated": 570,
     "dxc_invalid_hlsl_artifacts_rejected": 17,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
@@ -41,13 +42,17 @@
     "compiled_constant_words_matching": 1013,
     "documented_oracle_constant_words_differing": 7,
     "documented_oracle_constant_cases_differing": 2,
-    "documented_oracle_uniform_reflection_differences": 1
+    "documented_oracle_uniform_reflection_differences": 1,
+    "integer_program_cases_compared": 1,
+    "integer_program_words_compared": 49,
+    "integer_program_words_matching": 49,
+    "integer_program_validation": "Bounded interpretation of compiled integer DXIL, not GPU execution"
   },
   "remote_ci_executed": false,
   "remote_ci": null,
   "previous_remote_ci": {
-    "run_id": 42523987194,
-    "head_sha": "7f408dd60fc8f45bddd11b2624eeae02c1aa44bc",
+    "run_id": 42525695798,
+    "head_sha": "9e2ad36e490b94f0640e2b9db997cda7cdcec3e2",
     "conclusion": "success",
     "platforms": [
       "ubuntu-latest",
@@ -56,6 +61,16 @@
     ]
   },
   "earlier_remote_ci": [
+    {
+      "run_id": 42523987194,
+      "head_sha": "7f408dd60fc8f45bddd11b2624eeae02c1aa44bc",
+      "conclusion": "success",
+      "platforms": [
+        "ubuntu-latest",
+        "windows-latest",
+        "macos-latest"
+      ]
+    },
     {
       "run_id": 42521470106,
       "head_sha": "fb74eb0c5619bb551684e419fb0a018569c3800b",
@@ -660,7 +675,7 @@
     "gpu_execution_compared": false
   },
   "force_inline_validation": {
-    "integration_tests": 9,
+    "integration_tests": 11,
     "compiled_constant_words": 20,
     "matching_words": 20,
     "capture_argument_evaluation_once": true,
@@ -676,6 +691,21 @@
     "general_control_flow_inlining": false,
     "out_inout_resource_parameters": false,
     "general_constant_function_execution": false,
-    "gpu_execution_compared": false
+    "gpu_execution_compared": false,
+    "numeric_control_flow_inlining": true,
+    "lexical_scope_and_switch_bindings": true,
+    "loop_break_continue_early_returns": true,
+    "static_storage_identity_preserved": true,
+    "expression_effect_normalization": true,
+    "earlier_value_and_aggregate_captures": true,
+    "writable_index_single_evaluation": true,
+    "compound_destination_loaded_after_rhs": true,
+    "resource_receiver_and_constant_buffer_handle_captures": true,
+    "checked_callee_output_directions": true,
+    "compiled_integer_program_cases": 1,
+    "compiled_integer_program_words": 49,
+    "matching_integer_program_words": 49,
+    "upstream_multiblock_hlsl_smoke_cases": 3,
+    "upstream_spirv_debug_scope_filechecks_passed": false
   }
 }

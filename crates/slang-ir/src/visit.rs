@@ -110,6 +110,12 @@ pub(crate) fn walk_expression<V: Visitor + ?Sized>(
     expression: &mut Expr,
 ) -> Result<(), Diagnostic> {
     match &mut expression.kind {
+        ExprKind::BlockExpression { statements, value } => {
+            for statement in statements {
+                visitor.statement(statement)?;
+            }
+            visitor.expression(value)?;
+        }
         ExprKind::Construct(values)
         | ExprKind::Call {
             arguments: values, ..

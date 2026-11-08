@@ -86,15 +86,7 @@ fn malformed_attributes_and_unsupported_body_or_storage_forms_report_limits() {
     for (source, code) in [
         ("[ForceInline(1)]int f(int x){return x;}", "T006"),
         (
-            "[ForceInline]int f(int x){if(x>0)return 1;return 2;}int g(){return f(1);}",
-            "I005",
-        ),
-        (
             "[ForceInline]int f(inout int x){return x;}int g(){int x=1;return f(x);}",
-            "I005",
-        ),
-        (
-            "[ForceInline]int f(){static int x=1;return x;}int g(){return f();}",
             "I005",
         ),
         (
@@ -114,6 +106,60 @@ fn malformed_attributes_and_unsupported_body_or_storage_forms_report_limits() {
             "{source}: {error}"
         );
     }
+}
+
+#[test]
+fn branches_loops_early_returns_and_lexical_scopes_expand_before_ssa() {
+    let compiled = compile(include_str!(
+        "../../../tests/conformance/positive/force-inline-control.slang"
+    ));
+    let json = serde_json::to_string(&compiled.ir).unwrap();
+    assert!(
+        !json.contains("BlockExpression"),
+        "statement expressions escaped normalization"
+    );
+    for index in 0..compiled.ir.functions.len() {
+        if let Some(graph) = slang_ir::flow::build_function(&compiled.ir, index) {
+            graph.verify().unwrap();
+        }
+    }
+    let code = compiled.artifact.unwrap();
+    let main = code.split("void main()").last().unwrap();
+    for name in [
+        "choose",
+        "scoped",
+        "forReturn",
+        "whileReturn",
+        "doReturn",
+        "switched",
+        "change",
+        "next",
+        "isLess",
+        "countStatic",
+        "nestedFlow",
+    ] {
+        assert!(!main.contains(&format!("{name}(")), "{name}: {main}");
+    }
+}
+
+#[test]
+fn dynamic_lifted_conditions_preserve_continue_and_output_locations() {
+    let compiled = compile(include_str!(
+        "../../../tests/conformance/positive/force-inline-effects.slang"
+    ));
+    let json = serde_json::to_string(&compiled.ir).unwrap();
+    assert!(!json.contains("BlockExpression"));
+    for index in 0..compiled.ir.functions.len() {
+        if let Some(graph) = slang_ir::flow::build_function(&compiled.ir, index) {
+            graph.verify().unwrap();
+        }
+    }
+    let code = compiled.artifact.unwrap();
+    let main = code.split("void main(").last().unwrap();
+    assert!(main.contains("continue;"), "{main}");
+    assert!(main.contains("GetDimensions("), "{main}");
+    assert!(main.contains("InterlockedAdd("), "{main}");
+    assert!(!main.contains("step("), "{main}");
 }
 
 #[test]

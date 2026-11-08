@@ -137,16 +137,22 @@ language reference remains the specification for the complete port.
 
 `[ForceInline]` takes no arguments and expands functions with numeric input
 parameters and a numeric result before scalar constant propagation. The body
-may contain numeric local declarations, expression statements, and a final
-return. Nested inline calls, prototypes, selected overloads, and imported
+may contain numeric local declarations, nested lexical scopes, branches, loops,
+switches, and multiple returns. Nested inline calls, prototypes, selected overloads, and imported
 functions are supported. Each argument evaluates once in source order, including
 unused inputs. Assignments to an input parameter affect its captured copy.
 Conditional and short-circuit calls keep argument evaluation in the selected
-path. See [force-inline-values.slang](../tests/conformance/positive/force-inline-values.slang).
+path. Loop conditions and increments retain their evaluation points, including
+`continue` and early return. Static locals retain their shared per-invocation
+storage across inlined calls. Surrounding expressions capture earlier values
+before later statement effects and retain writable indexes for assignments and
+output arguments. See [force-inline-values.slang](../tests/conformance/positive/force-inline-values.slang)
+and [force-inline-control.slang](../tests/conformance/positive/force-inline-control.slang).
 
-Inlining control statements or nested declaration scopes, out/inout and resource
-parameters, aggregate/void results, static/shared local storage, and calls in
-global initializers is not implemented and reports `I005`. Recursive or excessive
+Inlining out/inout and resource parameters, aggregate/void results, shared/volatile
+local storage, and calls in global initializers is not implemented and reports
+`I005`. Statement-valued vector conditional/logical operands also report `I005`.
+Recursive or excessive
 expansion is bounded by depth and node limits. Ordinary calls retain their target
 call boundary; they are not evaluated as compile-time functions for type shapes.
 

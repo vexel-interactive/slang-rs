@@ -356,6 +356,9 @@ fn floating_literal(text: &str) -> String {
 
 fn expression(expr: &Expr) -> String {
     match &expr.kind {
+        ExprKind::BlockExpression { .. } => {
+            unreachable!("statement expressions must be normalized before HLSL emission")
+        }
         ExprKind::ConstantBufferLoad(value) => expression(value),
         ExprKind::DeclarationDefault(value) => expression(value),
         ExprKind::Zero => format!("(({})0)", type_name(&expr.ty)),

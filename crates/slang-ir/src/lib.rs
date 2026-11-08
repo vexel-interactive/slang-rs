@@ -4,6 +4,7 @@ mod array_result;
 mod atomic;
 mod constant_buffer_value;
 mod derivative;
+mod effects;
 mod empty_array;
 pub mod flow;
 mod geometric;

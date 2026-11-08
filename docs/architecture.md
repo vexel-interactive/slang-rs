@@ -310,18 +310,31 @@ checker records the selected callable in `CheckedModule`; lowering uses that
 selection so target compilation cannot select an internal overload by mistake.
 See [modules.md](modules.md) for file membership, access rules, and remaining limits.
 
-Explicit `[ForceInline]` requests expand linear numeric function bodies before
+Explicit `[ForceInline]` requests expand numeric function bodies before
 SSA construction. Prototypes and definitions use their checked target names;
 overloads and imported declarations retain the selected callable. Fresh local
 storage captures every argument in source order, including unused inputs, and
-preserves local parameter writes. Assignments occur inside comma expressions at
-the original call site, so conditional arms and short-circuit operands keep their
-evaluation conditions. Numeric local declarations and expression statements
-expand before the final returned expression. Source global references stay
-distinct from renamed local/parameter bindings. Expansion has node/depth limits
-and reports unsupported control flow, output parameters, aggregate/resource
-types, and global initializer calls explicitly. Ordinary calls remain opaque to
-SCCP, matching the tested upstream optimization boundary.
+preserves local parameter writes. Linear bodies use balanced comma expressions.
+Bodies with control flow use temporary statement expressions, unique result and
+returned-flag storage, guarded following statements, and loop conditions that
+stop after return. Cloning follows source lexical scopes, shared switch scopes,
+and for-loop bindings. Normalized static locals retain the same backing globals.
+Source global references stay distinct from renamed local/parameter bindings.
+
+Expression-effect normalization removes every statement expression before SSA.
+Earlier input values are captured before later statement regions, while writable
+storage paths retain their evaluated indexes and resource handles. Compound
+destinations load their contents after the right operand. The checker records
+output positions and the selected callee for user calls, intrinsics, and resource
+methods; generated helpers supply their own signatures. Short-circuit operands
+and conditional arms become guarded statement regions. Lifted while conditions
+execute at the loop head. For increments and do/while conditions use a first
+iteration flag at the loop head, so continue targets still execute the correct
+increment or condition. Aggregate captures receive ordinary initialization
+lowering before SSA. Expansion has node/depth limits and reports unsupported
+output parameters, aggregate/resource signatures, vector condition regions, and
+global initializer calls explicitly. Ordinary calls remain opaque to SCCP,
+matching the tested upstream optimization boundary.
 
 Target emission consumes **structured** IR: blocks, conditions, and loops remain
 explicit nodes. `slang_ir::flow` builds a separate typed scalar SSA graph after

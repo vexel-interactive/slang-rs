@@ -31,6 +31,15 @@ impl Checker {
             );
             return Type::Error;
         };
+        self.call_output_parameters.insert(
+            crate::span_key(span),
+            (
+                name.to_owned(),
+                (0..arguments.len())
+                    .map(|i| i >= method.output_start)
+                    .collect(),
+            ),
+        );
         for (index, ((actual, expected), argument)) in types
             .iter()
             .zip(&method.parameters)

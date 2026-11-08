@@ -6,6 +6,7 @@ import re
 import struct
 import subprocess
 from pathlib import Path
+from dxil_integer import interpret_integer_stores
 
 
 def run(command):
@@ -23,7 +24,7 @@ def compare_results(case, rust, oracle, validators):
     for compiler, result in [("rust", rust), ("oracle", oracle)]:
         passed = passed and all(text in result["stderr"] for text in case.get(f"{compiler}_stderr_contains", []))
     return passed and all(v["accepted"] == v["expected_accept"] and v.get("layout_passed", True) and v.get("strides_passed", True)
-                          and v.get("constant_stores_passed", True) for v in validators)
+                          and v.get("constant_stores_passed", True) and v.get("integer_stores_passed", True) for v in validators)
 
 
 def normalize_dxc_constant_stores(dump):
@@ -341,6 +342,15 @@ def main():
                             validation["constant_stores_passed"] = dump["accepted"] and validation["constant_stores_actual"] == expected_constant_stores(case, compiler)
                         except ValueError as error:
                             validation["constant_stores_error"] = str(error)
+                if "dxc_integer_stores" in case:
+                    validation["integer_stores_passed"] = False
+                    if validation["accepted"]:
+                        dump = run([str(args.dxc.resolve()), "-dumpbin", str(output.with_suffix(".dxil"))])
+                        try:
+                            validation["integer_stores_actual"] = interpret_integer_stores(dump["stdout"], case["entry"])
+                            validation["integer_stores_passed"] = dump["accepted"] and validation["integer_stores_actual"] == case["dxc_integer_stores"]
+                        except ValueError as error:
+                            validation["integer_stores_error"] = str(error)
                 validators.append(validation)
         passed = compare_results(case, rust, oracle, validators)
         binding_checks = []
@@ -397,6 +407,7 @@ def main():
         "global_uniform_binding_cases": sum(bool(r["uniform_binding_checks"]) for r in results),
         "uniform_layout_cases": sum(bool(r["uniform_layout_checks"]) for r in results),
         "constant_store_cases": sum(any("constant_stores_passed" in v for v in r["validators"]) for r in results),
+        "integer_program_cases": sum(any("integer_stores_passed" in v for v in r["validators"]) for r in results),
         "cases": results,
     }
     args.output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8", newline="\n")

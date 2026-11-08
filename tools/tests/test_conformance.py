@@ -60,6 +60,11 @@ class ConformanceComparison(unittest.TestCase):
         self.assertFalse(compare_results({"accept": True}, result(True), result(True), [validator]))
         self.assertTrue(compare_results({"accept": True}, result(True), result(True), [{**validator, "constant_stores_passed": True}]))
 
+    def test_integer_program_comparison_failures_reject_valid_artifacts(self):
+        validator = {"accepted": True, "expected_accept": True, "integer_stores_passed": False}
+        self.assertFalse(compare_results({"accept": True}, result(True), result(True), [validator]))
+        self.assertTrue(compare_results({"accept": True}, result(True), result(True), [{**validator, "integer_stores_passed": True}]))
+
     def test_dynamic_repeated_vector_and_multi_resource_stores_are_rejected(self):
         store = "call void @dx.op.bufferStore.i32(i32 69, %dx.types.Handle %1, i32 2, i32 0, i32 42, i32 undef, i32 undef, i32 undef, i8 1)"
         for dump in [store.replace("i32 42", "i32 %value"), store.replace("i8 1", "i8 3"),
