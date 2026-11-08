@@ -14,6 +14,9 @@ pub enum RegisterClass {
     UnorderedAccess,
     #[serde(rename = "s")]
     Sampler,
+    /// Legacy source annotation, never an allocated shader resource.
+    #[serde(rename = "c")]
+    LegacyUniform,
 }
 
 impl RegisterClass {
@@ -23,6 +26,7 @@ impl RegisterClass {
             't' => Some(Self::ShaderResource),
             'u' => Some(Self::UnorderedAccess),
             's' => Some(Self::Sampler),
+            'c' => Some(Self::LegacyUniform),
             _ => None,
         }
     }
@@ -35,6 +39,7 @@ impl fmt::Display for RegisterClass {
             Self::ShaderResource => "t",
             Self::UnorderedAccess => "u",
             Self::Sampler => "s",
+            Self::LegacyUniform => "c",
         })
     }
 }

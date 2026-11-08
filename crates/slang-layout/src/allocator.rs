@@ -28,6 +28,7 @@ impl RegisterAllocator {
     /// Overlapping explicit ranges remain occupied as their union.
     pub fn reserve(&mut self, binding: ResourceBinding) -> Result<(), AllocationError> {
         if binding.count == 0
+            || binding.register.class == RegisterClass::LegacyUniform
             || binding.register.space > MAX_REGISTER_INDEX
             || binding.end() > u64::from(MAX_REGISTER_INDEX) + 1
         {
@@ -62,7 +63,7 @@ impl RegisterAllocator {
         count: u32,
         space: u32,
     ) -> Result<ResourceBinding, AllocationError> {
-        if count == 0 || space > MAX_REGISTER_INDEX {
+        if count == 0 || space > MAX_REGISTER_INDEX || class == RegisterClass::LegacyUniform {
             return Err(AllocationError::InvalidRange);
         }
         let mut index = 0;
@@ -95,6 +96,36 @@ impl RegisterAllocator {
 mod tests {
     use super::*;
     use RegisterClass::{Sampler, ShaderResource};
+
+    #[test]
+    fn legacy_source_registers_cannot_reserve_or_allocate_resources() {
+        let mut allocator = RegisterAllocator::default();
+        assert_eq!(
+            allocator.allocate(RegisterClass::LegacyUniform, 1, 0),
+            Err(AllocationError::InvalidRange)
+        );
+        let binding = ResourceBinding {
+            register: RegisterBinding {
+                class: RegisterClass::LegacyUniform,
+                index: 0,
+                space: 0,
+            },
+            count: 1,
+            explicit: true,
+        };
+        assert_eq!(
+            allocator.reserve(binding),
+            Err(AllocationError::InvalidRange)
+        );
+        assert_eq!(
+            allocator
+                .allocate(RegisterClass::ConstantBuffer, 1, 0)
+                .unwrap()
+                .register
+                .index,
+            0
+        );
+    }
 
     fn range(index: u32, count: u32) -> ResourceBinding {
         ResourceBinding {

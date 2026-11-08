@@ -188,14 +188,17 @@ bounded decimal range; component masks require exactly one supported component.
 
 Vulkan binding attributes, explicit byte packing on ordinary structs,
 other target layouts, and the upstream reflection API remain to be implemented.
-Register annotations currently require
-global resources. Numeric/aggregate uniforms, struct fields, parameters, local
-variables, static storage, and groupshared storage cannot receive them. Global
+Resource register annotations select bindings on global resources. On data-only
+global uniforms, `b`, `t`, `u`, and `s` annotations are accepted and ignored;
+the values still use the shared global uniform buffer. Struct fields, parameters,
+function results, static storage, and groupshared storage accept ignored
+annotations, including legacy `register(c2.y)`. Legacy `c` annotations cannot
+bind standalone global shader parameters or resources, and local declarations
+cannot carry register annotations. Mixed resource-valued aggregates still lack
+register layout. Global
 attributes such as `[allow("overlapping-bindings")]` are also unsupported.
 
-These context limits are stricter than upstream in some cases. Slang accepts
-numeric uniform annotations and supplies implicit uniform layout; this compiler
-reports `T022` until explicit uniform annotations are implemented. Slang can also wrap overflowing
+Slang can also wrap overflowing
 register indices into invalid HLSL numbers; the native parser reports `S001`
 instead. Wrong classes report `T022`, and malformed register syntax reports
 `S001`. Diagnostic codes are native codes, independent of upstream numeric IDs.

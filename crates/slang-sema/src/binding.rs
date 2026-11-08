@@ -10,16 +10,20 @@ impl Checker {
         let Some(annotation) = variable.register else {
             return;
         };
-        if !matches!(scope, VariableScope::Global)
-            || variable
-                .modifiers
-                .iter()
-                .any(|m| matches!(m.as_str(), "static" | "groupshared"))
+        if matches!(scope, VariableScope::Parameter)
+            || matches!(scope, VariableScope::Global)
+                && variable
+                    .modifiers
+                    .iter()
+                    .any(|m| matches!(m.as_str(), "static" | "groupshared"))
         {
+            return;
+        }
+        if !matches!(scope, VariableScope::Global) {
             self.error(
                 "T022",
                 annotation.span,
-                "register annotations currently require a global shader resource",
+                "register annotations are not allowed on local declarations",
             );
             return;
         }
@@ -27,11 +31,19 @@ impl Checker {
             Ok(Some(range)) => range,
             Ok(None) if *ty == Type::Error => return,
             Ok(None) => {
-                self.error(
-                    "T022",
-                    annotation.span,
-                    "register annotations on numeric or aggregate uniforms are not implemented",
-                );
+                if annotation.binding.class == RegisterClass::LegacyUniform {
+                    self.error(
+                        "T022",
+                        annotation.span,
+                        "legacy c registers cannot bind global shader parameters",
+                    );
+                } else if !self.constant_buffer_data(ty, &mut Default::default()) {
+                    self.error(
+                        "T022",
+                        annotation.span,
+                        "register annotations on resource-valued aggregates are not implemented",
+                    );
+                }
                 return;
             }
             Err(error) => {

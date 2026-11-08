@@ -253,13 +253,6 @@ fn check_with_metadata(
                     }
                     checker.check_interpolation(&field.modifiers, field.span);
                     checker.check_visibility_modifiers(&field.modifiers, field.span);
-                    if let Some(register) = field.register {
-                        checker.error(
-                            "T022",
-                            register.span,
-                            "register annotations on struct fields are not implemented",
-                        );
-                    }
                     if let Some(pack) = field.pack_offset
                         && !module
                             .constant_buffers

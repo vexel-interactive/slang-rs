@@ -36,11 +36,13 @@ impl Parser {
                     data_field
                         .modifiers
                         .retain(|m| !matches!(m.as_str(), "const" | "uniform"));
+                    data_field.register = None;
                     fields.push(data_field);
                     field.initializer = None;
                     field.modifiers.retain(|m| m != "const");
                 }
                 field.pack_offset = None;
+                field.register = None;
                 globals.push(Declaration::Global(field));
             }
             self.expect(";")?;

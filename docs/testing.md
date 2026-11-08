@@ -69,8 +69,10 @@ read-only contents, constant-buffer validation, and bounded register ranges.
 Nested overlaps produce warnings without hiding errors or failing check-only
 compilation. Source remapping remains visible in binding warnings. Differential
 fixtures validate the HLSL with DXC; explicit overlaps are accepted with warnings
-by both frontends and rejected by DXC. Numeric uniform bindings and overflowing
-indices are documented compiler-acceptance differences.
+by both frontends and rejected by DXC. Overflowing indices are documented
+compiler-acceptance differences. Ignored annotations on data uniforms, struct
+fields, private storage, parameters, and results preserve implicit layout and
+do not reserve resource slots. Legacy `c` registers cannot enter the allocator.
 Allocator tests cover merged overlaps, adjacent intervals, smaller holes after
 array allocation, separate classes/spaces, and exhaustion at the final slot.
 Compiler tests verify explicit reservation before automatic assignment, implicit

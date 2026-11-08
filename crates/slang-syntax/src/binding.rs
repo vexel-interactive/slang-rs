@@ -94,7 +94,11 @@ impl Parser {
             .next()
             .and_then(RegisterClass::from_prefix)
             .ok_or_else(|| {
-                Diagnostic::error("S001", name.span, "expected a b, t, u, or s register")
+                Diagnostic::error(
+                    "S001",
+                    name.span,
+                    "expected a b, t, u, s, or legacy c register",
+                )
             })?;
         let index = register_index(&name.text[1..], name.span, "register index")?;
         // Upstream accepts a component mask, but resource registers use the

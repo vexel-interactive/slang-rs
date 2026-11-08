@@ -141,13 +141,6 @@ impl Parser {
             }
             self.expect(")")?;
             let annotations = self.annotations()?;
-            if let Some(register) = annotations.register {
-                return Err(Diagnostic::error(
-                    "S001",
-                    register.span,
-                    "register annotations on function results are not implemented",
-                ));
-            }
             if let Some(pack) = annotations.pack_offset {
                 return Err(Diagnostic::error(
                     "S001",

@@ -215,17 +215,57 @@ fn malformed_or_overflowing_register_annotations_are_rejected() {
 #[test]
 fn unsupported_binding_contexts_report_source_errors() {
     for source in [
-        "float a:register(b0);",
-        "struct P{float x;};P a:register(b0);",
+        "float a:register(c0);",
+        "struct P{float x;};P a:register(c0);",
         "void f(){Texture2D<float> a:register(t0);}",
-        "void f(Texture2D<float> a:register(t0));",
-        "struct P{Texture2D<float> a:register(t0);};",
-        "static Texture2D<float> a:register(t0);",
-        "groupshared Texture2D<float> a:register(t0);",
+        "void f(){float a:register(c0)=1;}",
+        "struct P{Texture2D<float> image;};P a:register(t0);",
     ] {
         reject(source, "T022");
     }
-    reject("float f():register(t0){return 0;}", "S001");
+}
+
+#[test]
+fn annotations_without_resource_bindings_are_ignored_in_upstream_contexts() {
+    let compiled = compile(
+        "struct P{float x:register(c2.y);float y:register(b4);};uniform P data:register(b2);float scale:register(t3);static float storage:register(c4)=1;groupshared float shared:register(b7);cbuffer Params{float value:register(c5.y);};float f(float input:register(c2)):register(t2){return input+data.x+scale+value+storage;}",
+    );
+    assert_eq!(
+        compiled
+            .reflection
+            .global_uniform_binding
+            .unwrap()
+            .register
+            .index,
+        0
+    );
+    assert_eq!(compiled.reflection.global_uniform_size, Some(12));
+    assert_eq!(
+        compiled
+            .reflection
+            .globals
+            .iter()
+            .find(|g| g.name == "Params")
+            .unwrap()
+            .binding
+            .unwrap()
+            .register
+            .index,
+        1
+    );
+    assert!(
+        compiled
+            .reflection
+            .globals
+            .iter()
+            .filter(|g| g.name != "Params")
+            .all(|g| g.binding.is_none())
+    );
+    let code = compiled.artifact.unwrap();
+    assert!(!code.contains("register(c"));
+    assert!(!code.contains("register(b2)"));
+    assert!(!code.contains("register(t3)"));
+    assert!(code.contains("float f(float input)"));
 }
 
 #[test]

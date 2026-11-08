@@ -2143,12 +2143,21 @@
       "rust_code": "T022"
     },
     {
-      "file": "negative/register-numeric-uniform.slang",
-      "accept": false,
-      "oracle_accept": true,
+      "file": "positive/register-numeric-uniform.slang",
+      "accept": true,
       "entry": "main",
-      "rust_code": "T022",
-      "reason": "Native explicit bindings currently apply to global resources; numeric uniform register annotations require uniform byte layout. Slang accepts and lays out the numeric global in an implicit constant buffer."
+      "global_uniform_binding": {
+        "class": "b",
+        "index": 0,
+        "space": 0,
+        "count": 1
+      },
+      "uniform_layouts": {
+        "value": {
+          "offset": 0,
+          "size": 4
+        }
+      }
     },
     {
       "file": "negative/register-overflow.slang",
@@ -3048,6 +3057,66 @@
     },
     {
       "file": "negative/packoffset-local.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T022"
+    },
+    {
+      "file": "positive/register-contexts.slang",
+      "accept": true,
+      "entry": "main",
+      "bindings": {
+        "Params": {
+          "class": "b",
+          "index": 1,
+          "space": 0,
+          "count": 1
+        }
+      },
+      "global_uniform_binding": {
+        "class": "b",
+        "index": 0,
+        "space": 0,
+        "count": 1
+      },
+      "uniform_layouts": {
+        "data": {
+          "offset": 0,
+          "size": 8
+        },
+        "data.x": {
+          "offset": 0,
+          "size": 4
+        },
+        "data.y": {
+          "offset": 4,
+          "size": 4
+        },
+        "scale": {
+          "offset": 8,
+          "size": 4
+        },
+        "Params.value": {
+          "offset": 0,
+          "size": 4
+        }
+      }
+    },
+    {
+      "file": "positive/register-parameter-resource.slang",
+      "accept": true,
+      "entry": "main",
+      "bindings": {
+        "image": {
+          "class": "t",
+          "index": 3,
+          "space": 0,
+          "count": 1
+        }
+      }
+    },
+    {
+      "file": "negative/register-global-c.slang",
       "accept": false,
       "entry": "main",
       "rust_code": "T022"
