@@ -136,7 +136,6 @@ fn alias_cycles_duplicate_types_and_unsupported_uses_fail() {
         ("typealias Missing=Unknown;", "T002"),
         ("typealias Number=float;float Number(){return 1;}", "T003"),
         ("typealias A=float[2];StructuredBuffer<A> data;", "T002"),
-        ("typealias A=float[2];A run(){A a;return a;}", "T001"),
         ("typealias Generic<T>=T;", "S001"),
         ("typedef float *Pointer;", "S001"),
         ("typedef float Unsized[];", "S001"),

@@ -42,6 +42,12 @@ neighboring uniform offsets, and range overflow avoided by zero dimensions.
 DXC verifies the physical buffer extents and offsets independently of source
 reflection. Native fixtures also exercise dynamic empty numeric locations and
 output arguments; undefined resource indexing reports a bounded diagnostic.
+Array-return fixtures cover prototypes, branches, direct return types, overloaded
+dimensions and resource families, per-call defaults, globals, imports, matrix
+qualifiers, constant-buffer loads, and single evaluation. Both frontends and DXC
+check positive fixtures. Shape errors, excess returns, temporary writes, and
+array-valued shader entries fail. Native fallthrough errors and upstream's
+warning are recorded as an explicit acceptance difference.
 Value-type tests include shared graphs with 128 levels, cached depth limits,
 array-mediated cycles, and source-located diagnostics. The Windows debug CLI
 also checks a deep shared graph whose first declaration is its outermost type.

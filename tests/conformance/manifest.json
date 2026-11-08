@@ -4395,6 +4395,109 @@
       "accept": false,
       "entry": "main",
       "rust_code": "T013"
+    },
+    {
+      "file": "positive/array-results.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/array-results-defaults.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/array-results-buffer.slang",
+      "accept": true,
+      "entry": "main",
+      "uniform_layouts": {
+        "input": {
+          "offset": 0,
+          "size": 36
+        }
+      }
+    },
+    {
+      "file": "positive/array-results-matrix.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/array-results-resources.slang",
+      "accept": true,
+      "entry": "main",
+      "bindings": {
+        "images": {
+          "class": "t",
+          "index": 0,
+          "space": 0,
+          "count": 2
+        },
+        "samplers": {
+          "class": "s",
+          "index": 0,
+          "space": 0,
+          "count": 2
+        },
+        "bytes": {
+          "class": "t",
+          "index": 2,
+          "space": 0,
+          "count": 2
+        },
+        "buffers": {
+          "class": "t",
+          "index": 4,
+          "space": 0,
+          "count": 2
+        }
+      }
+    },
+    {
+      "file": "positive/array-results-module/main.slang",
+      "accept": true,
+      "entry": "main",
+      "uniform_layouts": {
+        "input": {
+          "offset": 0,
+          "size": 36
+        }
+      }
+    },
+    {
+      "file": "negative/array-result-shape.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T008"
+    },
+    {
+      "file": "negative/array-result-excess.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T021"
+    },
+    {
+      "file": "negative/array-result-flow.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T005",
+      "oracle_accept": true,
+      "oracle_stderr_contains": [
+        "E41010"
+      ]
+    },
+    {
+      "file": "negative/array-result-write.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T015"
+    },
+    {
+      "file": "negative/array-result-entry.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T001",
+      "profile": "ps_6_0"
     }
   ]
 }

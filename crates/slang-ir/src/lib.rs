@@ -1,5 +1,6 @@
 //! Typed structured IR. This is the first lowering layer, not an SSA optimizer.
 
+mod array_result;
 mod atomic;
 mod constant_buffer_value;
 mod derivative;

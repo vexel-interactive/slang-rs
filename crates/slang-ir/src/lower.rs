@@ -122,6 +122,7 @@ pub fn lower(checked: &CheckedModule) -> Result<Module, Diagnostic> {
         });
     }
     crate::initialization::lower(&mut module)?;
+    crate::array_result::lower(&mut module)?;
     crate::intrinsic::lower(&mut module)?;
     crate::geometric::lower(&mut module)?;
     crate::derivative::lower(&mut module)?;

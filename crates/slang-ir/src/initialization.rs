@@ -219,7 +219,7 @@ impl Lowerer {
                     binding: None,
                     uniform_layout: None,
                     pack_offset: None,
-                    initializer: Some(Expr {
+                    initializer: self.can_zero(&structure).then(|| Expr {
                         ty: result.ty.clone(),
                         kind: ExprKind::Zero,
                         span: expression.span,
@@ -276,6 +276,25 @@ impl Lowerer {
             };
         }
         Ok(())
+    }
+
+    fn can_zero(&self, structure: &Struct) -> bool {
+        let mut pending: Vec<_> = structure.fields.iter().map(|f| &f.ty).collect();
+        let mut visited = std::collections::BTreeSet::new();
+        while let Some(ty) = pending.pop() {
+            match ty {
+                Type::Array(_, 0) => {}
+                Type::Array(element, _) => pending.push(element),
+                Type::Struct(name) if visited.insert(name) => {
+                    if let Some(structure) = self.structures.get(name) {
+                        pending.extend(structure.fields.iter().map(|f| &f.ty));
+                    }
+                }
+                ty if ty.is_resource() => return false,
+                _ => {}
+            }
+        }
+        true
     }
 
     fn field(

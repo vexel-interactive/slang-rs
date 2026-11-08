@@ -4127,6 +4127,30 @@
     {
       "file": "empty-array-locations.slang",
       "entry": "main"
+    },
+    {
+      "file": "../conformance/positive/array-results.slang",
+      "entry": "main"
+    },
+    {
+      "file": "../conformance/positive/array-results-defaults.slang",
+      "entry": "main"
+    },
+    {
+      "file": "../conformance/positive/array-results-buffer.slang",
+      "entry": "main"
+    },
+    {
+      "file": "../conformance/positive/array-results-matrix.slang",
+      "entry": "main"
+    },
+    {
+      "file": "../conformance/positive/array-results-resources.slang",
+      "entry": "main"
+    },
+    {
+      "file": "../conformance/positive/array-results-module/main.slang",
+      "entry": "main"
     }
   ]
 }

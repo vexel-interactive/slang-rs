@@ -6,7 +6,7 @@
     "rustfmt": "passed",
     "clippy_all_targets_warnings_denied": "passed",
     "unit_tests": 29,
-    "integration_tests": 292,
+    "integration_tests": 299,
     "doc_tests": 1,
     "conformance_comparison_tests": 18,
     "rustdoc": "passed",
@@ -15,11 +15,11 @@
   },
   "differential_validation": {
     "oracle": "Slang 2026.21",
-    "cases_passed": 423,
-    "cases_total": 423,
-    "matching_acceptance_cases": 413,
-    "documented_oracle_differences": 10,
-    "dxc_hlsl_artifacts_validated": 451,
+    "cases_passed": 434,
+    "cases_total": 434,
+    "matching_acceptance_cases": 423,
+    "documented_oracle_differences": 11,
+    "dxc_hlsl_artifacts_validated": 464,
     "dxc_invalid_hlsl_artifacts_rejected": 17,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
@@ -30,17 +30,17 @@
       "vs_6_0"
     ],
     "documented_oracle_artifact_differences": 4,
-    "resource_binding_cases_compared": 39,
+    "resource_binding_cases_compared": 40,
     "global_uniform_binding_cases_compared": 17,
-    "uniform_byte_layout_cases_compared": 41,
+    "uniform_byte_layout_cases_compared": 43,
     "documented_oracle_physical_layout_differences": 3,
     "physical_buffer_layout_cases_compared": 25
   },
   "remote_ci_executed": false,
   "remote_ci": null,
   "previous_remote_ci": {
-    "run_id": 42501245123,
-    "head_sha": "ccd5d92f6fd058a23d01e551b36999432b51e40a",
+    "run_id": 42504150602,
+    "head_sha": "ad261ea528df8163fabd35723dd2fe93d321cbb8",
     "conclusion": "success",
     "platforms": [
       "ubuntu-latest",
@@ -49,6 +49,16 @@
     ]
   },
   "earlier_remote_ci": [
+    {
+      "run_id": 42501245123,
+      "head_sha": "ccd5d92f6fd058a23d01e551b36999432b51e40a",
+      "conclusion": "success",
+      "platforms": [
+        "ubuntu-latest",
+        "windows-latest",
+        "macos-latest"
+      ]
+    },
     {
       "run_id": 42498506822,
       "head_sha": "cb33d88cb3d7f944855f84b0f4cc9edb2a5c758e",
@@ -362,7 +372,7 @@
   },
   "native_hlsl_suite": {
     "manifest": "tests/native/manifest.json",
-    "artifacts_validated": 53,
+    "artifacts_validated": 59,
     "profiles": [
       "cs_6_0",
       "ps_6_0"
@@ -422,7 +432,13 @@
       "../conformance/positive/empty-array-layout.slang",
       "../conformance/positive/empty-array-construction.slang",
       "../conformance/positive/empty-array-packed.slang",
-      "empty-array-locations.slang"
+      "empty-array-locations.slang",
+      "../conformance/positive/array-results.slang",
+      "../conformance/positive/array-results-defaults.slang",
+      "../conformance/positive/array-results-buffer.slang",
+      "../conformance/positive/array-results-matrix.slang",
+      "../conformance/positive/array-results-resources.slang",
+      "../conformance/positive/array-results-module/main.slang"
     ],
     "uniform_byte_layout_cases": 39,
     "matrix_layout_shapes": 96,

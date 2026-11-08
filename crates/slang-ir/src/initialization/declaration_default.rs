@@ -23,6 +23,7 @@ impl Lowerer {
                     span: value.span,
                 }],
             };
+            let initialize_zero = self.can_zero(&wrapper);
             self.generated_structures.push(wrapper.clone());
             let ty = Type::Struct(wrapper.name);
             let result = Expr {
@@ -43,7 +44,7 @@ impl Lowerer {
                     binding: None,
                     uniform_layout: None,
                     pack_offset: None,
-                    initializer: Some(Expr {
+                    initializer: initialize_zero.then(|| Expr {
                         ty: ty.clone(),
                         span: value.span,
                         kind: ExprKind::Zero,

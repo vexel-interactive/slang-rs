@@ -326,13 +326,6 @@ impl Checker {
                         );
                     }
                     let result = self.resolve_type(&function.return_type);
-                    if matches!(result, Type::Array(..)) && !result.is_empty_array() {
-                        self.error(
-                            "T001",
-                            function.span,
-                            "array return types are not implemented",
-                        );
-                    }
                     self.declaration_types
                         .insert(span_key(function.span), result.clone());
                     let parameters: Vec<Type> = function

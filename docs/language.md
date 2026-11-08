@@ -271,7 +271,7 @@ floating literals. For example, `float values[Count + 1]` and
 Negative or runtime dimensions report `T002`; dependency cycles report `T026`.
 
 Arrays can appear as variables, struct fields, parameters, and constant-buffer
-elements. Unsized arrays and nonempty array return types remain unimplemented.
+elements and function return types. Unsized arrays remain unimplemented.
 Alias chains and
 resolved array ranks are each limited to 32. Local/nested aliases, generic
 aliases, qualified type references, pointer declarators, and C-style casts using
@@ -286,6 +286,15 @@ Leading dimensions wrap in source order: `float[3][2](...)` constructs two rows
 of three floats. Constructor dimensions use constant expressions and remain
 bounded to rank 32. See
 [array-construction.slang](../examples/array-construction.slang).
+
+Functions can return fixed arrays through aliases or leading array suffixes.
+Return expressions use the same exact-copy and initializer-list checks as
+variables. Prototypes, overloads, defaults, imported functions, and arrays of
+resource handles preserve their source types. HLSL wraps nonempty results in
+private structures, exposing their array values at each call. Matrix return
+qualifiers move to the wrapper field. Shader entry points cannot return arrays.
+The native checker still reports `T005` when a non-void function can fall through;
+upstream accepts that case with warning `E41010` and an undefined return value.
 
 Zero dimensions are valid: `float values[0]` stores no elements, and
 `float[0]()` constructs its empty value. Any zero dimension makes a nested array
