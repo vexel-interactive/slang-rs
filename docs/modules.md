@@ -119,7 +119,7 @@ this compatibility mode was used.
 
 This is source linking rather than the upstream session/component API.
 Separate compilation, serialized modules, incremental caches, namespaces,
-private members, methods, nested types, and imported shader entries remain
+private members, generic/extension methods, nested types, and imported shader entries remain
 unported. Combining same-name overload sets from different modules currently
 reports `M004`; overload ranking still uses exact matches followed by equal
 conversion costs.

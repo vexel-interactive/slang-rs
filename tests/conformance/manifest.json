@@ -8229,6 +8229,169 @@
       "entry": "main",
       "accept": false,
       "rust_code": "T031"
+    },
+    {
+      "file": "positive/struct-static-fields.slang",
+      "entry": "main",
+      "accept": true,
+      "dxc_constant_stores": {
+        "0": 7,
+        "1": 7,
+        "2": 7,
+        "3": 27,
+        "4": 13,
+        "5": 12,
+        "6": 9,
+        "7": 5,
+        "8": 6,
+        "9": 3,
+        "10": 11,
+        "11": 9,
+        "12": 11,
+        "13": 0,
+        "14": 0,
+        "15": 25,
+        "16": 2,
+        "17": 99,
+        "18": 2
+      },
+      "oracle_dxc_constant_stores": {
+        "0": 7,
+        "1": 7,
+        "2": 7,
+        "3": 27,
+        "4": 13,
+        "5": 12,
+        "6": 9,
+        "7": 5,
+        "8": 6,
+        "9": 9,
+        "10": 11,
+        "11": 9,
+        "12": 11,
+        "13": 0,
+        "14": 0,
+        "15": 25,
+        "16": 2,
+        "17": 99,
+        "18": 2
+      },
+      "reason": "Slang 2026.21 lowers static const values as global constant IR operands. Its mutable-backed memberCopy aliases State.value and observes 9 after the writes. Native HLSL keeps a private static const initializer and observes its initial value 3. General global constant DAG substitution remains unported."
+    },
+    {
+      "file": "positive/struct-static-shapes.slang",
+      "entry": "main",
+      "accept": true,
+      "dxc_constant_stores": {
+        "0": 3,
+        "1": 7,
+        "2": 7,
+        "3": 10,
+        "4": 1,
+        "5": 4,
+        "6": 99
+      }
+    },
+    {
+      "file": "positive/struct-static-resources.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/struct-static-ignored-base.slang",
+      "entry": "main",
+      "accept": true,
+      "profile": "ps_6_0"
+    },
+    {
+      "file": "positive/struct-static-module/main.slang",
+      "entry": "main",
+      "accept": true,
+      "dxc_constant_stores": {
+        "0": 8,
+        "1": 9,
+        "2": 7,
+        "3": 3,
+        "4": 198,
+        "5": 2
+      }
+    },
+    {
+      "file": "negative/static-field-missing-initializer.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T004"
+    },
+    {
+      "file": "negative/static-field-write-const.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T015"
+    },
+    {
+      "file": "negative/static-field-duplicate.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T003"
+    },
+    {
+      "file": "negative/static-field-method-conflict.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T003"
+    },
+    {
+      "file": "negative/static-field-instance-initializer.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T013"
+    },
+    {
+      "file": "negative/static-field-cycle.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T026"
+    },
+    {
+      "file": "negative/static-field-mutable-shape.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T002"
+    },
+    {
+      "file": "negative/static-field-public-owner.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T018"
+    },
+    {
+      "file": "positive/struct-static-module/private.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T018"
+    },
+    {
+      "file": "positive/struct-static-module/private-shape.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T018"
+    },
+    {
+      "file": "negative/static-scope-instance-field.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T013"
+    },
+    {
+      "file": "negative/static-scope-instance-method.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T014"
+    },
+    {
+      "file": "positive/compute-signed-semantics.slang",
+      "entry": "main",
+      "accept": true
     }
   ]
 }

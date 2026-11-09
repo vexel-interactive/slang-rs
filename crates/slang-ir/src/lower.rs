@@ -352,6 +352,13 @@ impl Lowerer<'_> {
                 span: expression.span,
             });
         }
+        if let Some(target) = self.checked.static_references.get(&expression.id) {
+            return Ok(Expr {
+                kind: ExprKind::GlobalName(target.clone()),
+                ty,
+                span: expression.span,
+            });
+        }
         let kind = match &expression.kind {
             ast::ExprKind::InitializerList(_) => {
                 let value = self
@@ -497,7 +504,7 @@ impl Lowerer<'_> {
                                 .unwrap_or_else(|| name.clone()),
                             arguments,
                         },
-                        ast::ExprKind::Member { base, name } => ExprKind::MethodCall {
+                        ast::ExprKind::Member { base, name, .. } => ExprKind::MethodCall {
                             receiver: Box::new(self.expression(base)?),
                             name: name.clone(),
                             arguments,
@@ -506,7 +513,7 @@ impl Lowerer<'_> {
                     }
                 }
             }
-            ast::ExprKind::Member { base, name } => ExprKind::Member {
+            ast::ExprKind::Member { base, name, .. } => ExprKind::Member {
                 base: Box::new(self.expression(base)?),
                 name: name.clone(),
             },

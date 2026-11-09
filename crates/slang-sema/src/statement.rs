@@ -100,6 +100,7 @@ impl Checker {
     }
 
     pub(crate) fn function(&mut self, function: &Function) {
+        self.current_static_type = function.owner_type().map(str::to_owned);
         for modifier in &function.modifiers {
             if !matches!(
                 modifier.as_str(),
@@ -157,6 +158,7 @@ impl Checker {
         self.scopes.pop();
         self.current_constructor = None;
         self.current_type = None;
+        self.current_static_type = None;
     }
 
     pub(crate) fn statement(&mut self, statement: &Stmt) -> Flow {

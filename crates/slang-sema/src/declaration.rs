@@ -261,6 +261,7 @@ impl Checker {
     pub(crate) fn declare(&mut self, module: &Module) {
         let names = self.declare_types(module);
         for declaration in &module.declarations {
+            self.declaration_static_owner(declaration);
             let name = match declaration {
                 Declaration::TypeAlias(a) => &a.name,
                 Declaration::Struct(s) => &s.name,
@@ -438,6 +439,11 @@ impl Checker {
         }
         for declaration in &module.declarations {
             if let Declaration::Function(function) = declaration {
+                self.current_static_type = function.owner_type().map(str::to_owned);
+                self.current_module = self
+                    .symbols
+                    .get(&function.name)
+                    .map_or(slang_module::ModuleId(0), |o| o.module);
                 let parameters: Vec<_> = function
                     .parameters
                     .iter()
@@ -457,6 +463,7 @@ impl Checker {
                 }
             }
         }
+        self.current_static_type = None;
         for declaration in &module.declarations {
             if let Declaration::Global(variable) = declaration
                 && self.functions.contains_key(&variable.name)

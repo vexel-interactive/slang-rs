@@ -42,6 +42,8 @@ impl Checker {
             let references = global_dependencies(
                 variable.initializer.as_ref().unwrap(),
                 &self.global_references,
+                &self.static_references,
+                &self.method_receivers,
             )
             .into_iter()
             .filter(|dependency| globals.contains_key(dependency))
@@ -92,6 +94,14 @@ impl Checker {
     }
 
     fn integer_constant_mode(&self, expr: &Expr, shape: bool) -> Option<i64> {
+        if let Some(target) = self.static_references.get(&expr.id) {
+            let binding = self.lookup(target)?;
+            return if shape {
+                binding.shape_constant.or(binding.constant)
+            } else {
+                binding.constant
+            };
+        }
         if let Ok(Some(literal)) = slang_syntax::integer_literal(expr) {
             let value = literal.bits as i64;
             return Some(if shape {
@@ -368,12 +378,17 @@ fn constant_cycles(
 fn global_dependencies(
     expression: &Expr,
     references: &BTreeMap<slang_syntax::ExprId, crate::checker::SpanKey>,
+    statics: &BTreeMap<slang_syntax::ExprId, String>,
+    receivers: &BTreeMap<slang_syntax::ExprId, crate::MethodReceiver>,
 ) -> BTreeSet<crate::checker::SpanKey> {
     let mut pending = vec![expression];
     let mut dependencies = BTreeSet::new();
     while let Some(expression) = pending.pop() {
         if let Some(&reference) = references.get(&expression.id) {
             dependencies.insert(reference);
+        }
+        if statics.contains_key(&expression.id) {
+            continue;
         }
         match &expression.kind {
             ExprKind::InitializerList(values) => pending.extend(values),
@@ -382,7 +397,12 @@ fn global_dependencies(
             | ExprKind::Cast { value, .. } => pending.push(value),
             ExprKind::Binary { left, right, .. } => pending.extend([left.as_ref(), right.as_ref()]),
             ExprKind::Call { callee, arguments } => {
-                pending.push(callee);
+                if !matches!(
+                    receivers.get(&callee.id),
+                    Some(crate::MethodReceiver::Static)
+                ) {
+                    pending.push(callee);
+                }
                 pending.extend(arguments);
             }
             ExprKind::Member { base, .. } => pending.push(base),

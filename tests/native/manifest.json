@@ -6641,6 +6641,72 @@
         "18": 7,
         "19": 4
       }
+    },
+    {
+      "file": "../conformance/positive/struct-static-fields.slang",
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 7,
+        "1": 7,
+        "2": 7,
+        "3": 27,
+        "4": 13,
+        "5": 12,
+        "6": 9,
+        "7": 5,
+        "8": 6,
+        "9": 3,
+        "10": 11,
+        "11": 9,
+        "12": 11,
+        "13": 0,
+        "14": 0,
+        "15": 25,
+        "16": 2,
+        "17": 99,
+        "18": 2
+      }
+    },
+    {
+      "file": "../conformance/positive/struct-static-shapes.slang",
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 3,
+        "1": 7,
+        "2": 7,
+        "3": 10,
+        "4": 1,
+        "5": 4,
+        "6": 99
+      }
+    },
+    {
+      "file": "../conformance/positive/struct-static-resources.slang",
+      "entry": "main"
+    },
+    {
+      "file": "../conformance/positive/struct-static-ignored-base.slang",
+      "entry": "main"
+    },
+    {
+      "file": "../conformance/positive/struct-static-module/main.slang",
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 8,
+        "1": 9,
+        "2": 7,
+        "3": 3,
+        "4": 198,
+        "5": 2
+      }
+    },
+    {
+      "file": "static-resource-members.slang",
+      "entry": "main"
+    },
+    {
+      "file": "../conformance/positive/compute-signed-semantics.slang",
+      "entry": "main"
     }
   ]
 }

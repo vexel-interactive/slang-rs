@@ -329,8 +329,10 @@ construction, then lowers the body. Bare and fallthrough returns return `this`;
 explicit value returns retain their checked expression. Unwritten fields and
 arrays without explicit initializers are not filled with zeros. Capability
 analysis follows constructor calls and automatic/default initialization plans.
-Static const initializer checking follows expression and initialization graphs,
-rejecting mutable globals and ordinary user calls without executing their bodies.
+Static const global initializer checking follows expression and initialization
+graphs, rejecting mutable global storage and ordinary user calls without executing
+their bodies. Normalized struct static fields retain ownership metadata, preserving
+the upstream exemption for member initializers and references to member storage.
 
 Struct method AST nodes retain their owning type, source member name and static
 mode. Instance methods have a leading normalized `this` parameter: a const input
@@ -348,6 +350,18 @@ array-result wrappers, effect normalization and SSA invalidation to apply.
 Nonmutating receiver fields use the const binding's writability. Static calls
 discard the base expression, and capability analysis also excludes that base
 while following the selected method body and explicit/default arguments.
+
+Static field declarations normalize to collision-free globals while
+`Module.static_members` retains the owner and source member name. The resolver
+uses separate static/full member namespaces for signatures, field defaults and
+bodies. Semantic checking maintains an owning static context independently of
+the implicit instance receiver, including during isolated forward shape folding.
+`CheckedModule.static_references` identifies the real storage target without
+lowering the lookup base. Integer constants, writable locations, initializer
+dependencies and capability propagation use that target. Reflection restores
+qualified names, and all instance layout paths see only nonstatic fields.
+Global constant IR operands and their upstream folding/hoisting behavior remain
+unported; native nonfoldable static const values keep private HLSL initialization.
 
 Explicit `[ForceInline]` requests expand ordinary value function bodies before
 SSA construction. Prototypes and definitions use their checked target names;

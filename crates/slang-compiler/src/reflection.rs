@@ -114,10 +114,27 @@ impl Reflection {
                 .map(|global| GlobalInfo {
                     name: checked
                         .module
-                        .constant_buffers
+                        .static_members
                         .iter()
-                        .find(|b| b.variable_name == global.name)
-                        .map(|b| b.name.clone())
+                        .find(|m| m.variable_name == global.name)
+                        .map(|m| {
+                            format!(
+                                "{}.{}",
+                                checked
+                                    .symbols
+                                    .get(&m.owner)
+                                    .map_or(m.owner.as_str(), |o| &o.name),
+                                m.name
+                            )
+                        })
+                        .or_else(|| {
+                            checked
+                                .module
+                                .constant_buffers
+                                .iter()
+                                .find(|b| b.variable_name == global.name)
+                                .map(|b| b.name.clone())
+                        })
                         .unwrap_or_else(|| {
                             checked
                                 .symbols

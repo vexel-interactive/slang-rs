@@ -6,7 +6,7 @@
     "rustfmt": "passed",
     "clippy_all_targets_warnings_denied": "passed",
     "unit_tests": 42,
-    "integration_tests": 385,
+    "integration_tests": 391,
     "doc_tests": 1,
     "conformance_comparison_tests": 27,
     "rustdoc": "passed",
@@ -16,11 +16,11 @@
   },
   "differential_validation": {
     "oracle": "Slang 2026.21",
-    "cases_passed": 558,
-    "cases_total": 558,
-    "matching_acceptance_cases": 546,
+    "cases_passed": 576,
+    "cases_total": 576,
+    "matching_acceptance_cases": 564,
     "documented_oracle_differences": 12,
-    "dxc_hlsl_artifacts_validated": 598,
+    "dxc_hlsl_artifacts_validated": 610,
     "dxc_invalid_hlsl_artifacts_rejected": 22,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
@@ -37,11 +37,11 @@
     "uniform_byte_layout_cases_compared": 61,
     "documented_oracle_physical_layout_differences": 12,
     "physical_buffer_layout_cases_compared": 43,
-    "compiled_constant_cases_compared": 33,
-    "compiled_constant_words_compared": 1165,
-    "compiled_constant_words_matching": 1154,
-    "documented_oracle_constant_words_differing": 11,
-    "documented_oracle_constant_cases_differing": 4,
+    "compiled_constant_cases_compared": 36,
+    "compiled_constant_words_compared": 1197,
+    "compiled_constant_words_matching": 1185,
+    "documented_oracle_constant_words_differing": 12,
+    "documented_oracle_constant_cases_differing": 5,
     "documented_oracle_uniform_reflection_differences": 1,
     "integer_program_cases_compared": 1,
     "integer_program_words_compared": 49,
@@ -53,8 +53,9 @@
   "remote_ci_executed": false,
   "remote_ci": null,
   "previous_remote_ci": {
-    "run_id": 42636369050,
-    "head_sha": "bd1f491d31fe751d94b9381e327fd723c401914f",
+    "run_id": 42640128485,
+    "head_sha": "a947b3b308117ea33e296dc699670b971a311a47",
+    "attempt": 2,
     "conclusion": "success",
     "platforms": [
       "ubuntu-latest",
@@ -63,6 +64,16 @@
     ]
   },
   "earlier_remote_ci": [
+    {
+      "run_id": 42636369050,
+      "head_sha": "bd1f491d31fe751d94b9381e327fd723c401914f",
+      "conclusion": "success",
+      "platforms": [
+        "ubuntu-latest",
+        "windows-latest",
+        "macos-latest"
+      ]
+    },
     {
       "run_id": 42531823896,
       "head_sha": "ecd166dccc3f34334089a1d8f793dc3f2539aff7",
@@ -516,7 +527,7 @@
   },
   "native_hlsl_suite": {
     "manifest": "tests/native/manifest.json",
-    "artifacts_validated": 110,
+    "artifacts_validated": 117,
     "profiles": [
       "cs_6_0",
       "cs_6_2",
@@ -634,7 +645,14 @@
       "../conformance/positive/integer16-shapes.slang",
       "../conformance/positive/integer16-compound-shifts.slang",
       "../conformance/positive/scalar-ssa-control.slang",
-      "../conformance/positive/force-inline-values.slang"
+      "../conformance/positive/force-inline-values.slang",
+      "../conformance/positive/struct-static-fields.slang",
+      "../conformance/positive/struct-static-shapes.slang",
+      "../conformance/positive/struct-static-resources.slang",
+      "../conformance/positive/struct-static-ignored-base.slang",
+      "../conformance/positive/struct-static-module/main.slang",
+      "static-resource-members.slang",
+      "../conformance/positive/compute-signed-semantics.slang"
     ],
     "uniform_byte_layout_cases": 61,
     "matrix_layout_shapes": 96,
@@ -847,6 +865,43 @@
     "reference_receiver_modes": false,
     "receiver_dependent_defaults": false,
     "first_class_method_values": false,
+    "gpu_execution_compared": false,
+    "complete_upstream_parity": false
+  },
+  "struct_static_field_validation": {
+    "integration_tests": 6,
+    "differential_cases": 18,
+    "compiled_constant_cases": 3,
+    "compiled_constant_words": 32,
+    "matching_words": 31,
+    "documented_oracle_constant_words_differing": 1,
+    "shared_mutable_storage": true,
+    "numeric_aggregate_array_and_resource_fields": true,
+    "static_fields_excluded_from_instance_layout": true,
+    "dot_and_static_scope_lookup": true,
+    "type_alias_this_value_and_resource_bases": true,
+    "unevaluated_lookup_bases": true,
+    "nonmutating_methods_write_static_storage": true,
+    "integer_output_storage_views": true,
+    "forward_integer_boolean_shapes_and_threads": true,
+    "static_defaults_and_signature_scope": true,
+    "static_member_function_initializers": true,
+    "imported_public_internal_access": true,
+    "qualified_reflection_and_module_provenance": true,
+    "static_initializer_cycles_and_conflicts_checked": true,
+    "shared_memory_capability_propagation": true,
+    "signed_compute_system_values": true,
+    "native_resource_aliases_dxc_validated": true,
+    "oracle_resource_alias_hlsl_emission": false,
+    "oracle_resource_alias_failure": "Slang 2026.21 unexpected IR opcode during HLSL emission",
+    "pinned_upstream_hlsl_smoke_sources": [
+      "language-feature/constants/static-const-in-struct.slang"
+    ],
+    "pinned_upstream_hlsl_smoke_dxc_artifacts": 2,
+    "original_shader_object_and_gpu_checks_passed": false,
+    "global_constant_graph_semantics": false,
+    "generic_owners": false,
+    "definite_assignment_warnings": false,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false
   }

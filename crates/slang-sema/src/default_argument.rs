@@ -24,15 +24,15 @@ impl Checker {
                         "output parameters cannot have default arguments",
                     );
                 }
-                if references_parameter(value, &names) {
+                let ty = self.resolve_type(&parameter.ty);
+                self.check_value(value, &ty);
+                if references_parameter(value, &names, self) {
                     self.error(
                         "T022",
                         value.span,
                         "parameter references in default arguments are not implemented",
                     );
                 }
-                let ty = self.resolve_type(&parameter.ty);
-                self.check_value(value, &ty);
                 if function.method.is_some() && references_receiver(value, self) {
                     self.error(
                         "T022",
@@ -52,6 +52,9 @@ impl Checker {
 }
 
 fn references_receiver(value: &Expr, checker: &Checker) -> bool {
+    if checker.static_references.contains_key(&value.id) {
+        return false;
+    }
     if checker.implicit_members.contains_key(&value.id) {
         return true;
     }
@@ -69,7 +72,10 @@ fn references_receiver(value: &Expr, checker: &Checker) -> bool {
                 .method_receivers
                 .get(&callee.id)
                 .is_some_and(|r| !matches!(r, crate::MethodReceiver::Static))
-                || references_receiver(callee, checker)
+                || (!matches!(
+                    checker.method_receivers.get(&callee.id),
+                    Some(crate::MethodReceiver::Static)
+                ) && references_receiver(callee, checker))
                 || arguments.iter().any(|v| references_receiver(v, checker))
         }
         ExprKind::Member { base, .. } => references_receiver(base, checker),
@@ -87,32 +93,44 @@ fn references_receiver(value: &Expr, checker: &Checker) -> bool {
     }
 }
 
-fn references_parameter(value: &Expr, names: &BTreeSet<&str>) -> bool {
+fn references_parameter(value: &Expr, names: &BTreeSet<&str>, checker: &Checker) -> bool {
+    if checker.static_references.contains_key(&value.id) {
+        return false;
+    }
     match &value.kind {
         ExprKind::Name(name) => names.contains(name.as_str()),
-        ExprKind::InitializerList(values) => values.iter().any(|v| references_parameter(v, names)),
+        ExprKind::InitializerList(values) => values
+            .iter()
+            .any(|v| references_parameter(v, names, checker)),
         ExprKind::Unary { value, .. }
         | ExprKind::Cast { value, .. }
-        | ExprKind::Postfix { value, .. } => references_parameter(value, names),
+        | ExprKind::Postfix { value, .. } => references_parameter(value, names, checker),
         ExprKind::Binary { left, right, .. } => {
-            references_parameter(left, names) || references_parameter(right, names)
+            references_parameter(left, names, checker)
+                || references_parameter(right, names, checker)
         }
         ExprKind::Call { callee, arguments } => {
-            references_parameter(callee, names)
-                || arguments.iter().any(|v| references_parameter(v, names))
+            (!matches!(
+                checker.method_receivers.get(&callee.id),
+                Some(crate::MethodReceiver::Static)
+            ) && references_parameter(callee, names, checker))
+                || arguments
+                    .iter()
+                    .any(|v| references_parameter(v, names, checker))
         }
-        ExprKind::Member { base, .. } => references_parameter(base, names),
+        ExprKind::Member { base, .. } => references_parameter(base, names, checker),
         ExprKind::Index { base, index } => {
-            references_parameter(base, names) || references_parameter(index, names)
+            references_parameter(base, names, checker)
+                || references_parameter(index, names, checker)
         }
         ExprKind::Conditional {
             condition,
             then_value,
             else_value,
         } => {
-            references_parameter(condition, names)
-                || references_parameter(then_value, names)
-                || references_parameter(else_value, names)
+            references_parameter(condition, names, checker)
+                || references_parameter(then_value, names, checker)
+                || references_parameter(else_value, names, checker)
         }
         _ => false,
     }

@@ -214,6 +214,34 @@ Two original pinned sources, `addr-scope-fix.slang` and
 DXC with both compilers. This verifies method compilation only; their original
 GPU execution and SPIR-V validation requirements are not claimed to pass.
 
+Static field regressions check shared numeric, aggregate and resource storage,
+qualified and implicit access, immutable receivers writing static storage,
+integer output views, defaults, forward shapes, imports and qualified reflection.
+The [value fixture](../tests/conformance/positive/struct-static-fields.slang),
+[shape fixture](../tests/conformance/positive/struct-static-shapes.slang) and
+[module fixture](../tests/conformance/positive/struct-static-module/main.slang)
+compare 32 exact compiled words, with 31 matching. The mutable-backed global
+constant differs because upstream represents its initializer as a global constant
+IR operand, whereas native HLSL preserves an initialization snapshot.
+The [resource fixture](../tests/conformance/positive/struct-static-resources.slang)
+checks instance layouts excluding statics, resource value bases and groupshared
+storage. The [fragment fixture](../tests/conformance/positive/struct-static-ignored-base.slang)
+checks that constructors and calls in a static lookup base add no compute
+requirements. Eight negative declarations and two imported access checks cover
+conflicts, missing initializers, const writes, receiver errors, cycles, mutable
+shapes and public-owner rules.
+
+Scope lookup rejects instance fields and methods even through a value base.
+The signed compute-system-value fixture and original pinned
+`language-feature/constants/static-const-in-struct.slang` also compile to HLSL
+accepted by DXC with both compilers. The upstream source's original shader-object
+and GPU comparison requirements are not claimed to pass.
+
+The [native resource-alias fixture](../tests/native/static-resource-members.slang)
+also validates static ConstantBuffer, StructuredBuffer and RWStructuredBuffer
+aliases with DXC. Slang 2026.21 fails its HLSL emission with an unexpected IR
+opcode; this native target check does not count as a passed oracle case.
+
 Initializer-list tests distinguish numeric splats, padding, and matrix rows;
 cover flat/nested arrays, returns, assignments, function and resource arguments;
 and check overload ambiguity before contextual conversion. Imported field

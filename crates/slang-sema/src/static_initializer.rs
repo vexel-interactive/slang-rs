@@ -37,6 +37,9 @@ impl Checker {
             {
                 continue;
             }
+            if self.static_declaration(&variable.name) {
+                continue;
+            }
             let Some(value) = &variable.initializer else {
                 continue;
             };
@@ -79,9 +82,13 @@ impl Checker {
                     {
                         continue;
                     }
+                    if self.static_references.contains_key(&e.id) {
+                        continue;
+                    }
                     match &e.kind {
                         ExprKind::Name(name) => {
                             if let Some(global) = self.shape_globals.get(name)
+                                && !self.static_declaration(name)
                                 && !["static", "const"]
                                     .iter()
                                     .all(|m| global.modifiers.iter().any(|v| v == m))
@@ -106,7 +113,12 @@ impl Checker {
                             if let Some(plan) = self.initializations.get(&callee.id) {
                                 work.push(Work::Initialization(plan));
                             }
-                            if let ExprKind::Member { base, .. } = &callee.kind {
+                            if let ExprKind::Member { base, .. } = &callee.kind
+                                && !matches!(
+                                    self.method_receivers.get(&callee.id),
+                                    Some(crate::MethodReceiver::Static)
+                                )
+                            {
                                 work.push(Work::Expression(base));
                             }
                         }

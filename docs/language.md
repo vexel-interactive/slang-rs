@@ -637,6 +637,57 @@ fails to lower the probed field/method defaults, which is not a claim that their
 source syntax is invalid. C++ trailing `const` requires the HLSL dialect upstream;
 the native Slang parser does not implement that dialect extension.
 
+## Struct static fields
+
+Nongeneric structs can declare `static` fields containing scalars, vectors,
+matrices, fixed arrays, structs or resource handles. Each declaration has one
+shared storage location per shader invocation, independent of the number of
+struct instances. Static fields do not occupy instance storage or participate
+in memberwise construction.
+
+```slang
+struct Counter
+{
+    static const int Count = 3;
+    static int value = 4;
+    int items[Count];
+    void add() { value++; }
+};
+```
+
+Type names, aliases, `this`, ordinary values and resource element values can
+select a static field using `.` or `::`. Scope lookup with `::` permits only
+static members even when the base is a value. The lookup base is checked but never evaluated:
+`makeCounter().value` neither calls `makeCounter` nor loads a resource value.
+Nonmutating methods and const receivers can write mutable static fields.
+`static const` fields reject writes and require an initializer. Uninitialized
+mutable static fields remain undefined; definite-assignment warnings are absent.
+
+Static names shadow module globals in field defaults, method signatures and
+bodies, and static field initializers. Parameters and locals retain priority.
+Forward integer/boolean constants work in array and vector/matrix dimensions
+and thread-group attributes. A default such as `int x = this.Count` uses only
+static storage and does not require a receiver-dependent default.
+
+Ordinary function and static method calls are allowed in a static const **member**
+initializer. They do not become compile-time integer values unless the existing
+constant evaluator can fold them. The global-only runtime initializer restriction
+does not apply to these member declarations; ordinary user calls in a static const
+global still report `T031`.
+
+Imported static fields require `public`, and public fields require a public owner
+and public value type. Reflection exposes their qualified source names, such as
+`Counter.value`, separately from target names and module provenance.
+
+General upstream global constant graph semantics remain unported. The
+[shared-state fixture](../tests/conformance/positive/struct-static-fields.slang)
+records one difference: a global static const initialized from mutable member
+storage keeps its initialization value in native HLSL, while Slang 2026.21's
+constant IR operand aliases the mutable storage. Static resource aliases pass
+native DXC checks, but the pinned oracle fails HLSL emission for the
+[resource-alias fixture](../tests/native/static-resource-members.slang).
+Generic owners, nested types, properties and other target layouts remain absent.
+
 ## Brace initializer lists
 
 `{...}` uses the type of its declaration, assignment destination, return type,
@@ -1102,8 +1153,9 @@ void main(uint3 id : SV_DispatchThreadID)
 }
 ```
 
-`SV_GroupID` and `SV_GroupThreadID` require `uint3`; `SV_GroupIndex` requires
-`uint`. Validation requires a `void` return, a function body, supported parameter
+`SV_DispatchThreadID`, `SV_GroupID` and `SV_GroupThreadID` accept `uint3` or
+`int3`; `SV_GroupIndex` accepts `uint` or `int`. Validation requires a `void`
+return, a function body, supported parameter
 semantics, and a valid thread-group size.
 
 `numthreads` accepts scalar integer/boolean constants and integer expressions,

@@ -20,6 +20,10 @@ pub fn parse(tokens: &[Token]) -> Result<Module, Vec<Diagnostic>> {
     while tokens.iter().any(|t| t.text.starts_with(&method_prefix)) {
         method_prefix.push('_');
     }
+    let mut member_prefix = "_slang_member_".to_owned();
+    while tokens.iter().any(|t| t.text.starts_with(&member_prefix)) {
+        member_prefix.push('_');
+    }
     let mut parser = Parser {
         tokens,
         offset: 0,
@@ -30,6 +34,8 @@ pub fn parse(tokens: &[Token]) -> Result<Module, Vec<Diagnostic>> {
         buffer_prefix,
         constructor_prefix,
         method_prefix,
+        member_prefix,
+        static_members: vec![],
     };
     let mut module = Module::default();
     let mut diagnostics = vec![];
@@ -60,6 +66,7 @@ pub fn parse(tokens: &[Token]) -> Result<Module, Vec<Diagnostic>> {
     }
     if diagnostics.is_empty() {
         module.constant_buffers = parser.constant_buffers;
+        module.static_members = parser.static_members;
         Ok(module)
     } else {
         Err(diagnostics)
@@ -76,6 +83,8 @@ pub(crate) struct Parser {
     pub buffer_prefix: String,
     pub constructor_prefix: String,
     pub method_prefix: String,
+    pub member_prefix: String,
+    pub static_members: Vec<StaticMemberInfo>,
 }
 
 impl Parser {

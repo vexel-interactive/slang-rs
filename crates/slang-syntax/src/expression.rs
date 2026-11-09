@@ -156,13 +156,18 @@ impl Parser {
                 )?;
                 continue;
             }
-            if self.eat(".") {
+            if self.at(".") || self.at("::") {
+                let static_lookup = self.eat("::");
+                if !static_lookup {
+                    self.expect(".")?;
+                }
                 let name = self.identifier()?;
                 let span = left.span.join(name.span);
                 left = self.expr(
                     ExprKind::Member {
                         base: Box::new(left),
                         name: name.text,
+                        static_lookup,
                     },
                     span,
                 )?;

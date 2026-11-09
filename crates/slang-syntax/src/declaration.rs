@@ -199,7 +199,29 @@ impl Parser {
                 if !attributes.is_empty() {
                     return Err(self.error("struct field attributes are not implemented"));
                 }
-                fields.extend(self.variables(ty, member, member_modifiers)?);
+                let is_static = member_modifiers.iter().any(|m| m == "static");
+                let variables = self.variables(ty, member, member_modifiers)?;
+                if is_static {
+                    for mut variable in variables {
+                        let member_name = variable.name.clone();
+                        variable.name = format!(
+                            "{}{}_{}_{}",
+                            self.member_prefix,
+                            name.len(),
+                            name,
+                            member_name
+                        );
+                        self.static_members.push(StaticMemberInfo {
+                            owner: name.clone(),
+                            name: member_name,
+                            variable_name: variable.name.clone(),
+                            span: variable.span,
+                        });
+                        constructors.push(Declaration::Global(variable));
+                    }
+                } else {
+                    fields.extend(variables);
+                }
                 self.expect(";")?;
             }
             let end = self.expect("}")?;

@@ -23,34 +23,25 @@ impl Checker {
         span: Span,
     ) -> Option<Type> {
         let (owner, type_receiver) = if let Some(base) = base {
-            if matches!(base.kind, ExprKind::Name(_) | ExprKind::TypeApplication(_))
-                && let Ok(Some(Type::Struct(owner))) = self.constructor_target(base)
-            {
-                self.expression_types
-                    .insert(base.id, Type::Meta(Box::new(Type::Struct(owner.clone()))));
-                (owner, true)
-            } else {
-                match self.expression(base) {
-                    Type::Struct(owner) => (owner, false),
-                    Type::ConstantBuffer { element, .. } => {
-                        let Type::Struct(owner) = *element else {
-                            return None;
-                        };
-                        (owner, false)
-                    }
-                    Type::Meta(ty) => {
-                        let Type::Struct(owner) = *ty else {
-                            return None;
-                        };
-                        (owner, true)
-                    }
-                    _ => return None,
-                }
-            }
+            self.member_owner(base)?
         } else {
-            (self.current_type.clone()?, self.lookup("this").is_none())
+            (
+                self.current_type
+                    .as_ref()
+                    .or(self.current_static_type.as_ref())
+                    .cloned()?,
+                self.lookup("this").is_none(),
+            )
         };
         let function = self.methods.get(&(owner.clone(), name.into())).cloned()?;
+        let type_receiver = type_receiver
+            || matches!(
+                callee.kind,
+                ExprKind::Member {
+                    static_lookup: true,
+                    ..
+                }
+            );
         let module = self
             .symbols
             .get(&function)

@@ -178,11 +178,17 @@ impl Checker {
                     Type::Error
                 }
             };
-            if self.resolve_type(&parameter.ty) != expected && expected != Type::Error {
+            let signed = match expected {
+                Type::Scalar(Scalar::Uint) => Type::Scalar(Scalar::Int),
+                Type::Vector(Scalar::Uint, width) => Type::Vector(Scalar::Int, width),
+                _ => expected.clone(),
+            };
+            let actual = self.resolve_type(&parameter.ty);
+            if actual != expected && actual != signed && expected != Type::Error {
                 self.error(
                     "T006",
                     parameter.span,
-                    format!("compute semantic requires {expected}"),
+                    format!("compute semantic requires {expected} or {signed}"),
                 );
             }
             if parameter

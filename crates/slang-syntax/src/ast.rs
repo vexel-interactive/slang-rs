@@ -11,6 +11,15 @@ pub struct Module {
     pub declarations: Vec<Declaration>,
     /// Direct cbuffer declarations after their fields and hidden handles are normalized.
     pub constant_buffers: Vec<ConstantBufferInfo>,
+    pub static_members: Vec<StaticMemberInfo>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct StaticMemberInfo {
+    pub owner: String,
+    pub name: String,
+    pub variable_name: String,
+    pub span: Span,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -32,6 +41,9 @@ pub struct ConstantBufferMember {
 }
 
 impl Module {
+    pub fn static_member(&self, span: Span) -> Option<&StaticMemberInfo> {
+        self.static_members.iter().find(|m| m.span == span)
+    }
     pub fn constant_buffer_member(&self, span: Span) -> Option<&ConstantBufferMember> {
         self.constant_buffers
             .iter()
@@ -257,6 +269,8 @@ pub enum ExprKind {
     Member {
         base: Box<Expr>,
         name: String,
+        /// `::` looks up only static members, even when the base is a value.
+        static_lookup: bool,
     },
     Index {
         base: Box<Expr>,

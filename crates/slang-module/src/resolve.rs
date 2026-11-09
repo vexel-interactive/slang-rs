@@ -1,4 +1,4 @@
-use crate::link::Names;
+use crate::link::{Members, Names};
 use crate::{ModuleId, SymbolOrigin};
 use slang_source::{Diagnostic, Span};
 use slang_syntax::{Declaration, Expr, ExprId, ExprKind, Stmt, StmtKind, TypeRef, Variable};
@@ -14,8 +14,9 @@ pub(crate) struct Resolver<'a> {
     next_local: usize,
     module: ModuleId,
     origins: &'a mut BTreeMap<String, SymbolOrigin>,
-    members: &'a BTreeMap<String, std::collections::BTreeSet<String>>,
+    members: &'a Members,
     active_members: Option<std::collections::BTreeSet<String>>,
+    active_owner: Option<String>,
 }
 
 impl<'a> Resolver<'a> {
@@ -26,7 +27,7 @@ impl<'a> Resolver<'a> {
         local_prefix: String,
         module: ModuleId,
         origins: &'a mut BTreeMap<String, SymbolOrigin>,
-        members: &'a BTreeMap<String, std::collections::BTreeSet<String>>,
+        members: &'a Members,
     ) -> Self {
         Self {
             own,
@@ -39,6 +40,7 @@ impl<'a> Resolver<'a> {
             origins,
             members,
             active_members: None,
+            active_owner: None,
         }
     }
 
@@ -126,19 +128,37 @@ impl<'a> Resolver<'a> {
                 self.ty(&mut alias.target)?;
             }
             Declaration::Struct(structure) => {
+                self.active_owner = Some(structure.name.clone());
+                self.active_members = self.members.static_names.get(&structure.name).cloned();
                 structure.name = self.symbol(&structure.name, true, structure.span)?;
                 for field in &mut structure.fields {
                     self.variable(field)?;
                 }
+                self.active_owner = None;
+                self.active_members = None;
             }
             Declaration::Global(variable) => {
+                self.active_owner = self.members.owners.get(&variable.name).cloned();
+                self.active_members = self
+                    .active_owner
+                    .as_ref()
+                    .and_then(|o| self.members.all.get(o))
+                    .cloned();
                 self.variable(variable)?;
                 variable.name = self.symbol(&variable.name, false, variable.span)?;
+                self.active_owner = None;
+                self.active_members = None;
             }
             Declaration::Function(function) => {
                 let members = function
                     .owner_type()
-                    .and_then(|name| self.members.get(name))
+                    .and_then(|name| self.members.all.get(name))
+                    .cloned();
+                self.active_owner = function.owner_type().map(str::to_owned);
+                self.active_members = self
+                    .active_owner
+                    .as_ref()
+                    .and_then(|o| self.members.static_names.get(o))
                     .cloned();
                 if let Some(owner) = &mut function.constructor {
                     *owner = self.symbol(owner, true, function.span)?;
@@ -184,6 +204,7 @@ impl<'a> Resolver<'a> {
                 }
                 self.scopes.pop();
                 self.active_members = None;
+                self.active_owner = None;
             }
         }
         Ok(())
@@ -264,6 +285,15 @@ impl<'a> Resolver<'a> {
         Ok(())
     }
 
+    pub fn static_member(
+        &self,
+        member: &mut slang_syntax::StaticMemberInfo,
+    ) -> Result<(), Diagnostic> {
+        member.owner = self.symbol(&member.owner, true, member.span)?;
+        member.variable_name = self.symbol(&member.variable_name, false, member.span)?;
+        Ok(())
+    }
+
     pub fn constant_buffer(
         &self,
         buffer: &mut slang_syntax::ConstantBufferInfo,
@@ -288,6 +318,12 @@ impl<'a> Resolver<'a> {
             ExprKind::Name(name) => {
                 if let Some(target) = self.scopes.iter().rev().find_map(|scope| scope.get(name)) {
                     *name = target.clone();
+                } else if let Some(target) = self
+                    .active_owner
+                    .as_ref()
+                    .and_then(|o| self.members.fields.get(&(o.clone(), name.clone())))
+                {
+                    *name = self.symbol(target, false, expression.span)?;
                 } else if self
                     .active_members
                     .as_ref()

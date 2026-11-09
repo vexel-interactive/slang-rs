@@ -333,25 +333,26 @@ impl<'a> Scanner<'a> {
         if let Some(plan) = self.checked.initializations.get(&expression.id) {
             self.work.push(Work::Initialization(plan));
         }
-        match &expression.kind {
-            ExprKind::Name(_) => {
-                if let Some(declaration) = self.checked.global_references.get(&expression.id)
-                    && let Some(global) = self.globals.get(declaration)
-                {
-                    if global.modifiers.iter().any(|m| m == "groupshared") {
-                        self.requirements.compute.get_or_insert(Operation {
-                            name: "groupshared",
-                            span: expression.span,
-                        });
-                    }
-                    if let Some(value) = &global.initializer {
-                        self.work.push(Work::Expression(value));
-                    }
-                    if let Some(value) = self.checked.variable_initializations.get(declaration) {
-                        self.work.push(Work::Initialization(value));
-                    }
-                }
+        if let Some(declaration) = self.checked.global_references.get(&expression.id)
+            && let Some(global) = self.globals.get(declaration)
+        {
+            if global.modifiers.iter().any(|m| m == "groupshared") {
+                self.requirements.compute.get_or_insert(Operation {
+                    name: "groupshared",
+                    span: expression.span,
+                });
             }
+            if let Some(value) = &global.initializer {
+                self.work.push(Work::Expression(value));
+            }
+            if let Some(value) = self.checked.variable_initializations.get(declaration) {
+                self.work.push(Work::Initialization(value));
+            }
+        }
+        if self.checked.static_references.contains_key(&expression.id) {
+            return;
+        }
+        match &expression.kind {
             ExprKind::InitializerList(values) => {
                 self.work.extend(values.iter().map(Work::Expression))
             }

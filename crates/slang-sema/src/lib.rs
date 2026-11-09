@@ -21,6 +21,7 @@ mod resource;
 mod shape;
 mod statement;
 mod static_initializer;
+mod static_member;
 mod swizzle;
 mod types;
 mod value_type;

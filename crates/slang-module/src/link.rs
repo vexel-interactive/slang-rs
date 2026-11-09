@@ -13,6 +13,14 @@ pub(crate) struct Names {
     pub values: BTreeMap<String, BTreeSet<String>>,
 }
 
+#[derive(Default)]
+pub(crate) struct Members {
+    pub all: BTreeMap<String, BTreeSet<String>>,
+    pub static_names: BTreeMap<String, BTreeSet<String>>,
+    pub fields: BTreeMap<(String, String), String>,
+    pub owners: BTreeMap<String, String>,
+}
+
 impl Names {
     pub fn add(&mut self, source: String, target: String, is_type: bool) {
         let map = if is_type {
@@ -111,30 +119,60 @@ pub(crate) fn link(
                 exports[id.0].extend(&names);
             }
         }
-        let mut members: BTreeMap<String, BTreeSet<String>> = nodes[id.0]
-            .syntax
-            .declarations
-            .iter()
-            .filter_map(|d| {
-                if let Declaration::Struct(s) = d {
-                    Some((
-                        s.name.clone(),
-                        s.fields.iter().map(|f| f.name.clone()).collect(),
-                    ))
-                } else {
-                    None
-                }
-            })
-            .collect();
+        let mut members = Members {
+            all: nodes[id.0]
+                .syntax
+                .declarations
+                .iter()
+                .filter_map(|d| {
+                    if let Declaration::Struct(s) = d {
+                        Some((
+                            s.name.clone(),
+                            s.fields.iter().map(|f| f.name.clone()).collect(),
+                        ))
+                    } else {
+                        None
+                    }
+                })
+                .collect(),
+            ..Members::default()
+        };
         for declaration in &nodes[id.0].syntax.declarations {
             if let Declaration::Function(function) = declaration
                 && let Some(method) = &function.method
             {
                 members
+                    .all
                     .entry(method.owner.clone())
                     .or_default()
                     .insert(method.name.clone());
+                if method.is_static {
+                    members
+                        .static_names
+                        .entry(method.owner.clone())
+                        .or_default()
+                        .insert(method.name.clone());
+                }
             }
+        }
+        for member in &nodes[id.0].syntax.static_members {
+            members
+                .all
+                .entry(member.owner.clone())
+                .or_default()
+                .insert(member.name.clone());
+            members
+                .static_names
+                .entry(member.owner.clone())
+                .or_default()
+                .insert(member.name.clone());
+            members.fields.insert(
+                (member.owner.clone(), member.name.clone()),
+                member.variable_name.clone(),
+            );
+            members
+                .owners
+                .insert(member.variable_name.clone(), member.owner.clone());
         }
         let mut resolver = Resolver::new(
             &own[id.0],
@@ -163,12 +201,18 @@ pub(crate) fn link(
         for buffer in &mut nodes[id.0].syntax.constant_buffers {
             resolver.constant_buffer(buffer).map_err(|d| vec![d])?;
         }
+        for member in &mut nodes[id.0].syntax.static_members {
+            resolver.static_member(member).map_err(|d| vec![d])?;
+        }
         syntax
             .declarations
             .append(&mut nodes[id.0].syntax.declarations);
         syntax
             .constant_buffers
             .append(&mut nodes[id.0].syntax.constant_buffers);
+        syntax
+            .static_members
+            .append(&mut nodes[id.0].syntax.static_members);
     }
     Ok(Program {
         syntax,

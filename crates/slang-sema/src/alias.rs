@@ -39,6 +39,7 @@ impl Checker {
                 self.public_types.insert(name.clone());
             }
         }
+        self.declare_static_members(module);
         for declaration in &module.declarations {
             if let Declaration::TypeAlias(alias) = declaration {
                 self.check_visibility_modifiers(&alias.modifiers, alias.span);
@@ -69,6 +70,8 @@ impl Checker {
         }
         let target = self.aliases[name].clone();
         let previous_module = self.current_module;
+        let previous_type = self.current_type.take();
+        let previous_static_type = self.current_static_type.take();
         self.current_module = self
             .symbols
             .get(name)
@@ -77,6 +80,8 @@ impl Checker {
         self.alias_matrix_layouts
             .insert(name.into(), self.reference_matrix_major(&target));
         self.current_module = previous_module;
+        self.current_type = previous_type;
+        self.current_static_type = previous_static_type;
         self.resolving_aliases.remove(name);
         self.alias_types.insert(name.into(), ty.clone());
         ty

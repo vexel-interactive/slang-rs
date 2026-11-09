@@ -134,7 +134,22 @@ impl Checker {
                 Type::Error
             }
             ExprKind::Name(name) => {
-                if let Some(owner) = &self.current_type
+                let owner = self
+                    .current_type
+                    .as_ref()
+                    .or(self.current_static_type.as_ref())
+                    .cloned();
+                let local = self
+                    .scopes
+                    .iter()
+                    .skip(1)
+                    .any(|scope| scope.contains_key(name));
+                if !local
+                    && let Some(owner) = &owner
+                    && let Some(ty) = self.static_field(expression, owner, name)
+                {
+                    ty
+                } else if let Some(owner) = &self.current_type
                     && !self
                         .scopes
                         .iter()
@@ -236,7 +251,35 @@ impl Checker {
                 }
             }
             ExprKind::Call { callee, arguments } => self.call(callee, arguments, expression.span),
-            ExprKind::Member { base, name } => {
+            ExprKind::Member {
+                base,
+                name,
+                static_lookup,
+            } => {
+                if let Some((owner, type_receiver)) = self.member_owner(base) {
+                    if let Some(ty) = self.static_field(expression, &owner, name) {
+                        self.expression_types.insert(expression.id, ty.clone());
+                        return ty;
+                    }
+                    if type_receiver || *static_lookup {
+                        self.error(
+                            "T013",
+                            expression.span,
+                            format!("unknown static field '{name}'"),
+                        );
+                        self.expression_types.insert(expression.id, Type::Error);
+                        return Type::Error;
+                    }
+                }
+                if *static_lookup {
+                    self.error(
+                        "T013",
+                        expression.span,
+                        "scope lookup requires a static field",
+                    );
+                    self.expression_types.insert(expression.id, Type::Error);
+                    return Type::Error;
+                }
                 let ty = self.value_expression(base);
                 match ty {
                     Type::Struct(ref structure)
@@ -435,6 +478,9 @@ impl Checker {
         if self.constant_buffer_loads.contains(&expr.id) {
             return false;
         }
+        if let Some(target) = self.static_references.get(&expr.id) {
+            return self.lookup(target).is_some_and(|b| b.writable);
+        }
         match &expr.kind {
             ExprKind::Name(name) => {
                 if self.implicit_members.contains_key(&expr.id) {
@@ -443,7 +489,7 @@ impl Checker {
                     self.lookup(name).is_some_and(|b| b.writable)
                 }
             }
-            ExprKind::Member { base, name } => {
+            ExprKind::Member { base, name, .. } => {
                 if matches!(
                     self.expression_types.get(&base.id),
                     Some(Type::ConstantBuffer { .. })
@@ -475,7 +521,7 @@ impl Checker {
     }
 
     fn numeric_selection(&self, expr: &Expr) -> bool {
-        if let ExprKind::Member { base, name } = &expr.kind {
+        if let ExprKind::Member { base, name, .. } = &expr.kind {
             self.expression_types
                 .get(&base.id)
                 .is_some_and(|ty| ty.component_indices(name).is_some())

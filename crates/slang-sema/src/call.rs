@@ -9,11 +9,20 @@ use slang_syntax::{Expr, ExprKind};
 impl Checker {
     pub(crate) fn call(&mut self, callee: &Expr, arguments: &[Expr], span: Span) -> Type {
         let mut types: Vec<Type> = arguments.iter().map(|a| self.expression(a)).collect();
-        if let ExprKind::Member { base, name } = &callee.kind {
+        if let ExprKind::Member {
+            base,
+            name,
+            static_lookup,
+        } = &callee.kind
+        {
             if let Some(result) =
                 self.member_call(callee, Some(base), name, arguments, &types, span)
             {
                 return result;
+            }
+            if *static_lookup {
+                self.error("T014", span, "scope lookup requires a static method");
+                return Type::Error;
             }
             return self.resource_call(base, name, arguments, &types, callee.id, span);
         }
