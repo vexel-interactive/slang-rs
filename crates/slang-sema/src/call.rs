@@ -9,11 +9,23 @@ use slang_syntax::{Expr, ExprKind};
 impl Checker {
     pub(crate) fn call(&mut self, callee: &Expr, arguments: &[Expr], span: Span) -> Type {
         let mut types: Vec<Type> = arguments.iter().map(|a| self.expression(a)).collect();
+        let scoped_constructor = if matches!(callee.kind, ExprKind::Member { .. }) {
+            match self.constructor_target(callee) {
+                Ok(target) => target,
+                Err(error) => {
+                    self.diagnostics.push(error);
+                    return Type::Error;
+                }
+            }
+        } else {
+            None
+        };
         if let ExprKind::Member {
             base,
             name,
             static_lookup,
         } = &callee.kind
+            && scoped_constructor.is_none()
         {
             if let Some(result) =
                 self.member_call(callee, Some(base), name, arguments, &types, span)
@@ -27,10 +39,28 @@ impl Checker {
             return self.resource_call(base, name, arguments, &types, callee.id, span);
         }
         if let ExprKind::Name(name) = &callee.kind
-            && self.lookup(name).is_none()
+            && !self
+                .scopes
+                .iter()
+                .skip(1)
+                .any(|scope| scope.contains_key(name))
             && let Some(result) = self.member_call(callee, None, name, arguments, &types, span)
         {
             return result;
+        }
+        if let ExprKind::Name(name) = &callee.kind
+            && !self
+                .scopes
+                .iter()
+                .skip(1)
+                .any(|scope| scope.contains_key(name))
+            && let Some(current) = &self.current_static_type
+            && let Some(owner) = self.lexical_member_owner(current, name)
+            && !self.nested_types.contains_key(&(owner, name.clone()))
+        {
+            self.expression(callee);
+            self.error("T014", span, format!("member '{name}' is not callable"));
+            return Type::Error;
         }
         if matches!(&callee.kind, ExprKind::Name(name) if matches!(name.as_str(), "vector" | "matrix") && self.lookup(name).is_none() && !(self.functions.contains_key(name) && self.module_symbol_visible(name)))
         {
@@ -41,7 +71,10 @@ impl Checker {
             );
             return Type::Error;
         }
-        let constructor = match self.constructor_target(callee) {
+        let constructor = match scoped_constructor.map_or_else(
+            || self.constructor_target(callee),
+            |target| Ok(Some(target)),
+        ) {
             Ok(target) => target,
             Err(error) => {
                 self.diagnostics.push(error);
@@ -49,6 +82,9 @@ impl Checker {
             }
         };
         if let Some(target) = constructor {
+            if target == Type::Error {
+                return Type::Error;
+            }
             for (argument, ty) in arguments.iter().zip(&mut types) {
                 if matches!(ty, Type::ConstantBuffer { .. }) {
                     *ty = self.value_expression(argument);
@@ -400,17 +436,38 @@ impl Checker {
 
     pub(crate) fn constructor_target(&mut self, callee: &Expr) -> Result<Option<Type>, Diagnostic> {
         match &callee.kind {
+            ExprKind::Member { base, name, .. } => {
+                let Some((owner, _)) = self.member_owner(base) else {
+                    return Ok(None);
+                };
+                let target = self.nested_type(&owner, name, callee.span);
+                if target.is_some() {
+                    self.static_type_lookups.insert(callee.id);
+                }
+                Ok(target)
+            }
             ExprKind::TypeApplication(reference) => Ok(Some(self.resolve_type(reference))),
-            ExprKind::Name(name) if self.lookup(name).is_none() => Ok(Type::builtin(name)
-                .or_else(|| {
-                    self.module_symbol_visible(name)
-                        .then(|| self.alias_types.get(name).cloned())
-                        .flatten()
-                })
-                .or_else(|| {
-                    (self.module_symbol_visible(name) && self.structures.contains_key(name))
-                        .then(|| Type::Struct(name.clone()))
-                })),
+            ExprKind::Name(name) if self.lookup(name).is_none() => {
+                if let Some(current) = &self.current_static_type
+                    && let Some(owner) = self.lexical_member_owner(current, name)
+                    && !self.nested_types.contains_key(&(owner, name.clone()))
+                {
+                    return Ok(None);
+                }
+                let Some(name) = self.type_name(name, callee.span) else {
+                    return Ok(Some(Type::Error));
+                };
+                Ok(Type::builtin(&name)
+                    .or_else(|| {
+                        self.module_symbol_visible(&name)
+                            .then(|| self.alias_types.get(&name).cloned())
+                            .flatten()
+                    })
+                    .or_else(|| {
+                        (self.module_symbol_visible(&name) && self.structures.contains_key(&name))
+                            .then(|| Type::Struct(name.clone()))
+                    }))
+            }
             ExprKind::Index { base, index } => {
                 let Some(element) = self.constructor_target(base)? else {
                     return Ok(None);

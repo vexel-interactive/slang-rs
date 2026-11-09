@@ -67,11 +67,16 @@ impl Checker {
         owner: &str,
         name: &str,
     ) -> Option<Type> {
+        let declaring_owner = if matches!(expression.kind, ExprKind::Name(_)) {
+            self.lexical_member_owner(owner, name)?
+        } else {
+            owner.to_owned()
+        };
         let target = self
             .static_fields
-            .get(&(owner.into(), name.into()))?
+            .get(&(declaring_owner.clone(), name.into()))?
             .clone();
-        if !self.field_accessible(owner, name) {
+        if !self.field_accessible(&declaring_owner, name) {
             self.error(
                 "T018",
                 expression.span,
@@ -92,7 +97,7 @@ impl Checker {
             Declaration::Struct(s) => Some(s.name.clone()),
             Declaration::Global(v) => self.static_owners.get(&v.name).cloned(),
             Declaration::Function(f) => f.owner_type().map(str::to_owned),
-            Declaration::TypeAlias(_) => None,
+            Declaration::TypeAlias(a) => self.type_owners.get(&a.name).cloned(),
         };
     }
 

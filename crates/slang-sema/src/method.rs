@@ -25,13 +25,13 @@ impl Checker {
         let (owner, type_receiver) = if let Some(base) = base {
             self.member_owner(base)?
         } else {
-            (
-                self.current_type
-                    .as_ref()
-                    .or(self.current_static_type.as_ref())
-                    .cloned()?,
-                self.lookup("this").is_none(),
-            )
+            let current = self
+                .current_type
+                .as_ref()
+                .or(self.current_static_type.as_ref())?;
+            let owner = self.lexical_member_owner(current, name)?;
+            let type_receiver = owner != *current || self.lookup("this").is_none();
+            (owner, type_receiver)
         };
         let function = self.methods.get(&(owner.clone(), name.into())).cloned()?;
         let type_receiver = type_receiver

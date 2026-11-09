@@ -8392,6 +8392,123 @@
       "file": "positive/compute-signed-semantics.slang",
       "entry": "main",
       "accept": true
+    },
+    {
+      "file": "positive/nested-type-shapes.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/nested-type-ignored-base.slang",
+      "accept": true,
+      "entry": "main",
+      "profile": "ps_6_0"
+    },
+    {
+      "file": "positive/nested-type-module/main.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 6,
+        "1": 9,
+        "2": 3,
+        "3": 9,
+        "4": 5
+      }
+    },
+    {
+      "file": "negative/nested-type-duplicate.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T003"
+    },
+    {
+      "file": "negative/nested-type-field-conflict.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T003"
+    },
+    {
+      "file": "negative/nested-type-method-conflict.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T003"
+    },
+    {
+      "file": "negative/nested-type-alias-cycle.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T002"
+    },
+    {
+      "file": "negative/nested-type-unknown.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T002"
+    },
+    {
+      "file": "negative/nested-type-outer-member.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T013"
+    },
+    {
+      "file": "positive/nested-type-module/private-type.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T018"
+    },
+    {
+      "file": "positive/nested-type-module/private-alias.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T018"
+    },
+    {
+      "file": "positive/nested-type-module/private-method.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014"
+    },
+    {
+      "file": "positive/nested-type-internal-owner.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/nested-types.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 12,
+        "1": 14,
+        "2": 14,
+        "3": 8,
+        "4": 14,
+        "5": 9,
+        "6": 11,
+        "7": 8,
+        "8": 9,
+        "9": 17,
+        "10": 17,
+        "11": 18,
+        "12": 3,
+        "13": 4,
+        "14": 39,
+        "15": 8
+      }
+    },
+    {
+      "file": "negative/nested-type-outer-instance.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T013"
+    },
+    {
+      "file": "negative/nested-type-shadowed-alias.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T002"
     }
   ]
 }

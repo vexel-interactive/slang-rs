@@ -55,7 +55,37 @@ impl<'a> Resolver<'a> {
     }
 
     fn ty(&mut self, ty: &mut TypeRef) -> Result<(), Diagnostic> {
-        ty.name = self.symbol(&ty.name, true, ty.span)?;
+        let mut parts = ty.name.split("::");
+        let base = parts.next().unwrap();
+        let qualified = ty.name.contains("::");
+        let local = qualified
+            .then(|| self.scopes.iter().rev().find_map(|scope| scope.get(base)))
+            .flatten();
+        let mut resolved = if let Some(local) = local {
+            local.clone()
+        } else {
+            let member = self.member_scope(base).is_some();
+            let source = base;
+            let base = self
+                .member_target(base, true)
+                .or_else(|| qualified.then(|| self.member_target(base, false)).flatten())
+                .unwrap_or(base);
+            if member && base == source {
+                base.to_owned()
+            } else {
+                let target = self.symbol(base, true, ty.span)?;
+                if qualified && target == base {
+                    self.symbol(base, false, ty.span)?
+                } else {
+                    target
+                }
+            }
+        };
+        for member in parts {
+            resolved.push_str("::");
+            resolved.push_str(member);
+        }
+        ty.name = resolved;
         for argument in &mut ty.arguments {
             match argument {
                 slang_syntax::TypeArgument::Type(argument) => self.ty(argument)?,
@@ -124,12 +154,16 @@ impl<'a> Resolver<'a> {
     pub fn declaration(&mut self, declaration: &mut Declaration) -> Result<(), Diagnostic> {
         match declaration {
             Declaration::TypeAlias(alias) => {
+                self.active_owner = self.members.type_owners.get(&alias.name).cloned();
+                self.active_members = self.owner_members(false);
                 alias.name = self.symbol(&alias.name, true, alias.span)?;
                 self.ty(&mut alias.target)?;
+                self.active_owner = None;
+                self.active_members = None;
             }
             Declaration::Struct(structure) => {
                 self.active_owner = Some(structure.name.clone());
-                self.active_members = self.members.static_names.get(&structure.name).cloned();
+                self.active_members = self.owner_members(false);
                 structure.name = self.symbol(&structure.name, true, structure.span)?;
                 for field in &mut structure.fields {
                     self.variable(field)?;
@@ -139,27 +173,16 @@ impl<'a> Resolver<'a> {
             }
             Declaration::Global(variable) => {
                 self.active_owner = self.members.owners.get(&variable.name).cloned();
-                self.active_members = self
-                    .active_owner
-                    .as_ref()
-                    .and_then(|o| self.members.all.get(o))
-                    .cloned();
+                self.active_members = self.owner_members(true);
                 self.variable(variable)?;
                 variable.name = self.symbol(&variable.name, false, variable.span)?;
                 self.active_owner = None;
                 self.active_members = None;
             }
             Declaration::Function(function) => {
-                let members = function
-                    .owner_type()
-                    .and_then(|name| self.members.all.get(name))
-                    .cloned();
                 self.active_owner = function.owner_type().map(str::to_owned);
-                self.active_members = self
-                    .active_owner
-                    .as_ref()
-                    .and_then(|o| self.members.static_names.get(o))
-                    .cloned();
+                let members = self.owner_members(true);
+                self.active_members = self.owner_members(false);
                 if let Some(owner) = &mut function.constructor {
                     *owner = self.symbol(owner, true, function.span)?;
                 }
@@ -294,6 +317,68 @@ impl<'a> Resolver<'a> {
         Ok(())
     }
 
+    pub fn nested_type(
+        &mut self,
+        member: &mut slang_syntax::NestedTypeInfo,
+    ) -> Result<(), Diagnostic> {
+        member.owner = self.symbol(&member.owner, true, member.span)?;
+        member.type_name = self.symbol(&member.type_name, true, member.span)?;
+        let owner = self
+            .origins
+            .get(&member.owner)
+            .map_or(member.owner.as_str(), |o| &o.name);
+        let name = format!("{owner}.{}", member.name);
+        if let Some(origin) = self.origins.get_mut(&member.type_name) {
+            origin.name = name;
+        }
+        Ok(())
+    }
+
+    fn member_target<'b>(&'b self, name: &str, is_type: bool) -> Option<&'b str> {
+        let owner = self.member_scope(name)?;
+        let members = if is_type {
+            &self.members.types
+        } else {
+            &self.members.fields
+        };
+        members
+            .get(&(owner.into(), name.into()))
+            .map(String::as_str)
+    }
+
+    fn member_scope(&self, name: &str) -> Option<&str> {
+        let mut owner = self.active_owner.as_ref();
+        while let Some(current) = owner {
+            if self
+                .members
+                .all
+                .get(current)
+                .is_some_and(|m| m.contains(name))
+            {
+                return Some(current);
+            }
+            owner = self.members.type_owners.get(current);
+        }
+        None
+    }
+
+    fn owner_members(&self, instance: bool) -> Option<std::collections::BTreeSet<String>> {
+        let mut names = std::collections::BTreeSet::new();
+        let mut owner = self.active_owner.as_ref();
+        while let Some(current) = owner {
+            let members = if instance {
+                &self.members.all
+            } else {
+                &self.members.static_names
+            };
+            if let Some(members) = members.get(current) {
+                names.extend(members.iter().cloned());
+            }
+            owner = self.members.type_owners.get(current);
+        }
+        self.active_owner.as_ref().map(|_| names)
+    }
+
     pub fn constant_buffer(
         &self,
         buffer: &mut slang_syntax::ConstantBufferInfo,
@@ -318,12 +403,10 @@ impl<'a> Resolver<'a> {
             ExprKind::Name(name) => {
                 if let Some(target) = self.scopes.iter().rev().find_map(|scope| scope.get(name)) {
                     *name = target.clone();
-                } else if let Some(target) = self
-                    .active_owner
-                    .as_ref()
-                    .and_then(|o| self.members.fields.get(&(o.clone(), name.clone())))
-                {
+                } else if let Some(target) = self.member_target(name, false) {
                     *name = self.symbol(target, false, expression.span)?;
+                } else if let Some(target) = self.member_target(name, true) {
+                    *name = self.symbol(target, true, expression.span)?;
                 } else if self
                     .active_members
                     .as_ref()

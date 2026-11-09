@@ -467,8 +467,8 @@ Negative or runtime dimensions report `T002`; dependency cycles report `T026`.
 Arrays can appear as variables, struct fields, parameters, and constant-buffer
 elements and function return types. Unsized arrays remain unimplemented.
 Alias chains and
-resolved array ranks are each limited to 32. Local/nested aliases, generic
-aliases, qualified type references, pointer declarators, and C-style casts using
+resolved array ranks are each limited to 32. Local aliases, generic
+aliases, pointer declarators, and C-style casts using
 user alias names remain unported. See [the alias example](../examples/type-aliases.slang).
 
 Fixed arrays also support constructors: `float[3](1.0, 2.0)`, `float[3]()`,
@@ -686,7 +686,49 @@ storage keeps its initialization value in native HLSL, while Slang 2026.21's
 constant IR operand aliases the mutable storage. Static resource aliases pass
 native DXC checks, but the pinned oracle fails HLSL emission for the
 [resource-alias fixture](../tests/native/static-resource-members.slang).
-Generic owners, nested types, properties and other target layouts remain absent.
+Generic owners, properties and other target layouts remain absent.
+
+## Nested structs and aliases
+
+Nongeneric structs can contain structs, `typedef` and `typealias` members.
+Select them with `.` or `::` in declarations, function signatures, resource
+arguments and constructors:
+
+```slang
+struct Outer
+{
+    typedef int Number;
+    struct Inner
+    {
+        Number value;
+        Number read() { return value; }
+    };
+};
+Outer.Inner value = Outer::Inner(3);
+```
+
+Nested structs retain distinct identities across owners and modules. Aliases
+remain transparent, including array, resource and matrix-layout aliases.
+Members may refer to later sibling types, and nested bodies can use enclosing
+types and static members. The nearest member declaration wins over enclosing
+and module names; parameters and locals retain priority. A nested instance has
+no implicit receiver for instance fields or methods of its enclosing struct.
+Explicit `Outer.Inner.member` lookup searches only `Inner`.
+
+A struct-valued variable can also qualify a type, as in `owner.Inner value`.
+Constructor selection through `makeOwner().Inner(3)` checks the base but never
+evaluates it. Its side effects, initialization dependencies, parameter references
+and shader-stage requirements do not enter the constructor call.
+
+Imported nested types require public access at every selected member, and the
+owner must be accessible. Their short names are not imported into global scope.
+Legacy visibility also applies to nested declarations. Reflection preserves
+qualified static member names such as `Outer.Inner.count`; canonical value types
+and HLSL use separate generated names. Struct declaration depth is limited to
+32, while alias and value-type cycles receive bounded diagnostics.
+Local type declarations, generic owners and aliases, namespace declarations,
+and general expression syntax in type positions remain unported. See the
+[nested-type fixture](../tests/conformance/positive/nested-types.slang).
 
 ## Brace initializer lists
 

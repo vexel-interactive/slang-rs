@@ -200,7 +200,7 @@ impl Checker {
         };
         if matches!(
             constructor.kind,
-            ExprKind::Name(_) | ExprKind::TypeApplication(_)
+            ExprKind::Name(_) | ExprKind::TypeApplication(_) | ExprKind::Member { .. }
         ) && let Ok(Some(Type::Struct(owner))) = self.constructor_target(constructor)
         {
             return Some(owner);

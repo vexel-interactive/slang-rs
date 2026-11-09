@@ -504,6 +504,14 @@ impl Lowerer<'_> {
                                 .unwrap_or_else(|| name.clone()),
                             arguments,
                         },
+                        ast::ExprKind::Member { .. }
+                            if self.checked.call_names.contains_key(&callee.id) =>
+                        {
+                            ExprKind::Call {
+                                name: self.checked.call_names[&callee.id].clone(),
+                                arguments,
+                            }
+                        }
                         ast::ExprKind::Member { base, name, .. } => ExprKind::MethodCall {
                             receiver: Box::new(self.expression(base)?),
                             name: name.clone(),

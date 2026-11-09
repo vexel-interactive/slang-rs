@@ -191,6 +191,16 @@ impl Parser {
             return false;
         }
         i += 1;
+        while self.tokens.get(i).is_some_and(|t| t.is(".") || t.is("::")) {
+            if !self
+                .tokens
+                .get(i + 1)
+                .is_some_and(|t| t.kind == TokenKind::Identifier)
+            {
+                return false;
+            }
+            i += 2;
+        }
         if self.tokens.get(i).is_some_and(|t| t.is("<")) {
             let Some(end) = self.type_application_end(i - 1) else {
                 return false;

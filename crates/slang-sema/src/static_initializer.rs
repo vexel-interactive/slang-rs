@@ -82,7 +82,9 @@ impl Checker {
                     {
                         continue;
                     }
-                    if self.static_references.contains_key(&e.id) {
+                    if self.static_references.contains_key(&e.id)
+                        || self.static_type_lookups.contains(&e.id)
+                    {
                         continue;
                     }
                     match &e.kind {

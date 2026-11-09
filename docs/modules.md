@@ -115,11 +115,16 @@ A legacy source with no module declaration, no `__include`, and no access
 modifiers exports all its declarations and fields. Reflection records whether
 this compatibility mode was used.
 
+Struct and alias members use qualified names such as `Outer.Inner` and
+`Outer.Number`. Importing `Outer` does not import its nested short names.
+Each selected type requires public access from an importing module. Module
+member files retain nested types and static storage when linked into their owner.
+
 ## Current limits
 
 This is source linking rather than the upstream session/component API.
 Separate compilation, serialized modules, incremental caches, namespaces,
-private members, generic/extension methods, nested types, and imported shader entries remain
+private members, generic/extension methods, and imported shader entries remain
 unported. Combining same-name overload sets from different modules currently
 reports `M004`; overload ranking still uses exact matches followed by equal
 conversion costs.

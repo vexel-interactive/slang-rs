@@ -168,6 +168,20 @@ impl Checker {
                     self.implicit_members
                         .insert(expression.id, Type::Struct(owner.clone()));
                     ty
+                } else if !local
+                    && let Some(owner) = &owner
+                    && let Some(declaring_owner) = self.lexical_member_owner(owner, name)
+                    && self.struct_definitions[&declaring_owner]
+                        .fields
+                        .iter()
+                        .any(|f| f.name == *name)
+                {
+                    self.error(
+                        "T013",
+                        expression.span,
+                        "enclosing instance field requires a receiver",
+                    );
+                    Type::Error
                 } else if let Some(binding) = self.lookup(name).cloned() {
                     if let Storage::Global(declaration) | Storage::GroupShared(declaration) =
                         binding.storage
@@ -258,6 +272,12 @@ impl Checker {
             } => {
                 if let Some((owner, type_receiver)) = self.member_owner(base) {
                     if let Some(ty) = self.static_field(expression, &owner, name) {
+                        self.expression_types.insert(expression.id, ty.clone());
+                        return ty;
+                    }
+                    if let Some(ty) = self.nested_type(&owner, name, expression.span) {
+                        self.static_type_lookups.insert(expression.id);
+                        let ty = Type::Meta(Box::new(ty));
                         self.expression_types.insert(expression.id, ty.clone());
                         return ty;
                     }

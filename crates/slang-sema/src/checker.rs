@@ -37,6 +37,8 @@ pub struct CheckedModule {
     pub method_receivers: BTreeMap<ExprId, crate::method::MethodReceiver>,
     /// Static field accesses, whose lookup base is never evaluated.
     pub static_references: BTreeMap<ExprId, String>,
+    /// Nested type selections, whose value bases are checked but never evaluated.
+    pub static_type_lookups: BTreeSet<ExprId>,
     pub variable_initializations: BTreeMap<SpanKey, crate::Initialization>,
     pub constructor_initializations: BTreeMap<SpanKey, Vec<(String, crate::Initialization)>>,
     pub declaration_types: BTreeMap<SpanKey, Type>,
@@ -118,7 +120,10 @@ pub(crate) struct Checker {
     pub current_static_type: Option<String>,
     pub static_fields: BTreeMap<(String, String), String>,
     pub static_owners: BTreeMap<String, String>,
+    pub nested_types: BTreeMap<(String, String), String>,
+    pub type_owners: BTreeMap<String, String>,
     pub static_references: BTreeMap<ExprId, String>,
+    pub static_type_lookups: BTreeSet<ExprId>,
     pub methods: BTreeMap<(String, String), String>,
     pub method_receivers: BTreeMap<ExprId, crate::method::MethodReceiver>,
     pub declaration_types: BTreeMap<SpanKey, Type>,
@@ -219,6 +224,17 @@ fn check_with_metadata(
             .map(|m| (m.variable_name.clone(), m.owner.clone()))
             .collect(),
         static_references: BTreeMap::new(),
+        static_type_lookups: BTreeSet::new(),
+        nested_types: module
+            .nested_types
+            .iter()
+            .map(|m| ((m.owner.clone(), m.name.clone()), m.type_name.clone()))
+            .collect(),
+        type_owners: module
+            .nested_types
+            .iter()
+            .map(|m| (m.type_name.clone(), m.owner.clone()))
+            .collect(),
         methods: BTreeMap::new(),
         method_receivers: BTreeMap::new(),
         declaration_types: BTreeMap::new(),
@@ -409,6 +425,7 @@ fn check_with_metadata(
             implicit_members: checker.implicit_members,
             method_receivers: checker.method_receivers,
             static_references: checker.static_references,
+            static_type_lookups: checker.static_type_lookups,
             variable_initializations: checker.variable_initializations,
             constructor_initializations: checker.constructor_initializations,
             declaration_types: checker.declaration_types,
@@ -438,14 +455,12 @@ fn check_with_metadata(
 
 impl Checker {
     pub(crate) fn reference_matrix_major(
-        &self,
+        &mut self,
         reference: &TypeRef,
     ) -> Option<slang_layout::MatrixMajor> {
         reference.matrix_major.or_else(|| {
-            self.alias_matrix_layouts
-                .get(&reference.name)
-                .copied()
-                .flatten()
+            let name = self.type_name(&reference.name, reference.span)?;
+            self.alias_matrix_layouts.get(&name).copied().flatten()
         })
     }
 

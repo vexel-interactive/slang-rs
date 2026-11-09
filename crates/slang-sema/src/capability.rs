@@ -349,7 +349,9 @@ impl<'a> Scanner<'a> {
                 self.work.push(Work::Initialization(value));
             }
         }
-        if self.checked.static_references.contains_key(&expression.id) {
+        if self.checked.static_references.contains_key(&expression.id)
+            || self.checked.static_type_lookups.contains(&expression.id)
+        {
             return;
         }
         match &expression.kind {

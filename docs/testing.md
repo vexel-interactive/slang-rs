@@ -619,6 +619,19 @@ to reject the upstream artifact. Direct switches on integer constant-buffer
 handles are rejected by both frontends; explicitly loaded integer selectors
 are accepted. These tests do not compare GPU execution.
 
+Nested-type regressions cover distinct owner identities, aliases and forward
+siblings, selected constructors and methods, lexical member shadowing, arrays,
+matrix alias layouts, shape constants and thread sizes. Module tests cover
+included member files, public/internal types and methods, qualified static
+reflection, and exclusion of nested short names from imports. Invalid cycles,
+conflicting members, enclosing instance captures and excessive declaration
+depth must fail before lowering. Unevaluated value bases retain neither side
+effects nor shader-stage or default-parameter dependencies.
+The [value fixture](../tests/conformance/positive/nested-types.slang) and
+[module fixture](../tests/conformance/positive/nested-type-module/main.slang)
+compare 21 matching compiled constant words. All 16 new differential cases
+match upstream acceptance; accepted artifacts are validated by DXC.
+
 [validation.json](validation.json) records the Windows validation run for this
 checkpoint. It includes the pinned compiler version, workspace checks, and
 differential corpus counts. It is a snapshot of that run, not a promise of

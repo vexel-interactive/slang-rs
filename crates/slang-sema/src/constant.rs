@@ -43,6 +43,7 @@ impl Checker {
                 variable.initializer.as_ref().unwrap(),
                 &self.global_references,
                 &self.static_references,
+                &self.static_type_lookups,
                 &self.method_receivers,
             )
             .into_iter()
@@ -379,6 +380,7 @@ fn global_dependencies(
     expression: &Expr,
     references: &BTreeMap<slang_syntax::ExprId, crate::checker::SpanKey>,
     statics: &BTreeMap<slang_syntax::ExprId, String>,
+    types: &BTreeSet<slang_syntax::ExprId>,
     receivers: &BTreeMap<slang_syntax::ExprId, crate::MethodReceiver>,
 ) -> BTreeSet<crate::checker::SpanKey> {
     let mut pending = vec![expression];
@@ -387,7 +389,7 @@ fn global_dependencies(
         if let Some(&reference) = references.get(&expression.id) {
             dependencies.insert(reference);
         }
-        if statics.contains_key(&expression.id) {
+        if statics.contains_key(&expression.id) || types.contains(&expression.id) {
             continue;
         }
         match &expression.kind {

@@ -65,6 +65,7 @@ impl Parser {
                 let name = self.identifier()?.text;
                 (name, target)
             };
+            let name = self.nested_type_name(name, start);
             let trailing = self.array_sizes()?;
             target.arrays.splice(0..0, trailing);
             let end = self.expect(";")?;
@@ -83,14 +84,25 @@ impl Parser {
             {
                 return Err(self.error("unsupported struct attributes or modifiers"));
             }
-            let name = self.identifier()?.text;
+            let source_name = self.identifier()?.text;
+            let name = self.nested_type_name(source_name, start);
+            if self.type_owners.len() >= 32 {
+                return Err(self.error("nested type depth exceeds 32"));
+            }
+            self.type_owners.push(name.clone());
             self.expect("{")?;
             let mut fields = vec![];
-            let mut constructors = vec![];
+            let mut members = vec![];
             while !self.at("}") && !self.at_end() {
+                let member_offset = self.offset;
                 let member_start = self.span();
                 let attributes = self.attributes()?;
                 let member_modifiers = self.modifiers();
+                if self.at("struct") || self.at("typedef") || self.at("typealias") {
+                    self.offset = member_offset;
+                    members.extend(self.declaration()?);
+                    continue;
+                }
                 if self.eat("__init") {
                     self.expect("(")?;
                     let parameters = self.parameters()?;
@@ -105,7 +117,7 @@ impl Parser {
                     {
                         return Err(self.error("constructor body must be a block"));
                     }
-                    constructors.push(Declaration::Function(Box::new(Function {
+                    members.push(Declaration::Function(Box::new(Function {
                         name: format!("{}{}", self.constructor_prefix, name),
                         constructor: Some(name.clone()),
                         method: None,
@@ -172,7 +184,7 @@ impl Parser {
                     {
                         return Err(self.error("method body must be a block"));
                     }
-                    constructors.push(Declaration::Function(Box::new(Function {
+                    members.push(Declaration::Function(Box::new(Function {
                         name: format!(
                             "{}{}_{}_{}",
                             self.method_prefix,
@@ -217,7 +229,7 @@ impl Parser {
                             variable_name: variable.name.clone(),
                             span: variable.span,
                         });
-                        constructors.push(Declaration::Global(variable));
+                        members.push(Declaration::Global(variable));
                     }
                 } else {
                     fields.extend(variables);
@@ -225,6 +237,7 @@ impl Parser {
                 self.expect(";")?;
             }
             let end = self.expect("}")?;
+            self.type_owners.pop();
             self.eat(";");
             let mut declarations = vec![Declaration::Struct(Struct {
                 name,
@@ -232,7 +245,7 @@ impl Parser {
                 fields,
                 span: start.join(end),
             })];
-            declarations.extend(constructors);
+            declarations.extend(members);
             return Ok(declarations);
         }
         if self.current().is_some_and(|t| {
@@ -322,6 +335,20 @@ impl Parser {
         Ok(parameters)
     }
 
+    fn nested_type_name(&mut self, name: String, span: slang_source::Span) -> String {
+        let Some(owner) = self.type_owners.last() else {
+            return name;
+        };
+        let target = format!("{}{}_{}_{}", self.type_prefix, owner.len(), owner, name);
+        self.nested_types.push(NestedTypeInfo {
+            owner: owner.clone(),
+            name,
+            type_name: target.clone(),
+            span,
+        });
+        target
+    }
+
     pub(crate) fn ty(&mut self) -> Result<TypeRef, Diagnostic> {
         self.enter()?;
         let result = self.ty_inner();
@@ -340,7 +367,12 @@ impl Parser {
                 slang_layout::MatrixMajor::Column
             });
         }
-        let token = self.identifier()?;
+        let mut token = self.identifier()?;
+        while self.at(".") || self.at("::") {
+            self.offset += 1;
+            token.text.push_str("::");
+            token.text.push_str(&self.identifier()?.text);
+        }
         let mut arguments = vec![];
         if self.eat("<") {
             while !self.at(">") && !self.at(">>") {

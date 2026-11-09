@@ -17,6 +17,7 @@ mod initializer_list;
 mod interface;
 mod intrinsic;
 mod method;
+mod nested_type;
 mod resource;
 mod shape;
 mod statement;

@@ -19,6 +19,8 @@ pub(crate) struct Members {
     pub static_names: BTreeMap<String, BTreeSet<String>>,
     pub fields: BTreeMap<(String, String), String>,
     pub owners: BTreeMap<String, String>,
+    pub types: BTreeMap<(String, String), String>,
+    pub type_owners: BTreeMap<String, String>,
 }
 
 impl Names {
@@ -80,6 +82,12 @@ pub(crate) fn link(
     let mut exports = vec![Names::default(); nodes.len()];
     let mut origins = BTreeMap::new();
     for node in &nodes {
+        let nested_names: BTreeSet<_> = node
+            .syntax
+            .nested_types
+            .iter()
+            .map(|m| &m.type_name)
+            .collect();
         for declaration in &node.syntax.declarations {
             let (name, modifiers, is_type) = match declaration {
                 Declaration::Struct(s) => (&s.name, &s.modifiers, true),
@@ -93,7 +101,7 @@ pub(crate) fn link(
                 format!("{prefix}{}_{}", node.info.id.0, name)
             };
             own[node.info.id.0].add(name.clone(), target.clone(), is_type);
-            if modifiers.iter().any(|m| m == "public") {
+            if modifiers.iter().any(|m| m == "public") && !nested_names.contains(name) {
                 exports[node.info.id.0].add(name.clone(), target.clone(), is_type);
             }
             origins.insert(
@@ -174,6 +182,25 @@ pub(crate) fn link(
                 .owners
                 .insert(member.variable_name.clone(), member.owner.clone());
         }
+        for member in &nodes[id.0].syntax.nested_types {
+            members
+                .all
+                .entry(member.owner.clone())
+                .or_default()
+                .insert(member.name.clone());
+            members
+                .static_names
+                .entry(member.owner.clone())
+                .or_default()
+                .insert(member.name.clone());
+            members.types.insert(
+                (member.owner.clone(), member.name.clone()),
+                member.type_name.clone(),
+            );
+            members
+                .type_owners
+                .insert(member.type_name.clone(), member.owner.clone());
+        }
         let mut resolver = Resolver::new(
             &own[id.0],
             &imported,
@@ -201,6 +228,9 @@ pub(crate) fn link(
         for buffer in &mut nodes[id.0].syntax.constant_buffers {
             resolver.constant_buffer(buffer).map_err(|d| vec![d])?;
         }
+        for member in &mut nodes[id.0].syntax.nested_types {
+            resolver.nested_type(member).map_err(|d| vec![d])?;
+        }
         for member in &mut nodes[id.0].syntax.static_members {
             resolver.static_member(member).map_err(|d| vec![d])?;
         }
@@ -213,6 +243,9 @@ pub(crate) fn link(
         syntax
             .static_members
             .append(&mut nodes[id.0].syntax.static_members);
+        syntax
+            .nested_types
+            .append(&mut nodes[id.0].syntax.nested_types);
     }
     Ok(Program {
         syntax,

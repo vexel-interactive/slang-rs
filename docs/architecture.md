@@ -363,6 +363,19 @@ qualified names, and all instance layout paths see only nonstatic fields.
 Global constant IR operands and their upstream folding/hoisting behavior remain
 unported; native nonfoldable static const values keep private HLSL initialization.
 
+Nested structs and aliases also flatten to collision-free declarations;
+`Module.nested_types` preserves each owner, source name and target type name.
+Module fragments carry both type and static-member metadata. Linking resolves
+the qualified base and enclosing lexical scopes, while semantic lookup checks
+each selected member's visibility. Alias resolution restores its declaration
+scope, including forward shape constants and matrix storage qualifiers.
+`CheckedModule.static_type_lookups` marks unevaluated nested type selections,
+allowing constructors through a value base without its side effects, initializer
+dependencies, default-parameter dependencies or capability requirements.
+Nested instance methods use their own receiver; enclosing instance members do
+not acquire one. Parser declaration depth and alias/value graph limits bound
+recursive inputs.
+
 Explicit `[ForceInline]` requests expand ordinary value function bodies before
 SSA construction. Prototypes and definitions use their checked target names;
 overloads and imported declarations retain the selected callable. Fresh local

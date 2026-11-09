@@ -131,6 +131,14 @@ impl Loader<'_> {
             .syntax
             .constant_buffers
             .append(&mut fragment.constant_buffers);
+        self.nodes[module.0]
+            .syntax
+            .static_members
+            .append(&mut fragment.static_members);
+        self.nodes[module.0]
+            .syntax
+            .nested_types
+            .append(&mut fragment.nested_types);
         Ok(())
     }
 

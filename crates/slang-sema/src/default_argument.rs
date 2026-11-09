@@ -52,7 +52,9 @@ impl Checker {
 }
 
 fn references_receiver(value: &Expr, checker: &Checker) -> bool {
-    if checker.static_references.contains_key(&value.id) {
+    if checker.static_references.contains_key(&value.id)
+        || checker.static_type_lookups.contains(&value.id)
+    {
         return false;
     }
     if checker.implicit_members.contains_key(&value.id) {
@@ -94,7 +96,9 @@ fn references_receiver(value: &Expr, checker: &Checker) -> bool {
 }
 
 fn references_parameter(value: &Expr, names: &BTreeSet<&str>, checker: &Checker) -> bool {
-    if checker.static_references.contains_key(&value.id) {
+    if checker.static_references.contains_key(&value.id)
+        || checker.static_type_lookups.contains(&value.id)
+    {
         return false;
     }
     match &value.kind {

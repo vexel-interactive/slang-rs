@@ -14,6 +14,17 @@ pub(crate) enum VariableScope {
 
 impl Checker {
     pub fn resolve_type(&mut self, reference: &TypeRef) -> Type {
+        let Some(name) = self.type_name(&reference.name, reference.span) else {
+            return Type::Error;
+        };
+        let mut qualified;
+        let reference = if name != reference.name {
+            qualified = reference.clone();
+            qualified.name = name;
+            &qualified
+        } else {
+            reference
+        };
         let mut ty = if matches!(reference.name.as_str(), "vector" | "matrix") {
             self.numeric_type_application(reference)
         } else if reference.name == "ConstantBuffer" {

@@ -40,6 +40,7 @@ impl Checker {
             }
         }
         self.declare_static_members(module);
+        self.declare_nested_types(module);
         for declaration in &module.declarations {
             if let Declaration::TypeAlias(alias) = declaration {
                 self.check_visibility_modifiers(&alias.modifiers, alias.span);
@@ -72,13 +73,14 @@ impl Checker {
         let previous_module = self.current_module;
         let previous_type = self.current_type.take();
         let previous_static_type = self.current_static_type.take();
+        self.current_static_type = self.type_owners.get(name).cloned();
         self.current_module = self
             .symbols
             .get(name)
             .map_or(slang_module::ModuleId(0), |o| o.module);
         let ty = self.resolve_type(&target);
-        self.alias_matrix_layouts
-            .insert(name.into(), self.reference_matrix_major(&target));
+        let major = self.reference_matrix_major(&target);
+        self.alias_matrix_layouts.insert(name.into(), major);
         self.current_module = previous_module;
         self.current_type = previous_type;
         self.current_static_type = previous_static_type;

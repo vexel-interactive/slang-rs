@@ -12,6 +12,16 @@ pub struct Module {
     /// Direct cbuffer declarations after their fields and hidden handles are normalized.
     pub constant_buffers: Vec<ConstantBufferInfo>,
     pub static_members: Vec<StaticMemberInfo>,
+    /// Source member names and owners of flattened struct and alias declarations.
+    pub nested_types: Vec<NestedTypeInfo>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct NestedTypeInfo {
+    pub owner: String,
+    pub name: String,
+    pub type_name: String,
+    pub span: Span,
 }
 
 #[derive(Clone, Debug, Serialize)]
