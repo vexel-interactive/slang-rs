@@ -699,6 +699,23 @@ inaccessible overloads and defaults added after a prototype are rejected. The
 application candidate aliases must disappear during IR/HLSL lowering. This does
 not establish full inference or constrained overload viability.
 
+Function inference adds six integration tests and sixteen differential cases.
+The [value fixture](../tests/conformance/positive/generic-inference-values.slang),
+[owner fixture](../tests/conformance/positive/generic-inference-owners.slang) and
+[module fixture](../tests/conformance/positive/generic-inference-module/main.slang)
+compare twenty-two matching compiled words for semantic local types, numeric joins,
+partial/empty applications, defaults after inference, nested calls, array elements,
+transparent member aliases, nested user template owners, ordinary/generic overload ranking
+and writable outputs. The [resource fixture](../tests/conformance/positive/generic-inference-resources.slang)
+validates copied constant-buffer handles, inferred structured-buffer elements,
+implicit numeric loads and matrix storage order through both frontends and DXC.
+Conflicting arrays/structs/shapes, unknown parameters, bare initializer-list
+inference, equal generic candidates, unused body errors, shadowed callees and
+unwritable outputs must fail. Numeric structural patterns can infer from a typed
+argument before contextual list initialization; bare `T` lists cannot.
+These cases do not establish constrained polymorphism or deferred checking of
+unselected candidate bodies.
+
 [validation.json](validation.json) records the Windows validation run for this
 checkpoint. It includes the pinned compiler version, workspace checks, and
 differential corpus counts. It is a snapshot of that run, not a promise of

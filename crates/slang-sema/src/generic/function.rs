@@ -76,7 +76,7 @@ impl Specializer {
         Ok(())
     }
 
-    fn signature_type(
+    pub(super) fn signature_type(
         &mut self,
         ty: &mut TypeRef,
         names: &BTreeSet<String>,
@@ -87,6 +87,51 @@ impl Specializer {
                 ty.span,
                 "cyclic or excessively nested generic signature",
             ));
+        }
+        if let Some(base) = &ty.base
+            && let Some(owner) = self.templates.get(&base.name).cloned()
+            && let Some(member) = owner
+                .nested
+                .iter()
+                .find(|n| n.owner == owner.name && n.name == ty.name)
+            && let Some(Declaration::TypeAlias(alias)) = owner
+                .declarations
+                .iter()
+                .find(|d| declaration_name(d) == member.type_name)
+        {
+            let mut substitutions = BTreeMap::new();
+            for (parameters, arguments) in [
+                (&owner.parameters, &base.arguments),
+                (&alias.generic_parameters, &ty.arguments),
+            ] {
+                if arguments.len() > parameters.len() {
+                    return Err(error(ty.span, "too many generic type arguments"));
+                }
+                for (index, parameter) in parameters.iter().enumerate() {
+                    let mut argument = match arguments.get(index) {
+                        Some(TypeArgument::Type(ty)) => ty.clone(),
+                        Some(_) => {
+                            return Err(error(
+                                ty.span,
+                                "generic type parameter requires a type argument",
+                            ));
+                        }
+                        None => parameter
+                            .default
+                            .clone()
+                            .ok_or_else(|| error(ty.span, "missing generic type argument"))?,
+                    };
+                    substitute::replace_type(&mut argument, &substitutions);
+                    substitutions.insert(parameter.name.clone(), argument);
+                }
+            }
+            let mut target = alias.target.clone();
+            SignatureSubstitute(&substitutions).ty(&mut target)?;
+            target.arrays.splice(0..0, ty.arrays.clone());
+            target.matrix_major = ty.matrix_major.or(target.matrix_major);
+            target.span = ty.span;
+            *ty = target;
+            return self.signature_type(ty, names, depth + 1);
         }
         if ty.base.is_none()
             && let Some(template) = self.templates.get(&ty.name).cloned()
@@ -201,6 +246,7 @@ impl Specializer {
             candidates.push(FunctionCandidateInfo {
                 function: self.instantiate(&template, &arguments, span)?,
                 default_type_arguments: defaults,
+                generic: true,
             });
         }
         if candidates.is_empty() {
@@ -243,6 +289,7 @@ impl crate::checker::Checker {
                 if let Some(overloads) = self.functions.get(&candidate.function) {
                     signatures.extend(overloads.iter().cloned().map(|mut signature| {
                         signature.default_type_arguments = candidate.default_type_arguments;
+                        signature.generic = candidate.generic;
                         signature
                     }));
                 }

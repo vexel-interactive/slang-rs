@@ -9,6 +9,16 @@ use slang_syntax::{Expr, ExprKind};
 impl Checker {
     pub(crate) fn call(&mut self, callee: &Expr, arguments: &[Expr], span: Span) -> Type {
         let mut types: Vec<Type> = arguments.iter().map(|a| self.expression(a)).collect();
+        if self.pending_generic_calls.contains(&callee.id) {
+            if let ExprKind::Name(name) = &callee.kind
+                && self.lookup(name).is_some()
+            {
+                self.error("T014", span, format!("value '{name}' is not callable"));
+            } else {
+                self.generic_call_types.insert(callee.id, types);
+            }
+            return Type::Error;
+        }
         let scoped_constructor = if matches!(callee.kind, ExprKind::Member { .. }) {
             match self.constructor_target(callee) {
                 Ok(target) => target,
@@ -238,6 +248,7 @@ impl Checker {
                         })
                         .sum::<usize>(),
                     s.default_type_arguments,
+                    s.generic,
                 )
             };
             matches.sort_by_key(&score);

@@ -8920,6 +8920,126 @@
       "accept": false,
       "entry": "main",
       "rust_code": "T002"
+    },
+    {
+      "file": "positive/generic-inference-values.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 2,
+        "1": 3,
+        "2": 4,
+        "3": 5,
+        "4": 6,
+        "5": 0,
+        "6": 8,
+        "7": 3,
+        "8": 9,
+        "9": 12,
+        "10": 4,
+        "11": 5,
+        "12": 13,
+        "13": 5
+      }
+    },
+    {
+      "file": "positive/generic-inference-owners.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 2,
+        "1": 5,
+        "2": 7,
+        "3": 8,
+        "4": 2
+      }
+    },
+    {
+      "file": "positive/generic-inference-resources.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/generic-inference-module/main.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 3,
+        "1": 5,
+        "2": 6
+      }
+    },
+    {
+      "file": "negative/generic-inference-no-input.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T002"
+    },
+    {
+      "file": "negative/generic-inference-partial.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T002"
+    },
+    {
+      "file": "negative/generic-inference-array-conflict.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T002"
+    },
+    {
+      "file": "negative/generic-inference-struct-conflict.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T002"
+    },
+    {
+      "file": "negative/generic-inference-shape-conflict.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T002"
+    },
+    {
+      "file": "negative/generic-inference-list.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T002"
+    },
+    {
+      "file": "negative/generic-inference-ambiguous.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/generic-inference-unused-add.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T012"
+    },
+    {
+      "file": "negative/generic-inference-unused-name.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T011"
+    },
+    {
+      "file": "negative/generic-inference-output-value.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T015"
+    },
+    {
+      "file": "negative/generic-inference-shadowed.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/generic-inference-list-conflict.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T002"
     }
   ]
 }

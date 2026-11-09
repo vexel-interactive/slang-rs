@@ -31,12 +31,15 @@ pub struct FunctionApplicationInfo {
 pub struct FunctionCandidateInfo {
     pub function: String,
     pub default_type_arguments: usize,
+    pub generic: bool,
 }
 
 #[derive(Clone, Debug, Serialize)]
 pub struct GenericInstanceInfo {
     pub context: usize,
     pub type_name: String,
+    pub template_name: String,
+    pub parameter_count: usize,
     pub arguments: Vec<TypeRef>,
 }
 
@@ -299,6 +302,19 @@ pub struct Expr {
     pub parenthesized: bool,
     #[serde(skip)]
     pub(crate) height: usize,
+}
+
+impl Expr {
+    /// Construct a nonnegative integer expression for a synthesized array dimension.
+    pub fn integer(id: ExprId, value: u32, span: Span) -> Self {
+        Self {
+            id,
+            kind: ExprKind::Integer(value.to_string()),
+            span,
+            parenthesized: false,
+            height: 1,
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]

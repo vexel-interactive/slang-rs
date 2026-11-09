@@ -102,6 +102,7 @@ pub(crate) struct Signature {
     pub defaults: Vec<Option<Expr>>,
     pub method: Option<StructMethod>,
     pub default_type_arguments: usize,
+    pub generic: bool,
 }
 
 pub(crate) struct Checker {
@@ -122,6 +123,8 @@ pub(crate) struct Checker {
     pub generic_type_contexts: BTreeMap<usize, BTreeSet<String>>,
     pub symbolic_types: BTreeSet<String>,
     pub symbolic_shapes: BTreeMap<String, (Type, Vec<u8>)>,
+    pub pending_generic_calls: BTreeSet<ExprId>,
+    pub generic_call_types: BTreeMap<ExprId, Vec<Type>>,
     pub static_fields: BTreeMap<(String, String), String>,
     pub static_owners: BTreeMap<String, String>,
     pub nested_types: BTreeMap<(String, String), String>,
@@ -189,7 +192,7 @@ fn check_with_metadata(
     default_matrix_major: slang_layout::MatrixMajor,
 ) -> Result<CheckedModule, Vec<Diagnostic>> {
     crate::generic::validate_templates(&module, &symbols, default_matrix_major)?;
-    let (module, symbols) = crate::generic::specialize(module, symbols).map_err(|d| vec![d])?;
+    let (module, symbols) = crate::generic::specialize(module, symbols, default_matrix_major)?;
     check_concrete(
         module,
         modules,
@@ -205,6 +208,34 @@ pub(crate) fn check_concrete(
     symbols: BTreeMap<String, SymbolOrigin>,
     default_matrix_major: slang_layout::MatrixMajor,
     symbolic_types: BTreeSet<String>,
+) -> Result<CheckedModule, Vec<Diagnostic>> {
+    check_concrete_inner(
+        module,
+        modules,
+        symbols,
+        default_matrix_major,
+        symbolic_types,
+        None,
+    )
+}
+
+pub(crate) fn probe_generic_calls(
+    module: Module,
+    symbols: BTreeMap<String, SymbolOrigin>,
+    major: slang_layout::MatrixMajor,
+    symbolic_types: BTreeSet<String>,
+    probe: &mut crate::generic::InferenceProbe,
+) -> Result<CheckedModule, Vec<Diagnostic>> {
+    check_concrete_inner(module, vec![], symbols, major, symbolic_types, Some(probe))
+}
+
+fn check_concrete_inner(
+    module: Module,
+    modules: Vec<ModuleInfo>,
+    symbols: BTreeMap<String, SymbolOrigin>,
+    default_matrix_major: slang_layout::MatrixMajor,
+    symbolic_types: BTreeSet<String>,
+    probe: Option<&mut crate::generic::InferenceProbe>,
 ) -> Result<CheckedModule, Vec<Diagnostic>> {
     if let Some(import) = module.imports.first() {
         return Err(vec![Diagnostic::error(
@@ -222,6 +253,9 @@ pub(crate) fn check_concrete(
     }
     let mut checker = Checker::new(&module, symbols, default_matrix_major);
     checker.symbolic_types = symbolic_types;
+    if let Some(probe) = &probe {
+        checker.pending_generic_calls = probe.pending.clone();
+    }
     checker.declare(&module);
     checker.declare_function_applications(&module);
     let global_declarations: BTreeMap<_, _> = module
@@ -333,6 +367,10 @@ pub(crate) fn check_concrete(
     checker.validate_static_initializers(&module);
     checker.check_binding_overlaps(&module);
     checker.allocate_resource_bindings(&module);
+    if let Some(probe) = probe {
+        probe.types = std::mem::take(&mut checker.generic_call_types);
+        probe.shapes = checker.symbolic_shapes.clone();
+    }
     if !checker
         .diagnostics
         .iter()
@@ -428,6 +466,8 @@ impl Checker {
                 .collect(),
             symbolic_types: BTreeSet::new(),
             symbolic_shapes: BTreeMap::new(),
+            pending_generic_calls: BTreeSet::new(),
+            generic_call_types: BTreeMap::new(),
             static_fields: module
                 .static_members
                 .iter()

@@ -78,10 +78,18 @@ Selected calls lower to the concrete function name; application aliases never
 reach emitted HLSL. Each specialization
 retains fresh expression IDs and a span context, while aliases share cached
 applications. A symbolic pass checks every function template before any concrete
-body is lowered. Generic inference and complete constrained overload resolution
-remain unimplemented.
-Calls with no value arguments can instantiate the complete default type chain
-without angle brackets, while a visible ordinary overload retains its lookup.
+body is lowered. Deferred generic calls retain their callee IDs and supplied type
+arguments in the specializer. Ordinary semantic probes collect value-argument
+types while unresolved calls temporarily have error types. Structural matching
+infers parameters before defaults; concrete candidate signatures are validated
+before instantiation. New declarations and nested calls repeat this bounded
+process. Symbolic numeric shapes are reconstructed with their opaque components,
+while instance metadata retains template identity and own/captured argument counts.
+A fresh complete semantic check validates the final module before lowering.
+Bare calls combine ordinary and generic candidates, preferring ordinary overloads
+on equal costs. Explicit calls restrict the candidates to generic functions.
+Complete constrained resolution and deferred candidate-body checking remain
+unimplemented.
 Shape conversions between different scalar types apply the destination's bit
 width. Identity constructors preserve wider shape intermediates, following
 `TypeCastIntVal::tryFoldImpl`; implicit global and local initializers follow

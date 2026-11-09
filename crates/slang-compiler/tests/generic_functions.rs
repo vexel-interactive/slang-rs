@@ -84,10 +84,6 @@ fn invalid_templates_and_specializations_report_source_diagnostics() {
             "T002",
         ),
         (
-            "T copy<T>(T value){return value;}int run(){return copy<>(2);}",
-            "T002",
-        ),
-        (
             "T copy<T>(T value){return value;}int run(){return copy<Missing>(2);}",
             "T002",
         ),

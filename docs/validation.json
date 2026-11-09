@@ -6,7 +6,7 @@
     "rustfmt": "passed",
     "clippy_all_targets_warnings_denied": "passed",
     "unit_tests": 42,
-    "integration_tests": 423,
+    "integration_tests": 429,
     "doc_tests": 1,
     "conformance_comparison_tests": 27,
     "rustdoc": "passed",
@@ -16,11 +16,11 @@
   },
   "differential_validation": {
     "oracle": "Slang 2026.21",
-    "cases_passed": 642,
-    "cases_total": 642,
-    "matching_acceptance_cases": 630,
+    "cases_passed": 658,
+    "cases_total": 658,
+    "matching_acceptance_cases": 646,
     "documented_oracle_differences": 12,
-    "dxc_hlsl_artifacts_validated": 652,
+    "dxc_hlsl_artifacts_validated": 660,
     "dxc_invalid_hlsl_artifacts_rejected": 22,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
@@ -37,9 +37,9 @@
     "uniform_byte_layout_cases_compared": 61,
     "documented_oracle_physical_layout_differences": 12,
     "physical_buffer_layout_cases_compared": 43,
-    "compiled_constant_cases_compared": 51,
-    "compiled_constant_words_compared": 1306,
-    "compiled_constant_words_matching": 1292,
+    "compiled_constant_cases_compared": 54,
+    "compiled_constant_words_compared": 1328,
+    "compiled_constant_words_matching": 1314,
     "documented_oracle_constant_words_differing": 14,
     "documented_oracle_constant_cases_differing": 6,
     "documented_oracle_uniform_reflection_differences": 1,
@@ -53,9 +53,8 @@
   "remote_ci_executed": false,
   "remote_ci": null,
   "previous_remote_ci": {
-    "run_id": 42672125010,
-    "head_sha": "67e44002fd4a6b11c51dbe846d56660a866bf229",
-    "attempt": 2,
+    "run_id": 42675037803,
+    "head_sha": "83278bd705138b5438a0593bf468028b12a7d8e8",
     "conclusion": "success",
     "platforms": [
       "ubuntu-latest",
@@ -64,6 +63,17 @@
     ]
   },
   "earlier_remote_ci": [
+    {
+      "run_id": 42672125010,
+      "head_sha": "67e44002fd4a6b11c51dbe846d56660a866bf229",
+      "attempt": 2,
+      "conclusion": "success",
+      "platforms": [
+        "ubuntu-latest",
+        "windows-latest",
+        "macos-latest"
+      ]
+    },
     {
       "run_id": 42670555726,
       "head_sha": "6600d1d8b834c7cc803577f3e744facdc8594619",
@@ -598,7 +608,7 @@
   },
   "native_hlsl_suite": {
     "manifest": "tests/native/manifest.json",
-    "artifacts_validated": 133,
+    "artifacts_validated": 137,
     "profiles": [
       "cs_6_0",
       "cs_6_2",
@@ -739,13 +749,17 @@
       "../conformance/positive/generic-function-default-calls.slang",
       "../conformance/positive/generic-function-overloads.slang",
       "../conformance/positive/generic-overload-module/main.slang",
-      "../conformance/positive/generic-function-first-type-default.slang"
+      "../conformance/positive/generic-function-first-type-default.slang",
+      "../conformance/positive/generic-inference-values.slang",
+      "../conformance/positive/generic-inference-owners.slang",
+      "../conformance/positive/generic-inference-resources.slang",
+      "../conformance/positive/generic-inference-module/main.slang"
     ],
     "uniform_byte_layout_cases": 61,
     "matrix_layout_shapes": 96,
     "constant_buffer_numeric_layouts": 252,
-    "compiled_constant_cases": 38,
-    "compiled_constant_words": 1140
+    "compiled_constant_cases": 41,
+    "compiled_constant_words": 1162
   },
   "pointer_integer_validation": {
     "target_pointer_bits": 64,
@@ -1068,13 +1082,13 @@
     "constant_buffer_parameter_copies_preserve_handles": true
   },
   "generic_function_validation": {
-    "integration_tests": 9,
-    "differential_cases": 18,
-    "matching_acceptance_cases": 18,
-    "dxc_hlsl_artifacts_validated": 14,
-    "compiled_constant_cases": 6,
-    "compiled_constant_words": 42,
-    "matching_words": 42,
+    "integration_tests": 15,
+    "differential_cases": 34,
+    "matching_acceptance_cases": 34,
+    "dxc_hlsl_artifacts_validated": 22,
+    "compiled_constant_cases": 9,
+    "compiled_constant_words": 64,
+    "matching_words": 64,
     "explicit_type_arguments": true,
     "type_defaults": true,
     "dependent_type_defaults": true,
@@ -1088,7 +1102,7 @@
     "output_locations": true,
     "calls_between_templates": true,
     "imported_caller_private_argument_types": true,
-    "inference": false,
+    "inference": true,
     "generic_methods": false,
     "constraints_and_interfaces": false,
     "complete_polymorphic_overload_specialization": false,
@@ -1105,6 +1119,16 @@
     "concrete_conversion_and_default_count_ranking": true,
     "concrete_ambiguity_diagnostics": true,
     "per_overload_visibility": true,
-    "application_candidates_excluded_from_emission": true
+    "application_candidates_excluded_from_emission": true,
+    "partial_explicit_type_arguments": true,
+    "empty_type_argument_inference": true,
+    "inference_before_defaults": true,
+    "structural_numeric_array_and_resource_inference": true,
+    "user_template_and_nested_owner_inference": true,
+    "ordinary_and_generic_candidates_compete": true,
+    "initializer_list_inference_rules": true,
+    "invalid_compound_signature_candidates_rejected": true,
+    "deferred_candidate_body_checking": false,
+    "inference_limits": "Unconstrained type parameters only; no generic methods, value parameters, interfaces or complete constrained candidate viability. Instantiated viable candidate bodies are checked before selection."
   }
 }

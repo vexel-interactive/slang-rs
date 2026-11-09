@@ -778,7 +778,7 @@ are discarded before concrete lowering and never appear in emitted artifacts.
 
 This does not implement general constrained polymorphism. Interfaces, witnesses,
 generic methods,
-value parameters, partial applications and constructor inference remain unported.
+value parameters, partial type-template applications and constructor inference remain unported.
 The existing restrictions on local names matching module type aliases and on
 fallthrough from nonvoid functions also apply inside checked templates. Full
 polymorphic conversions, overload ranking and receiver-dependent defaults remain
@@ -791,13 +791,16 @@ separate exact DXIL goldens record the differing counter results.
 
 ## Generic functions
 
-Free functions accept type parameters, defaults and explicit applications:
+Free functions accept type parameters, defaults, explicit applications and inference:
 
 ```slang
 T copy<T>(T value) { return (T)value; }
 T pick<T, U = T>(T first, U second = U()) { return first; }
 int value = copy<int>(3);
 int selected = pick<int>(value);
+int inferred = copy(value);
+float partial = pick<int>(value, 2.0);
+int empty = copy<>(value);
 ```
 
 Function templates use the same canonical type arguments, bounded expansion and
@@ -820,13 +823,34 @@ types; such calls receive an ambiguity diagnostic instead of a declaration error
 Duplicate original signatures are rejected even when unused. Imported candidates
 retain their individual visibility and caller type-argument contexts.
 
-Explicit applications fill omitted arguments only from type defaults. A call with
-no value arguments can omit angle brackets and use the complete default type chain,
-as in `zero()`; a same-named ordinary overload retains its ordinary selection.
-Inference from value arguments, partially inferred arguments, generic
-methods/constructors, value parameters, constraints, higher-order function values
-and entry-point specialization remain unported. Complete constrained overload
-specialization, candidate viability and ranking remain incomplete.
+Omitted function type arguments are inferred from checked value argument types
+before applying defaults. This includes partial explicit applications and `<>`.
+Repeated parameters join compatible numeric types, including scalar splats into
+vectors/matrices; identical aggregates and resource handles retain their type.
+Different fixed-array, struct or resource types cannot be numerically joined.
+Structural patterns infer vector/matrix components, array elements, resource
+elements and user template arguments, including enclosing owners of nested types.
+Aliases are transparent. A bare `T` preserves a constant-buffer handle, while
+numeric patterns can infer from its implicitly loaded element.
+
+Nested calls and calls inside unused templates use the ordinary semantic
+expression types. Inference runs to a bounded fixed point, followed by a fresh
+complete check before lowering. A call with no value arguments can use its default
+type chain, as in `zero()`; an undetermined parameter without a default is an error.
+Bare calls compare ordinary and generic candidates together. Ordinary overloads
+win equal conversion/default-cost ties. Explicit angle brackets select generic
+candidates. Output arguments still require valid writable locations.
+
+Initializer lists do not infer a bare `T`, even when another argument supplies a
+concrete type. Explicit `T` arguments can provide their context. A structural
+numeric pattern such as `vector<T, 2>` can use an inferred component from another
+argument to initialize a list. Candidate signatures reject invalid compound
+type substitutions before creating function instances.
+
+Generic methods/constructors, value parameters, constraints, higher-order function
+values and entry-point specialization remain unported. Complete constrained
+overload specialization, deferred candidate-body checking and ranking remain
+incomplete. Concrete bodies of instantiated viable candidates are still checked.
 
 ## Brace initializer lists
 

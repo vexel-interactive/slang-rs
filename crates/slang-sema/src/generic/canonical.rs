@@ -54,7 +54,9 @@ impl Specializer {
                 .collect::<Option<Vec<_>>>();
             if let (Some(scalar), Some(mut dimensions)) = (scalar, dimensions) {
                 let expected = if ty.name == "vector" { 1 } else { 2 };
-                if dimensions.len() <= expected && dimensions.iter().all(|&d| (1..=4).contains(&d))
+                if dimensions.len() <= expected
+                    && dimensions.iter().all(|&d| (1..=4).contains(&d))
+                    && !scalar.is_pointer_sized()
                 {
                     dimensions.resize(expected, 4);
                     ty.name = if expected == 1 {
@@ -88,7 +90,10 @@ pub(super) fn core_type(name: &str) -> bool {
 }
 
 pub(super) fn type_key(ty: &TypeRef) -> String {
-    let mut name = ty.name.clone();
+    let mut name = ty.base.as_ref().map_or_else(
+        || ty.name.clone(),
+        |base| format!("{}::{}", type_key(base), ty.name),
+    );
     if let Some(major) = ty.matrix_major {
         name = format!("{major:?} {name}");
     }

@@ -417,6 +417,7 @@ impl Checker {
                                 .collect(),
                             method: function.method.clone(),
                             default_type_arguments: 0,
+                            generic: false,
                         });
                     }
                 }

@@ -2,6 +2,7 @@
 
 mod canonical;
 mod function;
+mod inference;
 mod substitute;
 mod symbolic;
 
@@ -46,6 +47,22 @@ struct Specializer {
     remaining_nodes: usize,
     depth: usize,
     symbolic_types: BTreeSet<String>,
+    inference_calls: BTreeMap<ExprId, InferenceCall>,
+}
+
+struct InferenceCall {
+    name: String,
+    supplied: Vec<TypeArgument>,
+    explicit: bool,
+    span: Span,
+    module: slang_module::ModuleId,
+}
+
+#[derive(Default)]
+pub(crate) struct InferenceProbe {
+    pub pending: BTreeSet<ExprId>,
+    pub types: BTreeMap<ExprId, Vec<crate::Type>>,
+    pub shapes: BTreeMap<String, (crate::Type, Vec<u8>)>,
 }
 
 struct SpecializedModule {
@@ -57,8 +74,11 @@ struct SpecializedModule {
 pub(super) fn specialize(
     module: Module,
     symbols: BTreeMap<String, SymbolOrigin>,
-) -> Result<(Module, BTreeMap<String, SymbolOrigin>), Diagnostic> {
-    specialize_inner(module, symbols, false).map(|result| (result.module, result.symbols))
+    major: slang_layout::MatrixMajor,
+) -> Result<(Module, BTreeMap<String, SymbolOrigin>), Vec<Diagnostic>> {
+    specialize_inner(module, symbols, false, major)
+        .map(|result| (result.module, result.symbols))
+        .map_err(|d| vec![d])
 }
 
 pub(super) fn validate_templates(
@@ -73,7 +93,8 @@ pub(super) fn validate_templates(
     {
         return Ok(());
     }
-    let result = specialize_inner(module.clone(), symbols.clone(), true).map_err(|d| vec![d])?;
+    let result =
+        specialize_inner(module.clone(), symbols.clone(), true, major).map_err(|d| vec![d])?;
     crate::checker::check_concrete(
         result.module,
         vec![],
@@ -88,6 +109,7 @@ fn specialize_inner(
     mut module: Module,
     symbols: BTreeMap<String, SymbolOrigin>,
     symbolic: bool,
+    major: slang_layout::MatrixMajor,
 ) -> Result<SpecializedModule, Diagnostic> {
     if !module
         .declarations
@@ -129,8 +151,7 @@ fn specialize_inner(
                 .flat_map(|d| parameters(d).iter().map(|p| p.name.clone())),
         )
         .collect();
-    let mut shapes =
-        crate::checker::Checker::new(&module, symbols.clone(), slang_layout::MatrixMajor::Column);
+    let mut shapes = crate::checker::Checker::new(&module, symbols.clone(), major);
     for declaration in &module.declarations {
         match declaration {
             Declaration::Struct(s) => {
@@ -176,6 +197,7 @@ fn specialize_inner(
         remaining_nodes: 65536,
         depth: 0,
         symbolic_types: BTreeSet::new(),
+        inference_calls: BTreeMap::new(),
     };
     let declarations = std::mem::take(&mut module.declarations);
     specializer.register(
@@ -203,10 +225,7 @@ fn specialize_inner(
         specializer.declaration(&mut declaration)?;
         module.declarations.push(declaration);
     }
-    module.nested_types = specializer.nested_output;
-    module.static_members = specializer.static_output;
-    module.generic_instances = specializer.instance_output;
-    module.function_applications = specializer.application_output;
+    specializer.infer_calls(&mut module, major)?;
     Ok(SpecializedModule {
         module,
         symbols: specializer.symbols,
@@ -538,6 +557,8 @@ impl Specializer {
         self.instance_output.push(GenericInstanceInfo {
             context,
             type_name: target.clone(),
+            template_name: template.name.clone(),
+            parameter_count: template.parameters.len(),
             arguments,
         });
         if let Some(mut owner) = template.owner {
@@ -650,13 +671,51 @@ impl VisitorMut for Specializer {
         visit::walk_type(self, ty)
     }
     fn expression(&mut self, expression: &mut Expr) -> Result<(), Diagnostic> {
-        if let ExprKind::Call { callee, arguments } = &mut expression.kind
-            && arguments.is_empty()
-            && let ExprKind::Name(name) = &callee.kind
-            && self.function_templates.contains_key(name)
-            && !self.ordinary_functions.contains(name)
-        {
-            callee.kind = ExprKind::Name(self.apply_function(name, &[], callee.span)?);
+        if let ExprKind::Call { callee, arguments } = &mut expression.kind {
+            let application = match &callee.kind {
+                ExprKind::Name(name) if self.function_templates.contains_key(name) => {
+                    Some((name.clone(), vec![], false))
+                }
+                ExprKind::TypeApplication(reference)
+                    if reference.base.is_none()
+                        && self.function_templates.contains_key(&reference.name) =>
+                {
+                    if !reference.arrays.is_empty() || reference.matrix_major.is_some() {
+                        return Err(error(
+                            reference.span,
+                            "invalid generic function application",
+                        ));
+                    }
+                    Some((reference.name.clone(), reference.arguments.clone(), true))
+                }
+                _ => None,
+            };
+            if let Some((name, mut supplied, explicit)) = application {
+                for argument in &mut supplied {
+                    let TypeArgument::Type(argument) = argument else {
+                        return Err(error(
+                            callee.span,
+                            "generic type parameter requires a type argument",
+                        ));
+                    };
+                    self.canonical(argument, 0)?;
+                    self.validate_argument(argument)?;
+                }
+                self.inference_calls.insert(
+                    callee.id,
+                    InferenceCall {
+                        name,
+                        supplied,
+                        explicit,
+                        span: callee.span,
+                        module: self.shapes.current_module,
+                    },
+                );
+                for argument in arguments {
+                    self.expression(argument)?;
+                }
+                return Ok(());
+            }
         }
         if let ExprKind::TypeApplication(reference) = &expression.kind
             && reference.base.is_none()
@@ -784,6 +843,9 @@ pub(super) fn argument_names(arguments: &[TypeRef]) -> BTreeSet<String> {
     let mut pending = arguments.iter().collect::<Vec<_>>();
     while let Some(ty) = pending.pop() {
         names.insert(ty.name.clone());
+        if let Some(base) = &ty.base {
+            pending.push(base);
+        }
         for argument in &ty.arguments {
             if let TypeArgument::Type(ty) = argument {
                 pending.push(ty);
