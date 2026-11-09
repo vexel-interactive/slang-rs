@@ -19,6 +19,26 @@ pub struct Module {
     pub generic_instances: Vec<GenericInstanceInfo>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub function_applications: Vec<FunctionApplicationInfo>,
+    /// Constructor templates retain synthesized memberwise candidates where eligible.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub generic_constructors: Vec<GenericConstructorInfo>,
+    /// Inferred overload groups keyed by concrete owner and semantic argument types.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub constructor_applications: Vec<ConstructorApplicationInfo>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct GenericConstructorInfo {
+    pub owner: String,
+    pub function: String,
+    pub synthesize_members: bool,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct ConstructorApplicationInfo {
+    pub owner: String,
+    pub argument_types: Vec<String>,
+    pub function: String,
 }
 
 #[derive(Clone, Debug, Serialize)]

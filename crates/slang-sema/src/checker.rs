@@ -127,6 +127,16 @@ pub(crate) struct Checker {
     pub generic_methods: BTreeMap<(String, String), String>,
     pub generic_call_names: BTreeMap<ExprId, String>,
     pub generic_call_types: BTreeMap<ExprId, Vec<Type>>,
+    pub generic_constructors: BTreeMap<String, GenericConstructorInfo>,
+    pub constructor_applications: BTreeMap<crate::generic::constructor::ConstructorKey, String>,
+    pub generic_constructor_functions: BTreeSet<String>,
+    pub generic_constructor_requests: std::cell::RefCell<
+        BTreeMap<
+            crate::generic::constructor::ConstructorKey,
+            crate::generic::constructor::ConstructorRequest,
+        >,
+    >,
+    pub infer_generic_constructors: bool,
     pub static_fields: BTreeMap<(String, String), String>,
     pub static_owners: BTreeMap<String, String>,
     pub nested_types: BTreeMap<(String, String), String>,
@@ -257,6 +267,7 @@ fn check_concrete_inner(
     let probing = probe.is_some();
     checker.symbolic_types = symbolic_types;
     if let Some(probe) = &probe {
+        checker.infer_generic_constructors = true;
         checker.pending_generic_calls = probe.pending.clone();
         checker.generic_methods = probe.methods.clone();
     }
@@ -495,6 +506,34 @@ impl Checker {
             generic_methods: BTreeMap::new(),
             generic_call_names: BTreeMap::new(),
             generic_call_types: BTreeMap::new(),
+            generic_constructors: module
+                .generic_constructors
+                .iter()
+                .map(|c| (c.owner.clone(), c.clone()))
+                .collect(),
+            constructor_applications: module
+                .constructor_applications
+                .iter()
+                .map(|c| {
+                    (
+                        (c.owner.clone(), c.argument_types.clone()),
+                        c.function.clone(),
+                    )
+                })
+                .collect(),
+            generic_constructor_functions: module
+                .generic_instances
+                .iter()
+                .filter(|i| {
+                    module
+                        .generic_constructors
+                        .iter()
+                        .any(|c| c.function == i.template_name)
+                })
+                .map(|i| i.type_name.clone())
+                .collect(),
+            generic_constructor_requests: Default::default(),
+            infer_generic_constructors: false,
             static_fields: module
                 .static_members
                 .iter()

@@ -119,6 +119,30 @@ impl Checker {
                     .insert(callee.id, Type::Meta(Box::new(target.clone())));
                 return target;
             }
+            if let Type::Struct(owner) = &target
+                && self.generic_constructors.contains_key(owner)
+            {
+                if types == [target.clone()] {
+                    let result = self.struct_constructor(owner, arguments, &types, callee.id, span);
+                    self.expression_types
+                        .insert(callee.id, Type::Meta(Box::new(target)));
+                    return result;
+                }
+                let selected = match self.select_constructor(owner, arguments, span) {
+                    Ok(selected) => selected,
+                    Err(error) => {
+                        self.diagnostics.push(error);
+                        return Type::Error;
+                    }
+                };
+                if let Some(signature) = selected {
+                    return self.finish_user_call(callee, arguments, &types, &signature, span);
+                }
+                let result = self.struct_constructor(owner, arguments, &types, callee.id, span);
+                self.expression_types
+                    .insert(callee.id, Type::Meta(Box::new(target)));
+                return result;
+            }
             for (argument, ty) in arguments.iter().zip(&mut types) {
                 if matches!(ty, Type::ConstantBuffer { .. }) {
                     *ty = self.value_expression(argument);

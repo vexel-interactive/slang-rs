@@ -150,9 +150,15 @@ impl Specializer {
                 .candidates
                 .retain(|c| names.contains(&c.function));
         }
+        module.function_applications.retain(|a| {
+            !a.candidates.is_empty() || self.constructor_applications.values().any(|n| n == &a.name)
+        });
         module
-            .function_applications
-            .retain(|a| !a.candidates.is_empty());
+            .generic_constructors
+            .retain(|c| names.contains(&c.owner));
+        module
+            .constructor_applications
+            .retain(|c| names.contains(&c.owner));
     }
 }
 
@@ -160,6 +166,7 @@ impl InferenceProbe {
     pub(crate) fn record_selections(&mut self, checker: &crate::checker::Checker) {
         self.function_names = checker.function_names.clone();
         self.targets = checker.generic_call_names.clone();
+        self.constructor_requests = checker.generic_constructor_requests.borrow().clone();
         self.selected_functions = checker.call_names.values().cloned().collect();
         self.ambiguities = checker
             .diagnostics

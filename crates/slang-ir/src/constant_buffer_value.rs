@@ -156,6 +156,14 @@ impl Lowerer {
             });
         }
         if !numeric {
+            if matches!(value.ty, Type::ConstantBuffer { .. })
+                && matches!(value.kind, ExprKind::Member { .. })
+                && matches!(ty, Type::Struct(_))
+            {
+                // DXC cannot convert an aggregate-held handle to its element
+                // with a struct cast. Read fields through one captured handle.
+                return self.read_struct_member(value, ty);
+            }
             return Ok(if value.ty == ty {
                 value
             } else {
@@ -255,6 +263,61 @@ impl Lowerer {
                 },
             })
         }
+    }
+    fn read_struct_member(&mut self, value: Expr, ty: Type) -> Result<Expr, Diagnostic> {
+        let span = value.span;
+        let key = format!("member {}", value.ty);
+        let name = if let Some((name, _)) = self.loads.get(&key) {
+            name.clone()
+        } else {
+            let name = format!("{}load_{}", self.prefix, self.loads.len());
+            let source = Expr {
+                ty: ty.clone(),
+                span,
+                kind: ExprKind::Name("_buffer".into()),
+            };
+            let initializer = self.materialize(source)?;
+            self.functions.push(Function {
+                name: name.clone(),
+                return_type: ty.clone(),
+                parameters: vec![variable("_buffer", value.ty.clone(), None, span)],
+                modifiers: vec![],
+                semantic: None,
+                span,
+                body: Some(Stmt {
+                    span,
+                    kind: StmtKind::Block(vec![
+                        Stmt {
+                            span,
+                            kind: StmtKind::Variable(variable(
+                                "_result",
+                                ty.clone(),
+                                Some(initializer),
+                                span,
+                            )),
+                        },
+                        Stmt {
+                            span,
+                            kind: StmtKind::Return(Some(Expr {
+                                ty: ty.clone(),
+                                span,
+                                kind: ExprKind::Name("_result".into()),
+                            })),
+                        },
+                    ]),
+                }),
+            });
+            self.loads.insert(key, (name.clone(), ty.clone()));
+            name
+        };
+        Ok(Expr {
+            ty,
+            span,
+            kind: ExprKind::Call {
+                name,
+                arguments: vec![value],
+            },
+        })
     }
     fn materialize(&mut self, source: Expr) -> Result<Expr, Diagnostic> {
         self.remaining = self

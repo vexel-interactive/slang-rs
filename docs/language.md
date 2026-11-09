@@ -561,11 +561,11 @@ Item e = Item(c);   // exact copies preserve the source value
 ```
 
 The local declarations above belong inside a function. Static const globals
-require an explicit initializer. Declaring `__init` disables synthesized
+require an explicit initializer. Declaring a nongeneric `__init` disables synthesized
 memberwise calls; the implicit exact copy remains available even when an
 explicit copy constructor is declared. Overload selection, parameter defaults,
 output writability and imported access rules follow ordinary function checking.
-Constructor prototypes and definitions remain separate overload candidates:
+Nongeneric constructor prototypes and definitions remain separate overload candidates:
 repeating the same signature makes a call ambiguous, as in the pinned upstream.
 
 Declared field defaults execute before the constructor body in the struct's
@@ -581,8 +581,57 @@ matching default constructor also remains uninitialized.
 See [constructor calls](../tests/conformance/positive/user-constructors.slang),
 [default construction](../tests/conformance/positive/user-constructors-defaults.slang)
 and [global initialization](../tests/conformance/positive/user-constructors-global.slang).
-Generic constructor parameters and definite-assignment warnings remain
-unimplemented.
+Unconstrained constructor type parameters are supported as described below.
+Definite-assignment warnings remain unimplemented.
+
+## Generic struct constructors
+
+`__init<T>` infers its type parameters from value arguments. Constructor
+parameters remain independent of enclosing type parameters:
+
+```slang
+struct Marker
+{
+    int value;
+    __init<T>(T ignored) { value = 17; }
+};
+Marker a = Marker(3);     // synthesized memberwise constructor: value = 3
+Marker b = Marker(3.0);   // exact generic match: value = 17
+
+struct Box<T>
+{
+    T value;
+    __init<U>(U ignored, T input) { value = input; }
+};
+Box<int> box = Box<int>(2.0, 3);
+```
+
+Generic constructors preserve synthesized memberwise candidates when the owner
+has no nongeneric constructor. Conversion cost, default type argument count and
+ordinary/generic preference determine the selected candidate. Exact explicit
+copies preserve the source value. A contextual list such as `Marker b = {a}`
+can select a generic constructor when its value cannot initialize a memberwise
+field. Nested lists, fixed-array elements, returns and function defaults use the
+same constructor selection and inference path.
+
+Type defaults follow first-declaration prototype rules, including dependent
+defaults. Generic constructor prototypes join their definitions. Original
+unused bodies receive opaque checking; only selected concrete bodies and
+defaults activate their dependencies. Constructors support ordinary output
+parameters, private caller argument types, resource handles, generic/nested
+owners, field scope, global initializers and `ForceInline`. Their type parameters
+are inferred through the owner call; `Marker.__init<int>(...)` is not a member
+call syntax. Bare declarations and constructor fields do not automatically
+invoke a generic constructor, even when its parameters have defaults.
+
+See [selection and outputs](../tests/conformance/positive/generic-constructor-values.slang),
+[owner scopes and lists](../tests/conformance/positive/generic-constructor-owners.slang),
+[resource values](../tests/conformance/positive/generic-constructor-resources.slang),
+[inlining and globals](../tests/conformance/positive/generic-constructor-inline.slang)
+and [imports](../tests/conformance/positive/generic-constructor-module/main.slang).
+Constraints, value parameters, complete polymorphic candidate ranking and GPU
+execution parity remain incomplete. Recursive constructor specialization has
+frontend coverage without shader recursion validation.
 
 ## Struct methods
 
@@ -864,7 +913,7 @@ The [constructor fixture](../tests/conformance/positive/generic-deferred-constru
 checks automatic, brace, explicit, nested and default-argument construction on
 specialized owners, including mutable static state.
 
-Generic constructors, value parameters, constraints, higher-order function
+Value parameters, constraints, higher-order function
 values and entry-point specialization remain unported. Complete constrained
 overload specialization and ranking remain incomplete. Selected resource `T()`
 construction and unused resource-component vector locals still encounter native
@@ -910,7 +959,7 @@ See [method values and defaults](../tests/conformance/positive/generic-method-va
 [generic owners](../tests/conformance/positive/generic-method-owners.slang),
 [resource values](../tests/conformance/positive/generic-method-resources.slang)
 and [imported methods](../tests/conformance/positive/generic-method-module/main.slang).
-Constraints, generic constructor parameters, reference receiver modes,
+Constraints, reference receiver modes,
 receiver-dependent defaults and complete polymorphic overload ranking remain
 unimplemented. Explicit recursive method specialization has frontend coverage;
 GPU recursion validation and execution equivalence are not claimed.

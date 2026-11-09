@@ -1,6 +1,7 @@
 //! Instantiate user type and function templates before checking concrete declarations.
 
 mod canonical;
+pub(crate) mod constructor;
 mod function;
 mod inference;
 mod lifecycle;
@@ -56,6 +57,8 @@ struct Specializer {
     validation_contexts: BTreeSet<usize>,
     method_templates: BTreeMap<(String, String), String>,
     method_names: BTreeSet<String>,
+    constructor_templates: BTreeMap<String, GenericConstructorInfo>,
+    constructor_applications: BTreeMap<constructor::ConstructorKey, String>,
 }
 
 struct InferenceCall {
@@ -77,6 +80,8 @@ pub(crate) struct InferenceProbe {
     pub ambiguities: Vec<Diagnostic>,
     pub methods: BTreeMap<(String, String), String>,
     pub targets: BTreeMap<ExprId, String>,
+    pub constructor_requests:
+        BTreeMap<constructor::ConstructorKey, constructor::ConstructorRequest>,
 }
 
 struct SpecializedModule {
@@ -217,6 +222,8 @@ fn specialize_inner(
         validation_contexts: BTreeSet::new(),
         method_templates: BTreeMap::new(),
         method_names: BTreeSet::new(),
+        constructor_templates: BTreeMap::new(),
+        constructor_applications: BTreeMap::new(),
     };
     let declarations = std::mem::take(&mut module.declarations);
     specializer.register(

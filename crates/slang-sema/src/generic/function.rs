@@ -14,6 +14,16 @@ impl Specializer {
                 unreachable!()
             };
             let source = function.name.clone();
+            if let Some(owner) = &function.constructor {
+                self.constructor_templates.insert(
+                    owner.clone(),
+                    GenericConstructorInfo {
+                        owner: owner.clone(),
+                        function: source.clone(),
+                        synthesize_members: !self.ordinary_functions.contains(&source),
+                    },
+                );
+            }
             if let Some(method) = &function.method {
                 self.method_templates
                     .insert((method.owner.clone(), method.name.clone()), source.clone());

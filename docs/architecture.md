@@ -70,6 +70,24 @@ can rename parameters without changing substitution. The linker distinguishes
 generic function applications from type construction and local value comparisons.
 Function applications retain candidate sets in `Module.function_applications`;
 subsequent call checking selects concrete signatures and initialization/output plans.
+Generic constructor metadata associates a concrete owner with its template group
+and eligibility for synthesized memberwise construction. Semantic probes collect
+constructor demands from ordinary calls and pure contextual initialization
+planning, keyed by owner and canonical argument types. These demands join the
+bounded function specialization loop. Per-demand application groups preserve
+ordinary/generic ranking without mixing specializations from unrelated calls.
+Generated constructor functions do not enter the owner's automatic default
+constructor table. Empty generic candidate groups retain memberwise fallback.
+Constructor prototypes share their inferred signature, and selected plans
+activate their bodies and defaults through the ordinary dependency worklist.
+The parser uses a separate constructor-member routine to keep nested loop parsing
+within the Windows debug CLI stack limit.
+
+ConstantBuffer loads from aggregate-held handles materialize struct fields through
+a cached helper. Its single handle parameter captures the source once and avoids
+DXC's invalid handle-to-struct cast. Layout-normalized fields and arrays use the
+existing bounded value materialization and initialization lowering.
+
 Each generic overload has a separate template and instance cache entry, while
 canonical source signatures join prototypes to definitions. The first declaration
 owns its type defaults. Concrete conversion cost and the number of default type

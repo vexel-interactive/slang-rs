@@ -335,7 +335,9 @@ impl Checker {
                     self.bind(variable, VariableScope::Global);
                 }
                 Declaration::Function(function) => {
-                    if let Some(owner) = &function.constructor {
+                    if let Some(owner) = &function.constructor
+                        && !self.generic_constructor_functions.contains(&function.name)
+                    {
                         self.constructors
                             .insert(owner.clone(), function.name.clone());
                     }
@@ -382,7 +384,8 @@ impl Checker {
                         .map(|p| p.modifiers.iter().any(|m| m == "out" || m == "inout"))
                         .collect();
                     let overloads = self.functions.entry(function.name.clone()).or_default();
-                    if function.constructor.is_none()
+                    if (function.constructor.is_none()
+                        || self.generic_constructor_functions.contains(&function.name))
                         && let Some(existing) = overloads.iter_mut().find(|s| {
                             s.parameters == parameters
                                 && s.method.as_ref().map(|m| m.is_static)
@@ -417,7 +420,7 @@ impl Checker {
                                 .collect(),
                             method: function.method.clone(),
                             default_type_arguments: 0,
-                            generic: false,
+                            generic: self.generic_constructor_functions.contains(&function.name),
                         });
                     }
                 }
@@ -476,6 +479,7 @@ impl Checker {
                             && s.method.as_ref().map(|m| m.is_static)
                                 == function.method.as_ref().map(|m| m.is_static)
                             && (function.constructor.is_none()
+                                || self.generic_constructor_functions.contains(&function.name)
                                 || s.declaration == span_key(function.span))
                     })
                 }) {

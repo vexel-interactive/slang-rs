@@ -755,6 +755,32 @@ receiver/output location errors. Recursive method specialization has a
 frontend-only regression. Constraints, complete polymorphic ranking and GPU
 execution remain outside this checkpoint's evidence.
 
+Generic constructors add nine integration tests and twelve differential cases.
+The [selection fixture](../tests/conformance/positive/generic-constructor-values.slang)
+compares inferred arguments, synthesized memberwise and ordinary overloads,
+dependent type defaults, prototypes, explicit copies, contextual lists and
+captured output coordinates. The
+[owner fixture](../tests/conformance/positive/generic-constructor-owners.slang)
+checks independent enclosing/constructor parameters, nested owners, implicit
+method calls, globals, aliases and nested/array initialization plans. The
+[resource fixture](../tests/conformance/positive/generic-constructor-resources.slang)
+checks opaque deferred candidates, resource-valued results and ConstantBuffer
+handles loaded from aggregate fields. The
+[inline fixture](../tests/conformance/positive/generic-constructor-inline.slang)
+checks loops, early returns and global/shared state; the
+[module fixture](../tests/conformance/positive/generic-constructor-module/main.slang)
+checks private caller types and constructor visibility. Four fixtures compare
+twenty-nine matching compiled words, and all ten positive HLSL artifacts pass
+DXC. Negative cases cover arity, uninferred parameters, output storage, opaque
+body errors, inaccessible constructors and unsupported explicit member syntax.
+Recursive constructor inference has frontend-only coverage. Constraints,
+complete polymorphic ranking and GPU execution remain unverified.
+The unchanged pinned `bugs/generic-initializer-inlining.slang` source also passes
+native and oracle HLSL emission and DXC validation with entry `computeMain`.
+The oracle receives `-stage compute`; the native frontend infers compute from
+`numthreads`. Its one compiled store matches at `1`. The source's CPU execution
+directives were not run.
+
 [validation.json](validation.json) records the Windows validation run for this
 checkpoint. It includes the pinned compiler version, workspace checks, and
 differential corpus counts. It is a snapshot of that run, not a promise of

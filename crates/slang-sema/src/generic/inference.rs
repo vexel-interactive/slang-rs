@@ -9,6 +9,16 @@ impl Specializer {
         module.static_members = self.static_output.clone();
         module.generic_instances = self.instance_output.clone();
         module.function_applications = self.application_output.clone();
+        module.generic_constructors = self.constructor_templates.values().cloned().collect();
+        module.constructor_applications = self
+            .constructor_applications
+            .iter()
+            .map(|((owner, types), function)| ConstructorApplicationInfo {
+                owner: owner.clone(),
+                argument_types: types.clone(),
+                function: function.clone(),
+            })
+            .collect();
     }
 
     pub(super) fn infer_calls(
@@ -36,6 +46,27 @@ impl Specializer {
             );
             let mut targets = BTreeMap::new();
             let mut failures = vec![];
+            for (key, request) in &probe.constructor_requests {
+                if request.types.iter().any(contains_error) {
+                    continue;
+                }
+                let call = InferenceCall {
+                    name: self.constructor_templates[&key.0].function.clone(),
+                    supplied: vec![],
+                    explicit: false,
+                    span: request.span,
+                    module: request.module,
+                };
+                self.shapes.current_module = request.module;
+                let arguments = request
+                    .types
+                    .iter()
+                    .map(|t| type_reference(t, &probe.shapes, request.span))
+                    .collect::<Vec<_>>();
+                let target = self.infer_application(&call, &arguments, true)?;
+                self.constructor_applications.insert(key.clone(), target);
+                changed = true;
+            }
             changed |= self.activate_selected(module, &probe)?;
             for (id, types) in &probe.types {
                 if types.iter().any(contains_error) {
@@ -50,7 +81,7 @@ impl Specializer {
                     .iter()
                     .map(|t| type_reference(t, &probe.shapes, call.span))
                     .collect::<Vec<_>>();
-                match self.infer_application(&call, &arguments) {
+                match self.infer_application(&call, &arguments, false) {
                     Ok(target) => {
                         targets.insert(*id, target);
                     }
@@ -116,6 +147,7 @@ impl Specializer {
         &mut self,
         call: &InferenceCall,
         arguments: &[Option<TypeRef>],
+        allow_empty: bool,
     ) -> Result<String, Diagnostic> {
         let mut candidates = vec![];
         if !call.explicit && self.ordinary_functions.contains(&call.name) {
@@ -210,7 +242,7 @@ impl Specializer {
                 generic: true,
             });
         }
-        if candidates.is_empty() {
+        if candidates.is_empty() && !allow_empty {
             return Err(error(
                 call.span,
                 "no generic overload can infer the required type arguments",

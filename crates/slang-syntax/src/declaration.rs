@@ -109,42 +109,12 @@ impl Parser {
                     continue;
                 }
                 if self.eat("__init") {
-                    self.expect("(")?;
-                    let parameters = self.parameters()?;
-                    let body = if self.eat(";") {
-                        None
-                    } else {
-                        Some(self.statement()?)
-                    };
-                    if body
-                        .as_ref()
-                        .is_some_and(|s| !matches!(s.kind, StmtKind::Block(_)))
-                    {
-                        return Err(self.error("constructor body must be a block"));
-                    }
-                    members.push(Declaration::Function(Box::new(Function {
-                        name: format!("{}{}", self.constructor_prefix, name),
-                        generic_parameters: vec![],
-                        constructor: Some(name.clone()),
-                        method: None,
-                        return_type: TypeRef {
-                            name: name.clone(),
-                            base: None,
-                            application: false,
-                            owner_ref: true,
-                            parameter_ref: false,
-                            arguments: vec![],
-                            matrix_major: None,
-                            arrays: vec![],
-                            span: member_start,
-                        },
-                        parameters,
+                    members.push(self.constructor_member(
+                        &name,
                         attributes,
-                        modifiers: member_modifiers,
-                        semantic: None,
-                        span: member_start.join(body.as_ref().map_or(member_start, |s| s.span)),
-                        body,
-                    })));
+                        member_modifiers,
+                        member_start,
+                    )?);
                     continue;
                 }
                 let ty = self.ty()?;
@@ -379,6 +349,55 @@ impl Parser {
             span,
         });
         target
+    }
+
+    fn constructor_member(
+        &mut self,
+        owner: &str,
+        attributes: Vec<Attribute>,
+        modifiers: Vec<String>,
+        start: slang_source::Span,
+    ) -> Result<Declaration, Diagnostic> {
+        let generic_parameters = self.generic_parameters()?;
+        self.type_parameters
+            .push(generic_parameters.iter().map(|p| p.name.clone()).collect());
+        self.expect("(")?;
+        let parameters = self.parameters()?;
+        let body = if self.eat(";") {
+            None
+        } else {
+            Some(self.statement()?)
+        };
+        if body
+            .as_ref()
+            .is_some_and(|s| !matches!(s.kind, StmtKind::Block(_)))
+        {
+            return Err(self.error("constructor body must be a block"));
+        }
+        self.type_parameters.pop();
+        Ok(Declaration::Function(Box::new(Function {
+            name: format!("{}{}", self.constructor_prefix, owner),
+            generic_parameters,
+            constructor: Some(owner.into()),
+            method: None,
+            return_type: TypeRef {
+                name: owner.into(),
+                base: None,
+                application: false,
+                owner_ref: true,
+                parameter_ref: false,
+                arguments: vec![],
+                matrix_major: None,
+                arrays: vec![],
+                span: start,
+            },
+            parameters,
+            attributes,
+            modifiers,
+            semantic: None,
+            span: start.join(body.as_ref().map_or(start, |s| s.span)),
+            body,
+        })))
     }
 
     fn generic_parameters(&mut self) -> Result<Vec<GenericParameter>, Diagnostic> {
