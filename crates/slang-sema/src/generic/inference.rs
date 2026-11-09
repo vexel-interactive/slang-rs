@@ -45,6 +45,7 @@ impl Specializer {
         self.publish_metadata(module);
         for _ in 0..128 {
             let mut changed = self.activate_referenced(module)?;
+            changed |= self.synthesize_default_methods(module, major)?;
             changed |= self.drain_pending(module)?;
             self.publish_metadata(module);
             let mut probe = InferenceProbe {
@@ -60,6 +61,7 @@ impl Specializer {
                 self.symbolic_types.clone(),
                 &mut probe,
             );
+            changed |= self.capture_default_selections(&probe);
             let mut targets = BTreeMap::new();
             let mut failures = vec![];
             for (key, request) in &probe.constructor_requests {

@@ -211,6 +211,8 @@ impl Specializer {
 
 impl InferenceProbe {
     pub(crate) fn record_selections(&mut self, checker: &crate::checker::Checker) {
+        self.constraint_calls = checker.constraint_calls.clone();
+        self.constraint_variables = checker.constraint_variables.clone();
         self.function_names = checker.function_names.clone();
         self.targets = checker.generic_call_names.clone();
         self.constructor_requests = checker.generic_constructor_requests.borrow().clone();
@@ -319,6 +321,17 @@ impl VisitorMut for References {
         visit::walk_expression(self, expression)
     }
     fn declaration(&mut self, declaration: &mut Declaration) -> Result<(), Diagnostic> {
+        if let Declaration::Interface(interface) = declaration {
+            for base in &mut interface.bases {
+                self.ty(base)?;
+            }
+            for requirement in &mut interface.requirements {
+                let body = requirement.body.take();
+                visit::walk_function(self, requirement)?;
+                requirement.body = body;
+            }
+            return Ok(());
+        }
         if let Declaration::Function(function) = declaration
             && let Some(owner) = function.owner_type()
         {

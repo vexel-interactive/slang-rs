@@ -66,11 +66,13 @@ impl Checker {
                         );
                     }
                 }
-                if !requirement.generic_parameters.is_empty() || requirement.body.is_some() {
+                if !requirement.generic_parameters.is_empty()
+                    || requirement.constructor.is_some() && requirement.body.is_some()
+                {
                     self.error(
                         "T001",
                         requirement.span,
-                        "generic requirements and default interface bodies are not implemented",
+                        "generic requirements and default interface constructors are not implemented",
                     );
                 }
                 if requirement
@@ -173,12 +175,13 @@ impl Checker {
         bases
     }
 
-    fn requirement_signature(
+    pub(crate) fn requirement_signature(
         &mut self,
         owner: &str,
         requirement: &Function,
     ) -> (Function, Vec<Type>, Type) {
         let mut function = requirement.clone();
+        function.body = None;
         RequirementOwner(owner)
             .function(&mut function)
             .expect("requirement substitution cannot fail");
@@ -244,6 +247,22 @@ impl Checker {
                 signature.clone(),
             );
             let overloads = self.functions.entry(name).or_default();
+            if let Some(existing) = overloads.iter().find(|s| {
+                s.parameters == signature.parameters
+                    && s.result == signature.result
+                    && s.output_parameters == signature.output_parameters
+                    && s.method.as_ref().map(|m| m.is_static)
+                        == signature.method.as_ref().map(|m| m.is_static)
+            }) {
+                let binding =
+                    self.symbolic_requirements[&(signature.declaration, owner.into())].clone();
+                self.symbolic_requirements
+                    .insert((existing.declaration, owner.into()), binding);
+                self.direct_witnesses.insert(
+                    witness::key(owner, interface, requirement.span),
+                    existing.clone(),
+                );
+            }
             if !overloads.iter().any(|s| {
                 s.parameters == signature.parameters
                     && s.result == signature.result
@@ -280,6 +299,19 @@ impl Checker {
                 && module.declarations.iter().any(|d| matches!(d, Declaration::Function(f) if span_key(f.span) == signature.declaration && parameter_modes(f) == parameter_modes(&required)))
         })).cloned();
         if let Some(witness) = &witness {
+            if requirement.body.is_some()
+                && let Some(function) = module.declarations.iter().find_map(|d| match d {
+                    Declaration::Function(f) if span_key(f.span) == witness.declaration => Some(f),
+                    _ => None,
+                })
+                && !function.modifiers.iter().any(|m| m == "override")
+            {
+                self.error(
+                    "T032",
+                    function.span,
+                    "missing 'override' keyword for an interface default implementation",
+                );
+            }
             self.interface_witnesses.insert(witness.declaration);
             self.direct_witnesses.insert(
                 witness::key(owner, interface, requirement.span),

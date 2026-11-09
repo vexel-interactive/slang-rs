@@ -21,6 +21,7 @@ impl Parser {
                     | "export"
                     | "extern"
                     | "inline"
+                    | "override"
                     | "precise"
                     | "nointerpolation"
                     | "row_major"

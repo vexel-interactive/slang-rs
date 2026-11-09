@@ -3,6 +3,7 @@
 mod canonical;
 mod constraint;
 pub(crate) mod constructor;
+mod default_method;
 mod function;
 mod inference;
 mod lifecycle;
@@ -67,6 +68,12 @@ struct Specializer {
     processed_constraint_calls: BTreeSet<ExprId>,
     constraint_variables: BTreeMap<SpanKey, ConstraintCallInfo>,
     processed_constraint_variables: BTreeSet<SpanKey>,
+    symbolic: bool,
+    validated_interfaces: BTreeSet<String>,
+    default_method_contexts: BTreeMap<usize, default_method::Context>,
+    checked_default_interfaces: BTreeSet<String>,
+    default_body_calls: BTreeMap<(String, ExprId), ConstraintCallInfo>,
+    default_body_variables: BTreeMap<(String, SpanKey), ConstraintCallInfo>,
 }
 
 struct InferenceCall {
@@ -90,6 +97,8 @@ pub(crate) struct InferenceProbe {
     pub targets: BTreeMap<ExprId, String>,
     pub constructor_requests:
         BTreeMap<constructor::ConstructorKey, constructor::ConstructorRequest>,
+    pub constraint_calls: BTreeMap<ExprId, ConstraintCallInfo>,
+    pub constraint_variables: BTreeMap<SpanKey, ConstraintCallInfo>,
 }
 
 struct SpecializedModule {
@@ -98,6 +107,7 @@ struct SpecializedModule {
     symbolic_types: BTreeSet<String>,
     expression_origins: BTreeMap<ExprId, ExprId>,
     symbolic_parameters: BTreeMap<String, TypeRef>,
+    default_instance_contexts: BTreeSet<usize>,
 }
 
 pub(super) fn specialize(
@@ -118,7 +128,7 @@ pub(super) fn validate_templates(
     if !module
         .declarations
         .iter()
-        .any(|d| !parameters(d).is_empty())
+        .any(|d| !parameters(d).is_empty() || default_method::has_bodies(d))
     {
         return Ok(TemplateBindings {
             calls: module.constraint_calls.clone(),
@@ -138,6 +148,7 @@ pub(super) fn validate_templates(
         &checked.module,
         &result.expression_origins,
         &result.symbolic_parameters,
+        &result.default_instance_contexts,
     )
     .map_err(|d| vec![d])
 }
@@ -157,7 +168,7 @@ fn specialize_inner(
     if !module
         .declarations
         .iter()
-        .any(|d| !parameters(d).is_empty())
+        .any(|d| !parameters(d).is_empty() || default_method::has_bodies(d))
     {
         return Ok(SpecializedModule {
             module,
@@ -165,6 +176,7 @@ fn specialize_inner(
             symbolic_types: BTreeSet::new(),
             expression_origins: BTreeMap::new(),
             symbolic_parameters: BTreeMap::new(),
+            default_instance_contexts: BTreeSet::new(),
         });
     }
     let mut ids = Ids::default();
@@ -279,6 +291,12 @@ fn specialize_inner(
             .map(|v| (crate::span_key(v.span), v.call))
             .collect(),
         processed_constraint_variables: BTreeSet::new(),
+        symbolic,
+        validated_interfaces: BTreeSet::new(),
+        default_method_contexts: BTreeMap::new(),
+        checked_default_interfaces: BTreeSet::new(),
+        default_body_calls: BTreeMap::new(),
+        default_body_variables: BTreeMap::new(),
     };
     let declarations = std::mem::take(&mut module.declarations);
     specializer.register(
@@ -307,12 +325,20 @@ fn specialize_inner(
         module.declarations.push(declaration);
     }
     specializer.infer_calls(&mut module, major)?;
+    let default_instance_contexts = specializer
+        .default_method_contexts
+        .iter()
+        .filter_map(|(context, info)| {
+            (!specializer.symbolic_types.contains(&info.owner)).then_some(*context)
+        })
+        .collect();
     Ok(SpecializedModule {
         module,
         symbols: specializer.symbols,
         symbolic_types: specializer.symbolic_types,
         expression_origins: specializer.expression_origins,
         symbolic_parameters: specializer.symbolic_parameters,
+        default_instance_contexts,
     })
 }
 
@@ -794,7 +820,16 @@ impl VisitorMut for Specializer {
         self.specialize_constraint_call(expression.id)?;
         self.normalize_member_application(expression)?;
         if let ExprKind::Call { callee, arguments } = &mut expression.kind {
+            self.specialize_constraint_call(callee.id)?;
+            let requirement = self.normalize_default_requirement(callee);
             self.normalize_member_application(callee)?;
+            if requirement || self.constraint_calls.contains_key(&callee.id) {
+                self.member_receiver(callee)?;
+                for argument in arguments {
+                    self.expression(argument)?;
+                }
+                return Ok(());
+            }
             let application = match &callee.kind {
                 ExprKind::Name(name)
                     if self.function_templates.contains_key(name)
@@ -909,6 +944,13 @@ impl VisitorMut for Specializer {
             return self.signature_declaration(declaration);
         }
         self.active.insert(site);
+        if let Declaration::Interface(interface) = declaration {
+            self.interface_headers(interface)?;
+            if self.symbolic {
+                self.validate_default_interface(interface)?;
+            }
+            return Ok(());
+        }
         if matches!(declaration, Declaration::Function(_)) {
             self.shapes.scopes.push(BTreeMap::new());
         }
@@ -998,6 +1040,7 @@ impl VisitorMut for Validator<'_> {
 
     fn ty(&mut self, ty: &mut TypeRef) -> Result<(), Diagnostic> {
         if ty.base.is_none()
+            && ty.name != "This"
             && !ty.name.contains("::")
             && !canonical::core_type(&ty.name)
             && (!self.known.contains(&ty.name)

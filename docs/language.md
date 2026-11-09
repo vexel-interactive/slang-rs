@@ -1025,8 +1025,19 @@ includes nested lists, fixed-array elements, return values and function defaults
 Ordinary concrete constructor calls keep their own overloads and defaults. See
 [constructor plans](../tests/conformance/positive/interface-witness-plans.slang).
 
-This implementation covers direct signatures. Default interface bodies, generic
-method requirements, associated types, extensions, adapted witnesses (including
+Nongeneric interface methods can provide default bodies, including methods on
+interfaces with type parameters. Bodies are checked even when unused, on an
+opaque `This` exposing only declared and inherited requirements. Concrete fields
+and unrelated methods remain unavailable. Missing implementations are specialized
+for each conforming owner; their calls retain the selected requirements and
+interface argument defaults. Instance/static receivers, mutating `This`, inherited
+diamonds and declaration-module globals are preserved. A concrete replacement
+must use `override` and match a default requirement's direct signature. Unrelated
+or mismatched overrides are rejected. See [default methods](../tests/conformance/positive/interface-default-methods.slang)
+and [inherited mutating defaults](../tests/conformance/positive/interface-default-inherited.slang).
+
+This implementation covers direct signatures. Default interface constructors,
+generic method requirements, associated types, extensions, adapted witnesses (including
 numeric conversions, default-argument adaptation and static/instance adaptation),
 `where` constraints, operator/conversion constraints, complete constrained
 ranking and runtime dispatch remain unsupported. Interface existential variables,

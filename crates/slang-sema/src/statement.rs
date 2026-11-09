@@ -104,7 +104,13 @@ impl Checker {
         for modifier in &function.modifiers {
             if !matches!(
                 modifier.as_str(),
-                "static" | "inline" | "public" | "internal" | "row_major" | "column_major"
+                "static"
+                    | "inline"
+                    | "public"
+                    | "internal"
+                    | "row_major"
+                    | "column_major"
+                    | "override"
             ) {
                 self.error(
                     "T001",
@@ -112,6 +118,28 @@ impl Checker {
                     format!("function modifier '{modifier}' is not implemented"),
                 );
             }
+        }
+        if function.modifiers.iter().any(|m| m == "override")
+            && !self.direct_witnesses.iter().any(
+                |((_, interface, source, start, end), signature)| {
+                    signature.declaration == crate::span_key(function.span)
+                        && self.interface_definitions[interface]
+                            .requirements
+                            .iter()
+                            .any(|r| {
+                                r.body.is_some()
+                                    && r.span.source.0 == *source
+                                    && r.span.start == *start
+                                    && r.span.end == *end
+                            })
+                },
+            )
+        {
+            self.error(
+                "T032",
+                function.span,
+                "method marked 'override' does not override an interface default implementation",
+            );
         }
         self.check_visibility_modifiers(&function.modifiers, function.span);
         self.return_type = self.resolve_type(&function.return_type);

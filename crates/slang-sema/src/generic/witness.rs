@@ -29,14 +29,24 @@ pub(super) fn template_calls(
     module: &Module,
     origins: &BTreeMap<ExprId, ExprId>,
     parameters: &BTreeMap<String, TypeRef>,
+    default_instance_contexts: &BTreeSet<usize>,
 ) -> Result<TemplateBindings, Diagnostic> {
     let mut calls = BTreeMap::new();
+    let mut ignored = IgnoredCalls::default();
+    for declaration in &module.declarations {
+        if default_instance_contexts.contains(&declaration_span(declaration).context) {
+            ignored.declaration(&mut declaration.clone())?;
+        }
+    }
     let mut visitor = Reify {
         module,
         parameters,
         depth: 0,
     };
     for (id, binding) in &module.constraint_calls {
+        if ignored.0.contains(id) {
+            continue;
+        }
         let mut binding = binding.clone();
         visitor.ty(&mut binding.owner)?;
         visitor.ty(&mut binding.interface)?;
@@ -46,6 +56,9 @@ pub(super) fn template_calls(
     }
     let mut variables = vec![];
     for variable in &module.constraint_variables {
+        if default_instance_contexts.contains(&variable.span.context) {
+            continue;
+        }
         let mut binding = variable.call.clone();
         visitor.ty(&mut binding.owner)?;
         visitor.ty(&mut binding.interface)?;
@@ -57,6 +70,14 @@ pub(super) fn template_calls(
         });
     }
     Ok(TemplateBindings { calls, variables })
+}
+
+#[derive(Default)]
+struct IgnoredCalls(BTreeSet<ExprId>);
+impl VisitorMut for IgnoredCalls {
+    fn expression_id(&mut self, id: &mut ExprId) {
+        self.0.insert(*id);
+    }
 }
 
 struct Reify<'a> {

@@ -791,7 +791,7 @@ Negative fixtures reject missing/static/result/direction/mutability mismatches,
 undeclared nominal conformance, opaque body errors, nonconforming type arguments,
 forward constraint references and a used inheritance cycle. Frontend tests also
 reject unsupported existential storage and malformed requirement types/modes.
-These results cover direct signatures; adapted/default/generic witnesses,
+These results cover direct signatures; adapted/generic witnesses,
 associated types, existential dispatch and GPU execution are not established.
 The unchanged pinned `language-feature/interfaces/static-method-not-implemented.slang`
 and `diagnostics/interfaces/mutating-impl-of-non-mutating-req.slang` sources also
@@ -819,6 +819,22 @@ same lowered IR when a concrete module is checked again. The CLI deep-syntax
 regression also exercises
 loop headers whose parser frame is released before recursively parsing the body,
 avoiding a Windows stack overflow at the existing nesting limit.
+
+Default method bodies add nine integration tests and eight differential fixtures.
+Three compute fixtures compare eight matching compiled words and validate six
+native/oracle HLSL artifacts with DXC. They cover inherited mutating `This`,
+multiple concrete owners, explicit overrides, requirement overload selection,
+generic interface type arguments, declaration defaults and private module access.
+Unused invalid bodies cannot access concrete fields or mutate a const receiver;
+missing and mismatched overrides are rejected. Metadata serialization and
+rechecking preserve the lowered IR. Unused constrained calls keep concrete
+default helpers dormant.
+The unchanged pinned `language-feature/interfaces/default-method.slang` and
+`default-method-inherited-static.slang` sources also compile to HLSL in both
+frontends; DXC verifies their three matching constant words and four artifacts.
+Their original CPU, SPIR-V and GPU test directives were not executed. Generic
+method requirements, value generics, default constructors and adapted witnesses
+remain unsupported.
 
 [validation.json](validation.json) records the Windows validation run for this
 checkpoint. It includes the pinned compiler version, workspace checks, and

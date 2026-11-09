@@ -498,6 +498,15 @@ impl<'a> Resolver<'a> {
         self.comparison_application(expression);
         expression.id = ExprId(*self.next_expression);
         *self.next_expression += 1;
+        if matches!(&expression.kind, ExprKind::Name(name) if name == "This")
+            && self.active_owner.is_some()
+            && !self.scopes.iter().any(|scope| scope.contains_key("This"))
+        {
+            let mut reference = expression.type_reference().unwrap();
+            self.ty(&mut reference)?;
+            expression.kind = ExprKind::TypeApplication(Box::new(reference));
+            return Ok(());
+        }
         match &mut expression.kind {
             ExprKind::InitializerList(values) => {
                 for value in values {

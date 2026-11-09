@@ -6,7 +6,7 @@
     "rustfmt": "passed",
     "clippy_all_targets_warnings_denied": "passed",
     "unit_tests": 42,
-    "integration_tests": 475,
+    "integration_tests": 484,
     "doc_tests": 1,
     "conformance_comparison_tests": 27,
     "rustdoc": "passed",
@@ -16,11 +16,11 @@
   },
   "differential_validation": {
     "oracle": "Slang 2026.21",
-    "cases_passed": 722,
-    "cases_total": 722,
-    "matching_acceptance_cases": 710,
+    "cases_passed": 730,
+    "cases_total": 730,
+    "matching_acceptance_cases": 718,
     "documented_oracle_differences": 12,
-    "dxc_hlsl_artifacts_validated": 724,
+    "dxc_hlsl_artifacts_validated": 730,
     "dxc_invalid_hlsl_artifacts_rejected": 22,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
@@ -37,9 +37,9 @@
     "uniform_byte_layout_cases_compared": 61,
     "documented_oracle_physical_layout_differences": 12,
     "physical_buffer_layout_cases_compared": 43,
-    "compiled_constant_cases_compared": 83,
-    "compiled_constant_words_compared": 1445,
-    "compiled_constant_words_matching": 1431,
+    "compiled_constant_cases_compared": 86,
+    "compiled_constant_words_compared": 1453,
+    "compiled_constant_words_matching": 1439,
     "documented_oracle_constant_words_differing": 14,
     "documented_oracle_constant_cases_differing": 6,
     "documented_oracle_uniform_reflection_differences": 1,
@@ -53,8 +53,8 @@
   "remote_ci_executed": false,
   "remote_ci": null,
   "previous_remote_ci": {
-    "run_id": 42706463878,
-    "head_sha": "e99355ab0461720b7948abd77c8a8fa30cdfba57",
+    "run_id": 42707959910,
+    "head_sha": "d432dc7a7da5e048bc545b9c63d0824692170ceb",
     "conclusion": "success",
     "platforms": [
       "ubuntu-latest",
@@ -63,6 +63,16 @@
     ]
   },
   "earlier_remote_ci": [
+    {
+      "run_id": 42706463878,
+      "head_sha": "e99355ab0461720b7948abd77c8a8fa30cdfba57",
+      "conclusion": "success",
+      "platforms": [
+        "ubuntu-latest",
+        "windows-latest",
+        "macos-latest"
+      ]
+    },
     {
       "run_id": 42700958762,
       "head_sha": "6e9200f154ce31902faca7131829162cd6f45efc",
@@ -668,7 +678,7 @@
   },
   "native_hlsl_suite": {
     "manifest": "tests/native/manifest.json",
-    "artifacts_validated": 169,
+    "artifacts_validated": 172,
     "profiles": [
       "cs_6_0",
       "cs_6_2",
@@ -845,7 +855,10 @@
       "../conformance/positive/interface-witness-generic-defaults.slang",
       "../conformance/positive/interface-witness-plans.slang",
       "../conformance/positive/interface-witness-plan-defaults.slang",
-      "../conformance/positive/interface-witness-plan-module/main.slang"
+      "../conformance/positive/interface-witness-plan-module/main.slang",
+      "../conformance/positive/interface-default-methods.slang",
+      "../conformance/positive/interface-default-inherited.slang",
+      "../conformance/positive/interface-default-module/main.slang"
     ],
     "uniform_byte_layout_cases": 61,
     "matrix_layout_shapes": 96,
@@ -1433,6 +1446,37 @@
     "pure_candidate_planning": true,
     "dormant_metadata_pruned": true,
     "checked_module_serialization_and_rechecking": true,
+    "adapted_witnesses": false,
+    "gpu_execution_compared": false,
+    "complete_upstream_parity": false,
+    "production_binary_validated": "release"
+  },
+  "interface_default_method_validation": {
+    "integration_tests": 9,
+    "differential_cases": 8,
+    "matching_acceptance_cases": 8,
+    "compiled_constant_cases": 3,
+    "compiled_constant_words": 8,
+    "matching_words": 8,
+    "dxc_hlsl_artifacts_validated": 6,
+    "opaque_unused_body_checking": true,
+    "inherited_mutating_this": true,
+    "explicit_override_validation": true,
+    "multiple_concrete_owners": true,
+    "generic_interface_type_arguments": true,
+    "required_defaults_and_generic_helpers": true,
+    "declaration_module_and_private_witness_access": true,
+    "checked_module_serialization_and_rechecking": true,
+    "pinned_upstream_hlsl_sources": [
+      "language-feature/interfaces/default-method.slang",
+      "language-feature/interfaces/default-method-inherited-static.slang"
+    ],
+    "pinned_upstream_compiled_constant_words": 3,
+    "pinned_upstream_dxc_artifacts_validated": 4,
+    "original_upstream_test_directives_executed": false,
+    "generic_method_requirements": false,
+    "value_generics": false,
+    "default_interface_constructors": false,
     "adapted_witnesses": false,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,

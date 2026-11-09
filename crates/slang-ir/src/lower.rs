@@ -175,7 +175,7 @@ impl Lowerer<'_> {
             .filter(|m| {
                 !matches!(
                     m.as_str(),
-                    "public" | "internal" | "row_major" | "column_major"
+                    "public" | "internal" | "row_major" | "column_major" | "override"
                 )
             })
             .cloned()

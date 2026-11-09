@@ -10,7 +10,7 @@ use slang_syntax::{ConstraintCallInfo, ExprId, TypeRef};
 use std::collections::BTreeMap;
 
 pub(crate) type WitnessKey = (String, String, usize, usize, usize);
-pub(super) fn key(owner: &str, interface: &str, span: Span) -> WitnessKey {
+pub(crate) fn key(owner: &str, interface: &str, span: Span) -> WitnessKey {
     (
         owner.into(),
         interface.into(),
