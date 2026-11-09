@@ -201,6 +201,7 @@ pub fn walk_declaration(
         Declaration::Global(variable) => visitor.variable(variable)?,
         Declaration::Function(function) => {
             visitor.span(&mut function.span);
+            walk_parameters(visitor, &mut function.generic_parameters)?;
             visitor.ty(&mut function.return_type)?;
             for attribute in &mut function.attributes {
                 visitor.span(&mut attribute.span);

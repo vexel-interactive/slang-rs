@@ -105,7 +105,7 @@ pub struct TypeRef {
     /// An implicit receiver or constructor result synthesized by the parser.
     #[serde(skip_serializing_if = "is_false")]
     pub owner_ref: bool,
-    /// A constructor lookup originating from a generic type parameter.
+    /// A constructor or cast originating from a generic type parameter.
     #[serde(skip_serializing_if = "is_false")]
     pub parameter_ref: bool,
     pub arguments: Vec<TypeArgument>,
@@ -166,6 +166,8 @@ pub struct Struct {
 #[derive(Clone, Debug, Serialize)]
 pub struct Function {
     pub name: String,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub generic_parameters: Vec<GenericParameter>,
     /// Owning type for a normalized user-defined __init declaration.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub constructor: Option<String>,

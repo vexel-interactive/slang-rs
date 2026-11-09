@@ -115,7 +115,7 @@ type argument, including parentheses. Compute those operations in a named
 constant before using the result as a dimension. Cyclic or excessively nested
 shape dependencies report `T026`; dimension expressions must be compile-time
 constants. General floating constant evaluation, constant function execution,
-the matrix layout argument and generic functions
+the matrix layout argument and general generic inference
 remain unimplemented. Constructors require explicit angle brackets, including `<>`, or
 a transparent type alias; bare `vector(...)` and `matrix(...)` calls do not
 specialize a numeric type. They use the existing numeric and aggregate checks. See
@@ -772,7 +772,7 @@ layout modifiers while retaining their opaque component types. Symbolic types
 are discarded before concrete lowering and never appear in emitted artifacts.
 
 This does not implement general constrained polymorphism. Interfaces, witnesses,
-generic functions/methods,
+generic methods,
 value parameters, partial applications and constructor inference remain unported.
 The existing restrictions on local names matching module type aliases and on
 fallthrough from nonvoid functions also apply inside checked templates. Full
@@ -783,6 +783,34 @@ The [type fixture](../tests/conformance/positive/generic-types.slang) records on
 oracle optimization difference: Slang 2026.21 reuses a repeated static method call
 despite its write to mutable member storage. Native HLSL retains both calls, and
 separate exact DXIL goldens record the differing counter results.
+
+## Generic functions
+
+Free functions accept type parameters, defaults and explicit applications:
+
+```slang
+T copy<T>(T value) { return (T)value; }
+T pick<T, U = T>(T first, U second = U()) { return first; }
+int value = copy<int>(3);
+int selected = pick<int>(value);
+```
+
+Function templates use the same canonical type arguments, bounded expansion and
+opaque body checking as user type templates. Unused bodies are checked and unused
+valid functions create no concrete IR. Calls between templates, prototype/definition
+pairs, overloads with a shared type parameter list, declared value defaults,
+`out`/`inout` arguments, aggregate/array/resource values and imported caller-defined
+types use ordinary concrete checking and lowering. Parameter names on prototypes
+and definitions can differ. Explicit template calls remain distinct from ordinary
+overloads and local value comparisons.
+
+Every application currently supplies angle brackets; omitted arguments are filled
+only from type defaults. Bare-call inference, partially inferred arguments, generic
+methods/constructors, value parameters, constraints, higher-order function values
+and entry-point specialization remain unported. Overloads with different type
+parameter counts or conflicting type defaults are rejected. Overloads that collapse
+to the same concrete signature still use the existing duplicate-signature check;
+full polymorphic overload specialization and ranking remain incomplete.
 
 ## Brace initializer lists
 

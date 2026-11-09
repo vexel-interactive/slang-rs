@@ -124,6 +124,7 @@ impl Parser {
                     }
                     members.push(Declaration::Function(Box::new(Function {
                         name: format!("{}{}", self.constructor_prefix, name),
+                        generic_parameters: vec![],
                         constructor: Some(name.clone()),
                         method: None,
                         return_type: TypeRef {
@@ -148,6 +149,9 @@ impl Parser {
                 }
                 let ty = self.ty()?;
                 let member = self.identifier()?;
+                if self.at("<") {
+                    return Err(self.error("generic methods are not implemented"));
+                }
                 if self.eat("(") {
                     let mut parameters = self.parameters()?;
                     let is_static = member_modifiers.iter().any(|m| m == "static");
@@ -206,6 +210,7 @@ impl Parser {
                             member.text
                         ),
                         constructor: None,
+                        generic_parameters: vec![],
                         method: Some(StructMethod {
                             owner: name.clone(),
                             name: member.text,
@@ -285,7 +290,10 @@ impl Parser {
         }
         let ty = self.ty()?;
         let name = self.identifier()?;
+        let generic_parameters = self.generic_parameters()?;
         if self.eat("(") {
+            self.type_parameters
+                .push(generic_parameters.iter().map(|p| p.name.clone()).collect());
             let parameters = self.parameters()?;
             let annotations = self.annotations()?;
             if let Some(pack) = annotations.pack_offset {
@@ -307,8 +315,10 @@ impl Parser {
                 return Err(self.error("function body must be a block"));
             }
             let span = start.join(body.as_ref().map_or(name.span, |s| s.span));
+            self.type_parameters.pop();
             Ok(vec![Declaration::Function(Box::new(Function {
                 name: name.text,
+                generic_parameters,
                 constructor: None,
                 method: None,
                 return_type: ty,
@@ -320,6 +330,9 @@ impl Parser {
                 span,
             }))])
         } else {
+            if !generic_parameters.is_empty() {
+                return Err(self.error("generic variables are not implemented"));
+            }
             if !attributes.is_empty() {
                 return Err(self.error("global variable attributes are not implemented"));
             }

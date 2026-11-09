@@ -6,7 +6,7 @@
     "rustfmt": "passed",
     "clippy_all_targets_warnings_denied": "passed",
     "unit_tests": 42,
-    "integration_tests": 414,
+    "integration_tests": 420,
     "doc_tests": 1,
     "conformance_comparison_tests": 27,
     "rustdoc": "passed",
@@ -16,11 +16,11 @@
   },
   "differential_validation": {
     "oracle": "Slang 2026.21",
-    "cases_passed": 624,
-    "cases_total": 624,
-    "matching_acceptance_cases": 612,
+    "cases_passed": 634,
+    "cases_total": 634,
+    "matching_acceptance_cases": 622,
     "documented_oracle_differences": 12,
-    "dxc_hlsl_artifacts_validated": 638,
+    "dxc_hlsl_artifacts_validated": 644,
     "dxc_invalid_hlsl_artifacts_rejected": 22,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
@@ -37,9 +37,9 @@
     "uniform_byte_layout_cases_compared": 61,
     "documented_oracle_physical_layout_differences": 12,
     "physical_buffer_layout_cases_compared": 43,
-    "compiled_constant_cases_compared": 45,
-    "compiled_constant_words_compared": 1264,
-    "compiled_constant_words_matching": 1250,
+    "compiled_constant_cases_compared": 47,
+    "compiled_constant_words_compared": 1278,
+    "compiled_constant_words_matching": 1264,
     "documented_oracle_constant_words_differing": 14,
     "documented_oracle_constant_cases_differing": 6,
     "documented_oracle_uniform_reflection_differences": 1,
@@ -53,8 +53,8 @@
   "remote_ci_executed": false,
   "remote_ci": null,
   "previous_remote_ci": {
-    "run_id": 42667485987,
-    "head_sha": "5958446f8edbac106f4319d74c95a982cb5cb24d",
+    "run_id": 42669086375,
+    "head_sha": "0379461e82d1b700cfad9306aafecddb94e5cfa5",
     "conclusion": "success",
     "platforms": [
       "ubuntu-latest",
@@ -63,6 +63,16 @@
     ]
   },
   "earlier_remote_ci": [
+    {
+      "run_id": 42667485987,
+      "head_sha": "5958446f8edbac106f4319d74c95a982cb5cb24d",
+      "conclusion": "success",
+      "platforms": [
+        "ubuntu-latest",
+        "windows-latest",
+        "macos-latest"
+      ]
+    },
     {
       "run_id": 42664741851,
       "head_sha": "ab40164860631ff32d1ddf05e8c527ebf4c3d132",
@@ -567,7 +577,7 @@
   },
   "native_hlsl_suite": {
     "manifest": "tests/native/manifest.json",
-    "artifacts_validated": 126,
+    "artifacts_validated": 129,
     "profiles": [
       "cs_6_0",
       "cs_6_2",
@@ -701,13 +711,16 @@
       "../conformance/positive/generic-type-comparisons.slang",
       "../conformance/positive/generic-symbolic-values.slang",
       "../conformance/positive/generic-copy-casts.slang",
-      "../conformance/positive/generic-resource-casts.slang"
+      "../conformance/positive/generic-resource-casts.slang",
+      "../conformance/positive/generic-functions.slang",
+      "../conformance/positive/generic-function-resources.slang",
+      "../conformance/positive/generic-function-module/main.slang"
     ],
     "uniform_byte_layout_cases": 61,
     "matrix_layout_shapes": 96,
     "constant_buffer_numeric_layouts": 252,
-    "compiled_constant_cases": 32,
-    "compiled_constant_words": 1098
+    "compiled_constant_cases": 34,
+    "compiled_constant_words": 1112
   },
   "pointer_integer_validation": {
     "target_pointer_bits": 64,
@@ -1004,7 +1017,6 @@
     "syntax_node_budget": 65536,
     "value_parameters": false,
     "constraints_and_interfaces": false,
-    "generic_functions_and_methods": false,
     "constructor_inference": false,
     "general_constant_execution": false,
     "gpu_execution_compared": false,
@@ -1024,6 +1036,36 @@
     "pinned_upstream_matching_words": 4,
     "original_gpu_cpu_and_shader_object_directives_passed": false,
     "parameter_copy_casts": true,
-    "nested_receiver_and_constructor_results": true
+    "nested_receiver_and_constructor_results": true,
+    "explicit_generic_functions": true,
+    "generic_methods": false
+  },
+  "generic_function_validation": {
+    "integration_tests": 6,
+    "differential_cases": 10,
+    "matching_acceptance_cases": 10,
+    "dxc_hlsl_artifacts_validated": 6,
+    "compiled_constant_cases": 2,
+    "compiled_constant_words": 14,
+    "matching_words": 14,
+    "explicit_type_arguments": true,
+    "type_defaults": true,
+    "dependent_type_defaults": true,
+    "value_defaults": true,
+    "canonical_cached_instances": true,
+    "opaque_unused_body_checking": true,
+    "prototypes_with_renamed_parameters": true,
+    "shared_type_parameter_list_overloads": true,
+    "ordinary_overload_selection": true,
+    "aggregate_array_and_resource_values": true,
+    "output_locations": true,
+    "calls_between_templates": true,
+    "imported_caller_private_argument_types": true,
+    "inference": false,
+    "generic_methods": false,
+    "constraints_and_interfaces": false,
+    "complete_polymorphic_overload_specialization": false,
+    "gpu_execution_compared": false,
+    "complete_upstream_parity": false
   }
 }

@@ -6803,6 +6803,36 @@
     {
       "file": "../conformance/positive/generic-resource-casts.slang",
       "entry": "main"
+    },
+    {
+      "file": "../conformance/positive/generic-functions.slang",
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 3,
+        "1": 4,
+        "2": 0,
+        "3": 8,
+        "4": 9,
+        "5": 7,
+        "6": 6,
+        "7": 11,
+        "8": 13,
+        "9": 15,
+        "10": 16,
+        "11": 18
+      }
+    },
+    {
+      "file": "../conformance/positive/generic-function-resources.slang",
+      "entry": "main"
+    },
+    {
+      "file": "../conformance/positive/generic-function-module/main.slang",
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 3,
+        "1": 5
+      }
     }
   ]
 }

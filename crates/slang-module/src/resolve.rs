@@ -203,6 +203,18 @@ impl<'a> Resolver<'a> {
             Declaration::Function(function) => {
                 self.active_owner = function.owner_type().map(str::to_owned);
                 self.generic_types = self.generic_bindings(self.active_owner.as_deref());
+                for (index, parameter) in function.generic_parameters.iter().enumerate() {
+                    self.generic_types.insert(
+                        parameter.name.clone(),
+                        format!(
+                            "{}generic_function_{}_{}_{index}",
+                            self.local_prefix,
+                            function.name.len(),
+                            function.name
+                        ),
+                    );
+                }
+                self.generic_parameters(&mut function.generic_parameters)?;
                 let members = self.owner_members(true);
                 self.active_members = self.owner_members(false);
                 if let Some(owner) = &mut function.constructor {
@@ -493,7 +505,26 @@ impl<'a> Resolver<'a> {
                 self.ty(target)?;
                 self.expression(value)?;
             }
-            ExprKind::TypeApplication(target) => self.ty(target)?,
+            ExprKind::TypeApplication(target) => {
+                let local = self
+                    .scopes
+                    .iter()
+                    .rev()
+                    .any(|s| s.contains_key(&target.name));
+                let generic = self.own.generic_functions.contains(&target.name)
+                    || !self.own.values.contains_key(&target.name)
+                        && self.imported.generic_functions.contains(&target.name);
+                if target.base.is_none()
+                    && generic
+                    && !local
+                    && !self.generic_types.contains_key(&target.name)
+                {
+                    target.name = self.symbol(&target.name, false, target.span)?;
+                    self.type_arguments(target)?;
+                } else {
+                    self.ty(target)?;
+                }
+            }
             ExprKind::Unary { value, .. } | ExprKind::Postfix { value, .. } => {
                 self.expression(value)?
             }
@@ -536,6 +567,13 @@ impl<'a> Resolver<'a> {
             return;
         };
         if arguments.len() != 1 || ty.base.is_some() || !ty.arrays.is_empty() {
+            return;
+        }
+        if !self.scopes.iter().rev().any(|s| s.contains_key(&ty.name))
+            && (self.own.generic_functions.contains(&ty.name)
+                || !self.own.values.contains_key(&ty.name)
+                    && self.imported.generic_functions.contains(&ty.name))
+        {
             return;
         }
         let value = self.scopes.iter().rev().any(|s| s.contains_key(&ty.name))

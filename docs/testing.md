@@ -668,6 +668,18 @@ The [resource fixture](../tests/conformance/positive/generic-resource-casts.slan
 checks copied read/write handles through both HLSL frontends and DXC. Unused
 unconstrained numeric-to-parameter casts must fail before specialization.
 
+Generic functions add six integration tests and ten differential cases.
+The [value fixture](../tests/conformance/positive/generic-functions.slang) and
+[module fixture](../tests/conformance/positive/generic-function-module/main.slang)
+compare fourteen matching compiled words for type/value defaults, copies,
+output arguments, overloads, prototype parameter renaming and imported private
+argument types. Resource and symbolic vector copies are validated by both HLSL
+frontends and DXC. Unused invalid bodies, excessive/unknown type arguments,
+missing value arguments and unwritable outputs must fail. Canonical aliases reuse
+concrete functions, while unused valid templates and symbolic types never appear
+in emitted artifacts. These cases do not validate inference, generic methods,
+constraints or complete polymorphic overload ranking.
+
 [validation.json](validation.json) records the Windows validation run for this
 checkpoint. It includes the pinned compiler version, workspace checks, and
 differential corpus counts. It is a snapshot of that run, not a promise of

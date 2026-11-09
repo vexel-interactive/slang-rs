@@ -1,4 +1,4 @@
-//! Instantiate user type templates before checking concrete declarations.
+//! Instantiate user type and function templates before checking concrete declarations.
 
 mod canonical;
 mod substitute;
@@ -15,6 +15,7 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 #[derive(Clone)]
 struct Template {
     name: String,
+    function: bool,
     parameters: Vec<GenericParameter>,
     declarations: Vec<Declaration>,
     nested: Vec<NestedTypeInfo>,
@@ -25,6 +26,7 @@ struct Template {
 struct Specializer {
     shapes: crate::checker::Checker,
     templates: BTreeMap<String, Template>,
+    ordinary_functions: BTreeSet<String>,
     aliases: BTreeMap<String, TypeRef>,
     nested: BTreeMap<(String, String), String>,
     symbols: BTreeMap<String, SymbolOrigin>,
@@ -113,6 +115,7 @@ fn specialize_inner(
         .filter_map(|d| match d {
             Declaration::Struct(s) => Some(s.name.clone()),
             Declaration::TypeAlias(a) => Some(a.name.clone()),
+            Declaration::Function(f) if !f.generic_parameters.is_empty() => Some(f.name.clone()),
             _ => None,
         })
         .chain(
@@ -151,6 +154,7 @@ fn specialize_inner(
             })
             .collect(),
         templates: BTreeMap::new(),
+        ordinary_functions: BTreeSet::new(),
         aliases: BTreeMap::new(),
         nested: BTreeMap::new(),
         symbols,
@@ -236,6 +240,11 @@ impl Specializer {
         };
         let root_for = |declaration: &Declaration| {
             let name = match declaration {
+                Declaration::Function(f)
+                    if f.owner_type().is_none() && f.generic_parameters.is_empty() =>
+                {
+                    return None;
+                }
                 Declaration::Function(f) => f.owner_type().unwrap_or(&f.name),
                 Declaration::Global(v) => static_owners
                     .get(&v.name)
@@ -251,12 +260,7 @@ impl Specializer {
                     == Some(declaration_name(declaration))
             {
                 let name = declaration_name(declaration).to_owned();
-                if templates.contains_key(&name) || self.templates.contains_key(&name) {
-                    return Err(error(
-                        declaration_span(declaration),
-                        "duplicate generic type declaration",
-                    ));
-                }
+                let function = matches!(declaration, Declaration::Function(_));
                 let mut names = BTreeSet::new();
                 for parameter in parameters(declaration) {
                     if !names.insert(&parameter.name) {
@@ -267,10 +271,42 @@ impl Specializer {
                         ));
                     }
                 }
+                if let Some(existing) = templates.get_mut(&name)
+                    && function
+                    && existing.function
+                {
+                    if existing.parameters.len() != parameters(declaration).len() {
+                        return Err(error(
+                            declaration_span(declaration),
+                            "generic function overloads with different type parameter counts are not implemented",
+                        ));
+                    }
+                    for (first, next) in existing.parameters.iter_mut().zip(parameters(declaration))
+                    {
+                        if let (Some(a), Some(b)) = (&first.default, &next.default) {
+                            if canonical::type_key(a) != canonical::type_key(b) {
+                                return Err(error(
+                                    next.span,
+                                    "conflicting generic type parameter defaults",
+                                ));
+                            }
+                        } else if first.default.is_none() {
+                            first.default = next.default.clone();
+                        }
+                    }
+                    continue;
+                }
+                if templates.contains_key(&name) || self.templates.contains_key(&name) {
+                    return Err(error(
+                        declaration_span(declaration),
+                        "duplicate generic type declaration",
+                    ));
+                }
                 templates.insert(
                     name.clone(),
                     Template {
                         name,
+                        function,
                         parameters: parameters(declaration).to_vec(),
                         declarations: vec![],
                         nested: vec![],
@@ -305,6 +341,9 @@ impl Specializer {
                     .declarations
                     .push(declaration);
             } else {
+                if let Declaration::Function(f) = &declaration {
+                    self.ordinary_functions.insert(f.name.clone());
+                }
                 if let Declaration::TypeAlias(alias) = &declaration {
                     self.aliases
                         .insert(alias.name.clone(), alias.target.clone());
@@ -363,7 +402,7 @@ impl Specializer {
         supplied: &[TypeArgument],
         span: Span,
     ) -> Result<String, Diagnostic> {
-        if self.depth >= 32 || self.instances.len() >= 1024 {
+        if self.depth >= 32 {
             return Err(error(span, "generic specialization limit exceeded"));
         }
         let template = self.templates[name].clone();
@@ -413,6 +452,9 @@ impl Specializer {
         );
         if let Some(name) = self.instances.get(&key) {
             return Ok(name.clone());
+        }
+        if self.instances.len() >= 1024 {
+            return Err(error(span, "generic specialization limit exceeded"));
         }
         let context = self.next_context;
         self.next_context += 1;
@@ -550,6 +592,9 @@ impl Specializer {
             self.accessible(&ty.name, ty.span)?;
         }
         if self.templates.contains_key(&ty.name) {
+            if self.templates[&ty.name].function {
+                return Err(error(ty.span, "generic function is not a type"));
+            }
             if !ty.application {
                 return Err(error(
                     ty.span,
@@ -617,12 +662,34 @@ impl VisitorMut for Specializer {
         visit::walk_type(self, ty)
     }
     fn expression(&mut self, expression: &mut Expr) -> Result<(), Diagnostic> {
+        if let ExprKind::TypeApplication(reference) = &expression.kind
+            && reference.base.is_none()
+            && self
+                .templates
+                .get(&reference.name)
+                .is_some_and(|t| t.function)
+        {
+            if !reference.arrays.is_empty() || reference.matrix_major.is_some() {
+                return Err(error(
+                    reference.span,
+                    "invalid generic function application",
+                ));
+            }
+            let name = self.instantiate(&reference.name, &reference.arguments, expression.span)?;
+            expression.kind = ExprKind::Name(name);
+            return Ok(());
+        }
         if let ExprKind::Name(name) = &expression.kind
             && self.templates.contains_key(name)
+            && !self.ordinary_functions.contains(name)
         {
             return Err(error(
                 expression.span,
-                "generic constructor requires explicit type arguments",
+                if self.templates[name].function {
+                    "generic function requires explicit type arguments"
+                } else {
+                    "generic constructor requires explicit type arguments"
+                },
             ));
         }
         visit::walk_expression(self, expression)
@@ -736,6 +803,7 @@ fn parameters(declaration: &Declaration) -> &[GenericParameter] {
     match declaration {
         Declaration::Struct(s) => &s.generic_parameters,
         Declaration::TypeAlias(a) => &a.generic_parameters,
+        Declaration::Function(f) => &f.generic_parameters,
         _ => &[],
     }
 }
@@ -743,6 +811,7 @@ fn clear_parameters(declaration: &mut Declaration) {
     match declaration {
         Declaration::Struct(s) => s.generic_parameters.clear(),
         Declaration::TypeAlias(a) => a.generic_parameters.clear(),
+        Declaration::Function(f) => f.generic_parameters.clear(),
         _ => {}
     }
 }

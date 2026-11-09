@@ -33,7 +33,7 @@ locals, and restore the ordinary checker environment after folding. Shape
 constants use 64-bit intermediate arithmetic, matching upstream's type-level
 folding; ordinary shader constants retain their checked 32-bit or 64-bit types.
 
-User type specialization runs between module linking and concrete semantic
+User type and function specialization runs between module linking and concrete semantic
 checking. The linker gives parameters declaration-scoped names; a mutable AST
 visitor substitutes canonical type arguments, renames owned declarations and
 assigns fresh expression IDs. A work queue registers nested templates and caches
@@ -61,6 +61,15 @@ outer substitutions until their nested owner is specialized. Symbolic declaratio
 are discarded. The concrete declarations use ordinary checking, layout and HLSL
 lowering. General constrained validation, witness tables and IR-level generic
 specialization remain unimplemented.
+Function parameter bindings use declaration-scoped indexed names so prototypes
+can rename parameters without changing substitution. The linker distinguishes
+generic function applications from type construction and local value comparisons.
+Function applications expand to named concrete callees; subsequent call checking
+selects ordinary signatures and initialization/output plans. Each specialization
+retains fresh expression IDs and a span context, while aliases share cached
+applications. A symbolic pass checks every function template before any concrete
+body is lowered. Generic inference and general overload specialization remain
+unimplemented.
 Shape conversions between different scalar types apply the destination's bit
 width. Identity constructors preserve wider shape intermediates, following
 `TypeCastIntVal::tryFoldImpl`; implicit global and local initializers follow

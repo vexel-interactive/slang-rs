@@ -11,6 +11,7 @@ use std::collections::{BTreeMap, BTreeSet};
 pub(crate) struct Names {
     pub types: BTreeMap<String, BTreeSet<String>>,
     pub values: BTreeMap<String, BTreeSet<String>>,
+    pub generic_functions: BTreeSet<String>,
 }
 
 #[derive(Default)]
@@ -35,6 +36,8 @@ impl Names {
     }
 
     pub fn extend(&mut self, names: &Self) {
+        self.generic_functions
+            .extend(names.generic_functions.iter().cloned());
         for (source, targets) in &names.types {
             self.types
                 .entry(source.clone())
@@ -102,8 +105,17 @@ pub(crate) fn link(
                 format!("{prefix}{}_{}", node.info.id.0, name)
             };
             own[node.info.id.0].add(name.clone(), target.clone(), is_type);
+            if matches!(declaration, Declaration::Function(f) if !f.generic_parameters.is_empty()) {
+                own[node.info.id.0].generic_functions.insert(name.clone());
+            }
             if modifiers.iter().any(|m| m == "public") && !nested_names.contains(name) {
                 exports[node.info.id.0].add(name.clone(), target.clone(), is_type);
+                if matches!(declaration, Declaration::Function(f) if !f.generic_parameters.is_empty())
+                {
+                    exports[node.info.id.0]
+                        .generic_functions
+                        .insert(name.clone());
+                }
             }
             origins.insert(
                 target,

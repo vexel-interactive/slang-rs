@@ -8765,6 +8765,81 @@
       "accept": false,
       "entry": "main",
       "rust_code": "T008"
+    },
+    {
+      "file": "positive/generic-functions.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 3,
+        "1": 4,
+        "2": 0,
+        "3": 8,
+        "4": 9,
+        "5": 7,
+        "6": 6,
+        "7": 11,
+        "8": 13,
+        "9": 15,
+        "10": 16,
+        "11": 18
+      }
+    },
+    {
+      "file": "positive/generic-function-resources.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/generic-function-module/main.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 3,
+        "1": 5
+      }
+    },
+    {
+      "file": "negative/generic-function-unused-name.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T011"
+    },
+    {
+      "file": "negative/generic-function-unused-add.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T012"
+    },
+    {
+      "file": "negative/generic-function-unused-cast.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T008"
+    },
+    {
+      "file": "negative/generic-function-too-many.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T002"
+    },
+    {
+      "file": "negative/generic-function-unknown-type.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T002"
+    },
+    {
+      "file": "negative/generic-function-missing-value.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/generic-function-output-value.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T015"
     }
   ]
 }
