@@ -225,6 +225,7 @@ impl<'a> Scanner<'a> {
                         name,
                         parameters,
                         arguments,
+                        ..
                     } => {
                         if let Some(overloads) = self.indices.get(name)
                             && let Some((_, index)) =

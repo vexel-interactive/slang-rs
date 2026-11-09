@@ -65,6 +65,8 @@ struct Specializer {
     expression_origins: BTreeMap<ExprId, ExprId>,
     symbolic_parameters: BTreeMap<String, TypeRef>,
     processed_constraint_calls: BTreeSet<ExprId>,
+    constraint_variables: BTreeMap<SpanKey, ConstraintCallInfo>,
+    processed_constraint_variables: BTreeSet<SpanKey>,
 }
 
 struct InferenceCall {
@@ -112,13 +114,16 @@ pub(super) fn validate_templates(
     module: &Module,
     symbols: &BTreeMap<String, SymbolOrigin>,
     major: slang_layout::MatrixMajor,
-) -> Result<BTreeMap<ExprId, ConstraintCallInfo>, Vec<Diagnostic>> {
+) -> Result<TemplateBindings, Vec<Diagnostic>> {
     if !module
         .declarations
         .iter()
         .any(|d| !parameters(d).is_empty())
     {
-        return Ok(BTreeMap::new());
+        return Ok(TemplateBindings {
+            calls: module.constraint_calls.clone(),
+            variables: module.constraint_variables.clone(),
+        });
     }
     let result =
         specialize_inner(module.clone(), symbols.clone(), true, major).map_err(|d| vec![d])?;
@@ -135,6 +140,12 @@ pub(super) fn validate_templates(
         &result.symbolic_parameters,
     )
     .map_err(|d| vec![d])
+}
+
+#[derive(Default)]
+pub(super) struct TemplateBindings {
+    pub calls: BTreeMap<ExprId, ConstraintCallInfo>,
+    pub variables: Vec<ConstraintVariableInfo>,
 }
 
 fn specialize_inner(
@@ -164,6 +175,11 @@ fn specialize_inner(
         ids.ty(&mut binding.owner)?;
         ids.ty(&mut binding.interface)?;
         visit::walk_function(&mut ids, &mut binding.requirement)?;
+    }
+    for variable in &mut module.constraint_variables {
+        ids.ty(&mut variable.call.owner)?;
+        ids.ty(&mut variable.call.interface)?;
+        visit::walk_function(&mut ids, &mut variable.call.requirement)?;
     }
     let mut prefix = "_slang_generic_".to_owned();
     while module
@@ -258,6 +274,11 @@ fn specialize_inner(
         expression_origins: BTreeMap::new(),
         symbolic_parameters: BTreeMap::new(),
         processed_constraint_calls: BTreeSet::new(),
+        constraint_variables: std::mem::take(&mut module.constraint_variables)
+            .into_iter()
+            .map(|v| (crate::span_key(v.span), v.call))
+            .collect(),
+        processed_constraint_variables: BTreeSet::new(),
     };
     let declarations = std::mem::take(&mut module.declarations);
     specializer.register(
@@ -581,6 +602,7 @@ impl Specializer {
             remaining_nodes: &mut self.remaining_nodes,
             expression_origins: &mut self.expression_origins,
             constraint_calls: &mut self.constraint_calls,
+            constraint_variables: &mut self.constraint_variables,
         };
         for declaration in &mut declarations {
             if declaration_name(declaration) == template.name {
@@ -897,6 +919,7 @@ impl VisitorMut for Specializer {
         Ok(())
     }
     fn variable(&mut self, variable: &mut Variable) -> Result<(), Diagnostic> {
+        self.specialize_constraint_variable(variable.span)?;
         visit::walk_variable(self, variable)?;
         if self.shapes.scopes.len() > 1 {
             let ty = crate::Type::builtin(&variable.ty.name).unwrap_or(crate::Type::Error);

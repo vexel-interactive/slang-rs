@@ -71,6 +71,11 @@ including static/instance identity, rather than repeating overload selection.
 Required defaults receive fresh expression IDs and retain their declaration module
 and generic dependencies. Activation follows reachable metadata and generic type
 arguments; dormant calls and interfaces do not activate default bodies.
+Contextual planning records constructor declaration identities and source sites
+only when an initialization plan is committed. Brace-list expression IDs and
+variable declaration spans retain those selections across specialization. Pure
+candidate probes consume the recorded witness without altering its identity;
+automatic fields and variables use the same requirement defaults and module scope.
 General constrained validation, runtime witness tables and IR-level generic
 specialization remain unimplemented.
 Function parameter bindings use declaration-scoped indexed names so prototypes

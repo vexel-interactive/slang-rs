@@ -6,7 +6,7 @@
     "rustfmt": "passed",
     "clippy_all_targets_warnings_denied": "passed",
     "unit_tests": 42,
-    "integration_tests": 471,
+    "integration_tests": 475,
     "doc_tests": 1,
     "conformance_comparison_tests": 27,
     "rustdoc": "passed",
@@ -16,11 +16,11 @@
   },
   "differential_validation": {
     "oracle": "Slang 2026.21",
-    "cases_passed": 719,
-    "cases_total": 719,
-    "matching_acceptance_cases": 707,
+    "cases_passed": 722,
+    "cases_total": 722,
+    "matching_acceptance_cases": 710,
     "documented_oracle_differences": 12,
-    "dxc_hlsl_artifacts_validated": 718,
+    "dxc_hlsl_artifacts_validated": 724,
     "dxc_invalid_hlsl_artifacts_rejected": 22,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
@@ -37,9 +37,9 @@
     "uniform_byte_layout_cases_compared": 61,
     "documented_oracle_physical_layout_differences": 12,
     "physical_buffer_layout_cases_compared": 43,
-    "compiled_constant_cases_compared": 80,
-    "compiled_constant_words_compared": 1434,
-    "compiled_constant_words_matching": 1420,
+    "compiled_constant_cases_compared": 83,
+    "compiled_constant_words_compared": 1445,
+    "compiled_constant_words_matching": 1431,
     "documented_oracle_constant_words_differing": 14,
     "documented_oracle_constant_cases_differing": 6,
     "documented_oracle_uniform_reflection_differences": 1,
@@ -53,8 +53,8 @@
   "remote_ci_executed": false,
   "remote_ci": null,
   "previous_remote_ci": {
-    "run_id": 42700958762,
-    "head_sha": "6e9200f154ce31902faca7131829162cd6f45efc",
+    "run_id": 42706463878,
+    "head_sha": "e99355ab0461720b7948abd77c8a8fa30cdfba57",
     "conclusion": "success",
     "platforms": [
       "ubuntu-latest",
@@ -63,6 +63,16 @@
     ]
   },
   "earlier_remote_ci": [
+    {
+      "run_id": 42700958762,
+      "head_sha": "6e9200f154ce31902faca7131829162cd6f45efc",
+      "conclusion": "success",
+      "platforms": [
+        "ubuntu-latest",
+        "windows-latest",
+        "macos-latest"
+      ]
+    },
     {
       "run_id": 42694878510,
       "head_sha": "d2e9b81bde464f06c937087fbc18d4a58a0ddaeb",
@@ -658,7 +668,7 @@
   },
   "native_hlsl_suite": {
     "manifest": "tests/native/manifest.json",
-    "artifacts_validated": 166,
+    "artifacts_validated": 169,
     "profiles": [
       "cs_6_0",
       "cs_6_2",
@@ -832,7 +842,10 @@
       "../conformance/positive/interface-witness-defaults.slang",
       "../conformance/positive/interface-witness-module/main.slang",
       "../conformance/positive/interface-witness-nested-arguments.slang",
-      "../conformance/positive/interface-witness-generic-defaults.slang"
+      "../conformance/positive/interface-witness-generic-defaults.slang",
+      "../conformance/positive/interface-witness-plans.slang",
+      "../conformance/positive/interface-witness-plan-defaults.slang",
+      "../conformance/positive/interface-witness-plan-module/main.slang"
     ],
     "uniform_byte_layout_cases": 61,
     "matrix_layout_shapes": 96,
@@ -1387,6 +1400,39 @@
     "unused_defaults_checked": true,
     "contextual_constructor_witness_selection": false,
     "automatic_constructor_witness_selection": false,
+    "adapted_witnesses": false,
+    "gpu_execution_compared": false,
+    "complete_upstream_parity": false,
+    "production_binary_validated": "release"
+  },
+  "resolved_remote_ci_regressions": [
+    {
+      "failed_run_id": 42705720290,
+      "failed_head_sha": "03ecf17fee1e06122a7832e9b1a2b1f704a2ecfb",
+      "platform": "windows-latest",
+      "regression": "Deep for-statement parser stack overflow",
+      "fixed_head_sha": "e99355ab0461720b7948abd77c8a8fa30cdfba57",
+      "successful_run_id": 42706463878
+    }
+  ],
+  "interface_constructor_plan_validation": {
+    "integration_tests": 4,
+    "differential_cases": 3,
+    "matching_acceptance_cases": 3,
+    "compiled_constant_cases": 3,
+    "compiled_constant_words": 11,
+    "matching_words": 11,
+    "dxc_hlsl_artifacts_validated": 6,
+    "contextual_constructor_witness_selection": true,
+    "automatic_constructor_witness_selection": true,
+    "automatic_user_constructor_fields": true,
+    "nested_lists_and_fixed_array_elements": true,
+    "return_and_parameter_defaults": true,
+    "requirement_defaults_and_generic_dependencies": true,
+    "private_constructor_module_scope": true,
+    "pure_candidate_planning": true,
+    "dormant_metadata_pruned": true,
+    "checked_module_serialization_and_rechecking": true,
     "adapted_witnesses": false,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,

@@ -28,6 +28,14 @@ pub struct Module {
     /// Generic calls retain the interface requirement selected on opaque parameters.
     #[serde(skip_serializing_if = "std::collections::BTreeMap::is_empty")]
     pub constraint_calls: std::collections::BTreeMap<ExprId, ConstraintCallInfo>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub constraint_variables: Vec<ConstraintVariableInfo>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct ConstraintVariableInfo {
+    pub span: Span,
+    pub call: ConstraintCallInfo,
 }
 
 #[derive(Clone, Debug, Serialize)]

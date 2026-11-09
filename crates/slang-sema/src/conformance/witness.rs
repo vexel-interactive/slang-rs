@@ -1,11 +1,11 @@
 //! Bind a checked generic call to its conformance witness, retaining required defaults.
 
 use crate::{
-    Type,
-    checker::{Binding, Checker, Signature, Storage},
+    ConstraintSite, Initialization, InitializationKind, Type,
+    checker::{Binding, Checker, Signature, Storage, span_key},
 };
 use slang_module::ModuleId;
-use slang_source::Span;
+use slang_source::{Diagnostic, Span};
 use slang_syntax::{ConstraintCallInfo, ExprId, TypeRef};
 use std::collections::BTreeMap;
 
@@ -52,45 +52,41 @@ impl Checker {
         }
     }
 
-    pub(crate) fn constraint_call_signature(
-        &mut self,
-        callee: ExprId,
+    fn constraint_binding(&self, site: ConstraintSite) -> Option<&ConstraintCallInfo> {
+        match site {
+            ConstraintSite::Expression(id) => self.constraint_calls.get(&id),
+            ConstraintSite::Variable(span) => self.constraint_variables.get(&span_key(span)),
+        }
+    }
+
+    pub(crate) fn bound_constraint_signature(
+        &self,
+        site: ConstraintSite,
         owner: &str,
-    ) -> Option<Result<Signature, ()>> {
-        let binding = self.constraint_calls.get(&callee)?.clone();
-        let actual_owner = self.resolve_type(&binding.owner);
-        let interface = self.resolve_type(&binding.interface);
-        let Type::Interface(interface) = interface else {
-            return Some(Err(()));
-        };
-        if actual_owner != Type::Struct(owner.into()) {
-            self.error(
+    ) -> Option<Result<Signature, Diagnostic>> {
+        let binding = self.constraint_binding(site)?;
+        if binding.owner.name != owner || !binding.owner.arrays.is_empty() {
+            return Some(Err(Diagnostic::error(
                 "T032",
                 binding.owner.span,
                 "constrained call receiver changed during specialization",
-            );
-            return Some(Err(()));
+            )));
         }
-        let signature = self
+        let Some(mut signature) = self
             .direct_witnesses
-            .get(&key(owner, &interface, binding.requirement.span))
-            .cloned();
-        let Some(mut signature) = signature else {
-            self.error(
+            .get(&key(
+                owner,
+                &binding.interface.name,
+                binding.requirement.span,
+            ))
+            .cloned()
+        else {
+            return Some(Err(Diagnostic::error(
                 "T032",
                 binding.requirement.span,
                 "selected interface requirement has no direct witness",
-            );
-            return Some(Err(()));
+            )));
         };
-        if binding
-            .requirement
-            .parameters
-            .iter()
-            .any(|p| p.initializer.is_some())
-        {
-            self.check_constraint_defaults(&binding);
-        }
         signature.defaults = binding
             .requirement
             .parameters
@@ -98,6 +94,65 @@ impl Checker {
             .map(|p| p.initializer.clone())
             .collect();
         Some(Ok(signature))
+    }
+
+    pub(crate) fn constraint_call_signature(
+        &mut self,
+        callee: ExprId,
+        owner: &str,
+    ) -> Option<Result<Signature, ()>> {
+        let site = ConstraintSite::Expression(callee);
+        let result = self.bound_constraint_signature(site, owner)?;
+        Some(match result {
+            Ok(signature) => {
+                let binding = self.constraint_binding(site).unwrap().clone();
+                self.check_constraint_defaults(&binding);
+                Ok(signature)
+            }
+            Err(diagnostic) => {
+                self.diagnostics.push(diagnostic);
+                Err(())
+            }
+        })
+    }
+
+    pub(crate) fn record_plan_constraints(&mut self, plan: &Initialization) {
+        let mut plans = vec![plan];
+        while let Some(plan) = plans.pop() {
+            match &plan.kind {
+                InitializationKind::ConstructorCall {
+                    declaration,
+                    site,
+                    arguments,
+                    ..
+                } => {
+                    if let Some(site) = site
+                        && let Type::Struct(owner) = &plan.ty
+                    {
+                        if let Some(binding) = self
+                            .symbolic_requirements
+                            .get(&(*declaration, owner.clone()))
+                            .cloned()
+                        {
+                            match site {
+                                ConstraintSite::Expression(id) => {
+                                    self.constraint_calls.insert(*id, binding);
+                                }
+                                ConstraintSite::Variable(span) => {
+                                    self.constraint_variables.insert(span_key(*span), binding);
+                                }
+                            }
+                        }
+                        if let Some(binding) = self.constraint_binding(*site).cloned() {
+                            self.check_constraint_defaults(&binding);
+                        }
+                    }
+                    plans.extend(arguments);
+                }
+                InitializationKind::Aggregate(values) => plans.extend(values),
+                _ => {}
+            }
+        }
     }
 
     pub(crate) fn check_constraint_defaults(&mut self, binding: &ConstraintCallInfo) {

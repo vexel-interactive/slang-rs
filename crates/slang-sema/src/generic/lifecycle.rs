@@ -68,6 +68,8 @@ impl Specializer {
             }
         }
         references.constraint_calls(&mut module.constraint_calls)?;
+        references.constraint_variables(&mut module.constraint_variables)?;
+        references.constraint_calls(&mut module.constraint_calls)?;
         loop {
             let mut changed = false;
             let before = references.0.len();
@@ -164,9 +166,18 @@ impl Specializer {
         references
             .constraint_calls(&mut module.constraint_calls)
             .expect("reference traversal cannot fail");
+        references
+            .constraint_variables(&mut module.constraint_variables)
+            .expect("reference traversal cannot fail");
+        references
+            .constraint_calls(&mut module.constraint_calls)
+            .expect("reference traversal cannot fail");
         module
             .constraint_calls
             .retain(|id, _| references.1.contains(id));
+        module
+            .constraint_variables
+            .retain(|v| references.2.contains(&span_key(v.span)));
         let names = module
             .declarations
             .iter()
@@ -249,8 +260,21 @@ impl InferenceProbe {
 }
 
 #[derive(Default)]
-struct References(BTreeSet<String>, BTreeSet<ExprId>);
+struct References(BTreeSet<String>, BTreeSet<ExprId>, BTreeSet<SpanKey>);
 impl References {
+    fn constraint_variables(
+        &mut self,
+        variables: &mut [ConstraintVariableInfo],
+    ) -> Result<(), Diagnostic> {
+        for variable in variables {
+            if self.2.contains(&span_key(variable.span)) {
+                self.ty(&mut variable.call.owner)?;
+                self.ty(&mut variable.call.interface)?;
+                visit::walk_function(self, &mut variable.call.requirement)?;
+            }
+        }
+        Ok(())
+    }
     fn constraint_calls(
         &mut self,
         calls: &mut BTreeMap<ExprId, ConstraintCallInfo>,
@@ -277,6 +301,10 @@ impl References {
     }
 }
 impl VisitorMut for References {
+    fn variable(&mut self, variable: &mut Variable) -> Result<(), Diagnostic> {
+        self.2.insert(span_key(variable.span));
+        visit::walk_variable(self, variable)
+    }
     fn expression_id(&mut self, id: &mut ExprId) {
         self.1.insert(*id);
     }

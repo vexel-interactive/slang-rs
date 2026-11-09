@@ -39,6 +39,7 @@ pub(super) struct Substitute<'a> {
     pub remaining_nodes: &'a mut usize,
     pub expression_origins: &'a mut BTreeMap<ExprId, ExprId>,
     pub constraint_calls: &'a mut BTreeMap<ExprId, ConstraintCallInfo>,
+    pub constraint_variables: &'a mut BTreeMap<SpanKey, ConstraintCallInfo>,
 }
 
 impl Substitute<'_> {
@@ -57,6 +58,22 @@ impl Substitute<'_> {
 }
 
 impl VisitorMut for Substitute<'_> {
+    fn variable(&mut self, variable: &mut Variable) -> Result<(), Diagnostic> {
+        let binding = self
+            .constraint_variables
+            .get(&crate::span_key(variable.span))
+            .cloned();
+        visit::walk_variable(self, variable)?;
+        if let Some(mut binding) = binding {
+            self.ty(&mut binding.owner)?;
+            self.ty(&mut binding.interface)?;
+            visit::walk_function(self, &mut binding.requirement)?;
+            super::witness::set_owner(&mut binding);
+            self.constraint_variables
+                .insert(crate::span_key(variable.span), binding);
+        }
+        Ok(())
+    }
     fn span(&mut self, span: &mut Span) {
         *span = span.with_context(self.context);
     }

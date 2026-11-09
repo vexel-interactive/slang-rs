@@ -29,7 +29,7 @@ pub(super) fn template_calls(
     module: &Module,
     origins: &BTreeMap<ExprId, ExprId>,
     parameters: &BTreeMap<String, TypeRef>,
-) -> Result<BTreeMap<ExprId, ConstraintCallInfo>, Diagnostic> {
+) -> Result<TemplateBindings, Diagnostic> {
     let mut calls = BTreeMap::new();
     let mut visitor = Reify {
         module,
@@ -44,7 +44,19 @@ pub(super) fn template_calls(
         set_owner(&mut binding);
         calls.insert(origins.get(id).copied().unwrap_or(*id), binding);
     }
-    Ok(calls)
+    let mut variables = vec![];
+    for variable in &module.constraint_variables {
+        let mut binding = variable.call.clone();
+        visitor.ty(&mut binding.owner)?;
+        visitor.ty(&mut binding.interface)?;
+        visit::walk_function(&mut visitor, &mut binding.requirement)?;
+        set_owner(&mut binding);
+        variables.push(ConstraintVariableInfo {
+            span: variable.span.with_context(0),
+            call: binding,
+        });
+    }
+    Ok(TemplateBindings { calls, variables })
 }
 
 struct Reify<'a> {
@@ -157,24 +169,46 @@ impl VisitorMut for Reify<'_> {
 }
 
 impl Specializer {
+    pub(super) fn specialize_constraint_variable(&mut self, span: Span) -> Result<(), Diagnostic> {
+        let site = crate::span_key(span);
+        if !self.constraint_variables.contains_key(&site)
+            || !self.processed_constraint_variables.insert(site)
+        {
+            return Ok(());
+        }
+        let mut binding = self.constraint_variables.remove(&site).unwrap();
+        self.specialize_constraint_binding(&mut binding)?;
+        self.constraint_variables.insert(site, binding);
+        Ok(())
+    }
     pub(super) fn specialize_constraint_call(&mut self, id: ExprId) -> Result<(), Diagnostic> {
         if !self.constraint_calls.contains_key(&id) || !self.processed_constraint_calls.insert(id) {
             return Ok(());
         }
         let mut binding = self.constraint_calls.remove(&id).unwrap();
+        self.specialize_constraint_binding(&mut binding)?;
+        self.constraint_calls.insert(id, binding);
+        Ok(())
+    }
+
+    fn specialize_constraint_binding(
+        &mut self,
+        binding: &mut ConstraintCallInfo,
+    ) -> Result<(), Diagnostic> {
         self.ty(&mut binding.owner)?;
         self.ty(&mut binding.interface)?;
         let module = self.shapes.current_module;
         let owner = self.shapes.current_static_type.take();
+        let scopes = self.shapes.scopes.split_off(1);
         self.shapes.current_module = slang_module::ModuleId(binding.declaration_module);
         self.shapes.current_static_type = Some(binding.owner.name.clone());
         self.shapes.scopes.push(BTreeMap::new());
         visit::walk_function(self, &mut binding.requirement)?;
         self.shapes.scopes.pop();
+        self.shapes.scopes.extend(scopes);
         self.shapes.current_module = module;
         self.shapes.current_static_type = owner;
-        set_owner(&mut binding);
-        self.constraint_calls.insert(id, binding);
+        set_owner(binding);
         Ok(())
     }
 }

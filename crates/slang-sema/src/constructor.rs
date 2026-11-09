@@ -1,5 +1,5 @@
 use crate::{
-    Initialization, InitializationKind, Type,
+    ConstraintSite, Initialization, InitializationKind, Type,
     checker::{Checker, Signature},
     span_key,
 };
@@ -109,13 +109,14 @@ impl Checker {
         match ty {
             Type::Struct(owner) if self.constructors.contains_key(owner) => {
                 // A declaration with no matching default constructor remains uninitialized.
-                if !self.functions[&self.constructors[owner]]
-                    .iter()
-                    .any(|s| s.defaults.iter().all(Option::is_some))
+                if !self.constraint_variables.contains_key(&span_key(span))
+                    && !self.functions[&self.constructors[owner]]
+                        .iter()
+                        .any(|s| s.defaults.iter().all(Option::is_some))
                 {
                     return Ok(None);
                 }
-                self.constructor_plan(ty, &[], span)
+                self.constructor_plan_at(ty, &[], span, Some(ConstraintSite::Variable(span)))
             }
             _ => Ok(None),
         }
@@ -130,6 +131,7 @@ impl Checker {
         let ty = self.resolve_type(&variable.ty);
         match self.automatic_initialization(&ty, variable.span) {
             Ok(Some(plan)) => {
+                self.record_plan_constraints(&plan);
                 self.variable_initializations
                     .insert(span_key(variable.span), plan);
             }
@@ -159,6 +161,7 @@ impl Checker {
                 }
             };
             if let Some(value) = value {
+                self.record_plan_constraints(&value);
                 values.push((field.name, value));
             }
         }

@@ -171,6 +171,7 @@ pub(crate) struct Checker {
     pub direct_witnesses: BTreeMap<crate::conformance::witness::WitnessKey, Signature>,
     pub symbolic_requirements: BTreeMap<(SpanKey, String), ConstraintCallInfo>,
     pub constraint_calls: BTreeMap<ExprId, ConstraintCallInfo>,
+    pub constraint_variables: BTreeMap<SpanKey, ConstraintCallInfo>,
     pub shape_globals: BTreeMap<String, Variable>,
     pub shape_bindings: BTreeMap<String, Binding>,
     pub resolving_shape_globals: BTreeSet<String>,
@@ -210,8 +211,9 @@ fn check_with_metadata(
     default_matrix_major: slang_layout::MatrixMajor,
 ) -> Result<CheckedModule, Vec<Diagnostic>> {
     let mut module = module;
-    module.constraint_calls =
-        crate::generic::validate_templates(&module, &symbols, default_matrix_major)?;
+    let bindings = crate::generic::validate_templates(&module, &symbols, default_matrix_major)?;
+    module.constraint_calls = bindings.calls;
+    module.constraint_variables = bindings.variables;
     let (module, symbols) = crate::generic::specialize(module, symbols, default_matrix_major)?;
     check_concrete(
         module,
@@ -468,6 +470,21 @@ fn check_concrete_inner(
             })
             .collect();
         module.constraint_calls = checker.constraint_calls;
+        module.constraint_variables = checker
+            .constraint_variables
+            .into_iter()
+            .map(
+                |((source, start, end, context), call)| ConstraintVariableInfo {
+                    span: Span {
+                        source: slang_source::SourceId(source),
+                        start,
+                        end,
+                        context,
+                    },
+                    call,
+                },
+            )
+            .collect();
         let mut checked = CheckedModule {
             matrix_major: checker.default_matrix_major,
             module,
@@ -617,6 +634,11 @@ impl Checker {
             direct_witnesses: BTreeMap::new(),
             symbolic_requirements: BTreeMap::new(),
             constraint_calls: module.constraint_calls.clone(),
+            constraint_variables: module
+                .constraint_variables
+                .iter()
+                .map(|v| (span_key(v.span), v.call.clone()))
+                .collect(),
             shape_globals: module
                 .declarations
                 .iter()

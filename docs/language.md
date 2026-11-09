@@ -1018,9 +1018,12 @@ unconstrained default construction keeps the zero-initialization rules above.
 See [witness selection](../tests/conformance/positive/interface-witness-selection.slang)
 and [required constructor defaults](../tests/conformance/positive/interface-witness-constructors.slang).
 
-Contextual brace initialization and automatic variable initialization still
-repeat concrete constructor selection. Their constrained witness identity and
-requirement defaults are not yet preserved.
+Contextual brace initialization, automatic variables and automatically initialized
+fields in user constructors also
+retain the selected constructor requirement and its declaration defaults. This
+includes nested lists, fixed-array elements, return values and function defaults.
+Ordinary concrete constructor calls keep their own overloads and defaults. See
+[constructor plans](../tests/conformance/positive/interface-witness-plans.slang).
 
 This implementation covers direct signatures. Default interface bodies, generic
 method requirements, associated types, extensions, adapted witnesses (including

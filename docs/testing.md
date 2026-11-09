@@ -806,8 +806,19 @@ overload, preserve explicit/default constructor selection, reconstruct nested
 generic interface arguments, and use requirement defaults across private module
 boundaries. Generic default dependencies retain declaration scope, and dormant
 constraint calls do not instantiate them. Invalid unused defaults report errors
-instead of panicking. Contextual and automatic constructor plans remain outside
-this selection coverage.
+instead of panicking.
+
+Constructor plan selection adds four integration tests and three differential
+fixtures with eleven matching compiled words and six validated native/oracle
+artifacts. They cover contextual lists, array elements, returns, parameter
+defaults, automatic variables and fields, generic interface defaults, private
+constructors and declaration-module lookup. Planning keeps speculative candidates
+pure and records only committed selections. Dormant automatic constraints do not
+instantiate their default helpers. Witness metadata serializes and preserves the
+same lowered IR when a concrete module is checked again. The CLI deep-syntax
+regression also exercises
+loop headers whose parser frame is released before recursively parsing the body,
+avoiding a Windows stack overflow at the existing nesting limit.
 
 [validation.json](validation.json) records the Windows validation run for this
 checkpoint. It includes the pinned compiler version, workspace checks, and

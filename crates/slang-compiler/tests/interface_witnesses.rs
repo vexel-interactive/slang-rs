@@ -128,3 +128,70 @@ fn unused_interface_defaults_are_checked_without_panics() {
         assert!(error.diagnostics.iter().any(|d| d.code == code), "{error}");
     }
 }
+
+#[test]
+fn contextual_lists_returns_defaults_arrays_and_automatic_fields_keep_witnesses() {
+    let compiled = compile(include_str!(
+        "../../../tests/conformance/positive/interface-witness-plans.slang"
+    ));
+    let json = serde_json::to_string(&compiled.ir).unwrap();
+    assert!(!json.contains("parameter_"));
+    compile(include_str!(
+        "../../../tests/conformance/positive/interface-witness-plan-defaults.slang"
+    ));
+}
+
+#[test]
+fn automatic_and_contextual_private_constructors_keep_default_module_scope() {
+    let includes = MemoryIncludes {
+        files: [(
+            "lib.slang".into(),
+            include_str!(
+                "../../../tests/conformance/positive/interface-witness-plan-module/lib.slang"
+            )
+            .into(),
+        )]
+        .into(),
+    };
+    compile_source(
+        "main.slang",
+        include_str!(
+            "../../../tests/conformance/positive/interface-witness-plan-module/main.slang"
+        ),
+        &CompileOptions::default(),
+        &includes,
+    )
+    .unwrap();
+}
+
+#[test]
+fn unused_automatic_constraints_do_not_instantiate_default_helpers() {
+    let compiled = compile(
+        "T zero<T>(){return T();}interface Make<Value>{__init(Value input=zero<Value>());}void automatic<T:Make<int>>(){T item;}int run(){return 0;}",
+    );
+    assert_eq!(compiled.ir.functions.len(), 1);
+    assert_eq!(compiled.ir.functions[0].name, "run");
+}
+
+#[test]
+fn checked_witness_metadata_serializes_and_survives_rechecking() {
+    let source = "interface Make{__init(int value=3);int read();}struct Item:Make{int value;__init(int input=9){value=input;}int read(){return value;}}int automatic<T:Make>(){T item;return item.read();}int run(){return automatic<Item>();}";
+    let mut sources = slang_source::SourceMap::default();
+    let root = sources.add("witnesses.slang", source);
+    let tokens = slang_preprocessor::preprocess(
+        &mut sources,
+        root,
+        &MemoryIncludes::default(),
+        &slang_preprocessor::Options::default(),
+    )
+    .tokens;
+    let checked = slang_sema::check(slang_syntax::parse(&tokens).unwrap()).unwrap();
+    assert!(!checked.module.constraint_variables.is_empty());
+    serde_json::to_string(&checked.module).unwrap();
+    let rechecked = slang_sema::check(checked.module.clone()).unwrap();
+    assert_eq!(checked.call_names, rechecked.call_names);
+    assert_eq!(
+        serde_json::to_string(&slang_ir::lower(&checked).unwrap()).unwrap(),
+        serde_json::to_string(&slang_ir::lower(&rechecked).unwrap()).unwrap()
+    );
+}

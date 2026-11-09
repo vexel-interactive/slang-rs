@@ -2,6 +2,12 @@ use crate::{Type, checker::Checker};
 use slang_source::Span;
 use slang_syntax::{Expr, ExprId};
 
+#[derive(Clone, Copy, Debug)]
+pub enum ConstraintSite {
+    Expression(ExprId),
+    Variable(Span),
+}
+
 /// A checked value construction, with every omitted field made explicit.
 #[derive(Clone, Debug)]
 pub struct Initialization {
@@ -15,6 +21,8 @@ pub enum InitializationKind {
         name: String,
         parameters: Vec<Type>,
         arguments: Vec<Initialization>,
+        declaration: crate::checker::SpanKey,
+        site: Option<ConstraintSite>,
     },
     Value(Box<Expr>),
     /// Evaluate a default in its declaration scope, outside caller bindings.

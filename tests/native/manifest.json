@@ -7222,6 +7222,35 @@
         "1": 4,
         "2": 8
       }
+    },
+    {
+      "file": "../conformance/positive/interface-witness-plans.slang",
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 36,
+        "1": 13,
+        "2": 13,
+        "3": 11,
+        "4": 12
+      }
+    },
+    {
+      "file": "../conformance/positive/interface-witness-plan-defaults.slang",
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 4,
+        "1": 4,
+        "2": 4,
+        "3": 8
+      }
+    },
+    {
+      "file": "../conformance/positive/interface-witness-plan-module/main.slang",
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 5,
+        "1": 1
+      }
     }
   ]
 }

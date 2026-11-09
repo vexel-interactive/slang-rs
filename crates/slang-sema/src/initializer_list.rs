@@ -1,19 +1,21 @@
+use crate::ConstraintSite;
 use crate::{Initialization, InitializationKind, Type, checker::Checker};
 use slang_source::{Diagnostic, Span};
 use slang_syntax::{Expr, ExprId, ExprKind, Variable};
 
 impl Checker {
-    pub(crate) fn constructor_plan(
+    pub(crate) fn constructor_plan_at(
         &self,
         target: &Type,
         values: &[Expr],
         span: Span,
+        site: Option<ConstraintSite>,
     ) -> Result<Option<Initialization>, Diagnostic> {
         Planner {
             checker: self,
             remaining: 65536,
         }
-        .constructor(target, values, span, 0)
+        .constructor(target, values, span, 0, site)
     }
     pub(crate) fn array_constructor(
         &mut self,
@@ -81,6 +83,7 @@ impl Checker {
         if matches!(value.kind, ExprKind::InitializerList(_)) {
             match self.list_plan(value, target) {
                 Ok(plan) => {
+                    self.record_plan_constraints(&plan);
                     self.initializations.insert(value.id, plan);
                     self.expression_types.insert(value.id, target.clone());
                 }
@@ -131,11 +134,17 @@ impl Planner<'_> {
         values: &[Expr],
         span: Span,
         depth: usize,
+        site: Option<ConstraintSite>,
     ) -> Result<Option<Initialization>, Diagnostic> {
         let Type::Struct(owner) = target else {
             return Ok(None);
         };
-        let Some(signature) = self.checker.select_constructor(owner, values, span)? else {
+        let selected = site.and_then(|site| self.checker.bound_constraint_signature(site, owner));
+        let selected = match selected {
+            Some(signature) => Some(signature?),
+            None => self.checker.select_constructor(owner, values, span)?,
+        };
+        let Some(signature) = selected else {
             return Ok(None);
         };
         self.charge(depth, span)?;
@@ -178,6 +187,8 @@ impl Planner<'_> {
                 name: signature.target_name,
                 parameters: signature.parameters,
                 arguments,
+                declaration: signature.declaration,
+                site,
             },
         }))
     }
@@ -230,7 +241,13 @@ impl Planner<'_> {
         let ExprKind::InitializerList(values) = &value.kind else {
             return self.value(value, target);
         };
-        if let Some(constructor) = self.constructor(target, values, value.span, depth + 1)? {
+        if let Some(constructor) = self.constructor(
+            target,
+            values,
+            value.span,
+            depth + 1,
+            Some(ConstraintSite::Expression(value.id)),
+        )? {
             return Ok(constructor);
         }
         if values.is_empty() {
