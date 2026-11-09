@@ -416,6 +416,7 @@ impl Checker {
                                 .map(|p| p.initializer.clone())
                                 .collect(),
                             method: function.method.clone(),
+                            default_type_arguments: 0,
                         });
                     }
                 }

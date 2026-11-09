@@ -803,21 +803,30 @@ int selected = pick<int>(value);
 Function templates use the same canonical type arguments, bounded expansion and
 opaque body checking as user type templates. Unused bodies are checked and unused
 valid functions create no concrete IR. Calls between templates, prototype/definition
-pairs, overloads with a shared type parameter list, declared value defaults,
+pairs, independently specialized overloads, declared value defaults,
 `out`/`inout` arguments, aggregate/array/resource values and imported caller-defined
 types use ordinary concrete checking and lowering. Parameter names on prototypes
 and definitions can differ. Explicit template calls remain distinct from ordinary
 overloads and local value comparisons.
+
+Each overload retains its own type parameter count and defaults. Prototypes and
+definitions share a signature after scalar/array shape and transparent alias
+normalization. Their type defaults come from the first declaration; later defaults
+are checked but do not replace or supplement that list. Explicit applications
+consider overloads whose type arguments are supplied or defaulted. Concrete value
+conversion costs select a candidate, with fewer default type arguments breaking
+equal-cost ties. Distinct generic declarations can produce equal concrete input
+types; such calls receive an ambiguity diagnostic instead of a declaration error.
+Duplicate original signatures are rejected even when unused. Imported candidates
+retain their individual visibility and caller type-argument contexts.
 
 Explicit applications fill omitted arguments only from type defaults. A call with
 no value arguments can omit angle brackets and use the complete default type chain,
 as in `zero()`; a same-named ordinary overload retains its ordinary selection.
 Inference from value arguments, partially inferred arguments, generic
 methods/constructors, value parameters, constraints, higher-order function values
-and entry-point specialization remain unported. Overloads with different type
-parameter counts or conflicting type defaults are rejected. Overloads that collapse
-to the same concrete signature still use the existing duplicate-signature check;
-full polymorphic overload specialization and ranking remain incomplete.
+and entry-point specialization remain unported. Complete constrained overload
+specialization, candidate viability and ranking remain incomplete.
 
 ## Brace initializer lists
 

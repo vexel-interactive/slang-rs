@@ -1,6 +1,7 @@
 //! Instantiate user type and function templates before checking concrete declarations.
 
 mod canonical;
+mod function;
 mod substitute;
 mod symbolic;
 
@@ -26,6 +27,8 @@ struct Template {
 struct Specializer {
     shapes: crate::checker::Checker,
     templates: BTreeMap<String, Template>,
+    function_templates: BTreeMap<String, Vec<String>>,
+    function_applications: BTreeMap<(String, Vec<String>), String>,
     ordinary_functions: BTreeSet<String>,
     aliases: BTreeMap<String, TypeRef>,
     nested: BTreeMap<(String, String), String>,
@@ -36,6 +39,7 @@ struct Specializer {
     nested_output: Vec<NestedTypeInfo>,
     static_output: Vec<StaticMemberInfo>,
     instance_output: Vec<GenericInstanceInfo>,
+    application_output: Vec<FunctionApplicationInfo>,
     prefix: String,
     next_expression: usize,
     next_context: usize,
@@ -154,6 +158,8 @@ fn specialize_inner(
             })
             .collect(),
         templates: BTreeMap::new(),
+        function_templates: BTreeMap::new(),
+        function_applications: BTreeMap::new(),
         ordinary_functions: BTreeSet::new(),
         aliases: BTreeMap::new(),
         nested: BTreeMap::new(),
@@ -163,6 +169,7 @@ fn specialize_inner(
         nested_output: vec![],
         static_output: vec![],
         instance_output: vec![],
+        application_output: vec![],
         prefix,
         next_expression: ids.expression,
         next_context: ids.context.max(1),
@@ -199,6 +206,7 @@ fn specialize_inner(
     module.nested_types = specializer.nested_output;
     module.static_members = specializer.static_output;
     module.generic_instances = specializer.instance_output;
+    module.function_applications = specializer.application_output;
     Ok(SpecializedModule {
         module,
         symbols: specializer.symbols,
@@ -224,7 +232,7 @@ impl Specializer {
             .collect();
         let roots: BTreeSet<_> = declarations
             .iter()
-            .filter(|d| !parameters(d).is_empty())
+            .filter(|d| !matches!(d, Declaration::Function(_)) && !parameters(d).is_empty())
             .map(|d| declaration_name(d).to_owned())
             .collect();
         let containing = |name: &str| {
@@ -240,11 +248,6 @@ impl Specializer {
         };
         let root_for = |declaration: &Declaration| {
             let name = match declaration {
-                Declaration::Function(f)
-                    if f.owner_type().is_none() && f.generic_parameters.is_empty() =>
-                {
-                    return None;
-                }
                 Declaration::Function(f) => f.owner_type().unwrap_or(&f.name),
                 Declaration::Global(v) => static_owners
                     .get(&v.name)
@@ -260,7 +263,6 @@ impl Specializer {
                     == Some(declaration_name(declaration))
             {
                 let name = declaration_name(declaration).to_owned();
-                let function = matches!(declaration, Declaration::Function(_));
                 let mut names = BTreeSet::new();
                 for parameter in parameters(declaration) {
                     if !names.insert(&parameter.name) {
@@ -270,31 +272,6 @@ impl Specializer {
                             "duplicate generic parameter",
                         ));
                     }
-                }
-                if let Some(existing) = templates.get_mut(&name)
-                    && function
-                    && existing.function
-                {
-                    if existing.parameters.len() != parameters(declaration).len() {
-                        return Err(error(
-                            declaration_span(declaration),
-                            "generic function overloads with different type parameter counts are not implemented",
-                        ));
-                    }
-                    for (first, next) in existing.parameters.iter_mut().zip(parameters(declaration))
-                    {
-                        if let (Some(a), Some(b)) = (&first.default, &next.default) {
-                            if canonical::type_key(a) != canonical::type_key(b) {
-                                return Err(error(
-                                    next.span,
-                                    "conflicting generic type parameter defaults",
-                                ));
-                            }
-                        } else if first.default.is_none() {
-                            first.default = next.default.clone();
-                        }
-                    }
-                    continue;
                 }
                 if templates.contains_key(&name) || self.templates.contains_key(&name) {
                     return Err(error(
@@ -306,7 +283,7 @@ impl Specializer {
                     name.clone(),
                     Template {
                         name,
-                        function,
+                        function: false,
                         parameters: parameters(declaration).to_vec(),
                         declarations: vec![],
                         nested: vec![],
@@ -316,6 +293,7 @@ impl Specializer {
                 );
             }
         }
+        let mut functions = vec![];
         for mut declaration in declarations {
             if match &declaration {
                 Declaration::Struct(s) => s.modifiers.iter().any(|m| m == "public"),
@@ -341,6 +319,11 @@ impl Specializer {
                     .declarations
                     .push(declaration);
             } else {
+                if matches!(&declaration, Declaration::Function(f) if !f.generic_parameters.is_empty())
+                {
+                    functions.push(declaration);
+                    continue;
+                }
                 if let Declaration::Function(f) = &declaration {
                     self.ordinary_functions.insert(f.name.clone());
                 }
@@ -393,6 +376,7 @@ impl Specializer {
             }
         }
         self.templates.extend(templates);
+        self.register_functions(functions, known)?;
         Ok(())
     }
 
@@ -410,13 +394,14 @@ impl Specializer {
             return Err(error(span, "too many generic type arguments"));
         }
         self.depth += 1;
-        let result = self.instantiate_inner(template, supplied, span);
+        let result = self.instantiate_inner(name, template, supplied, span);
         self.depth -= 1;
         result
     }
 
     fn instantiate_inner(
         &mut self,
+        template_key: &str,
         template: Template,
         supplied: &[TypeArgument],
         span: Span,
@@ -444,7 +429,7 @@ impl Specializer {
             arguments.push(argument);
         }
         let key = (
-            template.name.clone(),
+            template_key.to_owned(),
             arguments
                 .iter()
                 .map(canonical::type_key)
@@ -567,6 +552,9 @@ impl Specializer {
     }
 
     fn expand(&mut self, ty: &mut TypeRef) -> Result<(), Diagnostic> {
+        if self.function_templates.contains_key(&ty.name) {
+            return Err(error(ty.span, "generic function is not a type"));
+        }
         if ty.base.is_none() && ty.name.contains("::") {
             let mut parts = ty.name.split("::");
             let mut name = parts.next().unwrap().to_owned();
@@ -665,17 +653,14 @@ impl VisitorMut for Specializer {
         if let ExprKind::Call { callee, arguments } = &mut expression.kind
             && arguments.is_empty()
             && let ExprKind::Name(name) = &callee.kind
-            && self.templates.get(name).is_some_and(|t| t.function)
+            && self.function_templates.contains_key(name)
             && !self.ordinary_functions.contains(name)
         {
-            callee.kind = ExprKind::Name(self.instantiate(name, &[], callee.span)?);
+            callee.kind = ExprKind::Name(self.apply_function(name, &[], callee.span)?);
         }
         if let ExprKind::TypeApplication(reference) = &expression.kind
             && reference.base.is_none()
-            && self
-                .templates
-                .get(&reference.name)
-                .is_some_and(|t| t.function)
+            && self.function_templates.contains_key(&reference.name)
         {
             if !reference.arrays.is_empty() || reference.matrix_major.is_some() {
                 return Err(error(
@@ -683,17 +668,18 @@ impl VisitorMut for Specializer {
                     "invalid generic function application",
                 ));
             }
-            let name = self.instantiate(&reference.name, &reference.arguments, expression.span)?;
+            let name =
+                self.apply_function(&reference.name, &reference.arguments, expression.span)?;
             expression.kind = ExprKind::Name(name);
             return Ok(());
         }
         if let ExprKind::Name(name) = &expression.kind
-            && self.templates.contains_key(name)
+            && (self.templates.contains_key(name) || self.function_templates.contains_key(name))
             && !self.ordinary_functions.contains(name)
         {
             return Err(error(
                 expression.span,
-                if self.templates[name].function {
+                if self.function_templates.contains_key(name) {
                     "generic function requires explicit type arguments"
                 } else {
                     "generic constructor requires explicit type arguments"

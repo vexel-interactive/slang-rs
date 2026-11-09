@@ -687,6 +687,18 @@ copies alongside user constructors. Parameter construction must bypass field def
 and user initialization; ordinary concrete construction must retain them. Resource
 copy regressions also preserve constant-buffer handles before their member loads.
 
+Independent generic overloads add three integration tests and seven differential
+cases. The [overload fixture](../tests/conformance/positive/generic-function-overloads.slang),
+[module fixture](../tests/conformance/positive/generic-overload-module/main.slang)
+and [first-default fixture](../tests/conformance/positive/generic-function-first-type-default.slang)
+compare fourteen matching compiled words for different type arities/defaults,
+conversion and default-count ranking, canonical scalar/array/template-alias
+prototype signatures, nested callers, imported private arguments and individual
+overload visibility. Invalid concrete ambiguity, unused duplicate signatures,
+inaccessible overloads and defaults added after a prototype are rejected. The
+application candidate aliases must disappear during IR/HLSL lowering. This does
+not establish full inference or constrained overload viability.
+
 [validation.json](validation.json) records the Windows validation run for this
 checkpoint. It includes the pinned compiler version, workspace checks, and
 differential corpus counts. It is a snapshot of that run, not a promise of

@@ -17,6 +17,20 @@ pub struct Module {
     /// Concrete type arguments visible in each instantiated declaration context.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub generic_instances: Vec<GenericInstanceInfo>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub function_applications: Vec<FunctionApplicationInfo>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct FunctionApplicationInfo {
+    pub name: String,
+    pub candidates: Vec<FunctionCandidateInfo>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct FunctionCandidateInfo {
+    pub function: String,
+    pub default_type_arguments: usize,
 }
 
 #[derive(Clone, Debug, Serialize)]

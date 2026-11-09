@@ -224,33 +224,8 @@ impl Checker {
                             .all(|(a, b)| *a == Type::InitializerList || a.convertible_to(b))
                 })
                 .collect();
-            matches.sort_by_key(|s| {
-                types
-                    .iter()
-                    .zip(&s.parameters)
-                    .zip(arguments)
-                    .map(|((a, b), expr)| {
-                        a.literal_conversion_cost(
-                            b,
-                            slang_syntax::integer_literal(expr).ok().flatten(),
-                        )
-                    })
-                    .sum::<usize>()
-            });
-            let best = matches.first();
-            if let Some(best) = best {
-                let score = types
-                    .iter()
-                    .zip(&best.parameters)
-                    .zip(arguments)
-                    .map(|((a, b), expr)| {
-                        a.literal_conversion_cost(
-                            b,
-                            slang_syntax::integer_literal(expr).ok().flatten(),
-                        )
-                    })
-                    .sum::<usize>();
-                if matches.get(1).is_some_and(|s| {
+            let score = |s: &Signature| {
+                (
                     types
                         .iter()
                         .zip(&s.parameters)
@@ -261,9 +236,14 @@ impl Checker {
                                 slang_syntax::integer_literal(expr).ok().flatten(),
                             )
                         })
-                        .sum::<usize>()
-                        == score
-                }) {
+                        .sum::<usize>(),
+                    s.default_type_arguments,
+                )
+            };
+            matches.sort_by_key(&score);
+            let best = matches.first();
+            if let Some(best) = best {
+                if matches.get(1).is_some_and(|s| score(s) == score(best)) {
                     self.error("T014", span, format!("ambiguous call to '{name}'"));
                 }
                 if !best.defined {

@@ -8861,6 +8861,65 @@
         "12": 11,
         "13": 0
       }
+    },
+    {
+      "file": "positive/generic-function-overloads.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 1,
+        "1": 2,
+        "2": 3,
+        "3": 4,
+        "4": 5,
+        "5": 6,
+        "6": 7,
+        "7": 8,
+        "8": 9,
+        "9": 3
+      }
+    },
+    {
+      "file": "positive/generic-overload-module/main.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 1,
+        "1": 2
+      }
+    },
+    {
+      "file": "negative/generic-function-ambiguous-specialization.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/generic-function-duplicate-signature.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T003"
+    },
+    {
+      "file": "positive/generic-function-first-type-default.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 0,
+        "1": 0
+      }
+    },
+    {
+      "file": "positive/generic-overload-module/private-overload.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/generic-function-later-type-default.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T002"
     }
   ]
 }

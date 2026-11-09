@@ -101,6 +101,7 @@ pub(crate) struct Signature {
     pub target_name: String,
     pub defaults: Vec<Option<Expr>>,
     pub method: Option<StructMethod>,
+    pub default_type_arguments: usize,
 }
 
 pub(crate) struct Checker {
@@ -222,6 +223,7 @@ pub(crate) fn check_concrete(
     let mut checker = Checker::new(&module, symbols, default_matrix_major);
     checker.symbolic_types = symbolic_types;
     checker.declare(&module);
+    checker.declare_function_applications(&module);
     let global_declarations: BTreeMap<_, _> = module
         .declarations
         .iter()

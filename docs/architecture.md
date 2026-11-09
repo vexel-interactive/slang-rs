@@ -68,12 +68,18 @@ specialization remain unimplemented.
 Function parameter bindings use declaration-scoped indexed names so prototypes
 can rename parameters without changing substitution. The linker distinguishes
 generic function applications from type construction and local value comparisons.
-Function applications expand to named concrete callees; subsequent call checking
-selects ordinary signatures and initialization/output plans. Each specialization
+Function applications retain candidate sets in `Module.function_applications`;
+subsequent call checking selects concrete signatures and initialization/output plans.
+Each generic overload has a separate template and instance cache entry, while
+canonical source signatures join prototypes to definitions. The first declaration
+owns its type defaults. Concrete conversion cost and the number of default type
+arguments rank applicable candidates, and equal scores produce call ambiguity.
+Selected calls lower to the concrete function name; application aliases never
+reach emitted HLSL. Each specialization
 retains fresh expression IDs and a span context, while aliases share cached
 applications. A symbolic pass checks every function template before any concrete
-body is lowered. Generic inference and general overload specialization remain
-unimplemented.
+body is lowered. Generic inference and complete constrained overload resolution
+remain unimplemented.
 Calls with no value arguments can instantiate the complete default type chain
 without angle brackets, while a visible ordinary overload retains its lookup.
 Shape conversions between different scalar types apply the destination's bit

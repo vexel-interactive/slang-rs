@@ -6,7 +6,7 @@
     "rustfmt": "passed",
     "clippy_all_targets_warnings_denied": "passed",
     "unit_tests": 42,
-    "integration_tests": 420,
+    "integration_tests": 423,
     "doc_tests": 1,
     "conformance_comparison_tests": 27,
     "rustdoc": "passed",
@@ -16,11 +16,11 @@
   },
   "differential_validation": {
     "oracle": "Slang 2026.21",
-    "cases_passed": 635,
-    "cases_total": 635,
-    "matching_acceptance_cases": 623,
+    "cases_passed": 642,
+    "cases_total": 642,
+    "matching_acceptance_cases": 630,
     "documented_oracle_differences": 12,
-    "dxc_hlsl_artifacts_validated": 646,
+    "dxc_hlsl_artifacts_validated": 652,
     "dxc_invalid_hlsl_artifacts_rejected": 22,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
@@ -37,9 +37,9 @@
     "uniform_byte_layout_cases_compared": 61,
     "documented_oracle_physical_layout_differences": 12,
     "physical_buffer_layout_cases_compared": 43,
-    "compiled_constant_cases_compared": 48,
-    "compiled_constant_words_compared": 1292,
-    "compiled_constant_words_matching": 1278,
+    "compiled_constant_cases_compared": 51,
+    "compiled_constant_words_compared": 1306,
+    "compiled_constant_words_matching": 1292,
     "documented_oracle_constant_words_differing": 14,
     "documented_oracle_constant_cases_differing": 6,
     "documented_oracle_uniform_reflection_differences": 1,
@@ -53,8 +53,9 @@
   "remote_ci_executed": false,
   "remote_ci": null,
   "previous_remote_ci": {
-    "run_id": 42670555726,
-    "head_sha": "6600d1d8b834c7cc803577f3e744facdc8594619",
+    "run_id": 42672125010,
+    "head_sha": "67e44002fd4a6b11c51dbe846d56660a866bf229",
+    "attempt": 2,
     "conclusion": "success",
     "platforms": [
       "ubuntu-latest",
@@ -63,6 +64,16 @@
     ]
   },
   "earlier_remote_ci": [
+    {
+      "run_id": 42670555726,
+      "head_sha": "6600d1d8b834c7cc803577f3e744facdc8594619",
+      "conclusion": "success",
+      "platforms": [
+        "ubuntu-latest",
+        "windows-latest",
+        "macos-latest"
+      ]
+    },
     {
       "run_id": 42669086375,
       "head_sha": "0379461e82d1b700cfad9306aafecddb94e5cfa5",
@@ -587,7 +598,7 @@
   },
   "native_hlsl_suite": {
     "manifest": "tests/native/manifest.json",
-    "artifacts_validated": 130,
+    "artifacts_validated": 133,
     "profiles": [
       "cs_6_0",
       "cs_6_2",
@@ -725,13 +736,16 @@
       "../conformance/positive/generic-functions.slang",
       "../conformance/positive/generic-function-resources.slang",
       "../conformance/positive/generic-function-module/main.slang",
-      "../conformance/positive/generic-function-default-calls.slang"
+      "../conformance/positive/generic-function-default-calls.slang",
+      "../conformance/positive/generic-function-overloads.slang",
+      "../conformance/positive/generic-overload-module/main.slang",
+      "../conformance/positive/generic-function-first-type-default.slang"
     ],
     "uniform_byte_layout_cases": 61,
     "matrix_layout_shapes": 96,
     "constant_buffer_numeric_layouts": 252,
-    "compiled_constant_cases": 35,
-    "compiled_constant_words": 1126
+    "compiled_constant_cases": 38,
+    "compiled_constant_words": 1140
   },
   "pointer_integer_validation": {
     "target_pointer_bits": 64,
@@ -1054,13 +1068,13 @@
     "constant_buffer_parameter_copies_preserve_handles": true
   },
   "generic_function_validation": {
-    "integration_tests": 6,
-    "differential_cases": 11,
-    "matching_acceptance_cases": 11,
-    "dxc_hlsl_artifacts_validated": 8,
-    "compiled_constant_cases": 3,
-    "compiled_constant_words": 28,
-    "matching_words": 28,
+    "integration_tests": 9,
+    "differential_cases": 18,
+    "matching_acceptance_cases": 18,
+    "dxc_hlsl_artifacts_validated": 14,
+    "compiled_constant_cases": 6,
+    "compiled_constant_words": 42,
+    "matching_words": 42,
     "explicit_type_arguments": true,
     "type_defaults": true,
     "dependent_type_defaults": true,
@@ -1084,6 +1098,13 @@
     "parameter_aggregate_zero_initialization": true,
     "parameter_construction_bypasses_user_defaults_and_constructors": true,
     "exact_copies_preserved_with_declared_copy_constructors": true,
-    "constant_buffer_parameter_copies_preserve_handles": true
+    "constant_buffer_parameter_copies_preserve_handles": true,
+    "independent_generic_overloads": true,
+    "canonical_prototype_signatures": true,
+    "first_declaration_type_defaults": true,
+    "concrete_conversion_and_default_count_ranking": true,
+    "concrete_ambiguity_diagnostics": true,
+    "per_overload_visibility": true,
+    "application_candidates_excluded_from_emission": true
   }
 }

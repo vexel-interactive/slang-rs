@@ -8,7 +8,7 @@ impl Specializer {
         let template = self.templates[name].clone();
         let module = self
             .symbols
-            .get(name)
+            .get(&template.name)
             .map_or(Default::default(), |o| o.module);
         let mut arguments = vec![];
         for parameter in &template.parameters {
