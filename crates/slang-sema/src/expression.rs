@@ -179,7 +179,11 @@ impl Checker {
                         .iter()
                         .skip(1)
                         .any(|scope| scope.contains_key(name))
-                    && let Some(ty) = self.structures[owner].get(name).cloned()
+                    && let Some(ty) = self
+                        .structures
+                        .get(owner)
+                        .and_then(|fields| fields.get(name))
+                        .cloned()
                 {
                     if self.lookup("this").is_none() {
                         self.error(

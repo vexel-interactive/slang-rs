@@ -32,7 +32,17 @@ impl Specializer {
                     self.ty(&mut field.ty)?;
                 }
             }
-            Declaration::Interface(_) => visit::walk_declaration(self, declaration)?,
+            Declaration::Interface(interface) => {
+                for base in &mut interface.bases {
+                    self.ty(base)?;
+                }
+                for requirement in &mut interface.requirements {
+                    self.ty(&mut requirement.return_type)?;
+                    for parameter in &mut requirement.parameters {
+                        self.ty(&mut parameter.ty)?;
+                    }
+                }
+            }
             Declaration::TypeAlias(alias) => self.ty(&mut alias.target)?,
             Declaration::Global(variable) => self.ty(&mut variable.ty)?,
         }
@@ -57,8 +67,18 @@ impl Specializer {
                 references.declaration(declaration)?;
             }
         }
+        references.constraint_calls(&mut module.constraint_calls)?;
         loop {
             let mut changed = false;
+            let before = references.0.len();
+            for instance in &self.instance_output {
+                if references.0.contains(&instance.type_name) {
+                    for argument in &instance.arguments {
+                        references.ty(&mut argument.clone())?;
+                    }
+                }
+            }
+            changed |= references.0.len() != before;
             for nested in &self.nested_output {
                 if references.0.contains(&nested.type_name) {
                     changed |= references.0.insert(nested.owner.clone());
@@ -135,6 +155,18 @@ impl Specializer {
             let site = span_key(declaration_span(d));
             !self.generated.contains(&site) || self.active.contains(&site)
         });
+        let mut references = References::default();
+        for declaration in &mut module.declarations {
+            references
+                .declaration(declaration)
+                .expect("reference traversal cannot fail");
+        }
+        references
+            .constraint_calls(&mut module.constraint_calls)
+            .expect("reference traversal cannot fail");
+        module
+            .constraint_calls
+            .retain(|id, _| references.1.contains(id));
         let names = module
             .declarations
             .iter()
@@ -172,6 +204,16 @@ impl InferenceProbe {
         self.targets = checker.generic_call_names.clone();
         self.constructor_requests = checker.generic_constructor_requests.borrow().clone();
         self.selected_functions = checker.call_names.values().cloned().collect();
+        for ((owner, ..), witness) in &checker.direct_witnesses {
+            if checker
+                .struct_definitions
+                .get(owner)
+                .is_some_and(|s| !self.deferred.contains(&span_key(s.span)))
+                && let Some(name) = checker.function_names.get(&witness.declaration)
+            {
+                self.selected_functions.insert(name.clone());
+            }
+        }
         self.ambiguities = checker
             .diagnostics
             .iter()
@@ -207,8 +249,37 @@ impl InferenceProbe {
 }
 
 #[derive(Default)]
-struct References(BTreeSet<String>);
+struct References(BTreeSet<String>, BTreeSet<ExprId>);
+impl References {
+    fn constraint_calls(
+        &mut self,
+        calls: &mut BTreeMap<ExprId, ConstraintCallInfo>,
+    ) -> Result<(), Diagnostic> {
+        let mut visited = BTreeSet::new();
+        loop {
+            let pending = calls
+                .keys()
+                .filter(|id| self.1.contains(*id) && !visited.contains(*id))
+                .copied()
+                .collect::<Vec<_>>();
+            if pending.is_empty() {
+                break;
+            }
+            for id in pending {
+                visited.insert(id);
+                let binding = calls.get_mut(&id).unwrap();
+                self.ty(&mut binding.owner)?;
+                self.ty(&mut binding.interface)?;
+                visit::walk_function(self, &mut binding.requirement)?;
+            }
+        }
+        Ok(())
+    }
+}
 impl VisitorMut for References {
+    fn expression_id(&mut self, id: &mut ExprId) {
+        self.1.insert(*id);
+    }
     fn ty(&mut self, ty: &mut TypeRef) -> Result<(), Diagnostic> {
         self.0.insert(ty.name.clone());
         visit::walk_type(self, ty)

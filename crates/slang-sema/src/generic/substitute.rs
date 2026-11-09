@@ -37,6 +37,8 @@ pub(super) struct Substitute<'a> {
     pub context: usize,
     pub next_expression: &'a mut usize,
     pub remaining_nodes: &'a mut usize,
+    pub expression_origins: &'a mut BTreeMap<ExprId, ExprId>,
+    pub constraint_calls: &'a mut BTreeMap<ExprId, ConstraintCallInfo>,
 }
 
 impl Substitute<'_> {
@@ -59,8 +61,10 @@ impl VisitorMut for Substitute<'_> {
         *span = span.with_context(self.context);
     }
     fn expression_id(&mut self, id: &mut ExprId) {
+        let original = self.expression_origins.get(id).copied().unwrap_or(*id);
         *id = ExprId(*self.next_expression);
         *self.next_expression += 1;
+        self.expression_origins.insert(*id, original);
     }
     fn ty(&mut self, ty: &mut TypeRef) -> Result<(), Diagnostic> {
         self.node(ty.span)?;
@@ -72,6 +76,7 @@ impl VisitorMut for Substitute<'_> {
     }
     fn expression(&mut self, expression: &mut Expr) -> Result<(), Diagnostic> {
         self.node(expression.span)?;
+        let binding = self.constraint_calls.get(&expression.id).cloned();
         if let ExprKind::Name(name) = &mut expression.kind {
             if let Some(argument) = self.types.get(name) {
                 let mut argument = argument.clone();
@@ -81,7 +86,15 @@ impl VisitorMut for Substitute<'_> {
                 self.name(name);
             }
         }
-        visit::walk_expression(self, expression)
+        visit::walk_expression(self, expression)?;
+        if let Some(mut binding) = binding {
+            self.ty(&mut binding.owner)?;
+            self.ty(&mut binding.interface)?;
+            visit::walk_function(self, &mut binding.requirement)?;
+            super::witness::set_owner(&mut binding);
+            self.constraint_calls.insert(expression.id, binding);
+        }
+        Ok(())
     }
     fn declaration(&mut self, declaration: &mut Declaration) -> Result<(), Diagnostic> {
         self.node(declaration_span(declaration))?;

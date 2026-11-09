@@ -798,6 +798,17 @@ and `diagnostics/interfaces/mutating-impl-of-non-mutating-req.slang` sources als
 produce conformance diagnostics in both frontends with HLSL target options.
 Their original diagnostic runner and target directives were not executed.
 
+Direct witness selection adds seven integration tests and ten differential cases.
+Seven compute fixtures compare twenty matching compiled words and validate
+fourteen native/oracle HLSL artifacts with DXC. Tests distinguish the opaque
+requirement from a better concrete numeric overload and a competing static
+overload, preserve explicit/default constructor selection, reconstruct nested
+generic interface arguments, and use requirement defaults across private module
+boundaries. Generic default dependencies retain declaration scope, and dormant
+constraint calls do not instantiate them. Invalid unused defaults report errors
+instead of panicking. Contextual and automatic constructor plans remain outside
+this selection coverage.
+
 [validation.json](validation.json) records the Windows validation run for this
 checkpoint. It includes the pinned compiler version, workspace checks, and
 differential corpus counts. It is a snapshot of that run, not a promise of

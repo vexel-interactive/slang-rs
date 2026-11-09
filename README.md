@@ -11,7 +11,7 @@ checking, native module loading, type aliases, aggregate initialization and fiel
 explicit user type specialization, inferred function templates, nominal interfaces and type constraints,
 typed structured IR, scalar SSA constant propagation, resource register allocation,
 a Rust API, and a command-line compiler.
-Complete module sessions, interface witnesses and runtime dispatch, autodiff, advanced resources and most intrinsics, binary
+Complete module sessions, general interface witnesses and runtime dispatch, autodiff, advanced resources and most intrinsics, binary
 backends, complete reflection, the upstream C ABI, and LSP remain to be ported.
 See the [compatibility matrix](docs/compatibility.md) for exact status.
 

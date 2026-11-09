@@ -1,5 +1,7 @@
 //! Nominal interface inheritance and direct method requirement signatures.
 
+pub(crate) mod witness;
+
 use crate::{
     Type,
     checker::{Checker, Signature, span_key},
@@ -124,13 +126,26 @@ impl Checker {
                 .insert(structure.name.clone(), interfaces.clone());
             let requirements = interfaces
                 .iter()
-                .flat_map(|name| self.interface_definitions[name].requirements.clone())
+                .flat_map(|name| {
+                    self.interface_definitions[name]
+                        .requirements
+                        .iter()
+                        .cloned()
+                        .map(|f| (name.clone(), f))
+                        .collect::<Vec<_>>()
+                })
                 .collect::<Vec<_>>();
             if self.symbolic_types.contains(&structure.name) {
                 self.declare_symbolic_requirements(&structure.name, &requirements);
             } else {
-                for requirement in &requirements {
-                    self.check_requirement(module, &structure.name, requirement, structure.span);
+                for (interface, requirement) in &requirements {
+                    self.check_requirement(
+                        module,
+                        &structure.name,
+                        interface,
+                        requirement,
+                        structure.span,
+                    );
                 }
             }
         }
@@ -176,8 +191,8 @@ impl Checker {
         (function, parameters, result)
     }
 
-    fn declare_symbolic_requirements(&mut self, owner: &str, requirements: &[Function]) {
-        for (index, requirement) in requirements.iter().enumerate() {
+    fn declare_symbolic_requirements(&mut self, owner: &str, requirements: &[(String, Function)]) {
+        for (index, (interface, requirement)) in requirements.iter().enumerate() {
             let (function, parameters, result) = self.requirement_signature(owner, requirement);
             let name = if let Some(method) = &function.method {
                 let key = (owner.into(), method.name.clone());
@@ -208,10 +223,26 @@ impl Checker {
                     .iter()
                     .map(|p| p.initializer.clone())
                     .collect(),
-                method: function.method,
+                method: function.method.clone(),
                 default_type_arguments: 0,
                 generic: false,
             };
+            self.symbolic_requirements.insert(
+                (signature.declaration, owner.into()),
+                ConstraintCallInfo {
+                    owner: witness::reference(owner.into(), function.span),
+                    interface: witness::reference(interface.clone(), function.span),
+                    requirement: function,
+                    declaration_module: self
+                        .symbols
+                        .get(interface)
+                        .map_or(self.current_module.0, |o| o.module.0),
+                },
+            );
+            self.direct_witnesses.insert(
+                witness::key(owner, interface, requirement.span),
+                signature.clone(),
+            );
             let overloads = self.functions.entry(name).or_default();
             if !overloads.iter().any(|s| {
                 s.parameters == signature.parameters
@@ -229,6 +260,7 @@ impl Checker {
         &mut self,
         module: &Module,
         owner: &str,
+        interface: &str,
         requirement: &Function,
         span: Span,
     ) {
@@ -246,9 +278,13 @@ impl Checker {
             signature.defined && signature.parameters == parameters && signature.result == result
                 && signature.method.as_ref().map(|m| m.is_static) == required.method.as_ref().map(|m| m.is_static)
                 && module.declarations.iter().any(|d| matches!(d, Declaration::Function(f) if span_key(f.span) == signature.declaration && parameter_modes(f) == parameter_modes(&required)))
-        })).map(|signature| signature.declaration);
-        if let Some(witness) = witness {
-            self.interface_witnesses.insert(witness);
+        })).cloned();
+        if let Some(witness) = &witness {
+            self.interface_witnesses.insert(witness.declaration);
+            self.direct_witnesses.insert(
+                witness::key(owner, interface, requirement.span),
+                witness.clone(),
+            );
         }
         if witness.is_none()
             && !parameters

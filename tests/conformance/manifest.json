@@ -9448,6 +9448,93 @@
       "accept": false,
       "entry": "main",
       "rust_code": "T032"
+    },
+    {
+      "file": "positive/interface-witness-selection.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 1,
+        "1": 1,
+        "2": 2
+      }
+    },
+    {
+      "file": "positive/interface-witness-owners.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 4,
+        "1": 4,
+        "2": 4,
+        "3": 4
+      }
+    },
+    {
+      "file": "positive/interface-witness-constructors.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 11,
+        "1": 13,
+        "2": 19
+      }
+    },
+    {
+      "file": "positive/interface-witness-defaults.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 3,
+        "1": 3,
+        "2": 9
+      }
+    },
+    {
+      "file": "positive/interface-witness-module/main.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 5,
+        "1": 1
+      }
+    },
+    {
+      "file": "negative/interface-default-unknown.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T011"
+    },
+    {
+      "file": "negative/interface-default-output.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T022"
+    },
+    {
+      "file": "negative/interface-default-trailing.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T022"
+    },
+    {
+      "file": "positive/interface-witness-nested-arguments.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 6,
+        "1": 6
+      }
+    },
+    {
+      "file": "positive/interface-witness-generic-defaults.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 4,
+        "1": 4,
+        "2": 8
+      }
     }
   ]
 }

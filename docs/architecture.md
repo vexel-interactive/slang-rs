@@ -63,7 +63,15 @@ initialization plan that lowering consumes without emitting resource or aggregat
 HLSL casts. Synthesized receiver and constructor-result owner references survive
 outer substitutions until their nested owner is specialized. Symbolic declarations
 are discarded. The concrete declarations use ordinary checking, layout and HLSL
-lowering. General constrained validation, witness tables and IR-level generic
+lowering. Opaque method and explicit constructor selections are retained in
+`Module.constraint_calls`. Expression-origin maps restore their template sites;
+type reconstruction preserves generic interface arguments and nested owners.
+Concrete checking binds each recorded requirement to its verified direct witness,
+including static/instance identity, rather than repeating overload selection.
+Required defaults receive fresh expression IDs and retain their declaration module
+and generic dependencies. Activation follows reachable metadata and generic type
+arguments; dormant calls and interfaces do not activate default bodies.
+General constrained validation, runtime witness tables and IR-level generic
 specialization remain unimplemented.
 Function parameter bindings use declaration-scoped indexed names so prototypes
 can rename parameters without changing substitution. The linker distinguishes

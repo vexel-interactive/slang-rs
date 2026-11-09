@@ -5,6 +5,7 @@ use crate::Type;
 
 impl Specializer {
     fn publish_metadata(&self, module: &mut Module) {
+        module.constraint_calls = self.constraint_calls.clone();
         module.nested_types = self.nested_output.clone();
         module.static_members = self.static_output.clone();
         module.generic_instances = self.instance_output.clone();
@@ -130,6 +131,9 @@ impl Specializer {
             }
             for declaration in &mut module.declarations {
                 CallTargets(&targets).declaration(declaration)?;
+            }
+            for binding in self.constraint_calls.values_mut() {
+                visit::walk_function(&mut CallTargets(&targets), &mut binding.requirement)?;
             }
             self.drain_pending(module)?;
             self.publish_metadata(module);

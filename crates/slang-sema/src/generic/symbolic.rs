@@ -18,6 +18,10 @@ impl Specializer {
             let name = format!("{}parameter_{context}", self.prefix);
             let span = parameter.span.with_context(context);
             self.symbolic_types.insert(name.clone());
+            self.symbolic_parameters.insert(
+                name.clone(),
+                witness::reference(&parameter.name, parameter.span),
+            );
             self.symbols.insert(
                 name.clone(),
                 SymbolOrigin {

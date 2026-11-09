@@ -168,6 +168,9 @@ pub(crate) struct Checker {
     pub interface_definitions: BTreeMap<String, slang_syntax::Interface>,
     pub conformances: BTreeMap<String, BTreeSet<String>>,
     pub interface_witnesses: BTreeSet<SpanKey>,
+    pub direct_witnesses: BTreeMap<crate::conformance::witness::WitnessKey, Signature>,
+    pub symbolic_requirements: BTreeMap<(SpanKey, String), ConstraintCallInfo>,
+    pub constraint_calls: BTreeMap<ExprId, ConstraintCallInfo>,
     pub shape_globals: BTreeMap<String, Variable>,
     pub shape_bindings: BTreeMap<String, Binding>,
     pub resolving_shape_globals: BTreeSet<String>,
@@ -206,7 +209,9 @@ fn check_with_metadata(
     symbols: BTreeMap<String, SymbolOrigin>,
     default_matrix_major: slang_layout::MatrixMajor,
 ) -> Result<CheckedModule, Vec<Diagnostic>> {
-    crate::generic::validate_templates(&module, &symbols, default_matrix_major)?;
+    let mut module = module;
+    module.constraint_calls =
+        crate::generic::validate_templates(&module, &symbols, default_matrix_major)?;
     let (module, symbols) = crate::generic::specialize(module, symbols, default_matrix_major)?;
     check_concrete(
         module,
@@ -245,7 +250,7 @@ pub(crate) fn probe_generic_calls(
 }
 
 fn check_concrete_inner(
-    module: Module,
+    mut module: Module,
     modules: Vec<ModuleInfo>,
     symbols: BTreeMap<String, SymbolOrigin>,
     default_matrix_major: slang_layout::MatrixMajor,
@@ -351,7 +356,28 @@ fn check_concrete_inner(
             .map_or(ModuleId(0), |origin| origin.module);
         match declaration {
             Declaration::TypeAlias(_) => {}
-            Declaration::Interface(_) => {}
+            Declaration::Interface(interface) => {
+                if probe
+                    .as_ref()
+                    .is_some_and(|p| p.deferred.contains(&span_key(interface.span)))
+                {
+                    continue;
+                }
+                for requirement in &interface.requirements {
+                    checker.check_constraint_defaults(&ConstraintCallInfo {
+                        owner: crate::conformance::witness::reference(
+                            interface.name.clone(),
+                            interface.span,
+                        ),
+                        interface: crate::conformance::witness::reference(
+                            interface.name.clone(),
+                            interface.span,
+                        ),
+                        requirement: requirement.clone(),
+                        declaration_module: checker.current_module.0,
+                    });
+                }
+            }
             Declaration::Global(_) => {}
             Declaration::Function(function) => {
                 if probe
@@ -441,6 +467,7 @@ fn check_concrete_inner(
                 }
             })
             .collect();
+        module.constraint_calls = checker.constraint_calls;
         let mut checked = CheckedModule {
             matrix_major: checker.default_matrix_major,
             module,
@@ -587,6 +614,9 @@ impl Checker {
             interface_definitions: BTreeMap::new(),
             conformances: BTreeMap::new(),
             interface_witnesses: BTreeSet::new(),
+            direct_witnesses: BTreeMap::new(),
+            symbolic_requirements: BTreeMap::new(),
+            constraint_calls: module.constraint_calls.clone(),
             shape_globals: module
                 .declarations
                 .iter()

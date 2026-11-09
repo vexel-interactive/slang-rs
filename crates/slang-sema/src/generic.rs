@@ -9,6 +9,7 @@ mod lifecycle;
 mod method;
 mod substitute;
 mod symbolic;
+mod witness;
 
 use crate::checker::SpanKey;
 use slang_module::SymbolOrigin;
@@ -60,6 +61,10 @@ struct Specializer {
     method_names: BTreeSet<String>,
     constructor_templates: BTreeMap<String, GenericConstructorInfo>,
     constructor_applications: BTreeMap<constructor::ConstructorKey, String>,
+    constraint_calls: BTreeMap<ExprId, ConstraintCallInfo>,
+    expression_origins: BTreeMap<ExprId, ExprId>,
+    symbolic_parameters: BTreeMap<String, TypeRef>,
+    processed_constraint_calls: BTreeSet<ExprId>,
 }
 
 struct InferenceCall {
@@ -89,6 +94,8 @@ struct SpecializedModule {
     module: Module,
     symbols: BTreeMap<String, SymbolOrigin>,
     symbolic_types: BTreeSet<String>,
+    expression_origins: BTreeMap<ExprId, ExprId>,
+    symbolic_parameters: BTreeMap<String, TypeRef>,
 }
 
 pub(super) fn specialize(
@@ -105,24 +112,29 @@ pub(super) fn validate_templates(
     module: &Module,
     symbols: &BTreeMap<String, SymbolOrigin>,
     major: slang_layout::MatrixMajor,
-) -> Result<(), Vec<Diagnostic>> {
+) -> Result<BTreeMap<ExprId, ConstraintCallInfo>, Vec<Diagnostic>> {
     if !module
         .declarations
         .iter()
         .any(|d| !parameters(d).is_empty())
     {
-        return Ok(());
+        return Ok(BTreeMap::new());
     }
     let result =
         specialize_inner(module.clone(), symbols.clone(), true, major).map_err(|d| vec![d])?;
-    crate::checker::check_concrete(
+    let checked = crate::checker::check_concrete(
         result.module,
         vec![],
         result.symbols,
         major,
         result.symbolic_types,
+    )?;
+    witness::template_calls(
+        &checked.module,
+        &result.expression_origins,
+        &result.symbolic_parameters,
     )
-    .map(|_| ())
+    .map_err(|d| vec![d])
 }
 
 fn specialize_inner(
@@ -140,11 +152,18 @@ fn specialize_inner(
             module,
             symbols,
             symbolic_types: BTreeSet::new(),
+            expression_origins: BTreeMap::new(),
+            symbolic_parameters: BTreeMap::new(),
         });
     }
     let mut ids = Ids::default();
     for declaration in &mut module.declarations {
         ids.declaration(declaration)?;
+    }
+    for binding in module.constraint_calls.values_mut() {
+        ids.ty(&mut binding.owner)?;
+        ids.ty(&mut binding.interface)?;
+        visit::walk_function(&mut ids, &mut binding.requirement)?;
     }
     let mut prefix = "_slang_generic_".to_owned();
     while module
@@ -235,6 +254,10 @@ fn specialize_inner(
         method_names: BTreeSet::new(),
         constructor_templates: BTreeMap::new(),
         constructor_applications: BTreeMap::new(),
+        constraint_calls: std::mem::take(&mut module.constraint_calls),
+        expression_origins: BTreeMap::new(),
+        symbolic_parameters: BTreeMap::new(),
+        processed_constraint_calls: BTreeSet::new(),
     };
     let declarations = std::mem::take(&mut module.declarations);
     specializer.register(
@@ -267,6 +290,8 @@ fn specialize_inner(
         module,
         symbols: specializer.symbols,
         symbolic_types: specializer.symbolic_types,
+        expression_origins: specializer.expression_origins,
+        symbolic_parameters: specializer.symbolic_parameters,
     })
 }
 
@@ -554,6 +579,8 @@ impl Specializer {
             context,
             next_expression: &mut self.next_expression,
             remaining_nodes: &mut self.remaining_nodes,
+            expression_origins: &mut self.expression_origins,
+            constraint_calls: &mut self.constraint_calls,
         };
         for declaration in &mut declarations {
             if declaration_name(declaration) == template.name {
@@ -742,6 +769,7 @@ impl VisitorMut for Specializer {
         visit::walk_type(self, ty)
     }
     fn expression(&mut self, expression: &mut Expr) -> Result<(), Diagnostic> {
+        self.specialize_constraint_call(expression.id)?;
         self.normalize_member_application(expression)?;
         if let ExprKind::Call { callee, arguments } = &mut expression.kind {
             self.normalize_member_application(callee)?;

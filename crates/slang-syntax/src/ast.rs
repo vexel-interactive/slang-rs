@@ -25,6 +25,17 @@ pub struct Module {
     /// Inferred overload groups keyed by concrete owner and semantic argument types.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub constructor_applications: Vec<ConstructorApplicationInfo>,
+    /// Generic calls retain the interface requirement selected on opaque parameters.
+    #[serde(skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub constraint_calls: std::collections::BTreeMap<ExprId, ConstraintCallInfo>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct ConstraintCallInfo {
+    pub owner: TypeRef,
+    pub interface: TypeRef,
+    pub requirement: Function,
+    pub declaration_module: usize,
 }
 
 #[derive(Clone, Debug, Serialize)]

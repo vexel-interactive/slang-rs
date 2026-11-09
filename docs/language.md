@@ -826,8 +826,8 @@ Symbolic vectors/matrices support copies, indexing, component selection and matr
 layout modifiers while retaining their opaque component types. Symbolic types
 are discarded before concrete lowering and never appear in emitted artifacts.
 
-This does not implement general constrained polymorphism. Interfaces, witnesses,
-value parameters, partial type-template applications and constructor inference remain unported.
+This does not implement general constrained polymorphism. General witnesses,
+value parameters and partial type-template applications remain unported.
 The existing restrictions on local names matching module type aliases and on
 fallthrough from nonvoid functions also apply inside checked templates. Full
 polymorphic conversions, overload ranking and receiver-dependent defaults remain
@@ -1000,12 +1000,27 @@ ordinary/generic conversion and default ranking still applies.
 
 Constrained generic bodies are checked on opaque parameter owners exposing only
 their inherited requirements, even when no concrete call uses the template.
-Concrete calls then use cached specialization and the ordinary method/constructor
-pipeline. This applies to free functions, struct owners, generic methods and
+Method and explicit constructor calls retain the selected requirement through
+cached specialization and bind its verified direct implementation. A concrete
+overload unavailable on the opaque owner cannot replace that selection. This
+applies to free functions, struct owners, generic methods and
 generic constructors, including imported interfaces and private caller types.
 Validated direct witnesses permit calls across module boundaries without
 exposing the concrete method or constructor to ordinary callers. Interfaces do
 not become HLSL data structs.
+
+Trailing input defaults on requirements belong to the interface declaration.
+For example, `int read(int input = 3)` passes `3` through a constrained call
+even if the implementation declares `input = 9`. Defaults keep their module
+scope and specialize generic dependencies. Invalid unused defaults are checked.
+Constrained `T()` invokes a declared constructor requirement when available;
+unconstrained default construction keeps the zero-initialization rules above.
+See [witness selection](../tests/conformance/positive/interface-witness-selection.slang)
+and [required constructor defaults](../tests/conformance/positive/interface-witness-constructors.slang).
+
+Contextual brace initialization and automatic variable initialization still
+repeat concrete constructor selection. Their constrained witness identity and
+requirement defaults are not yet preserved.
 
 This implementation covers direct signatures. Default interface bodies, generic
 method requirements, associated types, extensions, adapted witnesses (including

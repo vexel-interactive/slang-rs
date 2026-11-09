@@ -103,8 +103,20 @@ impl Checker {
             if target == Type::Error {
                 return Type::Error;
             }
+            if let Type::Struct(owner) = &target
+                && let Some(signature) = self.constraint_call_signature(callee.id, owner)
+            {
+                return match signature {
+                    Ok(signature) => {
+                        self.finish_user_call(callee, arguments, &types, &signature, span)
+                    }
+                    Err(()) => Type::Error,
+                };
+            }
             if matches!(&callee.kind, ExprKind::TypeApplication(reference) if reference.parameter_ref)
                 && (arguments.is_empty() || types == [target.clone()])
+                && !(arguments.is_empty()
+                    && matches!(&target, Type::Struct(owner) if self.symbolic_types.contains(owner) && self.constructors.contains_key(owner)))
             {
                 let plan = if arguments.is_empty() {
                     self.zero_initialization(&target, span)
@@ -596,6 +608,7 @@ impl Checker {
         best: &Signature,
         span: Span,
     ) -> Type {
+        self.record_constraint_call(callee.id, best);
         for (argument, target) in arguments.iter().zip(&best.parameters) {
             self.coerce_value(argument, target);
         }

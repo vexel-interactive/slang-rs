@@ -46,27 +46,35 @@ impl Checker {
             .symbols
             .get(&function)
             .map_or(slang_module::ModuleId(0), |o| o.module);
-        let mut matches: Vec<_> = self.functions[&function]
-            .iter()
-            .filter(|signature| {
-                let method = signature.method.as_ref().unwrap();
-                let offset = usize::from(!method.is_static);
-                let parameters = &signature.parameters[offset..];
-                (!type_receiver || method.is_static)
-                    && (signature.public
-                        || module == self.current_module
-                        || self.constraint_witness_access(signature, &owner, span))
-                    && types.len() <= parameters.len()
-                    && signature.defaults[offset + types.len()..]
-                        .iter()
-                        .all(Option::is_some)
-                    && types
-                        .iter()
-                        .zip(parameters)
-                        .all(|(a, b)| *a == Type::InitializerList || a.convertible_to(b))
-            })
-            .cloned()
-            .collect();
+        let constrained = self.constraint_call_signature(callee.id, &owner);
+        let mut matches: Vec<_> = if let Some(signature) = constrained {
+            match signature {
+                Ok(signature) => vec![signature],
+                Err(()) => return Some(Type::Error),
+            }
+        } else {
+            self.functions[&function]
+                .iter()
+                .filter(|signature| {
+                    let method = signature.method.as_ref().unwrap();
+                    let offset = usize::from(!method.is_static);
+                    let parameters = &signature.parameters[offset..];
+                    (!type_receiver || method.is_static)
+                        && (signature.public
+                            || module == self.current_module
+                            || self.constraint_witness_access(signature, &owner, span))
+                        && types.len() <= parameters.len()
+                        && signature.defaults[offset + types.len()..]
+                            .iter()
+                            .all(Option::is_some)
+                        && types
+                            .iter()
+                            .zip(parameters)
+                            .all(|(a, b)| *a == Type::InitializerList || a.convertible_to(b))
+                })
+                .cloned()
+                .collect()
+        };
         let score = |signature: &Signature| {
             let offset = usize::from(!signature.method.as_ref().unwrap().is_static);
             let conversions = types

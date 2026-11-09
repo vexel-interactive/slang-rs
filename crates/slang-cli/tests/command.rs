@@ -119,13 +119,19 @@ fn cli_reports_deep_syntax_without_exhausting_its_stack() {
             "}".repeat(1000)
         ),
     ] {
-        fs::write(&input, source).unwrap();
+        fs::write(&input, &source).unwrap();
         let result = Command::new(env!("CARGO_BIN_EXE_slangc-rs"))
             .arg(&input)
             .arg("--check")
             .output()
             .unwrap();
-        assert_eq!(result.status.code(), Some(1));
+        assert_eq!(
+            result.status.code(),
+            Some(1),
+            "{}: {}",
+            &source[..source.len().min(60)],
+            String::from_utf8_lossy(&result.stderr)
+        );
         assert!(String::from_utf8_lossy(&result.stderr).contains("S001"));
     }
     fs::remove_file(&input).unwrap();
