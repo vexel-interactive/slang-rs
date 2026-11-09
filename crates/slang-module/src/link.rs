@@ -111,6 +111,21 @@ pub(crate) fn link(
                 exports[id.0].extend(&names);
             }
         }
+        let members = nodes[id.0]
+            .syntax
+            .declarations
+            .iter()
+            .filter_map(|d| {
+                if let Declaration::Struct(s) = d {
+                    Some((
+                        s.name.clone(),
+                        s.fields.iter().map(|f| f.name.clone()).collect(),
+                    ))
+                } else {
+                    None
+                }
+            })
+            .collect();
         let mut resolver = Resolver::new(
             &own[id.0],
             &imported,
@@ -118,6 +133,7 @@ pub(crate) fn link(
             format!("{prefix}local_{}_", id.0),
             *id,
             &mut origins,
+            &members,
         );
         for declaration in &mut nodes[id.0].syntax.declarations {
             if id.0 != 0

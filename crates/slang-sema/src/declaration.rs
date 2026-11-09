@@ -315,6 +315,10 @@ impl Checker {
                     self.bind(variable, VariableScope::Global);
                 }
                 Declaration::Function(function) => {
+                    if let Some(owner) = &function.constructor {
+                        self.constructors
+                            .insert(owner.clone(), function.name.clone());
+                    }
                     if self.scopes[0].contains_key(&function.name)
                         || names.contains(&function.name)
                         || Type::builtin(self.source_name(&function.name)).is_some()
@@ -345,8 +349,9 @@ impl Checker {
                         .map(|p| p.modifiers.iter().any(|m| m == "out" || m == "inout"))
                         .collect();
                     let overloads = self.functions.entry(function.name.clone()).or_default();
-                    if let Some(existing) =
-                        overloads.iter_mut().find(|s| s.parameters == parameters)
+                    if function.constructor.is_none()
+                        && let Some(existing) =
+                            overloads.iter_mut().find(|s| s.parameters == parameters)
                     {
                         let duplicate = existing.result != result
                             || existing.output_parameters != output_parameters
@@ -362,6 +367,7 @@ impl Checker {
                         }
                     } else {
                         overloads.push(Signature {
+                            declaration: span_key(function.span),
                             parameters,
                             output_parameters,
                             result,
@@ -382,9 +388,24 @@ impl Checker {
         // shapes, half/float types, or integer literal ranking differ in HLSL.
         let mut target_names = declaration_names(module);
         target_names.extend(self.symbols.keys().cloned());
+        let selected_names: BTreeSet<_> = self
+            .constructors
+            .values()
+            .cloned()
+            .chain(module.declarations.iter().filter_map(|d| {
+                if let Declaration::Function(f) = d
+                    && f.attributes.iter().any(|a| a.name == "ForceInline")
+                {
+                    Some(f.name.clone())
+                } else {
+                    None
+                }
+            }))
+            .collect();
         for (name, overloads) in &mut self.functions {
             if overloads.len() > 1
-                && (self.symbols.get(name).is_some_and(|o| o.module.0 != 0)
+                && (selected_names.contains(name)
+                    || self.symbols.get(name).is_some_and(|o| o.module.0 != 0)
                     || overloads
                         .iter()
                         .any(|signature| signature.parameters.iter().any(collapsed_hlsl_type)))
@@ -405,11 +426,13 @@ impl Checker {
                     .iter()
                     .map(|p| self.resolve_type(&p.ty))
                     .collect();
-                if let Some(signature) = self
-                    .functions
-                    .get(&function.name)
-                    .and_then(|overloads| overloads.iter().find(|s| s.parameters == parameters))
-                {
+                if let Some(signature) = self.functions.get(&function.name).and_then(|overloads| {
+                    overloads.iter().find(|s| {
+                        s.parameters == parameters
+                            && (function.constructor.is_none()
+                                || s.declaration == span_key(function.span))
+                    })
+                }) {
                     self.function_names
                         .insert(span_key(function.span), signature.target_name.clone());
                 }

@@ -6,7 +6,7 @@
     "rustfmt": "passed",
     "clippy_all_targets_warnings_denied": "passed",
     "unit_tests": 42,
-    "integration_tests": 372,
+    "integration_tests": 380,
     "doc_tests": 1,
     "conformance_comparison_tests": 27,
     "rustdoc": "passed",
@@ -16,12 +16,12 @@
   },
   "differential_validation": {
     "oracle": "Slang 2026.21",
-    "cases_passed": 531,
-    "cases_total": 531,
-    "matching_acceptance_cases": 520,
+    "cases_passed": 545,
+    "cases_total": 545,
+    "matching_acceptance_cases": 534,
     "documented_oracle_differences": 11,
-    "dxc_hlsl_artifacts_validated": 578,
-    "dxc_invalid_hlsl_artifacts_rejected": 19,
+    "dxc_hlsl_artifacts_validated": 590,
+    "dxc_invalid_hlsl_artifacts_rejected": 21,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
     "profiles": [
@@ -37,9 +37,9 @@
     "uniform_byte_layout_cases_compared": 61,
     "documented_oracle_physical_layout_differences": 12,
     "physical_buffer_layout_cases_compared": 43,
-    "compiled_constant_cases_compared": 25,
-    "compiled_constant_words_compared": 1087,
-    "compiled_constant_words_matching": 1076,
+    "compiled_constant_cases_compared": 31,
+    "compiled_constant_words_compared": 1125,
+    "compiled_constant_words_matching": 1114,
     "documented_oracle_constant_words_differing": 11,
     "documented_oracle_constant_cases_differing": 4,
     "documented_oracle_uniform_reflection_differences": 1,
@@ -47,13 +47,14 @@
     "integer_program_words_compared": 49,
     "integer_program_words_matching": 49,
     "integer_program_validation": "Bounded interpretation of compiled integer DXIL, not GPU execution",
-    "documented_shared_hlsl_artifact_limitations": 1
+    "documented_shared_hlsl_artifact_limitations": 1,
+    "undefined_value_hlsl_artifact_regressions": 1
   },
   "remote_ci_executed": false,
   "remote_ci": null,
   "previous_remote_ci": {
-    "run_id": 42528864983,
-    "head_sha": "a8b1228e8e34e9ceee77631e9500ff41ce8cf020",
+    "run_id": 42531823896,
+    "head_sha": "ecd166dccc3f34334089a1d8f793dc3f2539aff7",
     "conclusion": "success",
     "platforms": [
       "ubuntu-latest",
@@ -62,6 +63,16 @@
     ]
   },
   "earlier_remote_ci": [
+    {
+      "run_id": 42528864983,
+      "head_sha": "a8b1228e8e34e9ceee77631e9500ff41ce8cf020",
+      "conclusion": "success",
+      "platforms": [
+        "ubuntu-latest",
+        "windows-latest",
+        "macos-latest"
+      ]
+    },
     {
       "run_id": 42527943885,
       "head_sha": "6e81f2090bb4199a8ea9bd7f84b99916124d890e",
@@ -696,9 +707,9 @@
     "gpu_execution_compared": false
   },
   "force_inline_validation": {
-    "integration_tests": 16,
-    "compiled_constant_words": 87,
-    "matching_words": 83,
+    "integration_tests": 17,
+    "compiled_constant_words": 93,
+    "matching_words": 89,
     "capture_argument_evaluation_once": true,
     "conditional_and_short_circuit_evaluation": true,
     "unused_argument_effects_preserved": true,
@@ -751,6 +762,37 @@
     "nested_ordinary_and_intrinsic_output_calls": true,
     "initializer_shadow_uses_outer_binding": true,
     "documented_oracle_output_view_words_differing": 4,
-    "dynamic_writable_swizzle_indexes_rejected": true
+    "dynamic_writable_swizzle_indexes_rejected": true,
+    "global_initializer_functions": true,
+    "fixed_array_global_initializers": true,
+    "distinct_selected_numeric_overload_bodies": true,
+    "static_const_runtime_initializers_rejected": true
+  },
+  "constructor_and_global_initialization_validation": {
+    "integration_tests": 7,
+    "differential_cases": 14,
+    "compiled_constant_cases": 6,
+    "compiled_constant_words": 38,
+    "matching_words": 38,
+    "selected_user_init_overloads": true,
+    "field_parameter_global_shadowing": true,
+    "implicit_copy_preserved": true,
+    "bare_value_and_fallthrough_returns": true,
+    "output_argument_storage": true,
+    "contextual_brace_lists": true,
+    "local_const_default_construction": true,
+    "nested_struct_default_construction": true,
+    "imported_constructor_visibility": true,
+    "constructor_redeclarations_are_ambiguous": true,
+    "unwritten_fields_and_arrays_remain_uninitialized": true,
+    "undefined_value_dxc_artifacts_rejected": 2,
+    "static_const_global_requires_explicit_initializer": true,
+    "global_inline_captures_remain_in_functions": true,
+    "generic_constructors": false,
+    "general_methods": false,
+    "definite_assignment_warnings": false,
+    "original_cuda_cpp_filechecks_passed": false,
+    "gpu_execution_compared": false,
+    "complete_upstream_parity": false
   }
 }

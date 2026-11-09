@@ -3,6 +3,7 @@
 mod array_result;
 mod atomic;
 mod constant_buffer_value;
+mod constructor;
 mod derivative;
 mod effects;
 mod empty_array;

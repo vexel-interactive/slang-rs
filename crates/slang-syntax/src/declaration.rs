@@ -86,21 +86,62 @@ impl Parser {
             let name = self.identifier()?.text;
             self.expect("{")?;
             let mut fields = vec![];
+            let mut constructors = vec![];
             while !self.at("}") && !self.at_end() {
-                let modifiers = self.modifiers();
+                let member_start = self.span();
+                let attributes = self.attributes()?;
+                let member_modifiers = self.modifiers();
+                if self.eat("__init") {
+                    self.expect("(")?;
+                    let parameters = self.parameters()?;
+                    let body = if self.eat(";") {
+                        None
+                    } else {
+                        Some(self.statement()?)
+                    };
+                    if body
+                        .as_ref()
+                        .is_some_and(|s| !matches!(s.kind, StmtKind::Block(_)))
+                    {
+                        return Err(self.error("constructor body must be a block"));
+                    }
+                    constructors.push(Declaration::Function(Box::new(Function {
+                        name: format!("{}{}", self.constructor_prefix, name),
+                        constructor: Some(name.clone()),
+                        return_type: TypeRef {
+                            name: name.clone(),
+                            arguments: vec![],
+                            matrix_major: None,
+                            arrays: vec![],
+                            span: member_start,
+                        },
+                        parameters,
+                        attributes,
+                        modifiers: member_modifiers,
+                        semantic: None,
+                        span: member_start.join(body.as_ref().map_or(member_start, |s| s.span)),
+                        body,
+                    })));
+                    continue;
+                }
+                if !attributes.is_empty() {
+                    return Err(self.error("struct field attributes are not implemented"));
+                }
                 let ty = self.ty()?;
                 let name = self.identifier()?;
-                fields.extend(self.variables(ty, name, modifiers)?);
+                fields.extend(self.variables(ty, name, member_modifiers)?);
                 self.expect(";")?;
             }
             let end = self.expect("}")?;
-            self.expect(";")?;
-            return Ok(vec![Declaration::Struct(Struct {
+            self.eat(";");
+            let mut declarations = vec![Declaration::Struct(Struct {
                 name,
                 modifiers,
                 fields,
                 span: start.join(end),
-            })]);
+            })];
+            declarations.extend(constructors);
+            return Ok(declarations);
         }
         if self.current().is_some_and(|t| {
             matches!(
@@ -125,23 +166,7 @@ impl Parser {
         let ty = self.ty()?;
         let name = self.identifier()?;
         if self.eat("(") {
-            let mut parameters = vec![];
-            if !(self.at(")")
-                || self.at("void") && self.tokens.get(self.offset + 1).is_some_and(|t| t.is(")")))
-            {
-                loop {
-                    let modifiers = self.modifiers();
-                    let ty = self.ty()?;
-                    let name = self.identifier()?;
-                    parameters.push(self.variable(ty, name, modifiers)?);
-                    if !self.eat(",") {
-                        break;
-                    }
-                }
-            } else {
-                self.eat("void");
-            }
-            self.expect(")")?;
+            let parameters = self.parameters()?;
             let annotations = self.annotations()?;
             if let Some(pack) = annotations.pack_offset {
                 return Err(Diagnostic::error(
@@ -164,6 +189,7 @@ impl Parser {
             let span = start.join(body.as_ref().map_or(name.span, |s| s.span));
             Ok(vec![Declaration::Function(Box::new(Function {
                 name: name.text,
+                constructor: None,
                 return_type: ty,
                 parameters,
                 attributes,
@@ -180,6 +206,27 @@ impl Parser {
             self.expect(";")?;
             Ok(variables.into_iter().map(Declaration::Global).collect())
         }
+    }
+
+    fn parameters(&mut self) -> Result<Vec<Variable>, Diagnostic> {
+        let mut parameters = vec![];
+        if !(self.at(")")
+            || self.at("void") && self.tokens.get(self.offset + 1).is_some_and(|t| t.is(")")))
+        {
+            loop {
+                let modifiers = self.modifiers();
+                let ty = self.ty()?;
+                let name = self.identifier()?;
+                parameters.push(self.variable(ty, name, modifiers)?);
+                if !self.eat(",") {
+                    break;
+                }
+            }
+        } else {
+            self.eat("void");
+        }
+        self.expect(")")?;
+        Ok(parameters)
     }
 
     pub(crate) fn ty(&mut self) -> Result<TypeRef, Diagnostic> {

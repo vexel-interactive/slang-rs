@@ -109,7 +109,7 @@ pub fn lower_with_native_16bit(
                 body: function
                     .body
                     .as_ref()
-                    .map(|b| lowerer.statement(b))
+                    .map(|b| lowerer.function_body(function, b))
                     .transpose()?,
                 span: function.span,
             }),
@@ -153,8 +153,8 @@ pub fn lower_with_native_16bit(
     Ok(module)
 }
 
-struct Lowerer<'a> {
-    checked: &'a CheckedModule,
+pub(crate) struct Lowerer<'a> {
+    pub(crate) checked: &'a CheckedModule,
     initializing: std::cell::RefCell<Vec<ast::ExprId>>,
     initialization_nodes: std::cell::Cell<usize>,
 }
@@ -213,16 +213,20 @@ impl Lowerer<'_> {
                 .copied(),
             uniform_layout: None,
             pack_offset: variable.pack_offset.map(|p| p.offset),
-            initializer: variable
-                .initializer
-                .as_ref()
-                .map(|e| self.expression(e))
-                .transpose()?,
+            initializer: if let Some(value) = &variable.initializer {
+                Some(self.expression(value)?)
+            } else {
+                self.checked
+                    .variable_initializations
+                    .get(&span_key(variable.span))
+                    .map(|value| self.initialization(value, variable.span))
+                    .transpose()?
+            },
             span: variable.span,
         })
     }
 
-    fn statement(&self, statement: &ast::Stmt) -> Result<Stmt, Diagnostic> {
+    pub(crate) fn statement(&self, statement: &ast::Stmt) -> Result<Stmt, Diagnostic> {
         let kind = match &statement.kind {
             ast::StmtKind::Block(statements) => StmtKind::Block(
                 statements
@@ -361,7 +365,16 @@ impl Lowerer<'_> {
             ast::ExprKind::Float(value) => ExprKind::Float(value.clone()),
             ast::ExprKind::Bool(value) => ExprKind::Bool(*value),
             ast::ExprKind::Name(name) => {
-                if self.checked.global_references.contains_key(&expression.id) {
+                if let Some(receiver) = self.checked.implicit_members.get(&expression.id) {
+                    ExprKind::Member {
+                        base: Box::new(Expr {
+                            ty: receiver.clone(),
+                            kind: ExprKind::Name("this".into()),
+                            span: expression.span,
+                        }),
+                        name: name.clone(),
+                    }
+                } else if self.checked.global_references.contains_key(&expression.id) {
                     ExprKind::GlobalName(name.clone())
                 } else {
                     ExprKind::Name(name.clone())
@@ -536,7 +549,7 @@ impl Lowerer<'_> {
         Ok(())
     }
 
-    fn initialization(
+    pub(crate) fn initialization(
         &self,
         value: &slang_sema::Initialization,
         span: Span,
@@ -551,6 +564,15 @@ impl Lowerer<'_> {
         }
         self.initialization_nodes.set(remaining - 1);
         let kind = match &value.kind {
+            slang_sema::InitializationKind::ConstructorCall {
+                name, arguments, ..
+            } => ExprKind::Call {
+                name: name.clone(),
+                arguments: arguments
+                    .iter()
+                    .map(|a| self.initialization(a, span))
+                    .collect::<Result<_, _>>()?,
+            },
             slang_sema::InitializationKind::Zero => ExprKind::Zero,
             slang_sema::InitializationKind::Aggregate(values) => ExprKind::Construct(
                 values

@@ -171,7 +171,15 @@ goldens record four differing words. Potentially aliased output arguments may
 have undefined behavior according to upstream's warnings; the regression checks
 compiled artifacts and does not establish a language guarantee for such calls.
 
-Inlining shared/volatile local storage and calls in global initializers is not implemented and reports
+Global calls expand inside generated initializer functions with ordinary local
+storage. Fixed-array initializer results use return wrappers. File-scope
+declarations never receive lifted statement expressions. Static const initializers
+reject mutable global references and ordinary user function calls with `T031`;
+numeric/aggregate constructors and intrinsics remain eligible when their arguments
+are constant. This validates eligibility without evaluating arbitrary function
+bodies as compile-time functions.
+
+Inlining shared/volatile local storage is not implemented and reports
 `I005`. Statement-valued vector conditional/logical operands also report `I005`.
 Recursive or excessive
 expansion is bounded by depth and node limits. Ordinary calls retain their target
@@ -496,7 +504,8 @@ elements reports `I006` until undefined resource handles can be legalized.
 
 ## Struct construction and field defaults
 
-Named constructors initialize data-only structs in field declaration order:
+Without a user-defined `__init`, named constructors initialize data-only structs
+in field declaration order:
 
 ```slang
 struct Pair
@@ -522,14 +531,58 @@ Transparent aliases use the same constructor. Public structs
 accept constructor arguments only for explicitly public fields, including when
 called from their own module. Internal fields still receive their defaults.
 
-Declarations without an initializer remain uninitialized and do not invoke
-field defaults. User-defined constructors and resource-valued memberwise
-construction remain unimplemented. Default
-aggregate expansion is limited to 32 levels and 65536 elements. Recursive
+Declarations of these structs without an initializer remain uninitialized and
+do not invoke field defaults. Resource-valued memberwise construction remains
+unimplemented. Default aggregate expansion is limited to 32 levels and 65536
+elements. Recursive
 constructor defaults report a diagnostic during lowering. See
 [struct-construction.slang](../examples/struct-construction.slang).
 Struct value graphs reject cycles and nesting beyond 128 levels independently
 of initialization; repeated uses of a shared child type do not expand the graph.
+
+## User-defined struct constructors
+
+Structs can declare overloaded `__init` members with parameter defaults and
+`out`/`inout` parameters. `[ForceInline]` expands the selected constructor body:
+
+```slang
+struct Item
+{
+    int value = 3;
+    [ForceInline] __init() {}
+    [ForceInline] __init(int x) { value = x + 2; }
+};
+
+Item a;             // invokes __init(), value = 3
+const Item b;       // local const declarations also invoke __init()
+Item c = Item(5);   // value = 7
+Item d = {5};       // selects the same constructor
+Item e = Item(c);   // implicit copy, unless __init(Item) is declared
+```
+
+The local declarations above belong inside a function. Static const globals
+require an explicit initializer. Declaring `__init` disables synthesized
+memberwise calls; the implicit copy constructor remains available unless an
+explicit copy constructor replaces it. Overload selection, parameter defaults,
+output writability and imported access rules follow ordinary function checking.
+Constructor prototypes and definitions remain separate overload candidates:
+repeating the same signature makes a call ambiguous, as in the pinned upstream.
+
+Declared field defaults execute before the constructor body in the struct's
+owning module. Nested struct fields with a default constructor invoke it.
+Unqualified fields refer to the receiver before module globals; parameters and
+locals take priority over fields. `this` names the writable receiver. A bare
+`return;` or falling through returns that receiver; `return Item(...);` returns
+the specified value. Fields without defaults or constructor writes remain
+uninitialized. Array declarations and array fields without explicit initializers
+do not automatically construct their elements. A struct declaration with no
+matching default constructor also remains uninitialized.
+
+See [constructor calls](../tests/conformance/positive/user-constructors.slang),
+[default construction](../tests/conformance/positive/user-constructors-defaults.slang)
+and [global initialization](../tests/conformance/positive/user-constructors-global.slang).
+Generic constructors, general methods and definite-assignment warnings remain
+unimplemented.
 
 ## Brace initializer lists
 
@@ -545,11 +598,13 @@ float3 partial = {1.0, 2.0}; // final component is zero
 float2x2 rows = {1.0, 2.0};  // first row is 1, second row is 2
 ```
 
-Struct lists first try memberwise initialization, including field defaults and
-visibility. When that form does not apply, flat values fill nested fields in
+Struct lists select a user-defined constructor when present. Otherwise they
+first try memberwise initialization, including field defaults and visibility.
+When that form does not apply, flat values fill nested fields in
 declaration order. Arrays also accept flat lists across dimensions. Explicit
 nested lists keep their own boundaries; an excess value in an inner list is
-an error. Empty lists use zero values and nested struct defaults. Copy a struct
+an error. Empty lists invoke a user-defined default constructor when available;
+otherwise they use zero values and nested struct defaults. Copy a struct
 with its named constructor or ordinary assignment.
 
 User function overloads treat list conversions as having equal cost and select

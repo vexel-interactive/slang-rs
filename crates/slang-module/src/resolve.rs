@@ -14,6 +14,8 @@ pub(crate) struct Resolver<'a> {
     next_local: usize,
     module: ModuleId,
     origins: &'a mut BTreeMap<String, SymbolOrigin>,
+    members: &'a BTreeMap<String, std::collections::BTreeSet<String>>,
+    active_members: Option<std::collections::BTreeSet<String>>,
 }
 
 impl<'a> Resolver<'a> {
@@ -24,6 +26,7 @@ impl<'a> Resolver<'a> {
         local_prefix: String,
         module: ModuleId,
         origins: &'a mut BTreeMap<String, SymbolOrigin>,
+        members: &'a BTreeMap<String, std::collections::BTreeSet<String>>,
     ) -> Self {
         Self {
             own,
@@ -34,6 +37,8 @@ impl<'a> Resolver<'a> {
             next_local: 0,
             module,
             origins,
+            members,
+            active_members: None,
         }
     }
 
@@ -131,6 +136,14 @@ impl<'a> Resolver<'a> {
                 variable.name = self.symbol(&variable.name, false, variable.span)?;
             }
             Declaration::Function(function) => {
+                let members = function
+                    .constructor
+                    .as_ref()
+                    .and_then(|name| self.members.get(name))
+                    .cloned();
+                if let Some(owner) = &mut function.constructor {
+                    *owner = self.symbol(owner, true, function.span)?;
+                }
                 function.name = self.symbol(&function.name, false, function.span)?;
                 self.ty(&mut function.return_type)?;
                 for attribute in &mut function.attributes {
@@ -145,10 +158,18 @@ impl<'a> Resolver<'a> {
                 for parameter in &mut function.parameters {
                     self.variable(parameter)?;
                 }
+                if function.constructor.is_some() {
+                    self.scopes
+                        .last_mut()
+                        .unwrap()
+                        .insert("this".into(), "this".into());
+                }
+                self.active_members = members;
                 if let Some(body) = &mut function.body {
                     self.statement(body)?;
                 }
                 self.scopes.pop();
+                self.active_members = None;
             }
         }
         Ok(())
@@ -253,6 +274,12 @@ impl<'a> Resolver<'a> {
             ExprKind::Name(name) => {
                 if let Some(target) = self.scopes.iter().rev().find_map(|scope| scope.get(name)) {
                     *name = target.clone();
+                } else if self
+                    .active_members
+                    .as_ref()
+                    .is_some_and(|members| members.contains(name))
+                {
+                    // The constructor's receiver wins over module globals.
                 } else {
                     if let Some(target) = self.own.lookup(name, false, expression.span)? {
                         *name = target;

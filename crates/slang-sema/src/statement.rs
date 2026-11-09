@@ -44,6 +44,7 @@ impl Flow {
 impl Checker {
     pub(crate) fn initialize_global(&mut self, variable: &Variable) {
         self.initializer(variable);
+        self.automatic_variable(variable, false);
         if variable.modifiers.iter().any(|m| m == "const") {
             let value = variable
                 .initializer
@@ -85,7 +86,11 @@ impl Checker {
         if let Some(value) = &variable.initializer {
             let expected = self.resolve_type(&variable.ty);
             self.check_value(value, &expected);
-        } else if variable.modifiers.iter().any(|m| m == "const") {
+        } else if variable.modifiers.iter().any(|m| m == "const")
+            && !self
+                .variable_initializations
+                .contains_key(&crate::span_key(variable.span))
+        {
             self.error(
                 "T004",
                 variable.span,
@@ -120,9 +125,26 @@ impl Checker {
             self.bind(parameter, VariableScope::Parameter);
         }
         self.parameter_defaults(function);
+        self.current_constructor = function.constructor.clone();
+        if let Some(owner) = &function.constructor {
+            self.scopes.last_mut().unwrap().insert(
+                "this".into(),
+                crate::checker::Binding {
+                    ty: Type::Struct(owner.clone()),
+                    writable: true,
+                    constant: None,
+                    shape_constant: None,
+                    storage: crate::checker::Storage::Local,
+                },
+            );
+            self.prepare_constructor(function);
+        }
         if let Some(body) = &function.body {
             let returns = self.statement(body);
-            if self.return_type != Type::Void && returns != Flow::RETURN {
+            if function.constructor.is_none()
+                && self.return_type != Type::Void
+                && returns != Flow::RETURN
+            {
                 self.error(
                     "T005",
                     function.span,
@@ -131,6 +153,7 @@ impl Checker {
             }
         }
         self.scopes.pop();
+        self.current_constructor = None;
     }
 
     pub(crate) fn statement(&mut self, statement: &Stmt) -> Flow {
@@ -142,12 +165,14 @@ impl Checker {
                 returns
             }
             StmtKind::Variable(variable) => {
+                self.automatic_variable(variable, true);
                 self.initializer(variable);
                 self.bind(variable, VariableScope::Local);
                 Flow::FALLTHROUGH
             }
             StmtKind::Variables(variables) => {
                 for variable in variables {
+                    self.automatic_variable(variable, true);
                     self.initializer(variable);
                     self.bind(variable, VariableScope::Local);
                 }
@@ -167,7 +192,13 @@ impl Checker {
                 if let Some(value) = value {
                     self.check_value(value, &self.return_type.clone());
                 } else {
-                    self.require_conversion(&Type::Void, &self.return_type.clone(), statement.span);
+                    if self.current_constructor.is_none() {
+                        self.require_conversion(
+                            &Type::Void,
+                            &self.return_type.clone(),
+                            statement.span,
+                        );
+                    }
                 }
                 Flow::RETURN
             }

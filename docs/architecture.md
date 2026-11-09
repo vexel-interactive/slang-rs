@@ -310,6 +310,28 @@ checker records the selected callable in `CheckedModule`; lowering uses that
 selection so target compilation cannot select an internal overload by mistake.
 See [modules.md](modules.md) for file membership, access rules, and remaining limits.
 
+User `__init` declarations become function AST nodes with an owning struct type
+and a generated source name that cannot collide with source identifiers. The
+module resolver preserves unqualified field names inside constructor bodies
+while resolving the owner type, globals and parameter defaults in their module.
+Semantic checking records the receiver type for implicit member expressions,
+selected constructor identities, declaration defaults, and automatic variable
+and nested-field initialization plans. Constructor overloads retain declaration
+identities rather than merging prototypes with definitions. Constructors and
+ForceInline overloads receive distinct target names so inlining uses the selected
+body even when HLSL could represent their signatures directly.
+
+`InitializationKind::ConstructorCall` carries the selected target, parameter
+types and argument plans for contextual lists and automatic construction.
+Output arguments retain their writable source types. IR lowering allocates an
+uninitialized `this` receiver, applies declared field defaults and nested struct
+construction, then lowers the body. Bare and fallthrough returns return `this`;
+explicit value returns retain their checked expression. Unwritten fields and
+arrays without explicit initializers are not filled with zeros. Capability
+analysis follows constructor calls and automatic/default initialization plans.
+Static const initializer checking follows expression and initialization graphs,
+rejecting mutable globals and ordinary user calls without executing their bodies.
+
 Explicit `[ForceInline]` requests expand ordinary value function bodies before
 SSA construction. Prototypes and definitions use their checked target names;
 overloads and imported declarations retain the selected callable. Fresh local
@@ -331,10 +353,17 @@ and conditional arms become guarded statement regions. Lifted while conditions
 execute at the loop head. For increments and do/while conditions use a first
 iteration flag at the loop head, so continue targets still execute the correct
 increment or condition. Aggregate captures receive ordinary initialization
-lowering before SSA. Expansion has node/depth limits and reports unsupported
-output parameters, non-value signatures, vector condition regions, and
-global initializer calls explicitly. Ordinary calls remain opaque to SCCP,
-matching the tested upstream optimization boundary.
+lowering before SSA. Expansion has node/depth limits and rejects shared/volatile
+local storage and statement-valued vector condition regions. Ordinary calls
+remain opaque to SCCP, matching the tested upstream optimization boundary.
+
+Out/inout expansion retains direct address aliases or uses ordered scratch
+copy-back for swizzles and resource setters. Same-width integral output views
+preserve the declared load/store type through expression-effect normalization.
+Global initializers containing requested inline calls move their captures and
+statement regions into generated initializer functions. A second array-result
+pass wraps fixed-array returns from these functions before effect normalization,
+keeping all lifted statements inside function bodies.
 
 Struct and fixed-array inputs use captured copies; array results use the existing
 return wrapper before inlining. Resource captures preserve handles. Aggregate

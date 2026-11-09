@@ -37,6 +37,17 @@ impl Checker {
                 return result;
             }
             if let Type::Struct(name) = &target {
+                if let Some(function) = self.constructors.get(name).cloned() {
+                    let has_copy = self
+                        .functions
+                        .get(&function)
+                        .is_some_and(|s| s.iter().any(|s| s.parameters == [target.clone()]));
+                    if types != [target.clone()] || has_copy {
+                        let mut selected = callee.clone();
+                        selected.kind = ExprKind::Name(function);
+                        return self.call(&selected, arguments, span);
+                    }
+                }
                 let result = self.struct_constructor(name, arguments, &types, callee.id, span);
                 self.expression_types
                     .insert(callee.id, Type::Meta(Box::new(target)));

@@ -9,6 +9,13 @@ pub fn parse(tokens: &[Token]) -> Result<Module, Vec<Diagnostic>> {
     while tokens.iter().any(|t| t.text.starts_with(&buffer_prefix)) {
         buffer_prefix.push('_');
     }
+    let mut constructor_prefix = "_slang_constructor_".to_owned();
+    while tokens
+        .iter()
+        .any(|t| t.text.starts_with(&constructor_prefix))
+    {
+        constructor_prefix.push('_');
+    }
     let mut parser = Parser {
         tokens,
         offset: 0,
@@ -17,6 +24,7 @@ pub fn parse(tokens: &[Token]) -> Result<Module, Vec<Diagnostic>> {
         expression_angle_stop: false,
         constant_buffers: vec![],
         buffer_prefix,
+        constructor_prefix,
     };
     let mut module = Module::default();
     let mut diagnostics = vec![];
@@ -61,6 +69,7 @@ pub(crate) struct Parser {
     pub expression_angle_stop: bool,
     pub constant_buffers: Vec<ConstantBufferInfo>,
     pub buffer_prefix: String,
+    pub constructor_prefix: String,
 }
 
 impl Parser {

@@ -3,6 +3,18 @@ use slang_source::{Diagnostic, Span};
 use slang_syntax::{Expr, ExprId, ExprKind, Variable};
 
 impl Checker {
+    pub(crate) fn constructor_plan(
+        &self,
+        target: &Type,
+        values: &[Expr],
+        span: Span,
+    ) -> Result<Option<Initialization>, Diagnostic> {
+        Planner {
+            checker: self,
+            remaining: 65536,
+        }
+        .constructor(target, values, span, 0)
+    }
     pub(crate) fn array_constructor(
         &mut self,
         target: &Type,
@@ -113,6 +125,62 @@ struct Planner<'a> {
 }
 
 impl Planner<'_> {
+    fn constructor(
+        &mut self,
+        target: &Type,
+        values: &[Expr],
+        span: Span,
+        depth: usize,
+    ) -> Result<Option<Initialization>, Diagnostic> {
+        let Type::Struct(owner) = target else {
+            return Ok(None);
+        };
+        let Some(signature) = self.checker.select_constructor(owner, values, span)? else {
+            return Ok(None);
+        };
+        self.charge(depth, span)?;
+        let mut arguments = vec![];
+        for (index, parameter) in signature.parameters.iter().enumerate() {
+            if let Some(value) = values.get(index) {
+                if signature.output_parameters[index] {
+                    let actual = self
+                        .checker
+                        .expression_types
+                        .get(&value.id)
+                        .cloned()
+                        .unwrap_or(Type::Error);
+                    if !self.checker.writable(value) || !actual.output_convertible_to(parameter) {
+                        return Err(Diagnostic::error(
+                            "T015",
+                            value.span,
+                            "constructor output argument requires compatible writable storage",
+                        ));
+                    }
+                    arguments.push(Initialization {
+                        ty: actual,
+                        kind: InitializationKind::Value(Box::new(value.clone())),
+                    });
+                } else {
+                    arguments.push(self.list(value, parameter, depth + 1)?);
+                }
+            } else {
+                arguments.push(Initialization {
+                    ty: parameter.clone(),
+                    kind: InitializationKind::DeclarationDefault(Box::new(
+                        signature.defaults[index].clone().unwrap(),
+                    )),
+                });
+            }
+        }
+        Ok(Some(Initialization {
+            ty: target.clone(),
+            kind: InitializationKind::ConstructorCall {
+                name: signature.target_name,
+                parameters: signature.parameters,
+                arguments,
+            },
+        }))
+    }
     fn charge(&mut self, depth: usize, span: Span) -> Result<(), Diagnostic> {
         if depth >= 32 || self.remaining == 0 {
             return Err(Diagnostic::error(
@@ -162,6 +230,9 @@ impl Planner<'_> {
         let ExprKind::InitializerList(values) = &value.kind else {
             return self.value(value, target);
         };
+        if let Some(constructor) = self.constructor(target, values, value.span, depth + 1)? {
+            return Ok(constructor);
+        }
         if !self
             .checker
             .constant_buffer_data(target, &mut Default::default())

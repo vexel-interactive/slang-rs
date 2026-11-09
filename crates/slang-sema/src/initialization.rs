@@ -11,6 +11,11 @@ pub struct Initialization {
 
 #[derive(Clone, Debug)]
 pub enum InitializationKind {
+    ConstructorCall {
+        name: String,
+        parameters: Vec<Type>,
+        arguments: Vec<Initialization>,
+    },
     Value(Box<Expr>),
     /// Evaluate a default in its declaration scope, outside caller bindings.
     DeclarationDefault(Box<Expr>),

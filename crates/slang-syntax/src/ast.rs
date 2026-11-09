@@ -108,6 +108,9 @@ pub struct Struct {
 #[derive(Clone, Debug, Serialize)]
 pub struct Function {
     pub name: String,
+    /// Owning type for a normalized user-defined __init declaration.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub constructor: Option<String>,
     pub return_type: TypeRef,
     pub parameters: Vec<Variable>,
     pub attributes: Vec<Attribute>,

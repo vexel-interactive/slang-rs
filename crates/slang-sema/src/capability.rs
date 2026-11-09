@@ -115,6 +115,14 @@ pub(crate) fn validate(
             calls: BTreeSet::new(),
             requirements: Requirements::default(),
         };
+        if let Some(values) = checked
+            .constructor_initializations
+            .get(&span_key(function.span))
+        {
+            scanner
+                .work
+                .extend(values.iter().map(|(_, value)| Work::Initialization(value)));
+        }
         scanner.scan();
         requirements[index] = scanner.requirements;
         for callee in scanner.calls {
@@ -213,6 +221,19 @@ impl<'a> Scanner<'a> {
                 Work::Statement(s) => self.statement(s),
                 Work::Expression(e) => self.expression(e),
                 Work::Initialization(i) => match &i.kind {
+                    InitializationKind::ConstructorCall {
+                        name,
+                        parameters,
+                        arguments,
+                    } => {
+                        if let Some(overloads) = self.indices.get(name)
+                            && let Some((_, index)) =
+                                overloads.iter().find(|(types, _)| types == parameters)
+                        {
+                            self.calls.insert(*index);
+                        }
+                        self.work.extend(arguments.iter().map(Work::Initialization));
+                    }
                     InitializationKind::Value(e) | InitializationKind::DeclarationDefault(e) => {
                         self.work.push(Work::Expression(e))
                     }
@@ -232,8 +253,19 @@ impl<'a> Scanner<'a> {
                 if let Some(e) = &v.initializer {
                     self.work.push(Work::Expression(e));
                 }
+                if let Some(value) = self.checked.variable_initializations.get(&span_key(v.span)) {
+                    self.work.push(Work::Initialization(value));
+                }
             }
             StmtKind::Variables(values) => {
+                self.work.extend(
+                    values
+                        .iter()
+                        .filter_map(|v| {
+                            self.checked.variable_initializations.get(&span_key(v.span))
+                        })
+                        .map(Work::Initialization),
+                );
                 self.work.extend(
                     values
                         .iter()
@@ -314,6 +346,9 @@ impl<'a> Scanner<'a> {
                     }
                     if let Some(value) = &global.initializer {
                         self.work.push(Work::Expression(value));
+                    }
+                    if let Some(value) = self.checked.variable_initializations.get(declaration) {
+                        self.work.push(Work::Initialization(value));
                     }
                 }
             }

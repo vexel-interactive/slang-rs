@@ -163,6 +163,31 @@ visibility, and generated helper names. CLI tests check excessive aggregate
 expansion and recursive field defaults on the Windows debug stack. Differential
 fixtures also validate static global initialization and empty structs with DXC.
 
+User constructor regressions cover selected overloads, implicit copies,
+field/parameter/global shadowing, writable receivers, output arguments,
+early and value returns, declaration defaults, nested struct construction,
+local const declarations, contextual lists, and imported constructor visibility.
+Negative cases check arity, missing explicit default calls, incompatible returns,
+duplicate constructor signatures and runtime static const initializers.
+The [undefined-field fixture](../tests/conformance/positive/user-constructors-uninitialized.slang)
+checks that unwritten receiver fields and arrays without explicit initializers
+remain undefined. Both source compilers accept it and both DXC artifacts must
+reject its observed undefined UAV stores. This is an undefined-value observation,
+not a backend target limitation.
+
+The [constructor fixture](../tests/conformance/positive/user-constructors.slang),
+[defaults](../tests/conformance/positive/user-constructors-defaults.slang),
+[global constructor](../tests/conformance/positive/user-constructors-global.slang),
+[global ForceInline calls](../tests/conformance/positive/global-force-inline.slang),
+[numeric overloads](../tests/conformance/positive/force-inline-overloads.slang)
+and [imported constructors](../tests/conformance/positive/user-constructors-module/main.slang)
+compare 38 additional exact constant words. They check global initializer
+function containment, numeric/control-flow/fixed-array results and distinct
+selected inline bodies. The global constructor case transcribes the values of
+upstream `14133-global-const-force-inline-init.slang` into uint stores for HLSL
+artifact comparison. Its original CUDA, C++ and filecheck requirements are not
+claimed to pass.
+
 Initializer-list tests distinguish numeric splats, padding, and matrix rows;
 cover flat/nested arrays, returns, assignments, function and resource arguments;
 and check overload ambiguity before contextual conversion. Imported field

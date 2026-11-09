@@ -60,6 +60,18 @@ fn prototypes_overloads_aliases_and_nested_calls_keep_selected_targets() {
 }
 
 #[test]
+fn ordinary_numeric_overloads_keep_distinct_selected_inline_bodies() {
+    let compiled = compile(include_str!(
+        "../../../tests/conformance/positive/force-inline-overloads.slang"
+    ));
+    let code = compiled.artifact.unwrap();
+    let main = code.split("void main()").last().unwrap();
+    assert!(!main.contains("adjusted__overload_0("), "{main}");
+    assert!(!main.contains("adjusted__overload_1("), "{main}");
+    assert!(main.contains("adjusted__overload_2("), "{main}");
+}
+
+#[test]
 fn imported_functions_preserve_global_references_under_caller_shadowing() {
     let includes=MemoryIncludes{files:[("lib.slang".into(),"module lib;public static const int bias=4;[ForceInline]public int add(int x){return x+bias;}".into())].into()};
     let compiled = compile_source(
@@ -86,8 +98,8 @@ fn malformed_attributes_and_unsupported_body_or_storage_forms_report_limits() {
     for (source, code) in [
         ("[ForceInline(1)]int f(int x){return x;}", "T006"),
         (
-            "[ForceInline]int f(int x){return x;}static int value=f(1);",
-            "I005",
+            "[ForceInline]int f(int x){return x;}static const int value=f(1);",
+            "T031",
         ),
         (
             "[ForceInline]void f(inout int x){x=2;}void g(){float x=1.5;f(x);}",

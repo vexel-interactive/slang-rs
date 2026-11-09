@@ -32,6 +32,10 @@ pub struct CheckedModule {
     pub constant_buffer_loads: BTreeSet<ExprId>,
     /// Constant scalar indexes into numeric member selections.
     pub swizzle_indices: BTreeMap<ExprId, u8>,
+    /// Receiver types for unqualified field references in constructor bodies.
+    pub implicit_members: BTreeMap<ExprId, Type>,
+    pub variable_initializations: BTreeMap<SpanKey, crate::Initialization>,
+    pub constructor_initializations: BTreeMap<SpanKey, Vec<(String, crate::Initialization)>>,
     pub declaration_types: BTreeMap<SpanKey, Type>,
     pub matrix_layouts: BTreeMap<SpanKey, slang_layout::MatrixMajor>,
     pub entry_points: Vec<EntryPoint>,
@@ -83,6 +87,7 @@ pub(crate) enum Storage {
 
 #[derive(Clone)]
 pub(crate) struct Signature {
+    pub declaration: SpanKey,
     pub parameters: Vec<Type>,
     pub output_parameters: Vec<bool>,
     pub result: Type,
@@ -100,6 +105,11 @@ pub(crate) struct Checker {
     pub expression_types: BTreeMap<ExprId, Type>,
     pub constant_buffer_loads: BTreeSet<ExprId>,
     pub swizzle_indices: BTreeMap<ExprId, u8>,
+    pub implicit_members: BTreeMap<ExprId, Type>,
+    pub variable_initializations: BTreeMap<SpanKey, crate::Initialization>,
+    pub constructor_initializations: BTreeMap<SpanKey, Vec<(String, crate::Initialization)>>,
+    pub constructors: BTreeMap<String, String>,
+    pub current_constructor: Option<String>,
     pub declaration_types: BTreeMap<SpanKey, Type>,
     pub matrix_layouts: BTreeMap<SpanKey, slang_layout::MatrixMajor>,
     pub diagnostics: Vec<Diagnostic>,
@@ -180,6 +190,11 @@ fn check_with_metadata(
         expression_types: BTreeMap::new(),
         constant_buffer_loads: BTreeSet::new(),
         swizzle_indices: BTreeMap::new(),
+        implicit_members: BTreeMap::new(),
+        variable_initializations: BTreeMap::new(),
+        constructor_initializations: BTreeMap::new(),
+        constructors: BTreeMap::new(),
+        current_constructor: None,
         declaration_types: BTreeMap::new(),
         matrix_layouts: BTreeMap::new(),
         diagnostics: vec![],
@@ -320,6 +335,7 @@ fn check_with_metadata(
         }
     }
     checker.validate_constant_buffers();
+    checker.validate_static_initializers(&module);
     checker.check_binding_overlaps(&module);
     checker.allocate_resource_bindings(&module);
     if !checker
@@ -358,6 +374,9 @@ fn check_with_metadata(
             expression_types: checker.expression_types,
             constant_buffer_loads: checker.constant_buffer_loads,
             swizzle_indices: checker.swizzle_indices,
+            implicit_members: checker.implicit_members,
+            variable_initializations: checker.variable_initializations,
+            constructor_initializations: checker.constructor_initializations,
             declaration_types: checker.declaration_types,
             matrix_layouts: checker.matrix_layouts,
             entry_points,

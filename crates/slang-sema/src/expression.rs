@@ -134,7 +134,18 @@ impl Checker {
                 Type::Error
             }
             ExprKind::Name(name) => {
-                if let Some(binding) = self.lookup(name).cloned() {
+                if let Some(owner) = &self.current_constructor
+                    && !self
+                        .scopes
+                        .iter()
+                        .skip(1)
+                        .any(|scope| scope.contains_key(name))
+                    && let Some(ty) = self.structures[owner].get(name).cloned()
+                {
+                    self.implicit_members
+                        .insert(expression.id, Type::Struct(owner.clone()));
+                    ty
+                } else if let Some(binding) = self.lookup(name).cloned() {
                     if let Storage::Global(declaration) | Storage::GroupShared(declaration) =
                         binding.storage
                     {
@@ -412,12 +423,15 @@ impl Checker {
         }
     }
 
-    fn writable(&self, expr: &Expr) -> bool {
+    pub(crate) fn writable(&self, expr: &Expr) -> bool {
         if self.constant_buffer_loads.contains(&expr.id) {
             return false;
         }
         match &expr.kind {
-            ExprKind::Name(name) => self.lookup(name).is_some_and(|b| b.writable),
+            ExprKind::Name(name) => {
+                self.implicit_members.contains_key(&expr.id)
+                    || self.lookup(name).is_some_and(|b| b.writable)
+            }
             ExprKind::Member { base, name } => {
                 if matches!(
                     self.expression_types.get(&base.id),

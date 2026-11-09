@@ -7976,6 +7976,136 @@
       "entry": "main",
       "accept": false,
       "rust_code": "T015"
+    },
+    {
+      "file": "positive/user-constructors.slang",
+      "entry": "main",
+      "accept": true,
+      "dxc_constant_stores": {
+        "0": 9,
+        "1": 4,
+        "2": 99,
+        "3": 12,
+        "4": 7,
+        "5": 11,
+        "6": 7,
+        "7": 9,
+        "8": 12,
+        "9": 13,
+        "10": 14,
+        "11": 5,
+        "12": 8,
+        "13": 6,
+        "14": 0,
+        "15": 1
+      }
+    },
+    {
+      "file": "positive/user-constructors-defaults.slang",
+      "entry": "main",
+      "accept": true,
+      "dxc_constant_stores": {
+        "0": 24,
+        "1": 3,
+        "2": 8,
+        "3": 7,
+        "4": 4,
+        "5": 16,
+        "6": 6,
+        "7": 16,
+        "8": 8
+      }
+    },
+    {
+      "file": "positive/user-constructors-global.slang",
+      "entry": "main",
+      "accept": true,
+      "dxc_constant_stores": {
+        "0": 1069547520,
+        "1": 1075838976,
+        "2": 1082130432,
+        "3": 1065353216
+      }
+    },
+    {
+      "file": "positive/global-force-inline.slang",
+      "entry": "main",
+      "accept": true,
+      "dxc_constant_stores": {
+        "0": 11,
+        "1": 7,
+        "2": 7
+      }
+    },
+    {
+      "file": "negative/user-constructor-arity.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/user-constructor-default-missing.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/user-constructor-return.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T008"
+    },
+    {
+      "file": "negative/global-const-runtime-call.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T031"
+    },
+    {
+      "file": "negative/global-const-runtime-value.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T031"
+    },
+    {
+      "file": "positive/force-inline-overloads.slang",
+      "entry": "main",
+      "accept": true,
+      "dxc_constant_stores": {
+        "0": 5,
+        "1": 4,
+        "2": 1092616192
+      }
+    },
+    {
+      "file": "positive/user-constructors-uninitialized.slang",
+      "entry": "main",
+      "accept": true,
+      "reason": "Both source compilers permit these uninitialized declarations. Constructor fields without defaults or writes, and arrays without explicit initializers, remain undefined; DXC rejects their observed UAV stores.",
+      "rust_validation_accept": false,
+      "oracle_validation_accept": false
+    },
+    {
+      "file": "positive/user-constructors-module/main.slang",
+      "entry": "main",
+      "accept": true,
+      "dxc_constant_stores": {
+        "0": 9,
+        "1": 19,
+        "2": 99
+      }
+    },
+    {
+      "file": "positive/user-constructors-module/private.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/user-constructor-redeclaration.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T014"
     }
   ]
 }

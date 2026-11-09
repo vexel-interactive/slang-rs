@@ -59,15 +59,42 @@ pub(crate) fn lower(module: &mut Module, checked: &CheckedModule) -> Result<(), 
         declarations: vec![],
         active: vec![],
         remaining: MAX_INLINE_NODES,
-        in_function: false,
     };
-    // Calls in global initializers have no function-local argument storage.
+    // Global expansion lives in an initializer function, never in file-scope
+    // statements. DXC evaluates that function in the shader's private state.
     for global in &mut module.globals {
         if let Some(value) = &mut global.initializer {
+            let mut requests = Requests {
+                forced: &lowerer.forced,
+                found: false,
+            };
+            requests.expression(value)?;
+            if !requests.found {
+                continue;
+            }
+            lowerer.remaining = MAX_INLINE_NODES;
             lowerer.expression(value)?;
+            let name = format!("{}global_init_{}", lowerer.prefix, module.functions.len());
+            let mut statements = std::mem::take(&mut lowerer.declarations);
+            statements.push(Stmt {
+                kind: StmtKind::Return(Some(value.clone())),
+                span: value.span,
+            });
+            module.functions.push(Function {
+                name: name.clone(),
+                return_type: value.ty.clone(),
+                parameters: vec![],
+                modifiers: vec![],
+                semantic: None,
+                body: Some(crate::effects::block(statements, value.span)),
+                span: value.span,
+            });
+            value.kind = ExprKind::Call {
+                name,
+                arguments: vec![],
+            };
         }
     }
-    lowerer.in_function = true;
     for function in &mut module.functions {
         if let Some(body) = &mut function.body {
             lowerer.active.push(function.name.clone());
@@ -85,7 +112,22 @@ pub(crate) fn lower(module: &mut Module, checked: &CheckedModule) -> Result<(), 
             }
         }
     }
+    // Initializer functions may themselves return fixed arrays.
+    crate::array_result::lower(module)?;
     crate::effects::lower(module, checked)
+}
+
+struct Requests<'a> {
+    forced: &'a BTreeSet<String>,
+    found: bool,
+}
+impl Visitor for Requests<'_> {
+    fn expression(&mut self, value: &mut Expr) -> Result<(), Diagnostic> {
+        if matches!(&value.kind, ExprKind::Call { name, .. } if self.forced.contains(name)) {
+            self.found = true;
+        }
+        walk_expression(self, value)
+    }
 }
 
 struct Lowerer {
@@ -96,7 +138,6 @@ struct Lowerer {
     declarations: Vec<Stmt>,
     active: Vec<String>,
     remaining: usize,
-    in_function: bool,
 }
 
 impl Lowerer {
@@ -148,12 +189,6 @@ impl Lowerer {
     }
 
     fn expand(&mut self, name: &str, arguments: &[Expr], span: Span) -> Result<Expr, Diagnostic> {
-        if !self.in_function {
-            return Err(unsupported(
-                span,
-                "ForceInline calls in global initializers are not implemented",
-            ));
-        }
         if self.active.len() >= MAX_INLINE_DEPTH || self.active.iter().any(|active| active == name)
         {
             return Err(unsupported(
