@@ -319,6 +319,19 @@ impl Checker {
                         self.constructors
                             .insert(owner.clone(), function.name.clone());
                     }
+                    if let Some(method) = &function.method {
+                        self.methods.insert(
+                            (method.owner.clone(), method.name.clone()),
+                            function.name.clone(),
+                        );
+                        if self
+                            .structures
+                            .get(&method.owner)
+                            .is_some_and(|fields| fields.contains_key(&method.name))
+                        {
+                            self.error("T003", function.span, "method name conflicts with a field");
+                        }
+                    }
                     if self.scopes[0].contains_key(&function.name)
                         || names.contains(&function.name)
                         || Type::builtin(self.source_name(&function.name)).is_some()
@@ -350,8 +363,11 @@ impl Checker {
                         .collect();
                     let overloads = self.functions.entry(function.name.clone()).or_default();
                     if function.constructor.is_none()
-                        && let Some(existing) =
-                            overloads.iter_mut().find(|s| s.parameters == parameters)
+                        && let Some(existing) = overloads.iter_mut().find(|s| {
+                            s.parameters == parameters
+                                && s.method.as_ref().map(|m| m.is_static)
+                                    == function.method.as_ref().map(|m| m.is_static)
+                        })
                     {
                         let duplicate = existing.result != result
                             || existing.output_parameters != output_parameters
@@ -379,6 +395,7 @@ impl Checker {
                                 .iter()
                                 .map(|p| p.initializer.clone())
                                 .collect(),
+                            method: function.method.clone(),
                         });
                     }
                 }
@@ -394,7 +411,7 @@ impl Checker {
             .cloned()
             .chain(module.declarations.iter().filter_map(|d| {
                 if let Declaration::Function(f) = d
-                    && f.attributes.iter().any(|a| a.name == "ForceInline")
+                    && (f.method.is_some() || f.attributes.iter().any(|a| a.name == "ForceInline"))
                 {
                     Some(f.name.clone())
                 } else {
@@ -429,6 +446,8 @@ impl Checker {
                 if let Some(signature) = self.functions.get(&function.name).and_then(|overloads| {
                     overloads.iter().find(|s| {
                         s.parameters == parameters
+                            && s.method.as_ref().map(|m| m.is_static)
+                                == function.method.as_ref().map(|m| m.is_static)
                             && (function.constructor.is_none()
                                 || s.declaration == span_key(function.span))
                     })

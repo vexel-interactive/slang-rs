@@ -409,6 +409,22 @@ impl Lowerer<'_> {
                     self.initializing.borrow_mut().pop();
                     arguments.extend(result?);
                 }
+                if let Some(receiver) = self.checked.method_receivers.get(&callee.id) {
+                    match receiver {
+                        slang_sema::MethodReceiver::Static => {}
+                        slang_sema::MethodReceiver::Explicit(base) => {
+                            arguments.insert(0, self.expression(base)?)
+                        }
+                        slang_sema::MethodReceiver::Implicit(owner) => arguments.insert(
+                            0,
+                            Expr {
+                                ty: Type::Struct(owner.clone()),
+                                kind: ExprKind::Name("this".into()),
+                                span: callee.span,
+                            },
+                        ),
+                    }
+                }
                 // Intrinsic and resource signatures can infer a wider input type
                 // from output parameters. Preserve that choice in target code.
                 if !self.checked.call_names.contains_key(&callee.id)
@@ -429,7 +445,18 @@ impl Lowerer<'_> {
                 }
                 // Pointer-shaped numeric types have no core alias such as
                 // intptr_t2. Preserve their constructors as typed IR nodes.
-                if let Some(Type::Meta(target)) = self.checked.expression_types.get(&callee.id)
+                if self.checked.method_receivers.contains_key(&callee.id) {
+                    ExprKind::Call {
+                        name: self
+                            .checked
+                            .call_names
+                            .get(&callee.id)
+                            .cloned()
+                            .ok_or_else(|| error(callee.span))?,
+                        arguments,
+                    }
+                } else if let Some(Type::Meta(target)) =
+                    self.checked.expression_types.get(&callee.id)
                     && target
                         .scalar()
                         .is_some_and(slang_sema::Scalar::is_pointer_sized)

@@ -33,6 +33,13 @@ impl Checker {
                 }
                 let ty = self.resolve_type(&parameter.ty);
                 self.check_value(value, &ty);
+                if function.method.is_some() && references_receiver(value, self) {
+                    self.error(
+                        "T022",
+                        value.span,
+                        "receiver-dependent method defaults are not implemented",
+                    );
+                }
             } else if seen {
                 self.error(
                     "T022",
@@ -41,6 +48,42 @@ impl Checker {
                 );
             }
         }
+    }
+}
+
+fn references_receiver(value: &Expr, checker: &Checker) -> bool {
+    if checker.implicit_members.contains_key(&value.id) {
+        return true;
+    }
+    match &value.kind {
+        ExprKind::Name(name) => name == "this",
+        ExprKind::InitializerList(values) => values.iter().any(|v| references_receiver(v, checker)),
+        ExprKind::Unary { value, .. }
+        | ExprKind::Cast { value, .. }
+        | ExprKind::Postfix { value, .. } => references_receiver(value, checker),
+        ExprKind::Binary { left, right, .. } => {
+            references_receiver(left, checker) || references_receiver(right, checker)
+        }
+        ExprKind::Call { callee, arguments } => {
+            checker
+                .method_receivers
+                .get(&callee.id)
+                .is_some_and(|r| !matches!(r, crate::MethodReceiver::Static))
+                || references_receiver(callee, checker)
+                || arguments.iter().any(|v| references_receiver(v, checker))
+        }
+        ExprKind::Member { base, .. } => references_receiver(base, checker),
+        ExprKind::Index { base, index } => {
+            references_receiver(base, checker) || references_receiver(index, checker)
+        }
+        ExprKind::Conditional {
+            condition,
+            then_value,
+            else_value,
+        } => [condition, then_value, else_value]
+            .into_iter()
+            .any(|v| references_receiver(v, checker)),
+        _ => false,
     }
 }
 

@@ -19,6 +19,24 @@ impl Checker {
                         self.error("T006", attribute.span, "ForceInline takes no arguments");
                     }
                 }
+                "mutating" | "nonmutating" => {
+                    if function.method.is_none() || !attribute.arguments.is_empty() {
+                        self.error(
+                            "T006",
+                            attribute.span,
+                            "receiver attributes require a method and take no arguments",
+                        );
+                    }
+                    if function
+                        .attributes
+                        .iter()
+                        .filter(|a| matches!(a.name.as_str(), "mutating" | "nonmutating"))
+                        .count()
+                        > 1
+                    {
+                        self.error("T006", attribute.span, "conflicting receiver attributes");
+                    }
+                }
                 "shader" => {
                     if stage.is_some() {
                         self.error("T006", attribute.span, "duplicate shader attribute");

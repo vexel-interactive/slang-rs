@@ -137,12 +137,14 @@ impl<'a> Resolver<'a> {
             }
             Declaration::Function(function) => {
                 let members = function
-                    .constructor
-                    .as_ref()
+                    .owner_type()
                     .and_then(|name| self.members.get(name))
                     .cloned();
                 if let Some(owner) = &mut function.constructor {
                     *owner = self.symbol(owner, true, function.span)?;
+                }
+                if let Some(method) = &mut function.method {
+                    method.owner = self.symbol(&method.owner, true, function.span)?;
                 }
                 function.name = self.symbol(&function.name, false, function.span)?;
                 self.ty(&mut function.return_type)?;
@@ -153,7 +155,19 @@ impl<'a> Resolver<'a> {
                 }
                 self.scopes.push(BTreeMap::new());
                 for parameter in &mut function.parameters {
+                    if parameter.name == "this"
+                        && function.method.as_ref().is_some_and(|m| !m.is_static)
+                    {
+                        self.scopes
+                            .last_mut()
+                            .unwrap()
+                            .insert("this".into(), "this".into());
+                        continue;
+                    }
                     self.bind_local(parameter);
+                }
+                if function.method.is_some() {
+                    self.active_members = members.clone();
                 }
                 for parameter in &mut function.parameters {
                     self.variable(parameter)?;
@@ -279,7 +293,7 @@ impl<'a> Resolver<'a> {
                     .as_ref()
                     .is_some_and(|members| members.contains(name))
                 {
-                    // The constructor's receiver wins over module globals.
+                    // Members of the containing type win over module globals.
                 } else {
                     if let Some(target) = self.own.lookup(name, false, expression.span)? {
                         *name = target;

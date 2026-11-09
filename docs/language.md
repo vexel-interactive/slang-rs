@@ -581,8 +581,61 @@ matching default constructor also remains uninitialized.
 See [constructor calls](../tests/conformance/positive/user-constructors.slang),
 [default construction](../tests/conformance/positive/user-constructors-defaults.slang)
 and [global initialization](../tests/conformance/positive/user-constructors-global.slang).
-Generic constructors, general methods and definite-assignment warnings remain
+Generic constructors and definite-assignment warnings remain
 unimplemented.
+
+## Struct methods
+
+Nongeneric structs can declare instance and static methods. Instance methods
+are nonmutating by default; `[mutating]` makes `this` writable and requires a
+writable receiver at the call site. `[nonmutating]` explicitly selects the default.
+
+```slang
+struct Counter
+{
+    int value;
+    int read() { return value; }
+    int twice() { return read() + this.read(); }
+    [mutating] void add(int delta) { value += delta; }
+    static int offset(int x = 2) { return x + 7; }
+};
+
+// Inside a function:
+Counter c = Counter(3);
+c.add(2);                    // c.value = 5
+int result = c.twice();       // 10
+int offset = Counter.offset(); // 9
+```
+
+Parameters and locals shadow implicit members; members take priority over module
+globals. Methods can call other methods without spelling `this`, including from
+a constructor. Static methods cannot access instance fields or call instance
+methods without an explicit receiver. Static calls may use a type alias or a
+value as their base. As in upstream, `makeCounter().offset()` does not evaluate
+`makeCounter()` when `offset` is static.
+
+Nonmutating calls take a receiver value before explicit arguments evaluate.
+They accept const locals, temporaries, read-only buffer elements and loaded
+constant-buffer values. Mutating calls retain the receiver's writable storage,
+including nested fields, indexed arrays and writable resource elements. Receiver
+coordinates evaluate once before explicit arguments. `[ForceInline]` uses the
+same capture/address rules as ordinary input and inout parameters.
+
+Methods support selected overloads, prototype/definition merging, trailing input
+defaults in their owning module, output arguments and fixed-array results.
+Imported methods require `public`; internal methods remain callable inside their
+module. Explicitly supplied arguments keep the caller's scope. Calling a method
+in a static const global initializer is an ordinary user call and reports `T031`.
+
+See [method calls and effects](../tests/conformance/positive/struct-methods.slang),
+[resource receivers](../tests/conformance/positive/struct-methods-resources.slang)
+and [imported methods](../tests/conformance/positive/struct-methods-module/main.slang).
+Generic methods, extensions, properties, class methods, `[constref]`/`[__ref]`
+receiver modes and first-class method values remain unimplemented.
+Receiver-dependent parameter defaults report `T022`; the pinned oracle also
+fails to lower the probed field/method defaults, which is not a claim that their
+source syntax is invalid. C++ trailing `const` requires the HLSL dialect upstream;
+the native Slang parser does not implement that dialect extension.
 
 ## Brace initializer lists
 

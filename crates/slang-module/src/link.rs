@@ -111,7 +111,7 @@ pub(crate) fn link(
                 exports[id.0].extend(&names);
             }
         }
-        let members = nodes[id.0]
+        let mut members: BTreeMap<String, BTreeSet<String>> = nodes[id.0]
             .syntax
             .declarations
             .iter()
@@ -126,6 +126,16 @@ pub(crate) fn link(
                 }
             })
             .collect();
+        for declaration in &nodes[id.0].syntax.declarations {
+            if let Declaration::Function(function) = declaration
+                && let Some(method) = &function.method
+            {
+                members
+                    .entry(method.owner.clone())
+                    .or_default()
+                    .insert(method.name.clone());
+            }
+        }
         let mut resolver = Resolver::new(
             &own[id.0],
             &imported,

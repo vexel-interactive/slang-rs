@@ -1,4 +1,8 @@
-use crate::{Scalar, Type, checker::Checker, intrinsic::intrinsic};
+use crate::{
+    Scalar, Type,
+    checker::{Checker, Signature},
+    intrinsic::intrinsic,
+};
 use slang_source::{Diagnostic, Span};
 use slang_syntax::{Expr, ExprKind};
 
@@ -6,7 +10,18 @@ impl Checker {
     pub(crate) fn call(&mut self, callee: &Expr, arguments: &[Expr], span: Span) -> Type {
         let mut types: Vec<Type> = arguments.iter().map(|a| self.expression(a)).collect();
         if let ExprKind::Member { base, name } = &callee.kind {
+            if let Some(result) =
+                self.member_call(callee, Some(base), name, arguments, &types, span)
+            {
+                return result;
+            }
             return self.resource_call(base, name, arguments, &types, callee.id, span);
+        }
+        if let ExprKind::Name(name) = &callee.kind
+            && self.lookup(name).is_none()
+            && let Some(result) = self.member_call(callee, None, name, arguments, &types, span)
+        {
+            return result;
         }
         if matches!(&callee.kind, ExprKind::Name(name) if matches!(name.as_str(), "vector" | "matrix") && self.lookup(name).is_none() && !(self.functions.contains_key(name) && self.module_symbol_visible(name)))
         {
@@ -197,52 +212,7 @@ impl Checker {
                 if !best.defined {
                     self.error("T014", span, format!("function '{name}' has no definition"));
                 }
-                for (argument, target) in arguments.iter().zip(&best.parameters) {
-                    self.coerce_value(argument, target);
-                }
-                for (index, (argument, output)) in
-                    arguments.iter().zip(&best.output_parameters).enumerate()
-                {
-                    if *output {
-                        self.require_writable(argument);
-                        if !types[index].output_convertible_to(&best.parameters[index]) {
-                            self.error(
-                                "T015",
-                                argument.span,
-                                format!(
-                                    "output argument cannot view {} storage as {}",
-                                    types[index], best.parameters[index]
-                                ),
-                            );
-                        }
-                    }
-                }
-                self.expression_types.insert(
-                    callee.id,
-                    Type::Callable {
-                        parameters: best.parameters.clone(),
-                        result: Box::new(best.result.clone()),
-                    },
-                );
-                self.call_names.insert(callee.id, best.target_name.clone());
-                self.call_output_parameters.insert(
-                    crate::span_key(span),
-                    (best.target_name.clone(), best.output_parameters.clone()),
-                );
-                if arguments.len() < best.parameters.len() {
-                    let defaults = best.defaults[arguments.len()..]
-                        .iter()
-                        .zip(&best.parameters[arguments.len()..])
-                        .map(|(value, ty)| crate::Initialization {
-                            ty: ty.clone(),
-                            kind: crate::InitializationKind::DeclarationDefault(Box::new(
-                                value.as_ref().unwrap().clone(),
-                            )),
-                        })
-                        .collect();
-                    self.default_arguments.insert(callee.id, defaults);
-                }
-                return best.result.clone();
+                return self.finish_user_call(callee, arguments, &types, best, span);
             }
             self.error("T014", span, format!("no matching overload for '{name}'"));
             return Type::Error;
@@ -419,7 +389,7 @@ impl Checker {
         Type::Error
     }
 
-    fn constructor_target(&mut self, callee: &Expr) -> Result<Option<Type>, Diagnostic> {
+    pub(crate) fn constructor_target(&mut self, callee: &Expr) -> Result<Option<Type>, Diagnostic> {
         match &callee.kind {
             ExprKind::TypeApplication(reference) => Ok(Some(self.resolve_type(reference))),
             ExprKind::Name(name) if self.lookup(name).is_none() => Ok(Type::builtin(name)
@@ -499,6 +469,61 @@ impl Checker {
         let mut candidates = vec![];
         constructor_partitions(&choices, components, &mut vec![], &mut candidates);
         (candidates.len() == 1).then(|| candidates.remove(0))
+    }
+
+    pub(crate) fn finish_user_call(
+        &mut self,
+        callee: &Expr,
+        arguments: &[Expr],
+        types: &[Type],
+        best: &Signature,
+        span: Span,
+    ) -> Type {
+        for (argument, target) in arguments.iter().zip(&best.parameters) {
+            self.coerce_value(argument, target);
+        }
+        for (index, (argument, output)) in arguments.iter().zip(&best.output_parameters).enumerate()
+        {
+            if *output {
+                self.require_writable(argument);
+                if !types[index].output_convertible_to(&best.parameters[index]) {
+                    self.error(
+                        "T015",
+                        argument.span,
+                        format!(
+                            "output argument cannot view {} storage as {}",
+                            types[index], best.parameters[index]
+                        ),
+                    );
+                }
+            }
+        }
+        self.expression_types.insert(
+            callee.id,
+            Type::Callable {
+                parameters: best.parameters.clone(),
+                result: Box::new(best.result.clone()),
+            },
+        );
+        self.call_names.insert(callee.id, best.target_name.clone());
+        self.call_output_parameters.insert(
+            crate::span_key(span),
+            (best.target_name.clone(), best.output_parameters.clone()),
+        );
+        if arguments.len() < best.parameters.len() {
+            let defaults = best.defaults[arguments.len()..]
+                .iter()
+                .zip(&best.parameters[arguments.len()..])
+                .map(|(value, ty)| crate::Initialization {
+                    ty: ty.clone(),
+                    kind: crate::InitializationKind::DeclarationDefault(Box::new(
+                        value.as_ref().unwrap().clone(),
+                    )),
+                })
+                .collect();
+            self.default_arguments.insert(callee.id, defaults);
+        }
+        best.result.clone()
     }
 }
 

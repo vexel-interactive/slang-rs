@@ -32,8 +32,9 @@ pub struct CheckedModule {
     pub constant_buffer_loads: BTreeSet<ExprId>,
     /// Constant scalar indexes into numeric member selections.
     pub swizzle_indices: BTreeMap<ExprId, u8>,
-    /// Receiver types for unqualified field references in constructor bodies.
+    /// Receiver types for unqualified field references in constructors and methods.
     pub implicit_members: BTreeMap<ExprId, Type>,
+    pub method_receivers: BTreeMap<ExprId, crate::method::MethodReceiver>,
     pub variable_initializations: BTreeMap<SpanKey, crate::Initialization>,
     pub constructor_initializations: BTreeMap<SpanKey, Vec<(String, crate::Initialization)>>,
     pub declaration_types: BTreeMap<SpanKey, Type>,
@@ -95,6 +96,7 @@ pub(crate) struct Signature {
     pub public: bool,
     pub target_name: String,
     pub defaults: Vec<Option<Expr>>,
+    pub method: Option<StructMethod>,
 }
 
 pub(crate) struct Checker {
@@ -110,6 +112,9 @@ pub(crate) struct Checker {
     pub constructor_initializations: BTreeMap<SpanKey, Vec<(String, crate::Initialization)>>,
     pub constructors: BTreeMap<String, String>,
     pub current_constructor: Option<String>,
+    pub current_type: Option<String>,
+    pub methods: BTreeMap<(String, String), String>,
+    pub method_receivers: BTreeMap<ExprId, crate::method::MethodReceiver>,
     pub declaration_types: BTreeMap<SpanKey, Type>,
     pub matrix_layouts: BTreeMap<SpanKey, slang_layout::MatrixMajor>,
     pub diagnostics: Vec<Diagnostic>,
@@ -195,6 +200,9 @@ fn check_with_metadata(
         constructor_initializations: BTreeMap::new(),
         constructors: BTreeMap::new(),
         current_constructor: None,
+        current_type: None,
+        methods: BTreeMap::new(),
+        method_receivers: BTreeMap::new(),
         declaration_types: BTreeMap::new(),
         matrix_layouts: BTreeMap::new(),
         diagnostics: vec![],
@@ -375,6 +383,7 @@ fn check_with_metadata(
             constant_buffer_loads: checker.constant_buffer_loads,
             swizzle_indices: checker.swizzle_indices,
             implicit_members: checker.implicit_members,
+            method_receivers: checker.method_receivers,
             variable_initializations: checker.variable_initializations,
             constructor_initializations: checker.constructor_initializations,
             declaration_types: checker.declaration_types,

@@ -332,6 +332,23 @@ analysis follows constructor calls and automatic/default initialization plans.
 Static const initializer checking follows expression and initialization graphs,
 rejecting mutable globals and ordinary user calls without executing their bodies.
 
+Struct method AST nodes retain their owning type, source member name and static
+mode. Instance methods have a leading normalized `this` parameter: a const input
+for ordinary/nonmutating methods or an inout parameter for mutating methods.
+Generated method names encode the owner length to distinguish owner/member names
+with underscores. Module resolution preserves the member namespace through
+imports and keeps source fields and method names ahead of globals.
+
+Method overload selection ranks explicit arguments without the hidden receiver.
+Static and instance signatures retain separate identities even when their lowered
+parameter types coincide. The selected call records an explicit, implicit or
+absent receiver in `CheckedModule.method_receivers`. Lowering prepends the receiver
+to an ordinary typed call, allowing existing argument capture, output addressing,
+array-result wrappers, effect normalization and SSA invalidation to apply.
+Nonmutating receiver fields use the const binding's writability. Static calls
+discard the base expression, and capability analysis also excludes that base
+while following the selected method body and explicit/default arguments.
+
 Explicit `[ForceInline]` requests expand ordinary value function bodies before
 SSA construction. Prototypes and definitions use their checked target names;
 overloads and imported declarations retain the selected callable. Fresh local

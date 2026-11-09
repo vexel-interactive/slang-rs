@@ -188,6 +188,32 @@ upstream `14133-global-const-force-inline-init.slang` into uint stores for HLSL
 artifact comparison. Its original CUDA, C++ and filecheck requirements are not
 claimed to pass.
 
+Struct method tests check immutable/mutating receiver modes, implicit calls from
+methods and constructors, field/parameter/global precedence, selected overloads,
+prototype merging, module defaults and visibility, and generated-name collisions.
+The [value fixture](../tests/conformance/positive/struct-methods.slang) compares
+35 exact words for receiver copies before argument writes, indexed receiver
+updates, nested aggregate mutations, fixed-array results, global initialization,
+mixed static/instance overloads, explicit outputs and integer views, and
+discarded static receiver effects.
+The [module fixture](../tests/conformance/positive/struct-methods-module/main.slang)
+adds five matching words. The [resource fixture](../tests/conformance/positive/struct-methods-resources.slang)
+validates constant-buffer and read-only/writable buffer receivers with both
+compilers and DXC. The [fragment fixture](../tests/conformance/positive/struct-methods-fragment.slang)
+checks derivative requirements and exclusion of an unevaluated static receiver's
+compute-only constructor. Negative cases reject immutable mutations, static
+access to instance members, private imported calls, runtime static const calls
+and compute barriers reached from a fragment method. The method barrier case
+extends the documented graphics group-barrier difference: native checking emits
+`T023`, while Slang 2026.21 accepts the source and DXC rejects its HLSL.
+These checks do not cover
+generic/class methods, reference receiver signatures, extensions, or GPU execution.
+
+Two original pinned sources, `addr-scope-fix.slang` and
+`hlsl-default-this-immutable-receiver.slang`, also compile to HLSL accepted by
+DXC with both compilers. This verifies method compilation only; their original
+GPU execution and SPIR-V validation requirements are not claimed to pass.
+
 Initializer-list tests distinguish numeric splats, padding, and matrix rows;
 cover flat/nested arrays, returns, assignments, function and resource arguments;
 and check overload ambiguity before contextual conversion. Imported field

@@ -8106,6 +8106,129 @@
       "entry": "main",
       "accept": false,
       "rust_code": "T014"
+    },
+    {
+      "file": "positive/struct-methods.slang",
+      "entry": "main",
+      "accept": true,
+      "dxc_constant_stores": {
+        "0": 3,
+        "1": 8,
+        "2": 5,
+        "3": 5,
+        "4": 7,
+        "5": 17,
+        "6": 6,
+        "7": 10,
+        "8": 7,
+        "9": 6,
+        "10": 9,
+        "11": 10,
+        "12": 16,
+        "13": 39,
+        "14": 9,
+        "15": 7,
+        "16": 7,
+        "17": 15,
+        "18": 5,
+        "19": 5,
+        "20": 1,
+        "21": 6,
+        "22": 6,
+        "23": 9,
+        "24": 0,
+        "25": 8,
+        "26": 4,
+        "27": 5,
+        "28": 4,
+        "29": 9,
+        "30": 9,
+        "31": 8,
+        "32": 10,
+        "33": 5,
+        "34": 10
+      }
+    },
+    {
+      "file": "positive/struct-methods-resources.slang",
+      "entry": "main",
+      "accept": true
+    },
+    {
+      "file": "positive/struct-methods-module/main.slang",
+      "entry": "main",
+      "accept": true,
+      "dxc_constant_stores": {
+        "0": 9,
+        "1": 7,
+        "2": 8,
+        "3": 7,
+        "4": 187
+      }
+    },
+    {
+      "file": "positive/struct-methods-module/private.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T014"
+    },
+    {
+      "file": "positive/struct-methods-fragment.slang",
+      "entry": "main",
+      "accept": true,
+      "profile": "ps_6_0"
+    },
+    {
+      "file": "negative/method-fragment-barrier.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T023",
+      "profile": "ps_6_0",
+      "oracle_accept": true,
+      "oracle_validation_accept": false,
+      "reason": "As with existing graphics group-barrier regressions, Slang 2026.21 accepts the method call and emits HLSL rejected by DXC for requiring a visible compute group. Native checking reports T023 through the selected method."
+    },
+    {
+      "file": "negative/method-nonmutating-write.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T015"
+    },
+    {
+      "file": "negative/method-mutating-const.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T015"
+    },
+    {
+      "file": "negative/method-mutating-temporary.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T015"
+    },
+    {
+      "file": "negative/method-mutating-buffer.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T015"
+    },
+    {
+      "file": "negative/method-static-instance.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/method-static-field.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T013"
+    },
+    {
+      "file": "negative/method-global-const.slang",
+      "entry": "main",
+      "accept": false,
+      "rust_code": "T031"
     }
   ]
 }

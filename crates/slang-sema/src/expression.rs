@@ -134,7 +134,7 @@ impl Checker {
                 Type::Error
             }
             ExprKind::Name(name) => {
-                if let Some(owner) = &self.current_constructor
+                if let Some(owner) = &self.current_type
                     && !self
                         .scopes
                         .iter()
@@ -142,6 +142,14 @@ impl Checker {
                         .any(|scope| scope.contains_key(name))
                     && let Some(ty) = self.structures[owner].get(name).cloned()
                 {
+                    if self.lookup("this").is_none() {
+                        self.error(
+                            "T013",
+                            expression.span,
+                            "instance field requires a receiver",
+                        );
+                        return Type::Error;
+                    }
                     self.implicit_members
                         .insert(expression.id, Type::Struct(owner.clone()));
                     ty
@@ -429,8 +437,11 @@ impl Checker {
         }
         match &expr.kind {
             ExprKind::Name(name) => {
-                self.implicit_members.contains_key(&expr.id)
-                    || self.lookup(name).is_some_and(|b| b.writable)
+                if self.implicit_members.contains_key(&expr.id) {
+                    self.lookup("this").is_some_and(|b| b.writable)
+                } else {
+                    self.lookup(name).is_some_and(|b| b.writable)
+                }
             }
             ExprKind::Member { base, name } => {
                 if matches!(

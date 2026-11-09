@@ -108,6 +108,7 @@ impl Parser {
                     constructors.push(Declaration::Function(Box::new(Function {
                         name: format!("{}{}", self.constructor_prefix, name),
                         constructor: Some(name.clone()),
+                        method: None,
                         return_type: TypeRef {
                             name: name.clone(),
                             arguments: vec![],
@@ -124,12 +125,81 @@ impl Parser {
                     })));
                     continue;
                 }
+                let ty = self.ty()?;
+                let member = self.identifier()?;
+                if self.eat("(") {
+                    let mut parameters = self.parameters()?;
+                    let is_static = member_modifiers.iter().any(|m| m == "static");
+                    if !is_static {
+                        parameters.insert(
+                            0,
+                            Variable {
+                                name: "this".into(),
+                                ty: TypeRef {
+                                    name: name.clone(),
+                                    arguments: vec![],
+                                    matrix_major: None,
+                                    arrays: vec![],
+                                    span: member.span,
+                                },
+                                modifiers: vec![
+                                    if attributes.iter().any(|a| a.name == "mutating") {
+                                        "inout".into()
+                                    } else {
+                                        "const".into()
+                                    },
+                                ],
+                                semantic: None,
+                                register: None,
+                                pack_offset: None,
+                                initializer: None,
+                                span: member.span,
+                            },
+                        );
+                    }
+                    let annotations = self.annotations()?;
+                    if annotations.register.is_some() || annotations.pack_offset.is_some() {
+                        return Err(self.error("methods cannot have storage annotations"));
+                    }
+                    let body = if self.eat(";") {
+                        None
+                    } else {
+                        Some(self.statement()?)
+                    };
+                    if body
+                        .as_ref()
+                        .is_some_and(|s| !matches!(s.kind, StmtKind::Block(_)))
+                    {
+                        return Err(self.error("method body must be a block"));
+                    }
+                    constructors.push(Declaration::Function(Box::new(Function {
+                        name: format!(
+                            "{}{}_{}_{}",
+                            self.method_prefix,
+                            name.len(),
+                            name,
+                            member.text
+                        ),
+                        constructor: None,
+                        method: Some(StructMethod {
+                            owner: name.clone(),
+                            name: member.text,
+                            is_static,
+                        }),
+                        return_type: ty,
+                        parameters,
+                        attributes,
+                        modifiers: member_modifiers,
+                        semantic: annotations.semantic,
+                        span: member_start.join(body.as_ref().map_or(member.span, |s| s.span)),
+                        body,
+                    })));
+                    continue;
+                }
                 if !attributes.is_empty() {
                     return Err(self.error("struct field attributes are not implemented"));
                 }
-                let ty = self.ty()?;
-                let name = self.identifier()?;
-                fields.extend(self.variables(ty, name, member_modifiers)?);
+                fields.extend(self.variables(ty, member, member_modifiers)?);
                 self.expect(";")?;
             }
             let end = self.expect("}")?;
@@ -190,6 +260,7 @@ impl Parser {
             Ok(vec![Declaration::Function(Box::new(Function {
                 name: name.text,
                 constructor: None,
+                method: None,
                 return_type: ty,
                 parameters,
                 attributes,

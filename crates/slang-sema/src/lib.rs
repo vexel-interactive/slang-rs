@@ -16,6 +16,7 @@ mod initialization;
 mod initializer_list;
 mod interface;
 mod intrinsic;
+mod method;
 mod resource;
 mod shape;
 mod statement;
@@ -32,4 +33,5 @@ pub use checker::{
 };
 pub use initialization::{Initialization, InitializationKind};
 pub use intrinsic::is_intrinsic_name;
+pub use method::MethodReceiver;
 pub use types::{Scalar, TextureDimension, Type};

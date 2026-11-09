@@ -111,6 +111,8 @@ pub struct Function {
     /// Owning type for a normalized user-defined __init declaration.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub constructor: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub method: Option<StructMethod>,
     pub return_type: TypeRef,
     pub parameters: Vec<Variable>,
     pub attributes: Vec<Attribute>,
@@ -118,6 +120,21 @@ pub struct Function {
     pub semantic: Option<String>,
     pub body: Option<Stmt>,
     pub span: Span,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct StructMethod {
+    pub owner: String,
+    pub name: String,
+    pub is_static: bool,
+}
+
+impl Function {
+    pub fn owner_type(&self) -> Option<&str> {
+        self.constructor
+            .as_deref()
+            .or_else(|| self.method.as_ref().map(|m| m.owner.as_str()))
+    }
 }
 
 #[derive(Clone, Debug, Serialize)]

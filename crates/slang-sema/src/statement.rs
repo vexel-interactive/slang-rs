@@ -124,8 +124,10 @@ impl Checker {
         for parameter in &function.parameters {
             self.bind(parameter, VariableScope::Parameter);
         }
+        self.current_type = function.method.as_ref().map(|m| m.owner.clone());
         self.parameter_defaults(function);
         self.current_constructor = function.constructor.clone();
+        self.current_type = function.owner_type().map(str::to_owned);
         if let Some(owner) = &function.constructor {
             self.scopes.last_mut().unwrap().insert(
                 "this".into(),
@@ -154,6 +156,7 @@ impl Checker {
         }
         self.scopes.pop();
         self.current_constructor = None;
+        self.current_type = None;
     }
 
     pub(crate) fn statement(&mut self, statement: &Stmt) -> Flow {

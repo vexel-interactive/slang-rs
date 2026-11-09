@@ -363,7 +363,14 @@ impl<'a> Scanner<'a> {
                 self.work.push(Work::Expression(right));
             }
             ExprKind::Call { callee, arguments } => {
-                self.work.push(Work::Expression(callee));
+                // Static member lookup checks the base's type but does not
+                // evaluate its expression, including constructors and defaults.
+                if !matches!(
+                    self.checked.method_receivers.get(&callee.id),
+                    Some(crate::MethodReceiver::Static)
+                ) {
+                    self.work.push(Work::Expression(callee));
+                }
                 self.work.extend(arguments.iter().map(Work::Expression));
                 if let Some(defaults) = self.checked.default_arguments.get(&callee.id) {
                     self.work.extend(defaults.iter().map(Work::Initialization));
