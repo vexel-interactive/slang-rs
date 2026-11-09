@@ -54,6 +54,10 @@ their selectors and indexes preserve the component type, while arithmetic has no
 witness and fails. Copy/default parameter constructors retain their source origin,
 so `T()` can lower to default initialization after substitution without allowing
 unsupported empty calls to concrete numeric constructors.
+Unconstrained parameter construction uses checked recursive zero initialization
+or an exact value copy before user constructor selection or constant-buffer loads.
+Aggregate zero plans omit field defaults, and their expansion uses the same depth
+and node budgets as ordinary default initialization.
 Parameter copy casts retain this origin too; the checker records a value
 initialization plan that lowering consumes without emitting resource or aggregate
 HLSL casts. Synthesized receiver and constructor-result owner references survive
@@ -70,6 +74,8 @@ retains fresh expression IDs and a span context, while aliases share cached
 applications. A symbolic pass checks every function template before any concrete
 body is lowered. Generic inference and general overload specialization remain
 unimplemented.
+Calls with no value arguments can instantiate the complete default type chain
+without angle brackets, while a visible ordinary overload retains its lookup.
 Shape conversions between different scalar types apply the destination's bit
 width. Identity constructors preserve wider shape intermediates, following
 `TypeCastIntVal::tryFoldImpl`; implicit global and local initializers follow

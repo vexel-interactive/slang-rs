@@ -85,6 +85,22 @@ impl Checker {
             if target == Type::Error {
                 return Type::Error;
             }
+            if matches!(&callee.kind, ExprKind::TypeApplication(reference) if reference.parameter_ref)
+                && (arguments.is_empty() || types == [target.clone()])
+            {
+                let plan = if arguments.is_empty() {
+                    self.zero_initialization(&target, span)
+                } else {
+                    crate::Initialization {
+                        ty: target.clone(),
+                        kind: crate::InitializationKind::Value(Box::new(arguments[0].clone())),
+                    }
+                };
+                self.initializations.insert(callee.id, plan);
+                self.expression_types
+                    .insert(callee.id, Type::Meta(Box::new(target.clone())));
+                return target;
+            }
             for (argument, ty) in arguments.iter().zip(&mut types) {
                 if matches!(ty, Type::ConstantBuffer { .. }) {
                     *ty = self.value_expression(argument);
@@ -97,39 +113,17 @@ impl Checker {
                 return result;
             }
             if let Type::Struct(name) = &target {
-                if let Some(function) = self.constructors.get(name).cloned() {
-                    let has_copy = self
-                        .functions
-                        .get(&function)
-                        .is_some_and(|s| s.iter().any(|s| s.parameters == [target.clone()]));
-                    if types != [target.clone()] || has_copy {
-                        let mut selected = callee.clone();
-                        selected.kind = ExprKind::Name(function);
-                        return self.call(&selected, arguments, span);
-                    }
+                if let Some(function) = self.constructors.get(name).cloned()
+                    && types != [target.clone()]
+                {
+                    let mut selected = callee.clone();
+                    selected.kind = ExprKind::Name(function);
+                    return self.call(&selected, arguments, span);
                 }
                 let result = self.struct_constructor(name, arguments, &types, callee.id, span);
                 self.expression_types
                     .insert(callee.id, Type::Meta(Box::new(target)));
                 return result;
-            }
-            if arguments.is_empty()
-                && matches!(&callee.kind, ExprKind::TypeApplication(reference) if reference.parameter_ref)
-                && matches!(
-                    target,
-                    Type::Scalar(_) | Type::Vector(..) | Type::Matrix(..)
-                )
-            {
-                self.initializations.insert(
-                    callee.id,
-                    crate::Initialization {
-                        ty: target.clone(),
-                        kind: crate::InitializationKind::Zero,
-                    },
-                );
-                self.expression_types
-                    .insert(callee.id, Type::Meta(Box::new(target.clone())));
-                return target;
             }
             if types.contains(&Type::InitializerList) {
                 if arguments.len() == 1 && matches!(target, Type::Vector(..) | Type::Matrix(..)) {

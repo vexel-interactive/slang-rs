@@ -662,6 +662,14 @@ impl VisitorMut for Specializer {
         visit::walk_type(self, ty)
     }
     fn expression(&mut self, expression: &mut Expr) -> Result<(), Diagnostic> {
+        if let ExprKind::Call { callee, arguments } = &mut expression.kind
+            && arguments.is_empty()
+            && let ExprKind::Name(name) = &callee.kind
+            && self.templates.get(name).is_some_and(|t| t.function)
+            && !self.ordinary_functions.contains(name)
+        {
+            callee.kind = ExprKind::Name(self.instantiate(name, &[], callee.span)?);
+        }
         if let ExprKind::TypeApplication(reference) = &expression.kind
             && reference.base.is_none()
             && self

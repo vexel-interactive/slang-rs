@@ -102,8 +102,12 @@ impl Checker {
             },
             ExprKind::Bool(_) => Type::Scalar(Scalar::Bool),
             ExprKind::Cast { target, value } => {
-                let actual = self.value_expression(value);
                 let parameter_copy = target.parameter_ref;
+                let actual = if parameter_copy {
+                    self.expression(value)
+                } else {
+                    self.value_expression(value)
+                };
                 let target = self.resolve_type(target);
                 let symbolic_copy = matches!(&target, Type::Struct(name) if self.symbolic_shapes.contains_key(name));
                 let valid = actual == Type::Error

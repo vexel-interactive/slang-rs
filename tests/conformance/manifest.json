@@ -8840,6 +8840,27 @@
       "accept": false,
       "entry": "main",
       "rust_code": "T015"
+    },
+    {
+      "file": "positive/generic-function-default-calls.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 0,
+        "1": 0,
+        "2": 0,
+        "3": 0,
+        "4": 0,
+        "5": 0,
+        "6": 9,
+        "7": 0,
+        "8": 7,
+        "9": 0,
+        "10": 11,
+        "11": 11,
+        "12": 11,
+        "13": 0
+      }
     }
   ]
 }

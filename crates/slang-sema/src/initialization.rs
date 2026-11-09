@@ -131,6 +131,21 @@ impl Checker {
         depth: usize,
         budget: &mut usize,
     ) -> Initialization {
+        self.aggregate_initialization(ty, span, depth, budget, true)
+    }
+
+    pub(crate) fn zero_initialization(&mut self, ty: &Type, span: Span) -> Initialization {
+        self.aggregate_initialization(ty, span, 0, &mut 65536, false)
+    }
+
+    fn aggregate_initialization(
+        &mut self,
+        ty: &Type,
+        span: Span,
+        depth: usize,
+        budget: &mut usize,
+        defaults: bool,
+    ) -> Initialization {
         if depth >= 32 || *budget == 0 {
             self.error("T020", span, "aggregate initialization limit exceeded");
             return Initialization {
@@ -145,7 +160,11 @@ impl Checker {
                 let mut values = vec![];
                 for field in fields {
                     let element = self.structures[name][&field.name].clone();
-                    values.push(self.field_default(&field, &element, depth + 1, budget));
+                    values.push(if defaults {
+                        self.field_default(&field, &element, depth + 1, budget)
+                    } else {
+                        self.aggregate_initialization(&element, span, depth + 1, budget, false)
+                    });
                 }
                 InitializationKind::Aggregate(values)
             }
@@ -159,7 +178,13 @@ impl Checker {
                 }
                 let mut values = vec![];
                 for _ in 0..*length {
-                    values.push(self.default_initialization(element, span, depth + 1, budget));
+                    values.push(self.aggregate_initialization(
+                        element,
+                        span,
+                        depth + 1,
+                        budget,
+                        defaults,
+                    ));
                 }
                 InitializationKind::Aggregate(values)
             }

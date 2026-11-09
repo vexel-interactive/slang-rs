@@ -31,6 +31,10 @@ fn explicit_functions_cache_canonical_arguments_and_check_unused_bodies() {
 
 #[test]
 fn dependent_type_defaults_value_defaults_and_output_locations_work() {
+    let compiled = compile(include_str!(
+        "../../../tests/conformance/positive/generic-function-default-calls.slang"
+    ));
+    assert!(!compiled.artifact.unwrap().contains("symbolic"));
     compile(
         "T zero<T=int>(){return T();}T pick<T,U=T>(T first,U second=U()){return first;}void assign<T>(out T result,T input){result=(T)input;}void exchange<T>(inout T first,inout T second){T old=first;first=second;second=old;}int run(){int a=2,b=3;assign<int>(a,4);exchange<int>(a,b);return zero<>()+pick<int>(a)+pick<int,float>(b,5);}",
     );
@@ -38,6 +42,12 @@ fn dependent_type_defaults_value_defaults_and_output_locations_work() {
 
 #[test]
 fn nested_template_calls_support_aggregates_arrays_shapes_and_resources() {
+    compile(
+        "T copy<T>(T value){return (T)value;}struct Item{int value;};ConstantBuffer<Item> input;int run(){return copy<ConstantBuffer<Item>>(input).value;}",
+    );
+    compile(
+        "T copy<T>(T value){return T(value);}struct Item{int value;};ConstantBuffer<Item> input;int run(){return copy<ConstantBuffer<Item>>(input).value;}",
+    );
     compile(
         "T copy<T>(T value){return (T)value;}T relay<T>(T value){return copy<T>(value);}struct Box<T>{T value;T read(){return relay<T>(value);}};struct Item{int value;};StructuredBuffer<int> input;int run(){Box<int[2]> array={{2,3}};Item item={4};return array.read()[1]+relay<Item>(item).value+relay<StructuredBuffer<int>>(input)[0];}",
     );

@@ -557,13 +557,13 @@ Item a;             // invokes __init(), value = 3
 const Item b;       // local const declarations also invoke __init()
 Item c = Item(5);   // value = 7
 Item d = {5};       // selects the same constructor
-Item e = Item(c);   // implicit copy, unless __init(Item) is declared
+Item e = Item(c);   // exact copies preserve the source value
 ```
 
 The local declarations above belong inside a function. Static const globals
 require an explicit initializer. Declaring `__init` disables synthesized
-memberwise calls; the implicit copy constructor remains available unless an
-explicit copy constructor replaces it. Overload selection, parameter defaults,
+memberwise calls; the implicit exact copy remains available even when an
+explicit copy constructor is declared. Overload selection, parameter defaults,
 output writability and imported access rules follow ordinary function checking.
 Constructor prototypes and definitions remain separate overload candidates:
 repeating the same signature makes a call ambiguous, as in the pinned upstream.
@@ -762,6 +762,11 @@ parameters through the ordinary semantic checker. Unused bodies receive name,
 type, initialization, call, scope and control-flow checks. A parameter supports
 copying and default construction with `T(value)` and `T()`; unrelated numeric
 conversion, arithmetic and member access require constraints and are rejected.
+Unconstrained `T()` recursively zeroes numeric and aggregate values, without field
+defaults or user `__init` calls. Exact `T(value)` preserves its input, including
+constant-buffer handles. Ordinary concrete struct construction still applies
+field defaults and selected non-copy constructors. Resource default construction
+remains unsupported.
 Parameter casts `(T)value` preserve exact scalar, vector, matrix, struct, fixed-array
 and resource values, including captured parameters in nested templates. Copy casts
 of `vector<T, N>` and `matrix<T, R, C>` retain their component identities. A cast
@@ -804,8 +809,10 @@ types use ordinary concrete checking and lowering. Parameter names on prototypes
 and definitions can differ. Explicit template calls remain distinct from ordinary
 overloads and local value comparisons.
 
-Every application currently supplies angle brackets; omitted arguments are filled
-only from type defaults. Bare-call inference, partially inferred arguments, generic
+Explicit applications fill omitted arguments only from type defaults. A call with
+no value arguments can omit angle brackets and use the complete default type chain,
+as in `zero()`; a same-named ordinary overload retains its ordinary selection.
+Inference from value arguments, partially inferred arguments, generic
 methods/constructors, value parameters, constraints, higher-order function values
 and entry-point specialization remain unported. Overloads with different type
 parameter counts or conflicting type defaults are rejected. Overloads that collapse

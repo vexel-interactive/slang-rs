@@ -680,6 +680,13 @@ concrete functions, while unused valid templates and symbolic types never appear
 in emitted artifacts. These cases do not validate inference, generic methods,
 constraints or complete polymorphic overload ranking.
 
+The [default call fixture](../tests/conformance/positive/generic-function-default-calls.slang)
+adds fourteen matching compiled words for calls without angle brackets, dependent
+type/value defaults, ordinary overload selection, zeroed structs/arrays and exact
+copies alongside user constructors. Parameter construction must bypass field defaults
+and user initialization; ordinary concrete construction must retain them. Resource
+copy regressions also preserve constant-buffer handles before their member loads.
+
 [validation.json](validation.json) records the Windows validation run for this
 checkpoint. It includes the pinned compiler version, workspace checks, and
 differential corpus counts. It is a snapshot of that run, not a promise of
