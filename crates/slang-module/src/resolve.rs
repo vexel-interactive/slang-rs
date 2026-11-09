@@ -525,6 +525,16 @@ impl<'a> Resolver<'a> {
                     self.ty(target)?;
                 }
             }
+            ExprKind::GenericApplication { callee, arguments } => {
+                self.expression(callee)?;
+                for argument in arguments {
+                    match argument {
+                        slang_syntax::TypeArgument::Type(ty) => self.ty(ty)?,
+                        slang_syntax::TypeArgument::Expression(value) => self.expression(value)?,
+                        slang_syntax::TypeArgument::Integer { .. } => {}
+                    }
+                }
+            }
             ExprKind::Unary { value, .. } | ExprKind::Postfix { value, .. } => {
                 self.expression(value)?
             }

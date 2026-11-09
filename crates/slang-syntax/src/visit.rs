@@ -54,6 +54,16 @@ pub fn walk_expression(
             }
         }
         ExprKind::TypeApplication(ty) => visitor.ty(ty)?,
+        ExprKind::GenericApplication { callee, arguments } => {
+            visitor.expression(callee)?;
+            for argument in arguments {
+                match argument {
+                    TypeArgument::Type(ty) => visitor.ty(ty)?,
+                    TypeArgument::Expression(value) => visitor.expression(value)?,
+                    TypeArgument::Integer { span, .. } => visitor.span(span),
+                }
+            }
+        }
         ExprKind::Unary { value, .. } | ExprKind::Postfix { value, .. } => {
             visitor.expression(value)?
         }

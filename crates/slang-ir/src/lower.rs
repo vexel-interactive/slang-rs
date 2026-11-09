@@ -141,6 +141,7 @@ pub fn lower_with_native_16bit(
     crate::static_local::lower(&mut module)?;
     crate::scope::lower(&mut module);
     crate::inline::lower(&mut module, checked)?;
+    crate::effects::lower(&mut module, checked)?;
     crate::flow::lower(&mut module)?;
     crate::wide_arithmetic::lower(&mut module)?;
     crate::uniform::lower(&mut module, checked)?;
@@ -360,6 +361,9 @@ impl Lowerer<'_> {
             });
         }
         let kind = match &expression.kind {
+            ast::ExprKind::GenericApplication { .. } => {
+                unreachable!("generic member applications must be specialized before lowering")
+            }
             ast::ExprKind::InitializerList(_) => {
                 let value = self
                     .checked

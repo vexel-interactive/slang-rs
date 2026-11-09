@@ -112,11 +112,14 @@ impl Lowerer<'_> {
         &mut self,
         values: &mut [Expr],
         outputs: &[bool],
+        freeze_outputs: bool,
     ) -> Result<Vec<Stmt>, Diagnostic> {
+        // Ordinary HLSL inout calls can re-evaluate destination coordinates on
+        // copy-out; native intrinsics keep their direct destination arguments.
         let mut prefixes = vec![];
         for (i, value) in values.iter_mut().enumerate() {
             prefixes.push(if outputs.get(i).copied().unwrap_or(false) {
-                self.location(value, false)?
+                self.location(value, freeze_outputs)?
             } else {
                 self.value(value)?
             });
@@ -126,7 +129,9 @@ impl Lowerer<'_> {
             prefix.append(&mut prefixes[i]);
             if prefixes[i + 1..].iter().any(|p| !p.is_empty()) {
                 if outputs.get(i).copied().unwrap_or(false) {
-                    prefix.extend(self.location(value, true)?);
+                    if !freeze_outputs {
+                        prefix.extend(self.location(value, true)?);
+                    }
                 } else {
                     self.save(value, &mut prefix);
                 }
@@ -208,14 +213,14 @@ impl Lowerer<'_> {
                 *value = *result.clone();
                 Ok(prefix)
             }
-            ExprKind::Construct(values) => self.arguments(values, &[]),
+            ExprKind::Construct(values) => self.arguments(values, &[], false),
             ExprKind::Call { name, arguments } => {
                 let outputs = self.outputs(name, span, arguments.len(), true);
-                self.arguments(arguments, &outputs)
+                self.arguments(arguments, &outputs, true)
             }
             ExprKind::IntrinsicCall { name, arguments } => {
                 let outputs = self.outputs(name, span, arguments.len(), false);
-                self.arguments(arguments, &outputs)
+                self.arguments(arguments, &outputs, false)
             }
             ExprKind::MethodCall {
                 receiver,
@@ -224,7 +229,7 @@ impl Lowerer<'_> {
             } => {
                 let mut prefix = self.value(receiver)?;
                 let outputs = self.outputs(name, span, arguments.len(), false);
-                let mut argument_prefix = self.arguments(arguments, &outputs)?;
+                let mut argument_prefix = self.arguments(arguments, &outputs, false)?;
                 if !argument_prefix.is_empty() {
                     self.save(receiver, &mut prefix);
                 }
@@ -418,16 +423,30 @@ impl Lowerer<'_> {
                 .transpose()?
                 .unwrap_or_default(),
             StmtKind::Variables(variables) => {
-                let mut values = vec![];
-                for variable in std::mem::take(variables) {
-                    let mut value = Stmt {
-                        kind: StmtKind::Variable(variable),
-                        span,
-                    };
-                    self.statement(&mut value)?;
-                    values.push(value);
+                let mut prefixes = vec![];
+                for variable in variables.iter_mut() {
+                    prefixes.push(
+                        variable
+                            .initializer
+                            .as_mut()
+                            .map(|v| self.value(v))
+                            .transpose()?
+                            .unwrap_or_default(),
+                    );
                 }
-                statement.kind = StmtKind::Sequence(values);
+                if prefixes.iter().any(|p| !p.is_empty()) {
+                    let mut values = vec![];
+                    for (variable, mut prefix) in
+                        std::mem::take(variables).into_iter().zip(prefixes)
+                    {
+                        values.append(&mut prefix);
+                        values.push(Stmt {
+                            kind: StmtKind::Variable(variable),
+                            span,
+                        });
+                    }
+                    statement.kind = StmtKind::Sequence(values);
+                }
                 vec![]
             }
             StmtKind::Expression(value) | StmtKind::Return(Some(value)) => self.value(value)?,

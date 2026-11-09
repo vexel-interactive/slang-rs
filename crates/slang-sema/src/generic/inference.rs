@@ -24,6 +24,7 @@ impl Specializer {
             let mut probe = InferenceProbe {
                 pending: self.inference_calls.keys().copied().collect(),
                 deferred: self.generated.difference(&self.active).copied().collect(),
+                methods: self.method_templates.clone(),
                 ..Default::default()
             };
             let checked = crate::checker::probe_generic_calls(
@@ -40,7 +41,10 @@ impl Specializer {
                 if types.iter().any(contains_error) {
                     continue;
                 }
-                let call = self.inference_calls.remove(id).unwrap();
+                let mut call = self.inference_calls.remove(id).unwrap();
+                if let Some(target) = probe.targets.get(id) {
+                    call.name = target.clone();
+                }
                 self.shapes.current_module = call.module;
                 let arguments = types
                     .iter()
@@ -63,6 +67,14 @@ impl Specializer {
                         .ambiguities
                         .into_iter()
                         .find(|d| self.active_diagnostic(module, d))
+                    {
+                        return Err(diagnostic);
+                    }
+                    if let Err(diagnostics) = checked
+                        && let Some(diagnostic) = diagnostics.into_iter().find(|d| {
+                            d.severity == slang_source::Severity::Error
+                                && self.active_diagnostic(module, d)
+                        })
                     {
                         return Err(diagnostic);
                     }
@@ -113,7 +125,12 @@ impl Specializer {
                 generic: false,
             });
         }
-        for key in self.function_templates[&call.name].clone() {
+        for key in self
+            .function_templates
+            .get(&call.name)
+            .cloned()
+            .unwrap_or_default()
+        {
             let template = self.templates[&key].clone();
             self.shapes.current_module = self
                 .symbols
@@ -146,7 +163,8 @@ impl Specializer {
                 unreachable!()
             };
             let mut valid = true;
-            for (parameter, argument) in function.parameters.iter().zip(arguments) {
+            let offset = usize::from(function.method.as_ref().is_some_and(|m| !m.is_static));
+            for (parameter, argument) in function.parameters[offset..].iter().zip(arguments) {
                 let mut pattern = parameter.ty.clone();
                 self.signature_type(&mut pattern, &names, 0)?;
                 let Some(argument) = argument else {
@@ -417,7 +435,14 @@ struct CallTargets<'a>(&'a BTreeMap<ExprId, String>);
 impl VisitorMut for CallTargets<'_> {
     fn expression(&mut self, expression: &mut Expr) -> Result<(), Diagnostic> {
         if let Some(target) = self.0.get(&expression.id) {
-            expression.kind = ExprKind::Name(target.clone());
+            if let ExprKind::GenericApplication { callee, .. } = &expression.kind {
+                expression.kind = callee.kind.clone();
+            }
+            if let ExprKind::Member { name, .. } = &mut expression.kind {
+                *name = target.clone();
+            } else {
+                expression.kind = ExprKind::Name(target.clone());
+            }
             return Ok(());
         }
         visit::walk_expression(self, expression)

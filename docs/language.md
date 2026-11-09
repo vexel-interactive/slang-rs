@@ -630,7 +630,7 @@ in a static const global initializer is an ordinary user call and reports `T031`
 See [method calls and effects](../tests/conformance/positive/struct-methods.slang),
 [resource receivers](../tests/conformance/positive/struct-methods-resources.slang)
 and [imported methods](../tests/conformance/positive/struct-methods-module/main.slang).
-Generic methods, extensions, properties, class methods, `[constref]`/`[__ref]`
+Extensions, properties, class methods, `[constref]`/`[__ref]`
 receiver modes and first-class method values remain unimplemented.
 Receiver-dependent parameter defaults report `T022`; the pinned oracle also
 fails to lower the probed field/method defaults, which is not a claim that their
@@ -777,7 +777,6 @@ layout modifiers while retaining their opaque component types. Symbolic types
 are discarded before concrete lowering and never appear in emitted artifacts.
 
 This does not implement general constrained polymorphism. Interfaces, witnesses,
-generic methods,
 value parameters, partial type-template applications and constructor inference remain unported.
 The existing restrictions on local names matching module type aliases and on
 fallthrough from nonvoid functions also apply inside checked templates. Full
@@ -865,11 +864,56 @@ The [constructor fixture](../tests/conformance/positive/generic-deferred-constru
 checks automatic, brace, explicit, nested and default-argument construction on
 specialized owners, including mutable static state.
 
-Generic methods/constructors, value parameters, constraints, higher-order function
+Generic constructors, value parameters, constraints, higher-order function
 values and entry-point specialization remain unported. Complete constrained
 overload specialization and ranking remain incomplete. Selected resource `T()`
 construction and unused resource-component vector locals still encounter native
 implementation limits that upstream accepts.
+
+## Generic struct methods
+
+Instance and static methods support unconstrained type parameters independently
+of their enclosing owners:
+
+```slang
+struct Box<T>
+{
+    T value;
+    U copy<U>(U input) { return input; }
+    T read() { return copy(value); }
+    static U zero<U = int>(U input = U()) { return input; }
+};
+Box<int> box = {2};
+float value = box.copy<float>(3.0);
+int empty = Box<int>.zero();
+```
+
+Explicit, partial and omitted method arguments use the function inference rules.
+The receiver determines its owner; only the method's own input parameter patterns
+infer its independent type parameters. Prototype defaults come from the first
+declaration. Ordinary and generic methods compete for bare calls, with ordinary
+methods winning equal conversion/default-cost ties. Explicit angle brackets
+select generic candidates. Nested owners retain their captured arguments.
+Original unused methods receive opaque body checking; selected concrete bodies
+and defaults activate dependencies through the bounded specialization loop.
+
+Explicit member applications preserve arbitrary receiver expressions, including
+function results, nested fields and indexed arrays. Static calls discard receiver
+evaluation. Mutating calls and output parameters capture storage coordinates
+before user function calls, preventing HLSL copy-in/copy-out from evaluating an
+index twice. Imports preserve method visibility and private caller argument types.
+Resource handles, aggregate results, arrays, numeric structural patterns and
+implicit calls use the ordinary semantic and IR paths after specialization.
+
+See [method values and defaults](../tests/conformance/positive/generic-method-values.slang),
+[receiver effects](../tests/conformance/positive/generic-method-receivers.slang),
+[generic owners](../tests/conformance/positive/generic-method-owners.slang),
+[resource values](../tests/conformance/positive/generic-method-resources.slang)
+and [imported methods](../tests/conformance/positive/generic-method-module/main.slang).
+Constraints, generic constructor parameters, reference receiver modes,
+receiver-dependent defaults and complete polymorphic overload ranking remain
+unimplemented. Explicit recursive method specialization has frontend coverage;
+GPU recursion validation and execution equivalence are not claimed.
 
 ## Brace initializer lists
 

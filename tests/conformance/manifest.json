@@ -9089,6 +9089,134 @@
       "accept": false,
       "entry": "main",
       "rust_code": "T014"
+    },
+    {
+      "file": "positive/generic-method-values.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 2,
+        "1": 3,
+        "2": 4,
+        "3": 6,
+        "4": 0,
+        "5": 0,
+        "6": 0,
+        "7": 8,
+        "8": 9,
+        "9": 11,
+        "10": 12,
+        "11": 2
+      }
+    },
+    {
+      "file": "positive/generic-method-receivers.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 3,
+        "1": 5,
+        "2": 10,
+        "3": 6,
+        "4": 7
+      }
+    },
+    {
+      "file": "positive/generic-method-owners.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 2,
+        "1": 4,
+        "2": 0,
+        "3": 5,
+        "4": 1,
+        "5": 0,
+        "6": 6,
+        "7": 8,
+        "8": 0,
+        "9": 0
+      }
+    },
+    {
+      "file": "positive/generic-method-resources.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/generic-method-module/main.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 9,
+        "1": 0
+      }
+    },
+    {
+      "file": "negative/generic-method-unused-add.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T012"
+    },
+    {
+      "file": "negative/generic-method-unused-name.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T011"
+    },
+    {
+      "file": "negative/generic-method-no-input.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T002"
+    },
+    {
+      "file": "negative/generic-method-type-receiver.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/generic-method-const-receiver.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T015"
+    },
+    {
+      "file": "negative/generic-method-temporary-receiver.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T015"
+    },
+    {
+      "file": "negative/generic-method-output-value.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T015"
+    },
+    {
+      "file": "negative/generic-method-unknown-type.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T002"
+    },
+    {
+      "file": "negative/generic-method-duplicate.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T003"
+    },
+    {
+      "file": "negative/generic-method-shadowed.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014"
+    },
+    {
+      "file": "positive/generic-method-module/private-method.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014"
     }
   ]
 }

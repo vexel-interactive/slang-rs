@@ -96,6 +96,26 @@ Inference and activation repeat together until no new declarations or calls are
 needed. Active ambiguities are preserved before dormant declarations and their
 metadata are pruned. Capability validation runs in the final complete check.
 Complete constrained resolution remains unimplemented.
+
+Member expression applications retain their callee expression and type arguments
+in the AST, rather than encoding a value receiver as a type name. Specialization
+distinguishes nested type construction from generic method calls. Semantic probes
+resolve the receiver owner and lexical member scope to select the corresponding
+method template group. Method argument inference skips the synthetic receiver
+parameter only after the receiver's semantic owner is available; unresolved
+receivers cannot fall back to an unrelated free function with the same name. The
+captured owner arguments remain available. Application aliases retain
+method signatures and receiver metadata; rewriting an application keeps its
+receiver expression. Ordinary method checking then selects a concrete target and
+validates static access, outputs and mutable storage. Implicit generic method
+callees are validated as callable expressions, with their type arguments still
+checked independently.
+
+Expression-effect normalization runs after optional inlining for every function.
+User output arguments capture their storage coordinates before a call, including
+mutating receivers, so downstream HLSL copy-in/copy-out cannot re-evaluate an index.
+Direct atomic/intrinsic destinations retain their native argument forms. Declaration
+groups remain intact when their initializers require no statement prefixes.
 Shape conversions between different scalar types apply the destination's bit
 width. Identity constructors preserve wider shape intermediates, following
 `TypeCastIntVal::tryFoldImpl`; implicit global and local initializers follow

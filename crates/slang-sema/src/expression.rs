@@ -59,6 +59,14 @@ impl Checker {
             Ok(None) => {}
         }
         let ty = match &expression.kind {
+            ExprKind::GenericApplication { .. } => {
+                self.error(
+                    "T014",
+                    expression.span,
+                    "generic member application requires a call",
+                );
+                Type::Error
+            }
             ExprKind::InitializerList(values) => {
                 for value in values {
                     self.expression(value);

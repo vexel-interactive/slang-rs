@@ -733,6 +733,28 @@ checking. Explicit recursive specialization has a frontend-only test without
 shader target validation. Selected resource default construction remains a native
 limitation accepted by upstream, with no matching negative differential claim.
 
+Generic methods add eight integration tests and sixteen differential cases.
+The [value fixture](../tests/conformance/positive/generic-method-values.slang)
+compares explicit/partial/inferred arguments, prototype defaults, numeric and
+array patterns, output locations and ordinary/generic overload preference. The
+[receiver fixture](../tests/conformance/positive/generic-method-receivers.slang)
+checks function-result and indexed receivers, static calls omitting receiver
+effects, and nested type applications sharing a method's name. Mutable receiver
+coordinates are evaluated once in compiled DXIL. The
+[owner fixture](../tests/conformance/positive/generic-method-owners.slang)
+checks independent enclosing/method parameters and specialization-specific static
+storage. The [resource fixture](../tests/conformance/positive/generic-method-resources.slang)
+validates aggregate results, constant-buffer handles, structured-buffer values and
+unselected resource construction. The
+[module fixture](../tests/conformance/positive/generic-method-module/main.slang)
+checks transitive calls with private caller types; inaccessible methods fail.
+The four constant fixtures compare twenty-nine matching compiled words. All ten
+positive HLSL artifacts pass DXC. Negative cases retain source opaque errors,
+unknown arguments, missing inference, duplicate signatures, shadowed callees and
+receiver/output location errors. Recursive method specialization has a
+frontend-only regression. Constraints, complete polymorphic ranking and GPU
+execution remain outside this checkpoint's evidence.
+
 [validation.json](validation.json) records the Windows validation run for this
 checkpoint. It includes the pinned compiler version, workspace checks, and
 differential corpus counts. It is a snapshot of that run, not a promise of

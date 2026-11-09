@@ -212,7 +212,9 @@ fn matrix_array_buffer_reads_evaluate_indices_once_and_preserve_writable_locatio
     // Prototype, definition, and the two source calls; reconstruction uses the
     // helper's index parameter instead of copying either source call.
     assert_eq!(code.matches("nextIndex()").count(), 4);
-    assert!(code.lines().any(|line| line.trim().starts_with("set(") && line.contains("(writable)[nextIndex()]")));
+    assert!(code.lines().any(|line| line.trim().starts_with("set(")
+        && line.contains("_slang_effect_")
+        && !line.contains("nextIndex()")));
     assert!(code.contains("InterlockedAdd(((writable)[0]).tag, 1u)"));
     assert!(!code.contains("values[2] = ((input)[nextIndex()]).rows"));
     assert_eq!(

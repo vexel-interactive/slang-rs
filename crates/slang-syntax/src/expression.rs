@@ -1,4 +1,4 @@
-use crate::{Expr, ExprId, ExprKind, TypeRef, parser::Parser};
+use crate::{Expr, ExprId, ExprKind, parser::Parser};
 use slang_lexer::TokenKind;
 use slang_source::{Diagnostic, Span};
 
@@ -20,6 +20,7 @@ impl Parser {
             ExprKind::Call { callee, arguments } => callee
                 .height
                 .max(arguments.iter().map(|a| a.height).max().unwrap_or(0)),
+            ExprKind::GenericApplication { callee, .. } => callee.height,
             ExprKind::Member { base, .. } => base.height,
             ExprKind::Index { base, index } => base.height.max(index.height),
             ExprKind::Conditional {
@@ -157,12 +158,18 @@ impl Parser {
                             .is_some_and(|t| t.is("(") || t.is(".") || t.is("::"))
                     })
             {
-                let mut target = expression_type(&left)
-                    .ok_or_else(|| self.error("generic type lookup requires a named owner"))?;
-                target.arguments = self.type_arguments(&target.name)?;
-                target.application = true;
-                target.span = left.span.join(self.tokens[self.offset - 1].span);
-                left = self.expr(ExprKind::TypeApplication(Box::new(target)), left.span)?;
+                let ExprKind::Member { name, .. } = &left.kind else {
+                    unreachable!()
+                };
+                let arguments = self.type_arguments(name)?;
+                let span = left.span.join(self.tokens[self.offset - 1].span);
+                left = self.expr(
+                    ExprKind::GenericApplication {
+                        callee: Box::new(left),
+                        arguments,
+                    },
+                    span,
+                )?;
                 continue;
             }
             if self.eat("[") {
@@ -361,28 +368,6 @@ impl Parser {
             span,
         )
     }
-}
-
-fn expression_type(expression: &Expr) -> Option<TypeRef> {
-    let (name, base) = match &expression.kind {
-        ExprKind::Name(name) => (name.clone(), None),
-        ExprKind::TypeApplication(ty) => return Some(*ty.clone()),
-        ExprKind::Member { base, name, .. } => {
-            (name.clone(), Some(Box::new(expression_type(base)?)))
-        }
-        _ => return None,
-    };
-    Some(TypeRef {
-        name,
-        base,
-        application: false,
-        owner_ref: false,
-        parameter_ref: false,
-        arguments: vec![],
-        matrix_major: None,
-        arrays: vec![],
-        span: expression.span,
-    })
 }
 
 fn builtin_cast_type(name: &str) -> bool {

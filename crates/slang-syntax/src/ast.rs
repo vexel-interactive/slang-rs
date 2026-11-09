@@ -305,6 +305,36 @@ pub struct Expr {
 }
 
 impl Expr {
+    /// Interpret a named expression application as a qualified type reference.
+    pub fn type_reference(&self) -> Option<TypeRef> {
+        let (name, base) = match &self.kind {
+            ExprKind::Name(name) => (name.clone(), None),
+            ExprKind::TypeApplication(ty) => return Some(*ty.clone()),
+            ExprKind::Member { base, name, .. } => {
+                (name.clone(), Some(Box::new(base.type_reference()?)))
+            }
+            ExprKind::GenericApplication { callee, arguments } => {
+                let mut ty = callee.type_reference()?;
+                ty.arguments = arguments.clone();
+                ty.application = true;
+                ty.span = self.span;
+                return Some(ty);
+            }
+            _ => return None,
+        };
+        Some(TypeRef {
+            name,
+            base,
+            application: false,
+            owner_ref: false,
+            parameter_ref: false,
+            arguments: vec![],
+            matrix_major: None,
+            arrays: vec![],
+            span: self.span,
+        })
+    }
+
     /// Construct a nonnegative integer expression for a synthesized array dimension.
     pub fn integer(id: ExprId, value: u32, span: Span) -> Self {
         Self {
@@ -327,6 +357,11 @@ pub enum ExprKind {
     Name(String),
     /// A type application used as a constructor or qualified lookup base.
     TypeApplication(Box<TypeRef>),
+    /// Explicit arguments applied to a member callee, retaining its receiver.
+    GenericApplication {
+        callee: Box<Expr>,
+        arguments: Vec<TypeArgument>,
+    },
     Unary {
         op: String,
         value: Box<Expr>,

@@ -124,7 +124,7 @@ member files retain nested types and static storage when linked into their owner
 
 This is source linking rather than the upstream session/component API.
 Separate compilation, serialized modules, incremental caches, namespaces,
-private members, generic/extension methods, and imported shader entries remain
+private members, extension methods, and imported shader entries remain
 unported. Combining same-name overload sets from different modules currently
 reports `M004`; overload ranking still uses exact matches followed by equal
 conversion costs.

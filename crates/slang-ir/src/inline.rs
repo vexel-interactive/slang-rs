@@ -114,7 +114,7 @@ pub(crate) fn lower(module: &mut Module, checked: &CheckedModule) -> Result<(), 
     }
     // Initializer functions may themselves return fixed arrays.
     crate::array_result::lower(module)?;
-    crate::effects::lower(module, checked)
+    Ok(())
 }
 
 struct Requests<'a> {

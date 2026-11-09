@@ -124,6 +124,8 @@ pub(crate) struct Checker {
     pub symbolic_types: BTreeSet<String>,
     pub symbolic_shapes: BTreeMap<String, (Type, Vec<u8>)>,
     pub pending_generic_calls: BTreeSet<ExprId>,
+    pub generic_methods: BTreeMap<(String, String), String>,
+    pub generic_call_names: BTreeMap<ExprId, String>,
     pub generic_call_types: BTreeMap<ExprId, Vec<Type>>,
     pub static_fields: BTreeMap<(String, String), String>,
     pub static_owners: BTreeMap<String, String>,
@@ -256,6 +258,7 @@ fn check_concrete_inner(
     checker.symbolic_types = symbolic_types;
     if let Some(probe) = &probe {
         checker.pending_generic_calls = probe.pending.clone();
+        checker.generic_methods = probe.methods.clone();
     }
     checker.declare(&module);
     checker.declare_function_applications(&module);
@@ -489,6 +492,8 @@ impl Checker {
             symbolic_types: BTreeSet::new(),
             symbolic_shapes: BTreeMap::new(),
             pending_generic_calls: BTreeSet::new(),
+            generic_methods: BTreeMap::new(),
+            generic_call_names: BTreeMap::new(),
             generic_call_types: BTreeMap::new(),
             static_fields: module
                 .static_members

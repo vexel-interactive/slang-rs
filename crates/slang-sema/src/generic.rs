@@ -4,6 +4,7 @@ mod canonical;
 mod function;
 mod inference;
 mod lifecycle;
+mod method;
 mod substitute;
 mod symbolic;
 
@@ -53,6 +54,8 @@ struct Specializer {
     generated: BTreeSet<SpanKey>,
     active: BTreeSet<SpanKey>,
     validation_contexts: BTreeSet<usize>,
+    method_templates: BTreeMap<(String, String), String>,
+    method_names: BTreeSet<String>,
 }
 
 struct InferenceCall {
@@ -72,6 +75,8 @@ pub(crate) struct InferenceProbe {
     pub function_names: BTreeMap<SpanKey, String>,
     pub selected_functions: BTreeSet<String>,
     pub ambiguities: Vec<Diagnostic>,
+    pub methods: BTreeMap<(String, String), String>,
+    pub targets: BTreeMap<ExprId, String>,
 }
 
 struct SpecializedModule {
@@ -210,6 +215,8 @@ fn specialize_inner(
         generated: BTreeSet::new(),
         active: BTreeSet::new(),
         validation_contexts: BTreeSet::new(),
+        method_templates: BTreeMap::new(),
+        method_names: BTreeSet::new(),
     };
     let declarations = std::mem::take(&mut module.declarations);
     specializer.register(
@@ -253,6 +260,14 @@ impl Specializer {
         statics: Vec<StaticMemberInfo>,
         known: Option<&BTreeSet<String>>,
     ) -> Result<(), Diagnostic> {
+        for declaration in &declarations {
+            if let Declaration::Function(function) = declaration
+                && !function.generic_parameters.is_empty()
+                && let Some(method) = &function.method
+            {
+                self.method_names.insert(method.name.clone());
+            }
+        }
         let owners: BTreeMap<_, _> = nested
             .iter()
             .map(|n| (n.type_name.clone(), n.owner.clone()))
@@ -341,6 +356,7 @@ impl Specializer {
                         known,
                         symbols: &self.symbols,
                         module,
+                        method_names: &self.method_names,
                     }
                     .declaration(&mut declaration)?;
                 }
@@ -677,6 +693,7 @@ impl Specializer {
             known: &known,
             symbols: &self.symbols,
             module: 0,
+            method_names: &self.method_names,
         }
         .ty(ty)
     }
@@ -688,14 +705,29 @@ impl VisitorMut for Specializer {
         visit::walk_type(self, ty)
     }
     fn expression(&mut self, expression: &mut Expr) -> Result<(), Diagnostic> {
+        self.normalize_member_application(expression)?;
         if let ExprKind::Call { callee, arguments } = &mut expression.kind {
+            self.normalize_member_application(callee)?;
             let application = match &callee.kind {
-                ExprKind::Name(name) if self.function_templates.contains_key(name) => {
+                ExprKind::Name(name)
+                    if self.function_templates.contains_key(name)
+                        || self.shapes.current_static_type.is_some()
+                            && self.method_names.contains(name) =>
+                {
                     Some((name.clone(), vec![], false))
                 }
+                ExprKind::Member { name, .. } if self.method_names.contains(name) => {
+                    Some((name.clone(), vec![], false))
+                }
+                ExprKind::GenericApplication { callee, arguments } => match &callee.kind {
+                    ExprKind::Member { name, .. } => Some((name.clone(), arguments.clone(), true)),
+                    _ => None,
+                },
                 ExprKind::TypeApplication(reference)
                     if reference.base.is_none()
-                        && self.function_templates.contains_key(&reference.name) =>
+                        && (self.function_templates.contains_key(&reference.name)
+                            || self.shapes.current_static_type.is_some()
+                                && self.method_names.contains(&reference.name)) =>
                 {
                     if !reference.arrays.is_empty() || reference.matrix_major.is_some() {
                         return Err(error(
@@ -728,6 +760,7 @@ impl VisitorMut for Specializer {
                         module: self.shapes.current_module,
                     },
                 );
+                self.member_receiver(callee)?;
                 for argument in arguments {
                     self.expression(argument)?;
                 }
@@ -765,6 +798,16 @@ impl VisitorMut for Specializer {
         visit::walk_expression(self, expression)
     }
     fn declaration(&mut self, declaration: &mut Declaration) -> Result<(), Diagnostic> {
+        self.shapes.current_static_type = match declaration {
+            Declaration::Function(function) => function.owner_type().map(str::to_owned),
+            Declaration::Struct(structure) => Some(structure.name.clone()),
+            Declaration::Global(variable) => self
+                .static_output
+                .iter()
+                .find(|s| s.variable_name == variable.name)
+                .map(|s| s.owner.clone()),
+            _ => None,
+        };
         self.shapes.current_module = self
             .symbols
             .get(declaration_name(declaration))
@@ -847,8 +890,24 @@ struct Validator<'a> {
     known: &'a BTreeSet<String>,
     symbols: &'a BTreeMap<String, SymbolOrigin>,
     module: usize,
+    method_names: &'a BTreeSet<String>,
 }
 impl VisitorMut for Validator<'_> {
+    fn expression(&mut self, expression: &mut Expr) -> Result<(), Diagnostic> {
+        if let ExprKind::Call { callee, arguments } = &mut expression.kind
+            && let ExprKind::TypeApplication(reference) = &mut callee.kind
+            && reference.base.is_none()
+            && self.method_names.contains(&reference.name)
+        {
+            visit::walk_type(self, reference)?;
+            for argument in arguments {
+                self.expression(argument)?;
+            }
+            return Ok(());
+        }
+        visit::walk_expression(self, expression)
+    }
+
     fn ty(&mut self, ty: &mut TypeRef) -> Result<(), Diagnostic> {
         if ty.base.is_none()
             && !ty.name.contains("::")

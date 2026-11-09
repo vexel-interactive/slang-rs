@@ -65,16 +65,21 @@ impl Checker {
             })
             .cloned()
             .collect();
-        let score = |signature: &Signature| -> usize {
+        let score = |signature: &Signature| {
             let offset = usize::from(!signature.method.as_ref().unwrap().is_static);
-            types
+            let conversions = types
                 .iter()
                 .zip(&signature.parameters[offset..])
                 .zip(arguments)
                 .map(|((a, b), expr)| {
                     a.literal_conversion_cost(b, slang_syntax::integer_literal(expr).ok().flatten())
                 })
-                .sum()
+                .sum::<usize>();
+            (
+                conversions,
+                signature.default_type_arguments,
+                signature.generic,
+            )
         };
         matches.sort_by_key(score);
         let Some(best) = matches.first() else {

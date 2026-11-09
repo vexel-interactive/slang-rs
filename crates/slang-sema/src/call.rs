@@ -10,11 +10,19 @@ impl Checker {
     pub(crate) fn call(&mut self, callee: &Expr, arguments: &[Expr], span: Span) -> Type {
         let mut types: Vec<Type> = arguments.iter().map(|a| self.expression(a)).collect();
         if self.pending_generic_calls.contains(&callee.id) {
+            let source = self.generic_method_source(callee);
+            if source.is_none() && self.pending_member_call(callee) {
+                self.missing_generic_member(callee, span);
+                return Type::Error;
+            }
             if let ExprKind::Name(name) = &callee.kind
                 && self.lookup(name).is_some()
             {
                 self.error("T014", span, format!("value '{name}' is not callable"));
             } else {
+                if let Some(source) = source {
+                    self.generic_call_names.insert(callee.id, source);
+                }
                 self.generic_call_types.insert(callee.id, types);
             }
             return Type::Error;

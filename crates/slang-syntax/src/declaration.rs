@@ -149,10 +149,10 @@ impl Parser {
                 }
                 let ty = self.ty()?;
                 let member = self.identifier()?;
-                if self.at("<") {
-                    return Err(self.error("generic methods are not implemented"));
-                }
+                let method_parameters = self.generic_parameters()?;
                 if self.eat("(") {
+                    self.type_parameters
+                        .push(method_parameters.iter().map(|p| p.name.clone()).collect());
                     let mut parameters = self.parameters()?;
                     let is_static = member_modifiers.iter().any(|m| m == "static");
                     if !is_static {
@@ -201,6 +201,7 @@ impl Parser {
                     {
                         return Err(self.error("method body must be a block"));
                     }
+                    self.type_parameters.pop();
                     members.push(Declaration::Function(Box::new(Function {
                         name: format!(
                             "{}{}_{}_{}",
@@ -210,7 +211,7 @@ impl Parser {
                             member.text
                         ),
                         constructor: None,
-                        generic_parameters: vec![],
+                        generic_parameters: method_parameters,
                         method: Some(StructMethod {
                             owner: name.clone(),
                             name: member.text,
@@ -225,6 +226,9 @@ impl Parser {
                         body,
                     })));
                     continue;
+                }
+                if !method_parameters.is_empty() {
+                    return Err(self.error("generic fields are not implemented"));
                 }
                 if !attributes.is_empty() {
                     return Err(self.error("struct field attributes are not implemented"));

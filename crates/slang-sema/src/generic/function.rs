@@ -14,6 +14,10 @@ impl Specializer {
                 unreachable!()
             };
             let source = function.name.clone();
+            if let Some(method) = &function.method {
+                self.method_templates
+                    .insert((method.owner.clone(), method.name.clone()), source.clone());
+            }
             let mut names = BTreeSet::new();
             for parameter in &function.generic_parameters {
                 if !names.insert(parameter.name.clone()) {
@@ -64,6 +68,7 @@ impl Specializer {
                     known,
                     symbols: &self.symbols,
                     module: self.shapes.current_module.0,
+                    method_names: &self.method_names,
                 }
                 .declaration(&mut declaration)?;
             }
@@ -295,6 +300,14 @@ impl crate::checker::Checker {
                 }
             }
             self.functions.insert(application.name.clone(), signatures);
+            for signature in &self.functions[&application.name] {
+                if let Some(method) = &signature.method {
+                    self.methods.insert(
+                        (method.owner.clone(), application.name.clone()),
+                        application.name.clone(),
+                    );
+                }
+            }
         }
     }
 }

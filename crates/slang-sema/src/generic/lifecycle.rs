@@ -159,6 +159,7 @@ impl Specializer {
 impl InferenceProbe {
     pub(crate) fn record_selections(&mut self, checker: &crate::checker::Checker) {
         self.function_names = checker.function_names.clone();
+        self.targets = checker.generic_call_names.clone();
         self.selected_functions = checker.call_names.values().cloned().collect();
         self.ambiguities = checker
             .diagnostics

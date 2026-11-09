@@ -84,6 +84,7 @@ impl Checker {
                 .is_some_and(|s| s.fields.iter().any(|f| f.name == name))
                 || self.static_fields.contains_key(&key)
                 || self.methods.contains_key(&key)
+                || self.generic_methods.contains_key(&key)
                 || self.nested_types.contains_key(&key)
             {
                 return Some(current.to_owned());
