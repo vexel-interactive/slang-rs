@@ -9040,6 +9040,55 @@
       "accept": false,
       "entry": "main",
       "rust_code": "T002"
+    },
+    {
+      "file": "positive/generic-deferred-bodies.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/generic-deferred-signatures.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 1
+      }
+    },
+    {
+      "file": "positive/generic-deferred-constructors.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 10,
+        "1": 5,
+        "2": 8,
+        "3": 5
+      }
+    },
+    {
+      "file": "positive/generic-deferred-defaults.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 0,
+        "1": 0,
+        "2": 3
+      }
+    },
+    {
+      "file": "positive/generic-deferred-module/main.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 7,
+        "1": 0
+      }
+    },
+    {
+      "file": "negative/generic-deferred-constructor-ambiguous.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014"
     }
   ]
 }

@@ -6933,6 +6933,49 @@
         "1": 5,
         "2": 6
       }
+    },
+    {
+      "file": "../conformance/positive/generic-deferred-bodies.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "../conformance/positive/generic-deferred-signatures.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 1
+      }
+    },
+    {
+      "file": "../conformance/positive/generic-deferred-constructors.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 10,
+        "1": 5,
+        "2": 8,
+        "3": 5
+      }
+    },
+    {
+      "file": "../conformance/positive/generic-deferred-defaults.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 0,
+        "1": 0,
+        "2": 3
+      }
+    },
+    {
+      "file": "../conformance/positive/generic-deferred-module/main.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 7,
+        "1": 0
+      }
     }
   ]
 }

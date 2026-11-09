@@ -3,9 +3,11 @@
 mod canonical;
 mod function;
 mod inference;
+mod lifecycle;
 mod substitute;
 mod symbolic;
 
+use crate::checker::SpanKey;
 use slang_module::SymbolOrigin;
 use slang_source::{Diagnostic, Span};
 use slang_syntax::{
@@ -48,6 +50,9 @@ struct Specializer {
     depth: usize,
     symbolic_types: BTreeSet<String>,
     inference_calls: BTreeMap<ExprId, InferenceCall>,
+    generated: BTreeSet<SpanKey>,
+    active: BTreeSet<SpanKey>,
+    validation_contexts: BTreeSet<usize>,
 }
 
 struct InferenceCall {
@@ -63,6 +68,10 @@ pub(crate) struct InferenceProbe {
     pub pending: BTreeSet<ExprId>,
     pub types: BTreeMap<ExprId, Vec<crate::Type>>,
     pub shapes: BTreeMap<String, (crate::Type, Vec<u8>)>,
+    pub deferred: BTreeSet<SpanKey>,
+    pub function_names: BTreeMap<SpanKey, String>,
+    pub selected_functions: BTreeSet<String>,
+    pub ambiguities: Vec<Diagnostic>,
 }
 
 struct SpecializedModule {
@@ -198,6 +207,9 @@ fn specialize_inner(
         depth: 0,
         symbolic_types: BTreeSet::new(),
         inference_calls: BTreeMap::new(),
+        generated: BTreeSet::new(),
+        active: BTreeSet::new(),
+        validation_contexts: BTreeSet::new(),
     };
     let declarations = std::mem::take(&mut module.declarations);
     specializer.register(
@@ -212,7 +224,7 @@ fn specialize_inner(
             && let Some(name) = specializer
                 .templates
                 .keys()
-                .find(|n| !validated.contains(*n))
+                .find(|n| !validated.contains(*n) && specializer.validation_template(n))
                 .cloned()
         {
             validated.insert(name.clone());
@@ -498,6 +510,11 @@ impl Specializer {
             }
             visitor.declaration(declaration)?;
         }
+        self.generated.extend(
+            declarations
+                .iter()
+                .map(|d| crate::span_key(declaration_span(d))),
+        );
         let source = self
             .symbols
             .get(&template.name)
@@ -752,6 +769,16 @@ impl VisitorMut for Specializer {
             .symbols
             .get(declaration_name(declaration))
             .map_or(Default::default(), |o| o.module);
+        let site = crate::span_key(declaration_span(declaration));
+        if self.generated.contains(&site)
+            && !self.active.contains(&site)
+            && !self
+                .validation_contexts
+                .contains(&declaration_span(declaration).context)
+        {
+            return self.signature_declaration(declaration);
+        }
+        self.active.insert(site);
         if matches!(declaration, Declaration::Function(_)) {
             self.shapes.scopes.push(BTreeMap::new());
         }

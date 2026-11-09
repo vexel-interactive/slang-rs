@@ -48,7 +48,14 @@ impl Specializer {
                 span,
             }));
         }
-        self.instantiate(name, &arguments, template.parameters[0].span)?;
+        let target = self.instantiate(name, &arguments, template.parameters[0].span)?;
+        let context = self
+            .instance_output
+            .iter()
+            .find(|i| i.type_name == target)
+            .unwrap()
+            .context;
+        self.validation_contexts.insert(context);
         Ok(())
     }
 }

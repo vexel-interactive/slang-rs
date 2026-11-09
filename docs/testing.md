@@ -713,8 +713,25 @@ Conflicting arrays/structs/shapes, unknown parameters, bare initializer-list
 inference, equal generic candidates, unused body errors, shadowed callees and
 unwritable outputs must fail. Numeric structural patterns can infer from a typed
 argument before contextual list initialization; bare `T` lists cannot.
-These cases do not establish constrained polymorphism or deferred checking of
-unselected candidate bodies.
+These cases do not establish constrained polymorphism.
+
+Deferred specialization adds eight integration tests and six differential cases.
+The [body fixture](../tests/conformance/positive/generic-deferred-bodies.slang)
+checks unselected resource construction, compound local shapes, nested type
+dependencies, parameter defaults and owner methods. The
+[signature fixture](../tests/conformance/positive/generic-deferred-signatures.slang)
+also verifies that dormant static resources and aggregate types disappear from
+native output and reflection. The
+[constructor fixture](../tests/conformance/positive/generic-deferred-constructors.slang)
+checks selected automatic, brace, explicit, nested and default-argument
+initialization plans against four matching compiled words, including static
+state. Prototype defaults and imported private caller types exercise transitive
+activation through template calls. These fixtures compare ten matching compiled
+words in total and validate ten HLSL artifacts with DXC. Constructor and free-call
+ambiguities remain errors; original unused templates still receive opaque
+checking. Explicit recursive specialization has a frontend-only test without
+shader target validation. Selected resource default construction remains a native
+limitation accepted by upstream, with no matching negative differential claim.
 
 [validation.json](validation.json) records the Windows validation run for this
 checkpoint. It includes the pinned compiler version, workspace checks, and

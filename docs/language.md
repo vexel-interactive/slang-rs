@@ -847,10 +847,29 @@ numeric pattern such as `vector<T, 2>` can use an inferred component from anothe
 argument to initialize a list. Candidate signatures reject invalid compound
 type substitutions before creating function instances.
 
+Concrete candidate bodies and parameter defaults are expanded and checked only
+after selection. Generated owner methods follow the same rule. Type declarations,
+field initializers and static storage needed only by unselected signatures are
+removed before the final check, emission and reflection. Selected bodies, defaults
+and constructor initialization plans activate their dependencies until inference
+and activation reach a fixed point. Original templates still receive opaque body
+checking even when none of their concrete instances is selected. Ambiguous calls
+remain errors before dormant candidates are removed.
+
+The [deferred body fixture](../tests/conformance/positive/generic-deferred-bodies.slang)
+checks ordinary overloads winning over resource-valued generic candidates whose
+bodies or defaults use unsupported concrete construction. The
+[signature fixture](../tests/conformance/positive/generic-deferred-signatures.slang)
+checks that an unselected aggregate dependency contributes no static resource.
+The [constructor fixture](../tests/conformance/positive/generic-deferred-constructors.slang)
+checks automatic, brace, explicit, nested and default-argument construction on
+specialized owners, including mutable static state.
+
 Generic methods/constructors, value parameters, constraints, higher-order function
 values and entry-point specialization remain unported. Complete constrained
-overload specialization, deferred candidate-body checking and ranking remain
-incomplete. Concrete bodies of instantiated viable candidates are still checked.
+overload specialization and ranking remain incomplete. Selected resource `T()`
+construction and unused resource-component vector locals still encounter native
+implementation limits that upstream accepts.
 
 ## Brace initializer lists
 

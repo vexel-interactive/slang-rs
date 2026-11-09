@@ -88,8 +88,14 @@ while instance metadata retains template identity and own/captured argument coun
 A fresh complete semantic check validates the final module before lowering.
 Bare calls combine ordinary and generic candidates, preferring ordinary overloads
 on equal costs. Explicit calls restrict the candidates to generic functions.
-Complete constrained resolution and deferred candidate-body checking remain
-unimplemented.
+Generated declarations begin dormant: probes declare candidate signatures while
+skipping their bodies, parameter defaults and data initializers. Selected call
+targets and recursive constructor initialization plans activate functions;
+references from ordinary and active declarations activate type/static dependencies.
+Inference and activation repeat together until no new declarations or calls are
+needed. Active ambiguities are preserved before dormant declarations and their
+metadata are pruned. Capability validation runs in the final complete check.
+Complete constrained resolution remains unimplemented.
 Shape conversions between different scalar types apply the destination's bit
 width. Identity constructors preserve wider shape intermediates, following
 `TypeCastIntVal::tryFoldImpl`; implicit global and local initializers follow

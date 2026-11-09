@@ -252,6 +252,7 @@ fn check_concrete_inner(
         )]);
     }
     let mut checker = Checker::new(&module, symbols, default_matrix_major);
+    let probing = probe.is_some();
     checker.symbolic_types = symbolic_types;
     if let Some(probe) = &probe {
         checker.pending_generic_calls = probe.pending.clone();
@@ -299,6 +300,12 @@ fn check_concrete_inner(
     }
     for declaration in &module.declarations {
         if let Declaration::Global(variable) = declaration {
+            if probe
+                .as_ref()
+                .is_some_and(|p| p.deferred.contains(&span_key(variable.span)))
+            {
+                continue;
+            }
             checker.current_module = checker
                 .symbols
                 .get(&variable.name)
@@ -327,12 +334,24 @@ fn check_concrete_inner(
             Declaration::TypeAlias(_) => {}
             Declaration::Global(_) => {}
             Declaration::Function(function) => {
+                if probe
+                    .as_ref()
+                    .is_some_and(|p| p.deferred.contains(&span_key(function.span)))
+                {
+                    continue;
+                }
                 if let Some(entry) = checker.entry_point(function, &module) {
                     entry_points.push(entry);
                 }
                 checker.function(function);
             }
             Declaration::Struct(structure) => {
+                if probe
+                    .as_ref()
+                    .is_some_and(|p| p.deferred.contains(&span_key(structure.span)))
+                {
+                    continue;
+                }
                 checker.current_static_type = Some(structure.name.clone());
                 for field in &structure.fields {
                     if field.modifiers.iter().any(|m| {
@@ -370,6 +389,7 @@ fn check_concrete_inner(
     if let Some(probe) = probe {
         probe.types = std::mem::take(&mut checker.generic_call_types);
         probe.shapes = checker.symbolic_shapes.clone();
+        probe.record_selections(&checker);
     }
     if !checker
         .diagnostics
@@ -431,7 +451,9 @@ fn check_concrete_inner(
             global_uniform_binding: checker.global_uniform_binding,
             diagnostics: checker.diagnostics,
         };
-        checked.entry_point_requirements = crate::capability::validate(&checked)?;
+        if !probing {
+            checked.entry_point_requirements = crate::capability::validate(&checked)?;
+        }
         Ok(checked)
     } else {
         Err(checker.diagnostics)

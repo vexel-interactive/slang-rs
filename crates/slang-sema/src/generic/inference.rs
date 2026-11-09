@@ -18,11 +18,12 @@ impl Specializer {
     ) -> Result<(), Diagnostic> {
         self.publish_metadata(module);
         for _ in 0..128 {
-            if self.inference_calls.is_empty() {
-                return Ok(());
-            }
+            let mut changed = self.activate_referenced(module)?;
+            changed |= self.drain_pending(module)?;
+            self.publish_metadata(module);
             let mut probe = InferenceProbe {
                 pending: self.inference_calls.keys().copied().collect(),
+                deferred: self.generated.difference(&self.active).copied().collect(),
                 ..Default::default()
             };
             let checked = crate::checker::probe_generic_calls(
@@ -34,11 +35,12 @@ impl Specializer {
             );
             let mut targets = BTreeMap::new();
             let mut failures = vec![];
-            for (id, types) in probe.types {
+            changed |= self.activate_selected(module, &probe)?;
+            for (id, types) in &probe.types {
                 if types.iter().any(contains_error) {
                     continue;
                 }
-                let call = self.inference_calls.remove(&id).unwrap();
+                let call = self.inference_calls.remove(id).unwrap();
                 self.shapes.current_module = call.module;
                 let arguments = types
                     .iter()
@@ -46,22 +48,35 @@ impl Specializer {
                     .collect::<Vec<_>>();
                 match self.infer_application(&call, &arguments) {
                     Ok(target) => {
-                        targets.insert(id, target);
+                        targets.insert(*id, target);
                     }
                     Err(diagnostic) => {
                         failures.push(diagnostic);
-                        self.inference_calls.insert(id, call);
+                        self.inference_calls.insert(*id, call);
                     }
                 }
             }
-            if targets.is_empty() {
+            changed |= !targets.is_empty();
+            if !changed {
+                if self.inference_calls.is_empty() {
+                    if let Some(diagnostic) = probe
+                        .ambiguities
+                        .into_iter()
+                        .find(|d| self.active_diagnostic(module, d))
+                    {
+                        return Err(diagnostic);
+                    }
+                    self.prune_dormant(module);
+                    return Ok(());
+                }
                 if let Some(diagnostic) = failures.into_iter().next() {
                     return Err(diagnostic);
                 }
                 if let Err(diagnostics) = checked
-                    && let Some(diagnostic) = diagnostics
-                        .into_iter()
-                        .find(|d| d.severity == slang_source::Severity::Error)
+                    && let Some(diagnostic) = diagnostics.into_iter().find(|d| {
+                        d.severity == slang_source::Severity::Error
+                            && self.active_diagnostic(module, d)
+                    })
                 {
                     return Err(diagnostic);
                 }
@@ -73,18 +88,15 @@ impl Specializer {
             for declaration in &mut module.declarations {
                 CallTargets(&targets).declaration(declaration)?;
             }
-            while let Some(mut declaration) = self.pending.pop_front() {
-                self.declaration(&mut declaration)?;
-                module.declarations.push(declaration);
-            }
+            self.drain_pending(module)?;
             self.publish_metadata(module);
         }
-        if self.inference_calls.is_empty() {
-            return Ok(());
-        }
         Err(error(
-            self.inference_calls.values().next().unwrap().span,
-            "generic inference limit exceeded",
+            self.inference_calls.values().next().map_or_else(
+                || module.declarations.first().map_or_default(declaration_span),
+                |c| c.span,
+            ),
+            "generic inference or activation limit exceeded",
         ))
     }
 

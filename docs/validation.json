@@ -6,7 +6,7 @@
     "rustfmt": "passed",
     "clippy_all_targets_warnings_denied": "passed",
     "unit_tests": 42,
-    "integration_tests": 429,
+    "integration_tests": 437,
     "doc_tests": 1,
     "conformance_comparison_tests": 27,
     "rustdoc": "passed",
@@ -16,11 +16,11 @@
   },
   "differential_validation": {
     "oracle": "Slang 2026.21",
-    "cases_passed": 658,
-    "cases_total": 658,
-    "matching_acceptance_cases": 646,
+    "cases_passed": 664,
+    "cases_total": 664,
+    "matching_acceptance_cases": 652,
     "documented_oracle_differences": 12,
-    "dxc_hlsl_artifacts_validated": 660,
+    "dxc_hlsl_artifacts_validated": 670,
     "dxc_invalid_hlsl_artifacts_rejected": 22,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
@@ -37,9 +37,9 @@
     "uniform_byte_layout_cases_compared": 61,
     "documented_oracle_physical_layout_differences": 12,
     "physical_buffer_layout_cases_compared": 43,
-    "compiled_constant_cases_compared": 54,
-    "compiled_constant_words_compared": 1328,
-    "compiled_constant_words_matching": 1314,
+    "compiled_constant_cases_compared": 58,
+    "compiled_constant_words_compared": 1338,
+    "compiled_constant_words_matching": 1324,
     "documented_oracle_constant_words_differing": 14,
     "documented_oracle_constant_cases_differing": 6,
     "documented_oracle_uniform_reflection_differences": 1,
@@ -53,8 +53,8 @@
   "remote_ci_executed": false,
   "remote_ci": null,
   "previous_remote_ci": {
-    "run_id": 42675037803,
-    "head_sha": "83278bd705138b5438a0593bf468028b12a7d8e8",
+    "run_id": 42680302706,
+    "head_sha": "ae11f7624b76f3600eeccc54e6d4c3aa55c83aee",
     "conclusion": "success",
     "platforms": [
       "ubuntu-latest",
@@ -63,6 +63,16 @@
     ]
   },
   "earlier_remote_ci": [
+    {
+      "run_id": 42675037803,
+      "head_sha": "83278bd705138b5438a0593bf468028b12a7d8e8",
+      "conclusion": "success",
+      "platforms": [
+        "ubuntu-latest",
+        "windows-latest",
+        "macos-latest"
+      ]
+    },
     {
       "run_id": 42672125010,
       "head_sha": "67e44002fd4a6b11c51dbe846d56660a866bf229",
@@ -608,7 +618,7 @@
   },
   "native_hlsl_suite": {
     "manifest": "tests/native/manifest.json",
-    "artifacts_validated": 137,
+    "artifacts_validated": 142,
     "profiles": [
       "cs_6_0",
       "cs_6_2",
@@ -753,13 +763,18 @@
       "../conformance/positive/generic-inference-values.slang",
       "../conformance/positive/generic-inference-owners.slang",
       "../conformance/positive/generic-inference-resources.slang",
-      "../conformance/positive/generic-inference-module/main.slang"
+      "../conformance/positive/generic-inference-module/main.slang",
+      "../conformance/positive/generic-deferred-bodies.slang",
+      "../conformance/positive/generic-deferred-signatures.slang",
+      "../conformance/positive/generic-deferred-constructors.slang",
+      "../conformance/positive/generic-deferred-defaults.slang",
+      "../conformance/positive/generic-deferred-module/main.slang"
     ],
     "uniform_byte_layout_cases": 61,
     "matrix_layout_shapes": 96,
     "constant_buffer_numeric_layouts": 252,
-    "compiled_constant_cases": 41,
-    "compiled_constant_words": 1162
+    "compiled_constant_cases": 45,
+    "compiled_constant_words": 1172
   },
   "pointer_integer_validation": {
     "target_pointer_bits": 64,
@@ -1082,13 +1097,13 @@
     "constant_buffer_parameter_copies_preserve_handles": true
   },
   "generic_function_validation": {
-    "integration_tests": 15,
-    "differential_cases": 34,
-    "matching_acceptance_cases": 34,
-    "dxc_hlsl_artifacts_validated": 22,
-    "compiled_constant_cases": 9,
-    "compiled_constant_words": 64,
-    "matching_words": 64,
+    "integration_tests": 23,
+    "differential_cases": 40,
+    "matching_acceptance_cases": 40,
+    "dxc_hlsl_artifacts_validated": 32,
+    "compiled_constant_cases": 13,
+    "compiled_constant_words": 74,
+    "matching_words": 74,
     "explicit_type_arguments": true,
     "type_defaults": true,
     "dependent_type_defaults": true,
@@ -1128,7 +1143,32 @@
     "ordinary_and_generic_candidates_compete": true,
     "initializer_list_inference_rules": true,
     "invalid_compound_signature_candidates_rejected": true,
-    "deferred_candidate_body_checking": false,
-    "inference_limits": "Unconstrained type parameters only; no generic methods, value parameters, interfaces or complete constrained candidate viability. Instantiated viable candidate bodies are checked before selection."
+    "deferred_candidate_body_checking": true,
+    "inference_limits": "Unconstrained type parameters only; no generic methods, value parameters, interfaces or complete constrained candidate viability. Selected resource T() and unused resource-component vector locals remain native limitations accepted by upstream.",
+    "deferred_parameter_defaults": true,
+    "selected_constructor_plan_activation": true,
+    "transitive_selected_dependency_activation": true,
+    "dormant_signature_dependency_pruning": true,
+    "dormant_resources_excluded_from_reflection": true,
+    "source_opaque_validation_preserved": true,
+    "active_ambiguity_preserved_before_pruning": true
+  },
+  "generic_deferred_specialization_validation": {
+    "integration_tests": 8,
+    "differential_cases": 6,
+    "matching_acceptance_cases": 6,
+    "dxc_hlsl_artifacts_validated": 10,
+    "compiled_constant_cases": 4,
+    "compiled_constant_words": 10,
+    "matching_words": 10,
+    "automatic_brace_explicit_nested_and_default_constructor_plans": true,
+    "prototype_first_defaults": true,
+    "imported_private_caller_types": true,
+    "frontend_explicit_recursion": true,
+    "shader_recursion_validation": false,
+    "selected_resource_default_construction": false,
+    "resource_component_vector_locals": false,
+    "gpu_execution_compared": false,
+    "complete_upstream_parity": false
   }
 }

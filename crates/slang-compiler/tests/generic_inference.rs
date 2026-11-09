@@ -86,7 +86,7 @@ fn ordinary_and_generic_overloads_compete_and_outputs_stay_writable() {
     let compiled = compile(
         "T pick<T>(T value){return value;}int pick(int value){return value+1;}int run(){return pick(2)+int(pick(3.0));}",
     );
-    assert_eq!(compiled.ir.functions.len(), 4);
+    assert_eq!(compiled.ir.functions.len(), 3);
     compile(
         "void assign<T>(out T result,T value){result=value;}void exchange<T>(inout T first,inout T second){T old=first;first=second;second=old;}int run(){int a=2,b=3;assign(a,4);exchange(a,b);return a;}",
     );
