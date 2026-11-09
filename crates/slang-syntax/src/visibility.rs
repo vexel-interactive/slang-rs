@@ -25,6 +25,7 @@ impl Module {
                     }
                     Declaration::Global(v) => explicit(&v.modifiers),
                     Declaration::TypeAlias(a) => explicit(&a.modifiers),
+                    Declaration::Interface(i) => explicit(&i.modifiers),
                 })
     }
 
@@ -44,6 +45,7 @@ impl Module {
                 Declaration::Function(f) => &mut f.modifiers,
                 Declaration::Global(v) => &mut v.modifiers,
                 Declaration::TypeAlias(a) => &mut a.modifiers,
+                Declaration::Interface(i) => &mut i.modifiers,
             };
             modifiers.push("public".into());
         }

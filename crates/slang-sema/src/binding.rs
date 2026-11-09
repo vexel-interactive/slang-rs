@@ -267,6 +267,7 @@ fn declaration_span(declaration: &Declaration) -> slang_source::Span {
     match declaration {
         Declaration::Global(v) => v.span,
         Declaration::Struct(s) => s.span,
+        Declaration::Interface(i) => i.span,
         Declaration::Function(f) => f.span,
         Declaration::TypeAlias(a) => a.span,
     }

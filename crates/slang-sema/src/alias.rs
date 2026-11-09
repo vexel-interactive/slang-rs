@@ -16,6 +16,10 @@ impl Checker {
                     self.structures.insert(s.name.clone(), BTreeMap::new());
                     (&s.name, &s.modifiers, s.span)
                 }
+                Declaration::Interface(i) => {
+                    self.interface_definitions.insert(i.name.clone(), i.clone());
+                    (&i.name, &i.modifiers, i.span)
+                }
                 Declaration::TypeAlias(a) => {
                     self.aliases.insert(a.name.clone(), a.target.clone());
                     (&a.name, &a.modifiers, a.span)

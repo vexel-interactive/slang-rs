@@ -1,6 +1,7 @@
 //! Instantiate user type and function templates before checking concrete declarations.
 
 mod canonical;
+mod constraint;
 pub(crate) mod constructor;
 mod function;
 mod inference;
@@ -159,6 +160,7 @@ fn specialize_inner(
         .iter()
         .filter_map(|d| match d {
             Declaration::Struct(s) => Some(s.name.clone()),
+            Declaration::Interface(i) => Some(i.name.clone()),
             Declaration::TypeAlias(a) => Some(a.name.clone()),
             Declaration::Function(f) if !f.generic_parameters.is_empty() => Some(f.name.clone()),
             _ => None,
@@ -175,6 +177,12 @@ fn specialize_inner(
         match declaration {
             Declaration::Struct(s) => {
                 shapes.structures.insert(s.name.clone(), BTreeMap::new());
+                shapes.struct_definitions.insert(s.name.clone(), s.clone());
+            }
+            Declaration::Interface(i) => {
+                shapes
+                    .interface_definitions
+                    .insert(i.name.clone(), i.clone());
             }
             Declaration::TypeAlias(a) if parameters(declaration).is_empty() => {
                 shapes.aliases.insert(a.name.clone(), a.target.clone());
@@ -190,6 +198,9 @@ fn specialize_inner(
             .filter_map(|d| match d {
                 Declaration::Struct(s) if s.modifiers.iter().any(|m| m == "public") => {
                     Some(s.name.clone())
+                }
+                Declaration::Interface(i) if i.modifiers.iter().any(|m| m == "public") => {
+                    Some(i.name.clone())
                 }
                 Declaration::TypeAlias(a) if a.modifiers.iter().any(|m| m == "public") => {
                     Some(a.name.clone())
@@ -316,6 +327,7 @@ impl Specializer {
                     == Some(declaration_name(declaration))
             {
                 let name = declaration_name(declaration).to_owned();
+                constraint::validate_parameters(parameters(declaration))?;
                 let mut names = BTreeSet::new();
                 for parameter in parameters(declaration) {
                     if !names.insert(&parameter.name) {
@@ -350,6 +362,7 @@ impl Specializer {
         for mut declaration in declarations {
             if match &declaration {
                 Declaration::Struct(s) => s.modifiers.iter().any(|m| m == "public"),
+                Declaration::Interface(i) => i.modifiers.iter().any(|m| m == "public"),
                 Declaration::TypeAlias(a) => a.modifiers.iter().any(|m| m == "public"),
                 _ => false,
             } {
@@ -387,8 +400,16 @@ impl Specializer {
                 }
                 if let Declaration::Struct(s) = &declaration {
                     self.shapes
+                        .struct_definitions
+                        .insert(s.name.clone(), s.clone());
+                    self.shapes
                         .structures
                         .insert(s.name.clone(), BTreeMap::new());
+                }
+                if let Declaration::Interface(i) = &declaration {
+                    self.shapes
+                        .interface_definitions
+                        .insert(i.name.clone(), i.clone());
                 }
                 if let Declaration::Global(v) = &declaration {
                     self.shapes.shape_globals.insert(v.name.clone(), v.clone());
@@ -481,6 +502,13 @@ impl Specializer {
             self.validate_argument(&mut argument)?;
             substitutions.insert(parameter.name.clone(), argument.clone());
             arguments.push(argument);
+        }
+        if !self.constraints_satisfied(&template.parameters, &substitutions)? {
+            return Err(Diagnostic::error(
+                "T033",
+                span,
+                "generic type arguments do not satisfy the interface constraints",
+            ));
         }
         let key = (
             template_key.to_owned(),
@@ -682,6 +710,7 @@ impl Specializer {
     fn validate_argument(&self, ty: &mut TypeRef) -> Result<(), Diagnostic> {
         if !canonical::core_type(&ty.name)
             && !self.shapes.structures.contains_key(&ty.name)
+            && !self.shapes.interface_definitions.contains_key(&ty.name)
             && !self.aliases.contains_key(&ty.name)
         {
             return Err(error(
@@ -693,6 +722,7 @@ impl Specializer {
             .shapes
             .structures
             .keys()
+            .chain(self.shapes.interface_definitions.keys())
             .chain(self.aliases.keys())
             .cloned()
             .collect();
@@ -951,6 +981,7 @@ pub(super) fn argument_names(arguments: &[TypeRef]) -> BTreeSet<String> {
 fn parameters(declaration: &Declaration) -> &[GenericParameter] {
     match declaration {
         Declaration::Struct(s) => &s.generic_parameters,
+        Declaration::Interface(i) => &i.generic_parameters,
         Declaration::TypeAlias(a) => &a.generic_parameters,
         Declaration::Function(f) => &f.generic_parameters,
         _ => &[],
@@ -959,6 +990,7 @@ fn parameters(declaration: &Declaration) -> &[GenericParameter] {
 fn clear_parameters(declaration: &mut Declaration) {
     match declaration {
         Declaration::Struct(s) => s.generic_parameters.clear(),
+        Declaration::Interface(i) => i.generic_parameters.clear(),
         Declaration::TypeAlias(a) => a.generic_parameters.clear(),
         Declaration::Function(f) => f.generic_parameters.clear(),
         _ => {}
@@ -967,6 +999,7 @@ fn clear_parameters(declaration: &mut Declaration) {
 fn declaration_name(declaration: &Declaration) -> &str {
     match declaration {
         Declaration::Struct(s) => &s.name,
+        Declaration::Interface(i) => &i.name,
         Declaration::TypeAlias(a) => &a.name,
         Declaration::Global(v) => &v.name,
         Declaration::Function(f) => &f.name,
@@ -975,6 +1008,7 @@ fn declaration_name(declaration: &Declaration) -> &str {
 fn declaration_span(declaration: &Declaration) -> Span {
     match declaration {
         Declaration::Struct(s) => s.span,
+        Declaration::Interface(i) => i.span,
         Declaration::TypeAlias(a) => a.span,
         Declaration::Global(v) => v.span,
         Declaration::Function(f) => f.span,

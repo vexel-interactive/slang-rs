@@ -1,12 +1,12 @@
 {
-  "date": "2026-11-09",
+  "date": "2026-11-10",
   "platform": "windows-x86_64-msvc",
   "rust_toolchain": "1.99.1",
   "checks": {
     "rustfmt": "passed",
     "clippy_all_targets_warnings_denied": "passed",
     "unit_tests": 42,
-    "integration_tests": 454,
+    "integration_tests": 464,
     "doc_tests": 1,
     "conformance_comparison_tests": 27,
     "rustdoc": "passed",
@@ -16,11 +16,11 @@
   },
   "differential_validation": {
     "oracle": "Slang 2026.21",
-    "cases_passed": 692,
-    "cases_total": 692,
-    "matching_acceptance_cases": 680,
+    "cases_passed": 709,
+    "cases_total": 709,
+    "matching_acceptance_cases": 697,
     "documented_oracle_differences": 12,
-    "dxc_hlsl_artifacts_validated": 690,
+    "dxc_hlsl_artifacts_validated": 704,
     "dxc_invalid_hlsl_artifacts_rejected": 22,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
@@ -37,9 +37,9 @@
     "uniform_byte_layout_cases_compared": 61,
     "documented_oracle_physical_layout_differences": 12,
     "physical_buffer_layout_cases_compared": 43,
-    "compiled_constant_cases_compared": 66,
-    "compiled_constant_words_compared": 1396,
-    "compiled_constant_words_matching": 1382,
+    "compiled_constant_cases_compared": 73,
+    "compiled_constant_words_compared": 1414,
+    "compiled_constant_words_matching": 1400,
     "documented_oracle_constant_words_differing": 14,
     "documented_oracle_constant_cases_differing": 6,
     "documented_oracle_uniform_reflection_differences": 1,
@@ -53,8 +53,8 @@
   "remote_ci_executed": false,
   "remote_ci": null,
   "previous_remote_ci": {
-    "run_id": 42691754687,
-    "head_sha": "371f6e2de21e7e9550bea4ea38eeca9d79a3b990",
+    "run_id": 42694878510,
+    "head_sha": "d2e9b81bde464f06c937087fbc18d4a58a0ddaeb",
     "conclusion": "success",
     "platforms": [
       "ubuntu-latest",
@@ -63,6 +63,16 @@
     ]
   },
   "earlier_remote_ci": [
+    {
+      "run_id": 42691754687,
+      "head_sha": "371f6e2de21e7e9550bea4ea38eeca9d79a3b990",
+      "conclusion": "success",
+      "platforms": [
+        "ubuntu-latest",
+        "windows-latest",
+        "macos-latest"
+      ]
+    },
     {
       "run_id": 42686287431,
       "head_sha": "e28ae735ba5ccf22a5095f73ff6e4db36884859b",
@@ -638,7 +648,7 @@
   },
   "native_hlsl_suite": {
     "manifest": "tests/native/manifest.json",
-    "artifacts_validated": 152,
+    "artifacts_validated": 159,
     "profiles": [
       "cs_6_0",
       "cs_6_2",
@@ -798,7 +808,14 @@
       "../conformance/positive/generic-constructor-owners.slang",
       "../conformance/positive/generic-constructor-resources.slang",
       "../conformance/positive/generic-constructor-inline.slang",
-      "../conformance/positive/generic-constructor-module/main.slang"
+      "../conformance/positive/generic-constructor-module/main.slang",
+      "../conformance/positive/interface-methods.slang",
+      "../conformance/positive/interface-inheritance.slang",
+      "../conformance/positive/interface-generic-owners.slang",
+      "../conformance/positive/interface-generic-arguments.slang",
+      "../conformance/positive/interface-constructor.slang",
+      "../conformance/positive/interface-overloads.slang",
+      "../conformance/positive/interface-module/main.slang"
     ],
     "uniform_byte_layout_cases": 61,
     "matrix_layout_shapes": 96,
@@ -1101,7 +1118,6 @@
     "argument_depth_limit": 32,
     "syntax_node_budget": 65536,
     "value_parameters": false,
-    "constraints_and_interfaces": false,
     "constructor_inference": false,
     "general_constant_execution": false,
     "gpu_execution_compared": false,
@@ -1128,7 +1144,9 @@
     "constant_buffer_parameter_copies_preserve_handles": true,
     "generic_constructors": true,
     "generic_constructor_parameter_inference": true,
-    "constructor_owner_type_argument_inference": false
+    "constructor_owner_type_argument_inference": false,
+    "complete_constraints_and_interfaces": false,
+    "direct_nominal_interface_constraints": true
   },
   "generic_function_validation": {
     "integration_tests": 40,
@@ -1153,7 +1171,6 @@
     "imported_caller_private_argument_types": true,
     "inference": true,
     "generic_methods": true,
-    "constraints_and_interfaces": false,
     "complete_polymorphic_overload_specialization": false,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
@@ -1178,7 +1195,7 @@
     "initializer_list_inference_rules": true,
     "invalid_compound_signature_candidates_rejected": true,
     "deferred_candidate_body_checking": true,
-    "inference_limits": "Unconstrained type parameters only; no value parameters, interfaces or complete constrained candidate viability/ranking. Selected resource T() and unused resource-component vector locals remain native limitations accepted by upstream.",
+    "inference_limits": "Type parameters with direct nominal interface constraints; no value parameters, general witnesses, existential dispatch or complete constrained candidate ranking. Selected unconstrained resource T() and unused resource-component vector locals remain native limitations accepted by upstream.",
     "deferred_parameter_defaults": true,
     "selected_constructor_plan_activation": true,
     "transitive_selected_dependency_activation": true,
@@ -1186,7 +1203,9 @@
     "dormant_resources_excluded_from_reflection": true,
     "source_opaque_validation_preserved": true,
     "active_ambiguity_preserved_before_pruning": true,
-    "generic_constructors": true
+    "generic_constructors": true,
+    "complete_constraints_and_interfaces": false,
+    "direct_nominal_interface_constraints": true
   },
   "generic_deferred_specialization_validation": {
     "integration_tests": 8,
@@ -1231,11 +1250,12 @@
     "per_method_visibility": true,
     "frontend_explicit_recursion": true,
     "shader_recursion_validation": false,
-    "constraints_and_interfaces": false,
     "generic_constructors": true,
     "complete_polymorphic_ranking": false,
     "gpu_execution_compared": false,
-    "complete_upstream_parity": false
+    "complete_upstream_parity": false,
+    "complete_constraints_and_interfaces": false,
+    "direct_nominal_interface_constraints": true
   },
   "generic_constructor_validation": {
     "integration_tests": 9,
@@ -1267,7 +1287,6 @@
     "generic_defaults_do_not_automatically_initialize_variables_or_fields": true,
     "bounded_frontend_recursive_specialization": true,
     "constructor_owner_type_argument_inference": false,
-    "constraints_and_interfaces": false,
     "value_parameters": false,
     "complete_polymorphic_ranking": false,
     "shader_recursion_validated": false,
@@ -1282,6 +1301,52 @@
     "pinned_upstream_hlsl_smoke_dxc_artifacts": 2,
     "pinned_upstream_compiled_words": 1,
     "pinned_upstream_matching_words": 1,
-    "original_gpu_cpu_and_shader_object_directives_passed": false
+    "original_gpu_cpu_and_shader_object_directives_passed": false,
+    "complete_constraints_and_interfaces": false,
+    "direct_nominal_interface_constraints": true
+  },
+  "interface_constraint_validation": {
+    "integration_tests": 10,
+    "differential_cases": 17,
+    "matching_acceptance_cases": 17,
+    "dxc_hlsl_artifacts_validated": 14,
+    "compiled_constant_cases": 7,
+    "compiled_constant_words": 18,
+    "matching_words": 18,
+    "named_and_generic_interfaces": true,
+    "nominal_conformance": true,
+    "multiple_and_diamond_inheritance": true,
+    "self_parameter_and_result_types": true,
+    "instance_static_mutating_and_output_signatures": true,
+    "direct_constructor_signatures": true,
+    "opaque_unused_body_checking": true,
+    "function_owner_method_and_constructor_constraints": true,
+    "dependent_generic_interface_arguments": true,
+    "forward_inline_constraint_diagnostics": true,
+    "constraint_overload_viability": true,
+    "imported_private_caller_types": true,
+    "private_direct_witness_calls_across_modules": true,
+    "ordinary_internal_member_access_preserved": true,
+    "interface_declarations_excluded_from_data_ir": true,
+    "default_and_generic_requirements": false,
+    "associated_types": false,
+    "adapted_witnesses": false,
+    "existential_values_and_runtime_dispatch": false,
+    "where_constraints": false,
+    "complete_constrained_ranking_and_witness_selection": false,
+    "eager_inheritance_checking": true,
+    "inheritance_depth_limit": 32,
+    "gpu_execution_compared": false,
+    "complete_upstream_parity": false,
+    "production_binary_validated": "release",
+    "pinned_upstream_retargeted_diagnostic_sources": [
+      "language-feature/interfaces/static-method-not-implemented.slang",
+      "diagnostics/interfaces/mutating-impl-of-non-mutating-req.slang"
+    ],
+    "pinned_upstream_retargeted_diagnostic_frontends": [
+      "rust",
+      "Slang 2026.21"
+    ],
+    "original_upstream_diagnostic_runner_executed": false
   }
 }

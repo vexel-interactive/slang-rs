@@ -37,6 +37,9 @@ impl Parser {
         let start = self.span();
         let attributes = self.attributes()?;
         let modifiers = self.modifiers();
+        if self.at("interface") {
+            return self.interface_declaration(start, attributes, modifiers);
+        }
         if self.eat("cbuffer") {
             if !attributes.is_empty()
                 || modifiers
@@ -95,6 +98,7 @@ impl Parser {
             self.type_owners.push(name.clone());
             self.type_parameters
                 .push(generic_parameters.iter().map(|p| p.name.clone()).collect());
+            let bases = self.inheritance_types()?;
             self.expect("{")?;
             let mut fields = vec![];
             let mut members = vec![];
@@ -103,7 +107,11 @@ impl Parser {
                 let member_start = self.span();
                 let attributes = self.attributes()?;
                 let member_modifiers = self.modifiers();
-                if self.at("struct") || self.at("typedef") || self.at("typealias") {
+                if self.at("struct")
+                    || self.at("interface")
+                    || self.at("typedef")
+                    || self.at("typealias")
+                {
                     self.offset = member_offset;
                     members.extend(self.declaration()?);
                     continue;
@@ -235,6 +243,7 @@ impl Parser {
             let mut declarations = vec![Declaration::Struct(Struct {
                 name,
                 generic_parameters,
+                bases,
                 modifiers,
                 fields,
                 span: start.join(end),
@@ -316,7 +325,7 @@ impl Parser {
         }
     }
 
-    fn parameters(&mut self) -> Result<Vec<Variable>, Diagnostic> {
+    pub(crate) fn parameters(&mut self) -> Result<Vec<Variable>, Diagnostic> {
         let mut parameters = vec![];
         if !(self.at(")")
             || self.at("void") && self.tokens.get(self.offset + 1).is_some_and(|t| t.is(")")))
@@ -337,7 +346,7 @@ impl Parser {
         Ok(parameters)
     }
 
-    fn nested_type_name(&mut self, name: String, span: slang_source::Span) -> String {
+    pub(crate) fn nested_type_name(&mut self, name: String, span: slang_source::Span) -> String {
         let Some(owner) = self.type_owners.last() else {
             return name;
         };
@@ -351,7 +360,7 @@ impl Parser {
         target
     }
 
-    fn constructor_member(
+    pub(crate) fn constructor_member(
         &mut self,
         owner: &str,
         attributes: Vec<Attribute>,
@@ -400,7 +409,7 @@ impl Parser {
         })))
     }
 
-    fn generic_parameters(&mut self) -> Result<Vec<GenericParameter>, Diagnostic> {
+    pub(crate) fn generic_parameters(&mut self) -> Result<Vec<GenericParameter>, Diagnostic> {
         if !self.eat("<") {
             return Ok(vec![]);
         }
@@ -410,9 +419,15 @@ impl Parser {
                 return Err(self.error("generic value parameters are not implemented"));
             }
             let token = self.identifier()?;
-            if self.at(":") {
-                return Err(self.error("generic interface constraints are not implemented"));
-            }
+            let constraints = if self.eat(":") {
+                let mut constraints = vec![self.ty()?];
+                while self.eat("&") {
+                    constraints.push(self.ty()?);
+                }
+                constraints
+            } else {
+                vec![]
+            };
             let default = if self.eat("=") {
                 Some(self.ty()?)
             } else {
@@ -420,6 +435,7 @@ impl Parser {
             };
             parameters.push(GenericParameter {
                 name: token.text,
+                constraints,
                 default,
                 span: token.span,
             });
@@ -429,6 +445,19 @@ impl Parser {
         }
         self.close_type_arguments()?;
         Ok(parameters)
+    }
+
+    pub(crate) fn inheritance_types(&mut self) -> Result<Vec<TypeRef>, Diagnostic> {
+        let mut bases = vec![];
+        if self.eat(":") {
+            loop {
+                bases.push(self.ty()?);
+                if !self.eat(",") {
+                    break;
+                }
+            }
+        }
+        Ok(bases)
     }
 
     pub(crate) fn ty(&mut self) -> Result<TypeRef, Diagnostic> {
@@ -613,7 +642,7 @@ impl Parser {
         Ok(arrays)
     }
 
-    fn attributes(&mut self) -> Result<Vec<Attribute>, Diagnostic> {
+    pub(crate) fn attributes(&mut self) -> Result<Vec<Attribute>, Diagnostic> {
         let mut attributes = vec![];
         while self.eat("[") {
             let name = self.identifier()?;

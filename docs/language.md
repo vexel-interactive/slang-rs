@@ -810,7 +810,8 @@ Before concrete specialization, templates are checked with distinct opaque
 parameters through the ordinary semantic checker. Unused bodies receive name,
 type, initialization, call, scope and control-flow checks. A parameter supports
 copying and default construction with `T(value)` and `T()`; unrelated numeric
-conversion, arithmetic and member access require constraints and are rejected.
+conversion and arithmetic require unsupported conversion/operator constraints.
+Member calls can use explicit interface constraints as described below.
 Unconstrained `T()` recursively zeroes numeric and aggregate values, without field
 defaults or user `__init` calls. Exact `T(value)` preserves its input, including
 constant-buffer handles. Ordinary concrete struct construction still applies
@@ -913,7 +914,7 @@ The [constructor fixture](../tests/conformance/positive/generic-deferred-constru
 checks automatic, brace, explicit, nested and default-argument construction on
 specialized owners, including mutable static state.
 
-Value parameters, constraints, higher-order function
+Value parameters, general constraints, higher-order function
 values and entry-point specialization remain unported. Complete constrained
 overload specialization and ranking remain incomplete. Selected resource `T()`
 construction and unused resource-component vector locals still encounter native
@@ -963,6 +964,58 @@ Constraints, reference receiver modes,
 receiver-dependent defaults and complete polymorphic overload ranking remain
 unimplemented. Explicit recursive method specialization has frontend coverage;
 GPU recursion validation and execution equivalence are not claimed.
+
+## Interfaces and type constraints
+
+Named interfaces declare required instance/static methods and constructors.
+Structs explicitly list their conformances after a colon. Matching method names
+alone do not establish conformance.
+
+```slang
+interface IValue {
+    int read();
+    [mutating] void set(int value);
+}
+struct Item : IValue {
+    int value;
+    int read() { return value; }
+    [mutating] void set(int input) { value = input; }
+}
+int read<T : IValue>(T item) { return item.read(); }
+```
+
+Interfaces can inherit multiple interfaces, including diamonds. Type parameter
+constraints accept conjunctions such as `T : ILeft & IRight`. Generic interfaces
+retain their argument identity, for example `Read<int>` versus `Read<float>`.
+A constraint can refer to earlier parameters: `read<U, T : Read<U>>`. Forward
+references in inline constraints report `T032`. `This` in a requirement denotes
+the conforming owner; it works in parameters and results.
+
+Direct conformance checks require matching parameter and result types, static
+status, receiver mutability, and input/output parameter modes. Missing or
+incompatible requirements report `T032`. Type specialization fails with `T033`
+when arguments do not satisfy their declared nominal constraints. Nonconforming
+function and constructor candidates are removed before selection; remaining
+ordinary/generic conversion and default ranking still applies.
+
+Constrained generic bodies are checked on opaque parameter owners exposing only
+their inherited requirements, even when no concrete call uses the template.
+Concrete calls then use cached specialization and the ordinary method/constructor
+pipeline. This applies to free functions, struct owners, generic methods and
+generic constructors, including imported interfaces and private caller types.
+Validated direct witnesses permit calls across module boundaries without
+exposing the concrete method or constructor to ordinary callers. Interfaces do
+not become HLSL data structs.
+
+This implementation covers direct signatures. Default interface bodies, generic
+method requirements, associated types, extensions, adapted witnesses (including
+numeric conversions, default-argument adaptation and static/instance adaptation),
+`where` constraints, operator/conversion constraints, complete constrained
+ranking and runtime dispatch remain unsupported. Interface existential variables,
+parameters, results and aggregate/resource storage report `T001`. Inheritance is
+checked eagerly with a 32-level limit; the oracle can defer errors in unused
+cyclic interfaces. See the [interface fixtures](../tests/conformance/positive/interface-methods.slang)
+and [generic interface arguments](../tests/conformance/positive/interface-generic-arguments.slang).
 
 ## Brace initializer lists
 

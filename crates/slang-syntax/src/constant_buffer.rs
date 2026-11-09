@@ -68,6 +68,7 @@ impl Parser {
         let mut declarations = vec![
             Declaration::Struct(Struct {
                 generic_parameters: vec![],
+                bases: vec![],
                 name: element_type.clone(),
                 modifiers: modifiers.clone(),
                 fields,

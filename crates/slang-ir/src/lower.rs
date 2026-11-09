@@ -54,7 +54,7 @@ pub fn lower_with_native_16bit(
         .collect();
     for declaration in &checked.module.declarations {
         match declaration {
-            ast::Declaration::TypeAlias(_) => {}
+            ast::Declaration::TypeAlias(_) | ast::Declaration::Interface(_) => {}
             ast::Declaration::Struct(structure) => module.structures.push(Struct {
                 name: structure.name.clone(),
                 fields: structure

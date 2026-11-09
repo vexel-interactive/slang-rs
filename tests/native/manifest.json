@@ -7100,6 +7100,66 @@
         "0": 5,
         "1": 3
       }
+    },
+    {
+      "file": "../conformance/positive/interface-methods.slang",
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 5,
+        "1": 9,
+        "2": 7
+      }
+    },
+    {
+      "file": "../conformance/positive/interface-inheritance.slang",
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 5,
+        "1": 5
+      }
+    },
+    {
+      "file": "../conformance/positive/interface-generic-owners.slang",
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 4,
+        "1": 4,
+        "2": 4
+      }
+    },
+    {
+      "file": "../conformance/positive/interface-generic-arguments.slang",
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 5,
+        "1": 5,
+        "2": 5
+      }
+    },
+    {
+      "file": "../conformance/positive/interface-constructor.slang",
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 7
+      }
+    },
+    {
+      "file": "../conformance/positive/interface-overloads.slang",
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 3,
+        "1": 5,
+        "2": 3,
+        "3": 7
+      }
+    },
+    {
+      "file": "../conformance/positive/interface-module/main.slang",
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 7,
+        "1": 11
+      }
     }
   ]
 }

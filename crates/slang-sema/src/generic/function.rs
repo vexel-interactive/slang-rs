@@ -14,6 +14,7 @@ impl Specializer {
                 unreachable!()
             };
             let source = function.name.clone();
+            constraint::validate_parameters(&function.generic_parameters)?;
             if let Some(owner) = &function.constructor {
                 self.constructor_templates.insert(
                     owner.clone(),
@@ -48,7 +49,23 @@ impl Specializer {
                 self.signature_type(&mut ty, &names, 0)?;
                 types.push(canonical::type_key(&ty));
             }
-            let signature = (source.clone(), function.generic_parameters.len(), types);
+            let mut constraints = vec![];
+            for parameter in &function.generic_parameters {
+                let mut parameter_constraints = vec![];
+                for constraint in &parameter.constraints {
+                    let mut constraint = constraint.clone();
+                    self.signature_type(&mut constraint, &names, 0)?;
+                    parameter_constraints.push(canonical::type_key(&constraint));
+                }
+                parameter_constraints.sort();
+                constraints.push(parameter_constraints);
+            }
+            let signature = (
+                source.clone(),
+                function.generic_parameters.len(),
+                types,
+                constraints,
+            );
             let key = if let Some(key) = signatures.get(&signature) {
                 let key: &String = key;
                 key.clone()
@@ -259,7 +276,11 @@ impl Specializer {
             }
             let defaults = parameters.len() - supplied.len();
             candidates.push(FunctionCandidateInfo {
-                function: self.instantiate(&template, &arguments, span)?,
+                function: match self.instantiate(&template, &arguments, span) {
+                    Ok(function) => function,
+                    Err(diagnostic) if diagnostic.code == "T033" => continue,
+                    Err(diagnostic) => return Err(diagnostic),
+                },
                 default_type_arguments: defaults,
                 generic: true,
             });

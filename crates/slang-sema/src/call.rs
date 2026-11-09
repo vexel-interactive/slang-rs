@@ -158,6 +158,22 @@ impl Checker {
                 if let Some(function) = self.constructors.get(name).cloned()
                     && types != [target.clone()]
                 {
+                    if self.functions[&function]
+                        .iter()
+                        .any(|s| self.constraint_witness_access(s, name, span))
+                    {
+                        match self.select_constructor(name, arguments, span) {
+                            Ok(Some(signature)) => {
+                                return self
+                                    .finish_user_call(callee, arguments, &types, &signature, span);
+                            }
+                            Err(error) => {
+                                self.diagnostics.push(error);
+                                return Type::Error;
+                            }
+                            Ok(None) => {}
+                        }
+                    }
                     let mut selected = callee.clone();
                     selected.kind = ExprKind::Name(function);
                     return self.call(&selected, arguments, span);

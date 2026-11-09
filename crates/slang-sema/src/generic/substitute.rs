@@ -87,6 +87,18 @@ impl VisitorMut for Substitute<'_> {
         self.node(declaration_span(declaration))?;
         match declaration {
             Declaration::Struct(s) => self.name(&mut s.name),
+            Declaration::Interface(i) => {
+                self.name(&mut i.name);
+                for requirement in &mut i.requirements {
+                    self.name(&mut requirement.name);
+                    if let Some(owner) = &mut requirement.constructor {
+                        self.name(owner);
+                    }
+                    if let Some(method) = &mut requirement.method {
+                        self.name(&mut method.owner);
+                    }
+                }
+            }
             Declaration::TypeAlias(a) => self.name(&mut a.name),
             Declaration::Global(v) => self.name(&mut v.name),
             Declaration::Function(f) => {

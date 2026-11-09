@@ -53,7 +53,9 @@ impl Checker {
                 let offset = usize::from(!method.is_static);
                 let parameters = &signature.parameters[offset..];
                 (!type_receiver || method.is_static)
-                    && (signature.public || module == self.current_module)
+                    && (signature.public
+                        || module == self.current_module
+                        || self.constraint_witness_access(signature, &owner, span))
                     && types.len() <= parameters.len()
                     && signature.defaults[offset + types.len()..]
                         .iter()

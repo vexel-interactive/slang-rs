@@ -138,6 +138,8 @@ pub enum Type {
     Matrix(Scalar, u8, u8),
     Array(Box<Type>, u32),
     Struct(String),
+    /// A nominal requirement set; existential storage is checked separately.
+    Interface(String),
     ConstantBuffer {
         element: Box<Type>,
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -604,7 +606,7 @@ impl fmt::Display for Type {
                 }
                 write!(f, "{ty}{suffix}")
             }
-            Self::Struct(name) => f.write_str(name),
+            Self::Struct(name) | Self::Interface(name) => f.write_str(name),
             Self::ConstantBuffer {
                 element,
                 matrix_major,

@@ -47,7 +47,9 @@ impl Checker {
         let mut candidates: Vec<_> = overloads
             .iter()
             .filter(|s| {
-                (s.public || module == self.current_module)
+                (s.public
+                    || module == self.current_module
+                    || self.constraint_witness_access(s, owner, span))
                     && types.len() <= s.parameters.len()
                     && s.defaults[types.len()..].iter().all(Option::is_some)
                     && types

@@ -5,6 +5,7 @@ mod binding;
 mod constant_buffer;
 mod declaration;
 mod expression;
+mod interface;
 mod literal;
 mod module;
 mod parser;

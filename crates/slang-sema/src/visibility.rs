@@ -42,7 +42,7 @@ impl Checker {
 
     fn public_type(&self, ty: &Type, context: usize) -> bool {
         match ty {
-            Type::Struct(name) => {
+            Type::Struct(name) | Type::Interface(name) => {
                 self.public_types.contains(name)
                     || self
                         .generic_type_contexts

@@ -142,6 +142,10 @@ impl Checker {
             && self.type_symbol_visible(&reference.name, reference.span)
         {
             Type::Struct(reference.name.clone())
+        } else if self.interface_definitions.contains_key(&reference.name)
+            && self.type_symbol_visible(&reference.name, reference.span)
+        {
+            Type::Interface(reference.name.clone())
         } else {
             self.error(
                 "T002",
@@ -284,6 +288,7 @@ impl Checker {
             let name = match declaration {
                 Declaration::TypeAlias(a) => &a.name,
                 Declaration::Struct(s) => &s.name,
+                Declaration::Interface(i) => &i.name,
                 Declaration::Global(v) => &v.name,
                 Declaration::Function(f) => &f.name,
             };
@@ -293,11 +298,13 @@ impl Checker {
                 .map_or(slang_module::ModuleId(0), |o| o.module);
             match declaration {
                 Declaration::TypeAlias(_) => {}
+                Declaration::Interface(_) => {}
                 Declaration::Struct(structure) => {
                     self.check_visibility_modifiers(&structure.modifiers, structure.span);
                     let mut fields = BTreeMap::new();
                     for field in &structure.fields {
                         let ty = self.resolve_type(&field.ty);
+                        self.require_value_type(&ty, field.span);
                         if field.modifiers.iter().any(|m| m == "public") {
                             self.public_fields
                                 .insert((structure.name.clone(), field.name.clone()));
@@ -365,6 +372,7 @@ impl Checker {
                         );
                     }
                     let result = self.resolve_type(&function.return_type);
+                    self.require_value_type(&result, function.span);
                     self.declaration_types
                         .insert(span_key(function.span), result.clone());
                     let parameters: Vec<Type> = function
@@ -524,6 +532,7 @@ impl Checker {
             self.error("T003", variable.span, "variable name conflicts with a type");
         }
         let ty = self.resolve_type(&variable.ty);
+        self.require_value_type(&ty, variable.span);
         self.check_matrix_layout(&ty, &variable.ty, &variable.modifiers, variable.span);
         if let Some(pack) = variable.pack_offset
             && (!matches!(context, VariableScope::Global)
@@ -757,6 +766,10 @@ fn declaration_names(module: &Module) -> BTreeSet<String> {
             }
             Declaration::Struct(structure) => {
                 names.insert(structure.name.clone());
+            }
+            Declaration::Interface(interface) => {
+                names.insert(interface.name.clone());
+                names.extend(interface.requirements.iter().map(|f| f.name.clone()));
             }
             Declaration::TypeAlias(alias) => {
                 names.insert(alias.name.clone());

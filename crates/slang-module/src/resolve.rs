@@ -57,6 +57,14 @@ impl<'a> Resolver<'a> {
     }
 
     fn ty(&mut self, ty: &mut TypeRef) -> Result<(), Diagnostic> {
+        if ty.base.is_none()
+            && ty.name == "This"
+            && let Some(owner) = &self.active_owner
+        {
+            ty.name = self.symbol(owner, true, ty.span)?;
+            ty.owner_ref = true;
+            return self.type_arguments(ty);
+        }
         if let Some(base) = &mut ty.base {
             self.ty(base)?;
             return self.type_arguments(ty);
@@ -183,9 +191,32 @@ impl<'a> Resolver<'a> {
                 self.generic_parameters(&mut structure.generic_parameters)?;
                 self.active_members = self.owner_members(false);
                 structure.name = self.symbol(&structure.name, true, structure.span)?;
+                for base in &mut structure.bases {
+                    self.ty(base)?;
+                }
                 for field in &mut structure.fields {
                     self.variable(field)?;
                 }
+                self.active_owner = None;
+                self.active_members = None;
+                self.generic_types.clear();
+            }
+            Declaration::Interface(interface) => {
+                self.active_owner = Some(interface.name.clone());
+                self.generic_types = self.generic_bindings(Some(&interface.name));
+                self.generic_parameters(&mut interface.generic_parameters)?;
+                for base in &mut interface.bases {
+                    self.ty(base)?;
+                }
+                for requirement in &mut interface.requirements {
+                    let mut declaration = Declaration::Function(Box::new(requirement.clone()));
+                    self.declaration(&mut declaration)?;
+                    let Declaration::Function(function) = declaration else {
+                        unreachable!()
+                    };
+                    *requirement = *function;
+                }
+                interface.name = self.symbol(&interface.name, true, interface.span)?;
                 self.active_owner = None;
                 self.active_members = None;
                 self.generic_types.clear();
@@ -370,6 +401,9 @@ impl<'a> Resolver<'a> {
     ) -> Result<(), Diagnostic> {
         for parameter in parameters {
             parameter.name = self.generic_types[&parameter.name].clone();
+            for constraint in &mut parameter.constraints {
+                self.ty(constraint)?;
+            }
             if let Some(default) = &mut parameter.default {
                 self.ty(default)?;
             }

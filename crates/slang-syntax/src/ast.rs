@@ -127,6 +127,7 @@ pub struct FileInclude {
 pub enum Declaration {
     TypeAlias(TypeAlias),
     Struct(Struct),
+    Interface(Interface),
     Function(Box<Function>),
     Global(Variable),
 }
@@ -161,6 +162,8 @@ fn is_false(value: &bool) -> bool {
 #[derive(Clone, Debug, Serialize)]
 pub struct GenericParameter {
     pub name: String,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub constraints: Vec<TypeRef>,
     pub default: Option<TypeRef>,
     pub span: Span,
 }
@@ -195,8 +198,21 @@ pub struct Struct {
     pub name: String,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub generic_parameters: Vec<GenericParameter>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub bases: Vec<TypeRef>,
     pub modifiers: Vec<String>,
     pub fields: Vec<Variable>,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct Interface {
+    pub name: String,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub generic_parameters: Vec<GenericParameter>,
+    pub bases: Vec<TypeRef>,
+    pub requirements: Vec<Function>,
+    pub modifiers: Vec<String>,
     pub span: Span,
 }
 

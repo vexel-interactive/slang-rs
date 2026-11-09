@@ -256,7 +256,7 @@ mod tests {
     fn malformed_and_unsupported_syntax_is_rejected() {
         for text in [
             "float f( {",
-            "interface I {}",
+            "interface I { int read( }",
             "float f(){return 1}",
             "float x[];",
             "void f() { while(1) }",

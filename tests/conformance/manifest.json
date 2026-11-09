@@ -9321,6 +9321,133 @@
       "accept": false,
       "entry": "main",
       "rust_code": "T014"
+    },
+    {
+      "file": "positive/interface-methods.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 5,
+        "1": 9,
+        "2": 7
+      }
+    },
+    {
+      "file": "positive/interface-inheritance.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 5,
+        "1": 5
+      }
+    },
+    {
+      "file": "positive/interface-generic-owners.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 4,
+        "1": 4,
+        "2": 4
+      }
+    },
+    {
+      "file": "positive/interface-generic-arguments.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 5,
+        "1": 5,
+        "2": 5
+      }
+    },
+    {
+      "file": "positive/interface-constructor.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 7
+      }
+    },
+    {
+      "file": "positive/interface-overloads.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 3,
+        "1": 5,
+        "2": 3,
+        "3": 7
+      }
+    },
+    {
+      "file": "positive/interface-module/main.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 7,
+        "1": 11
+      }
+    },
+    {
+      "file": "negative/interface-static-mismatch.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T032"
+    },
+    {
+      "file": "negative/interface-result-mismatch.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T032"
+    },
+    {
+      "file": "negative/interface-direction-mismatch.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T032"
+    },
+    {
+      "file": "negative/interface-mutating-mismatch.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T032"
+    },
+    {
+      "file": "negative/interface-missing-requirement.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T032"
+    },
+    {
+      "file": "negative/interface-constraint-nominal.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T002"
+    },
+    {
+      "file": "negative/interface-unused-body.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/interface-constraint-type.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T033"
+    },
+    {
+      "file": "negative/interface-forward-constraint.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T032"
+    },
+    {
+      "file": "negative/interface-cycle.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T032"
     }
   ]
 }

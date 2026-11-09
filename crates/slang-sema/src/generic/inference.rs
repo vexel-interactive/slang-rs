@@ -233,7 +233,10 @@ impl Specializer {
                 substitutions.insert(parameter.name.clone(), argument.clone());
                 supplied.push(TypeArgument::Type(argument));
             }
-            if !valid || !self.valid_signature(function, &substitutions)? {
+            if !valid
+                || !self.constraints_satisfied(&template.parameters, &substitutions)?
+                || !self.valid_signature(function, &substitutions)?
+            {
                 continue;
             }
             candidates.push(FunctionCandidateInfo {

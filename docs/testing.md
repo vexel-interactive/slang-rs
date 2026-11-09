@@ -781,6 +781,23 @@ The oracle receives `-stage compute`; the native frontend infers compute from
 `numthreads`. Its one compiled store matches at `1`. The source's CPU execution
 directives were not run.
 
+Interfaces and nominal constraints add ten integration tests and seventeen
+differential cases. Seven compute fixtures compare eighteen matching compiled
+words and validate fourteen native/oracle HLSL artifacts with DXC. They cover
+instance/static/mutating and output signatures, inherited diamonds and `This`,
+generic interface arguments and dependent constraints, generic owners/methods/
+constructors, disjoint constrained overloads and imported private caller types.
+Negative fixtures reject missing/static/result/direction/mutability mismatches,
+undeclared nominal conformance, opaque body errors, nonconforming type arguments,
+forward constraint references and a used inheritance cycle. Frontend tests also
+reject unsupported existential storage and malformed requirement types/modes.
+These results cover direct signatures; adapted/default/generic witnesses,
+associated types, existential dispatch and GPU execution are not established.
+The unchanged pinned `language-feature/interfaces/static-method-not-implemented.slang`
+and `diagnostics/interfaces/mutating-impl-of-non-mutating-req.slang` sources also
+produce conformance diagnostics in both frontends with HLSL target options.
+Their original diagnostic runner and target directives were not executed.
+
 [validation.json](validation.json) records the Windows validation run for this
 checkpoint. It includes the pinned compiler version, workspace checks, and
 differential corpus counts. It is a snapshot of that run, not a promise of

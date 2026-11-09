@@ -95,6 +95,7 @@ impl Checker {
     pub(crate) fn declaration_static_owner(&mut self, declaration: &Declaration) {
         self.current_static_type = match declaration {
             Declaration::Struct(s) => Some(s.name.clone()),
+            Declaration::Interface(i) => Some(i.name.clone()),
             Declaration::Global(v) => self.static_owners.get(&v.name).cloned(),
             Declaration::Function(f) => f.owner_type().map(str::to_owned),
             Declaration::TypeAlias(a) => self.type_owners.get(&a.name).cloned(),

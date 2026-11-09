@@ -11,6 +11,7 @@ impl Specializer {
             .get(&template.name)
             .map_or(Default::default(), |o| o.module);
         let mut arguments = vec![];
+        let mut declarations = vec![];
         for parameter in &template.parameters {
             let context = self.next_context;
             self.next_context += 1;
@@ -24,18 +25,14 @@ impl Specializer {
                     name: "generic type parameter".into(),
                 },
             );
-            self.register(
-                vec![Declaration::Struct(Struct {
-                    name: name.clone(),
-                    generic_parameters: vec![],
-                    fields: vec![],
-                    modifiers: vec!["public".into()],
-                    span,
-                })],
-                vec![],
-                vec![],
-                None,
-            )?;
+            declarations.push(Declaration::Struct(Struct {
+                name: name.clone(),
+                generic_parameters: vec![],
+                bases: parameter.constraints.clone(),
+                fields: vec![],
+                modifiers: vec!["public".into()],
+                span,
+            }));
             arguments.push(TypeArgument::Type(TypeRef {
                 name,
                 base: None,
@@ -48,6 +45,21 @@ impl Specializer {
                 span,
             }));
         }
+        let substitutions = template
+            .parameters
+            .iter()
+            .zip(&arguments)
+            .map(|(p, a)| {
+                let TypeArgument::Type(ty) = a else {
+                    unreachable!()
+                };
+                (p.name.clone(), ty.clone())
+            })
+            .collect::<BTreeMap<_, _>>();
+        for declaration in &mut declarations {
+            constraint::ConstraintSubstitution(&substitutions).declaration(declaration)?;
+        }
+        self.register(declarations, vec![], vec![], None)?;
         let target = self.instantiate(name, &arguments, template.parameters[0].span)?;
         let context = self
             .instance_output
@@ -121,6 +133,7 @@ impl Checker {
                 name: name.clone(),
                 fields: variables,
                 generic_parameters: vec![],
+                bases: vec![],
                 modifiers: vec!["public".into()],
                 span,
             },

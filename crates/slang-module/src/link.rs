@@ -98,6 +98,7 @@ pub(crate) fn link(
                 Declaration::Function(f) => (&f.name, &f.modifiers, false),
                 Declaration::Global(v) => (&v.name, &v.modifiers, false),
                 Declaration::TypeAlias(a) => (&a.name, &a.modifiers, true),
+                Declaration::Interface(i) => (&i.name, &i.modifiers, true),
             };
             let target = if node.info.id.0 == 0 {
                 name.clone()
@@ -124,6 +125,23 @@ pub(crate) fn link(
                     name: name.clone(),
                 },
             );
+            if let Declaration::Interface(interface) = declaration {
+                for requirement in &interface.requirements {
+                    let target = if node.info.id.0 == 0 {
+                        requirement.name.clone()
+                    } else {
+                        format!("{prefix}{}_{}", node.info.id.0, requirement.name)
+                    };
+                    own[node.info.id.0].add(requirement.name.clone(), target.clone(), false);
+                    origins.insert(
+                        target,
+                        SymbolOrigin {
+                            module: node.info.id,
+                            name: requirement.name.clone(),
+                        },
+                    );
+                }
+            }
         }
     }
     let mut syntax = Module {
@@ -162,6 +180,7 @@ pub(crate) fn link(
             let generic = match declaration {
                 Declaration::Struct(s) => Some((&s.name, &s.generic_parameters)),
                 Declaration::TypeAlias(a) => Some((&a.name, &a.generic_parameters)),
+                Declaration::Interface(i) => Some((&i.name, &i.generic_parameters)),
                 _ => None,
             };
             if let Some((name, parameters)) = generic {
@@ -169,6 +188,24 @@ pub(crate) fn link(
                     name.clone(),
                     parameters.iter().map(|p| p.name.clone()).collect(),
                 );
+            }
+            if let Declaration::Interface(interface) = declaration {
+                for function in &interface.requirements {
+                    if let Some(method) = &function.method {
+                        members
+                            .all
+                            .entry(interface.name.clone())
+                            .or_default()
+                            .insert(method.name.clone());
+                        if method.is_static {
+                            members
+                                .static_names
+                                .entry(interface.name.clone())
+                                .or_default()
+                                .insert(method.name.clone());
+                        }
+                    }
+                }
             }
             if let Declaration::Function(function) = declaration
                 && let Some(method) = &function.method

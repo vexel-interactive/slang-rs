@@ -204,28 +204,49 @@ pub fn walk_declaration(
         Declaration::Struct(structure) => {
             visitor.span(&mut structure.span);
             walk_parameters(visitor, &mut structure.generic_parameters)?;
+            for base in &mut structure.bases {
+                visitor.ty(base)?;
+            }
             for field in &mut structure.fields {
                 visitor.variable(field)?;
             }
         }
-        Declaration::Global(variable) => visitor.variable(variable)?,
-        Declaration::Function(function) => {
-            visitor.span(&mut function.span);
-            walk_parameters(visitor, &mut function.generic_parameters)?;
-            visitor.ty(&mut function.return_type)?;
-            for attribute in &mut function.attributes {
-                visitor.span(&mut attribute.span);
-                for argument in &mut attribute.arguments {
-                    visitor.expression(argument)?;
-                }
+        Declaration::Interface(interface) => {
+            visitor.span(&mut interface.span);
+            walk_parameters(visitor, &mut interface.generic_parameters)?;
+            for base in &mut interface.bases {
+                visitor.ty(base)?;
             }
-            for parameter in &mut function.parameters {
-                visitor.variable(parameter)?;
-            }
-            if let Some(body) = &mut function.body {
-                visitor.statement(body)?;
+            for requirement in &mut interface.requirements {
+                walk_function(visitor, requirement)?;
             }
         }
+        Declaration::Global(variable) => visitor.variable(variable)?,
+        Declaration::Function(function) => {
+            walk_function(visitor, function)?;
+        }
+    }
+    Ok(())
+}
+
+pub fn walk_function(
+    visitor: &mut impl VisitorMut,
+    function: &mut Function,
+) -> Result<(), Diagnostic> {
+    visitor.span(&mut function.span);
+    walk_parameters(visitor, &mut function.generic_parameters)?;
+    visitor.ty(&mut function.return_type)?;
+    for attribute in &mut function.attributes {
+        visitor.span(&mut attribute.span);
+        for argument in &mut attribute.arguments {
+            visitor.expression(argument)?;
+        }
+    }
+    for parameter in &mut function.parameters {
+        visitor.variable(parameter)?;
+    }
+    if let Some(body) = &mut function.body {
+        visitor.statement(body)?;
     }
     Ok(())
 }
@@ -236,6 +257,9 @@ pub fn walk_parameters(
 ) -> Result<(), Diagnostic> {
     for parameter in parameters {
         visitor.span(&mut parameter.span);
+        for constraint in &mut parameter.constraints {
+            visitor.ty(constraint)?;
+        }
         if let Some(default) = &mut parameter.default {
             visitor.ty(default)?;
         }

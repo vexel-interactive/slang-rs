@@ -165,6 +165,9 @@ pub(crate) struct Checker {
     pub alias_matrix_layouts: BTreeMap<String, Option<slang_layout::MatrixMajor>>,
     pub resolving_aliases: BTreeSet<String>,
     pub struct_definitions: BTreeMap<String, Struct>,
+    pub interface_definitions: BTreeMap<String, slang_syntax::Interface>,
+    pub conformances: BTreeMap<String, BTreeSet<String>>,
+    pub interface_witnesses: BTreeSet<SpanKey>,
     pub shape_globals: BTreeMap<String, Variable>,
     pub shape_bindings: BTreeMap<String, Binding>,
     pub resolving_shape_globals: BTreeSet<String>,
@@ -272,6 +275,7 @@ fn check_concrete_inner(
         checker.generic_methods = probe.methods.clone();
     }
     checker.declare(&module);
+    checker.declare_conformances(&module);
     checker.declare_function_applications(&module);
     let global_declarations: BTreeMap<_, _> = module
         .declarations
@@ -336,6 +340,7 @@ fn check_concrete_inner(
     for declaration in &module.declarations {
         let name = match declaration {
             Declaration::Struct(s) => &s.name,
+            Declaration::Interface(i) => &i.name,
             Declaration::Function(f) => &f.name,
             Declaration::Global(v) => &v.name,
             Declaration::TypeAlias(a) => &a.name,
@@ -346,6 +351,7 @@ fn check_concrete_inner(
             .map_or(ModuleId(0), |origin| origin.module);
         match declaration {
             Declaration::TypeAlias(_) => {}
+            Declaration::Interface(_) => {}
             Declaration::Global(_) => {}
             Declaration::Function(function) => {
                 if probe
@@ -578,6 +584,9 @@ impl Checker {
             alias_matrix_layouts: BTreeMap::new(),
             resolving_aliases: BTreeSet::new(),
             struct_definitions: BTreeMap::new(),
+            interface_definitions: BTreeMap::new(),
+            conformances: BTreeMap::new(),
+            interface_witnesses: BTreeSet::new(),
             shape_globals: module
                 .declarations
                 .iter()

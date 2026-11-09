@@ -5,6 +5,7 @@ mod binding;
 mod call;
 mod capability;
 mod checker;
+mod conformance;
 mod constant;
 mod constant_buffer;
 mod constructor;

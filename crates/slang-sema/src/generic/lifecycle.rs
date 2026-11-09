@@ -25,10 +25,14 @@ impl Specializer {
                 }
             }
             Declaration::Struct(structure) => {
+                for base in &mut structure.bases {
+                    self.ty(base)?;
+                }
                 for field in &mut structure.fields {
                     self.ty(&mut field.ty)?;
                 }
             }
+            Declaration::Interface(_) => visit::walk_declaration(self, declaration)?,
             Declaration::TypeAlias(alias) => self.ty(&mut alias.target)?,
             Declaration::Global(variable) => self.ty(&mut variable.ty)?,
         }
