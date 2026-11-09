@@ -6,7 +6,7 @@
     "rustfmt": "passed",
     "clippy_all_targets_warnings_denied": "passed",
     "unit_tests": 42,
-    "integration_tests": 391,
+    "integration_tests": 398,
     "doc_tests": 1,
     "conformance_comparison_tests": 27,
     "rustdoc": "passed",
@@ -16,11 +16,11 @@
   },
   "differential_validation": {
     "oracle": "Slang 2026.21",
-    "cases_passed": 576,
-    "cases_total": 576,
-    "matching_acceptance_cases": 564,
+    "cases_passed": 592,
+    "cases_total": 592,
+    "matching_acceptance_cases": 580,
     "documented_oracle_differences": 12,
-    "dxc_hlsl_artifacts_validated": 610,
+    "dxc_hlsl_artifacts_validated": 620,
     "dxc_invalid_hlsl_artifacts_rejected": 22,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
@@ -37,9 +37,9 @@
     "uniform_byte_layout_cases_compared": 61,
     "documented_oracle_physical_layout_differences": 12,
     "physical_buffer_layout_cases_compared": 43,
-    "compiled_constant_cases_compared": 36,
-    "compiled_constant_words_compared": 1197,
-    "compiled_constant_words_matching": 1185,
+    "compiled_constant_cases_compared": 38,
+    "compiled_constant_words_compared": 1218,
+    "compiled_constant_words_matching": 1206,
     "documented_oracle_constant_words_differing": 12,
     "documented_oracle_constant_cases_differing": 5,
     "documented_oracle_uniform_reflection_differences": 1,
@@ -53,9 +53,8 @@
   "remote_ci_executed": false,
   "remote_ci": null,
   "previous_remote_ci": {
-    "run_id": 42640128485,
-    "head_sha": "a947b3b308117ea33e296dc699670b971a311a47",
-    "attempt": 2,
+    "run_id": 42646114811,
+    "head_sha": "50ab3fb048812c779bbaf14f9ac8c90f707fb5ab",
     "conclusion": "success",
     "platforms": [
       "ubuntu-latest",
@@ -64,6 +63,17 @@
     ]
   },
   "earlier_remote_ci": [
+    {
+      "run_id": 42640128485,
+      "head_sha": "a947b3b308117ea33e296dc699670b971a311a47",
+      "attempt": 2,
+      "conclusion": "success",
+      "platforms": [
+        "ubuntu-latest",
+        "windows-latest",
+        "macos-latest"
+      ]
+    },
     {
       "run_id": 42636369050,
       "head_sha": "bd1f491d31fe751d94b9381e327fd723c401914f",
@@ -902,6 +912,30 @@
     "global_constant_graph_semantics": false,
     "generic_owners": false,
     "definite_assignment_warnings": false,
+    "gpu_execution_compared": false,
+    "complete_upstream_parity": false
+  },
+  "nested_type_validation": {
+    "integration_tests": 7,
+    "differential_cases": 16,
+    "matching_acceptance_cases": 16,
+    "dxc_hlsl_artifacts_validated": 10,
+    "compiled_constant_cases": 2,
+    "compiled_constant_words": 21,
+    "matching_words": 21,
+    "struct_and_alias_members": true,
+    "distinct_owner_and_module_identities": true,
+    "qualified_type_and_value_lookup": true,
+    "enclosing_static_member_scopes_and_shadowing": true,
+    "constructors_methods_arrays_and_defaults": true,
+    "forward_aliases_shapes_threads_and_matrix_layouts": true,
+    "module_member_files_and_access_control": true,
+    "qualified_static_reflection_and_module_provenance": true,
+    "unevaluated_lookup_bases": true,
+    "bounded_conflict_cycle_and_depth_diagnostics": true,
+    "local_type_declarations": false,
+    "generic_owners_and_aliases": false,
+    "general_expression_type_syntax": false,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false
   }
