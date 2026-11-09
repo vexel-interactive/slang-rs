@@ -8509,6 +8509,147 @@
       "accept": false,
       "entry": "main",
       "rust_code": "T002"
+    },
+    {
+      "file": "positive/generic-types.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 7,
+        "1": 4,
+        "2": 9,
+        "3": 7,
+        "4": 9,
+        "5": 1,
+        "6": 1,
+        "7": 2,
+        "8": 2,
+        "9": 1
+      },
+      "oracle_dxc_constant_stores": {
+        "0": 7,
+        "1": 4,
+        "2": 9,
+        "3": 7,
+        "4": 9,
+        "5": 1,
+        "6": 1,
+        "7": 1,
+        "8": 1,
+        "9": 1
+      },
+      "reason": "Slang 2026.21 eliminates the repeated generic static method call as a common expression, despite its write to mutable static storage. Native HLSL preserves both calls; exact compiled goldens record both results."
+    },
+    {
+      "file": "positive/generic-nested-types.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 5,
+        "1": 9,
+        "2": 13,
+        "3": 8,
+        "4": 9,
+        "5": 11
+      }
+    },
+    {
+      "file": "positive/generic-type-identity.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 3,
+        "1": 5,
+        "2": 7,
+        "3": 9,
+        "4": 11
+      }
+    },
+    {
+      "file": "positive/generic-resource-types.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/generic-type-module/main.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 3,
+        "1": 5
+      }
+    },
+    {
+      "file": "positive/generic-type-comparisons.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 1,
+        "1": 1,
+        "2": 1,
+        "3": 1,
+        "4": 0
+      }
+    },
+    {
+      "file": "negative/generic-too-many.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T002"
+    },
+    {
+      "file": "negative/generic-missing.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T002"
+    },
+    {
+      "file": "negative/generic-unknown-argument.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T002"
+    },
+    {
+      "file": "negative/generic-value-argument.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T002"
+    },
+    {
+      "file": "negative/generic-duplicate-parameter.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T003"
+    },
+    {
+      "file": "negative/generic-unknown-default.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T002"
+    },
+    {
+      "file": "negative/generic-unused-unknown-type.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T002"
+    },
+    {
+      "file": "negative/generic-bare-name.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T002"
+    },
+    {
+      "file": "negative/generic-bare-self.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T002"
+    },
+    {
+      "file": "positive/generic-type-module/private-type.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T018"
     }
   ]
 }

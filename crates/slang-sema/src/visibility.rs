@@ -7,6 +7,14 @@ impl Checker {
         self.current_module.0 == 0 || self.symbols.get(name).is_none_or(|o| o.module.0 != 0)
     }
 
+    pub(crate) fn type_symbol_visible(&self, name: &str, span: Span) -> bool {
+        self.module_symbol_visible(name)
+            || self
+                .generic_type_contexts
+                .get(&span.context)
+                .is_some_and(|types| types.contains(name))
+    }
+
     pub(crate) fn source_name<'a>(&'a self, name: &'a str) -> &'a str {
         self.symbols.get(name).map_or(name, |origin| &origin.name)
     }
@@ -23,7 +31,7 @@ impl Checker {
     }
 
     pub(crate) fn require_public_type(&mut self, ty: &Type, span: Span) {
-        if !self.public_type(ty) {
+        if !self.public_type(ty, span.context) {
             self.error(
                 "T018",
                 span,
@@ -32,13 +40,19 @@ impl Checker {
         }
     }
 
-    fn public_type(&self, ty: &Type) -> bool {
+    fn public_type(&self, ty: &Type, context: usize) -> bool {
         match ty {
-            Type::Struct(name) => self.public_types.contains(name),
+            Type::Struct(name) => {
+                self.public_types.contains(name)
+                    || self
+                        .generic_type_contexts
+                        .get(&context)
+                        .is_some_and(|types| types.contains(name))
+            }
             Type::Array(element, _)
             | Type::ConstantBuffer { element, .. }
             | Type::Buffer { element, .. }
-            | Type::Texture { element, .. } => self.public_type(element),
+            | Type::Texture { element, .. } => self.public_type(element, context),
             _ => true,
         }
     }

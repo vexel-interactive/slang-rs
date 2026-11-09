@@ -55,15 +55,16 @@ impl Parser {
             {
                 return Err(self.error("unsupported type alias attributes or modifiers"));
             }
-            let (name, mut target) = if self.eat("typealias") {
+            let (name, generic_parameters, mut target) = if self.eat("typealias") {
                 let name = self.identifier()?.text;
+                let parameters = self.generic_parameters()?;
                 self.expect("=")?;
-                (name, self.ty()?)
+                (name, parameters, self.ty()?)
             } else {
                 self.expect("typedef")?;
                 let target = self.ty()?;
                 let name = self.identifier()?.text;
-                (name, target)
+                (name, vec![], target)
             };
             let name = self.nested_type_name(name, start);
             let trailing = self.array_sizes()?;
@@ -71,6 +72,7 @@ impl Parser {
             let end = self.expect(";")?;
             return Ok(vec![Declaration::TypeAlias(TypeAlias {
                 name,
+                generic_parameters,
                 target,
                 modifiers,
                 span: start.join(end),
@@ -86,6 +88,7 @@ impl Parser {
             }
             let source_name = self.identifier()?.text;
             let name = self.nested_type_name(source_name, start);
+            let generic_parameters = self.generic_parameters()?;
             if self.type_owners.len() >= 32 {
                 return Err(self.error("nested type depth exceeds 32"));
             }
@@ -123,6 +126,9 @@ impl Parser {
                         method: None,
                         return_type: TypeRef {
                             name: name.clone(),
+                            base: None,
+                            application: false,
+                            owner_ref: true,
                             arguments: vec![],
                             matrix_major: None,
                             arrays: vec![],
@@ -149,6 +155,9 @@ impl Parser {
                                 name: "this".into(),
                                 ty: TypeRef {
                                     name: name.clone(),
+                                    base: None,
+                                    application: false,
+                                    owner_ref: true,
                                     arguments: vec![],
                                     matrix_major: None,
                                     arrays: vec![],
@@ -241,6 +250,7 @@ impl Parser {
             self.eat(";");
             let mut declarations = vec![Declaration::Struct(Struct {
                 name,
+                generic_parameters,
                 modifiers,
                 fields,
                 span: start.join(end),
@@ -349,14 +359,52 @@ impl Parser {
         target
     }
 
+    fn generic_parameters(&mut self) -> Result<Vec<GenericParameter>, Diagnostic> {
+        if !self.eat("<") {
+            return Ok(vec![]);
+        }
+        let mut parameters = vec![];
+        loop {
+            if self.at("let") {
+                return Err(self.error("generic value parameters are not implemented"));
+            }
+            let token = self.identifier()?;
+            if self.at(":") {
+                return Err(self.error("generic interface constraints are not implemented"));
+            }
+            let default = if self.eat("=") {
+                Some(self.ty()?)
+            } else {
+                None
+            };
+            parameters.push(GenericParameter {
+                name: token.text,
+                default,
+                span: token.span,
+            });
+            if !self.eat(",") {
+                break;
+            }
+        }
+        self.close_type_arguments()?;
+        Ok(parameters)
+    }
+
     pub(crate) fn ty(&mut self) -> Result<TypeRef, Diagnostic> {
         self.enter()?;
-        let result = self.ty_inner();
+        let result = self.ty_inner(true);
         self.depth -= 1;
         result
     }
 
-    fn ty_inner(&mut self) -> Result<TypeRef, Diagnostic> {
+    pub(crate) fn expression_type(&mut self) -> Result<TypeRef, Diagnostic> {
+        self.enter()?;
+        let result = self.ty_inner(false);
+        self.depth -= 1;
+        result
+    }
+
+    fn ty_inner(&mut self, qualified: bool) -> Result<TypeRef, Diagnostic> {
         let start = self.span();
         let mut matrix_major = None;
         while self.at("row_major") || self.at("column_major") {
@@ -368,15 +416,51 @@ impl Parser {
             });
         }
         let mut token = self.identifier()?;
-        while self.at(".") || self.at("::") {
+        while qualified && (self.at(".") || self.at("::")) {
             self.offset += 1;
             token.text.push_str("::");
             token.text.push_str(&self.identifier()?.text);
         }
+        let application = self.at("<");
+        let arguments = self.type_arguments(&token.text)?;
+        let mut reference = TypeRef {
+            name: token.text,
+            base: None,
+            application,
+            owner_ref: false,
+            arguments,
+            matrix_major,
+            arrays: vec![],
+            span: start.join(self.tokens[self.offset - 1].span),
+        };
+        while qualified && (self.at(".") || self.at("::")) {
+            self.offset += 1;
+            let token = self.identifier()?;
+            let application = self.at("<");
+            let arguments = self.type_arguments(&token.text)?;
+            reference = TypeRef {
+                name: token.text,
+                base: Some(Box::new(reference)),
+                application,
+                owner_ref: false,
+                arguments,
+                matrix_major: None,
+                arrays: vec![],
+                span: start.join(self.tokens[self.offset - 1].span),
+            };
+        }
+        let mut arrays = self.array_sizes()?;
+        arrays.reverse();
+        reference.arrays = arrays;
+        reference.span = start.join(self.tokens[self.offset - 1].span);
+        Ok(reference)
+    }
+
+    pub(crate) fn type_arguments(&mut self, name: &str) -> Result<Vec<TypeArgument>, Diagnostic> {
         let mut arguments = vec![];
         if self.eat("<") {
             while !self.at(">") && !self.at(">>") {
-                if matches!(token.text.as_str(), "vector" | "matrix") && !arguments.is_empty() {
+                if matches!(name, "vector" | "matrix") && !arguments.is_empty() {
                     let previous = self.expression_angle_stop;
                     self.expression_angle_stop = true;
                     let expression = self.expression(1);
@@ -409,28 +493,25 @@ impl Parser {
                     break;
                 }
             }
-            if self.at(">>") {
-                let token = self.current().unwrap().clone();
-                self.tokens[self.offset].text = ">".into();
-                self.tokens.insert(
-                    self.offset + 1,
-                    Token {
-                        text: ">".into(),
-                        ..token
-                    },
-                );
-            }
-            self.expect(">")?;
+            self.close_type_arguments()?;
         }
-        let mut arrays = self.array_sizes()?;
-        arrays.reverse();
-        Ok(TypeRef {
-            name: token.text,
-            arguments,
-            matrix_major,
-            arrays,
-            span: start.join(self.tokens[self.offset - 1].span),
-        })
+        Ok(arguments)
+    }
+
+    fn close_type_arguments(&mut self) -> Result<(), Diagnostic> {
+        if self.at(">>") {
+            let token = self.current().unwrap().clone();
+            self.tokens[self.offset].text = ">".into();
+            self.tokens.insert(
+                self.offset + 1,
+                Token {
+                    text: ">".into(),
+                    ..token
+                },
+            );
+        }
+        self.expect(">")?;
+        Ok(())
     }
 
     pub(crate) fn variable(

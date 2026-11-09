@@ -11,20 +11,37 @@ pub struct Span {
     pub source: SourceId,
     pub start: usize,
     pub end: usize,
+    /// Distinguishes instantiated syntax while retaining its original source location.
+    #[serde(skip_serializing_if = "is_zero")]
+    pub context: usize,
+}
+
+fn is_zero(value: &usize) -> bool {
+    *value == 0
 }
 
 impl Span {
     pub fn new(source: SourceId, start: usize, end: usize) -> Self {
-        Self { source, start, end }
+        Self {
+            source,
+            start,
+            end,
+            context: 0,
+        }
+    }
+
+    pub fn with_context(self, context: usize) -> Self {
+        Self { context, ..self }
     }
 
     pub fn join(self, other: Self) -> Self {
-        if self.source == other.source {
+        if self.source == other.source && self.context == other.context {
             Self::new(
                 self.source,
                 self.start.min(other.start),
                 self.end.max(other.end),
             )
+            .with_context(self.context)
         } else {
             self
         }

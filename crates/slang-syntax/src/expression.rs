@@ -1,4 +1,4 @@
-use crate::{Expr, ExprId, ExprKind, parser::Parser};
+use crate::{Expr, ExprId, ExprKind, TypeRef, parser::Parser};
 use slang_lexer::TokenKind;
 use slang_source::{Diagnostic, Span};
 
@@ -76,13 +76,17 @@ impl Parser {
             expr.span = token.span.join(end);
             expr.parenthesized = true;
             expr
-        } else if matches!(token.text.as_str(), "vector" | "matrix")
+        } else if token.kind == TokenKind::Identifier
             && self
                 .type_application_end(self.offset - 1)
-                .is_some_and(|end| self.tokens.get(end).is_some_and(|t| t.is("(") || t.is("[")))
+                .is_some_and(|end| {
+                    self.tokens
+                        .get(end)
+                        .is_some_and(|t| t.is("(") || t.is("[") || t.is(".") || t.is("::"))
+                })
         {
             self.offset -= 1;
-            let target = self.ty()?;
+            let target = self.expression_type()?;
             let span = target.span;
             self.expr(ExprKind::TypeApplication(Box::new(target)), span)?
         } else if matches!(token.text.as_str(), "+" | "-" | "!" | "~" | "++" | "--") {
@@ -141,6 +145,24 @@ impl Parser {
                     },
                     span,
                 )?;
+                continue;
+            }
+            if self.at("<")
+                && matches!(left.kind, ExprKind::Member { .. })
+                && self
+                    .type_application_end(self.offset - 1)
+                    .is_some_and(|end| {
+                        self.tokens
+                            .get(end)
+                            .is_some_and(|t| t.is("(") || t.is(".") || t.is("::"))
+                    })
+            {
+                let mut target = expression_type(&left)
+                    .ok_or_else(|| self.error("generic type lookup requires a named owner"))?;
+                target.arguments = self.type_arguments(&target.name)?;
+                target.application = true;
+                target.span = left.span.join(self.tokens[self.offset - 1].span);
+                left = self.expr(ExprKind::TypeApplication(Box::new(target)), left.span)?;
                 continue;
             }
             if self.eat("[") {
@@ -328,6 +350,27 @@ impl Parser {
             span,
         )
     }
+}
+
+fn expression_type(expression: &Expr) -> Option<TypeRef> {
+    let (name, base) = match &expression.kind {
+        ExprKind::Name(name) => (name.clone(), None),
+        ExprKind::TypeApplication(ty) => return Some(*ty.clone()),
+        ExprKind::Member { base, name, .. } => {
+            (name.clone(), Some(Box::new(expression_type(base)?)))
+        }
+        _ => return None,
+    };
+    Some(TypeRef {
+        name,
+        base,
+        application: false,
+        owner_ref: false,
+        arguments: vec![],
+        matrix_major: None,
+        arrays: vec![],
+        span: expression.span,
+    })
 }
 
 fn builtin_cast_type(name: &str) -> bool {

@@ -233,12 +233,6 @@ impl Planner<'_> {
         if let Some(constructor) = self.constructor(target, values, value.span, depth + 1)? {
             return Ok(constructor);
         }
-        if !self
-            .checker
-            .constant_buffer_data(target, &mut Default::default())
-        {
-            return Err(self.invalid(value.span, target));
-        }
         if values.is_empty() {
             return self.default(target, value.span, depth + 1);
         }
@@ -274,6 +268,18 @@ impl Planner<'_> {
                     kind: InitializationKind::Aggregate(result),
                 });
             }
+        }
+        if target.is_resource()
+            && values.len() == 1
+            && self.checker.can_initialize(&values[0], target)
+        {
+            return self.value(&values[0], target);
+        }
+        if !self
+            .checker
+            .constant_buffer_data(target, &mut Default::default())
+        {
+            return Err(self.invalid(value.span, target));
         }
         if matches!(
             target,

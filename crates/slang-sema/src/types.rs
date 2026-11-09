@@ -500,6 +500,12 @@ impl Type {
             return Some(Self::Error);
         }
         let (sa, sb) = (a.scalar()?, b.scalar()?);
+        if sa == Scalar::Bool && sb != Scalar::Bool {
+            return Self::common(&a.with_scalar(sb), b);
+        }
+        if sb == Scalar::Bool && sa != Scalar::Bool {
+            return Self::common(a, &b.with_scalar(sa));
+        }
         if sa == Scalar::Bool || sb == Scalar::Bool {
             if matches!(
                 (a, b),

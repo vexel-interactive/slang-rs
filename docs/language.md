@@ -115,7 +115,7 @@ type argument, including parentheses. Compute those operations in a named
 constant before using the result as a dimension. Cyclic or excessively nested
 shape dependencies report `T026`; dimension expressions must be compile-time
 constants. General floating constant evaluation, constant function execution,
-the matrix layout argument, user-defined generic types, and generic functions
+the matrix layout argument and generic functions
 remain unimplemented. Constructors require explicit angle brackets, including `<>`, or
 a transparent type alias; bare `vector(...)` and `matrix(...)` calls do not
 specialize a numeric type. They use the existing numeric and aggregate checks. See
@@ -309,7 +309,7 @@ signed/unsigned evaluation rules are not implemented.
   such as `float32_t3` and `int32_t2x2`. `float16_t` aliases `half`.
 - Matrix aliases such as `float2x3`, with 1-4 rows and 1-4 columns.
 - Fixed arrays with nonnegative constant dimensions, including nested and empty arrays.
-- Global `typedef` and nongeneric `typealias` declarations.
+- Global `typedef` and `typealias` declarations, including typealias templates.
 - `StructuredBuffer<T>` and `RWStructuredBuffer<T>` with indexed element access.
 - `ConstantBuffer<T>` with scalar, vector, matrix, fixed-array, struct, or void elements and read-only value access.
 - `ByteAddressBuffer` and `RWByteAddressBuffer` with explicit byte-address methods.
@@ -317,7 +317,7 @@ signed/unsigned evaluation rules are not implemented.
   `SamplerComparisonState`. Texture elements are half/float/int/uint scalar or
   vector types; omitting `T` selects `float4`.
 
-Pointers and user-defined generics are not implemented.
+Pointer declarators remain unimplemented. Explicit user type templates are described below.
 
 Wide integer aliases include `int64_t2` and `uint64_t2x3`; numeric templates,
 constructors, casts, overloads, arrays, and structured buffers use the same
@@ -467,8 +467,8 @@ Negative or runtime dimensions report `T002`; dependency cycles report `T026`.
 Arrays can appear as variables, struct fields, parameters, and constant-buffer
 elements and function return types. Unsized arrays remain unimplemented.
 Alias chains and
-resolved array ranks are each limited to 32. Local aliases, generic
-aliases, pointer declarators, and C-style casts using
+resolved array ranks are each limited to 32. Local aliases,
+pointer declarators, and C-style casts using
 user alias names remain unported. See [the alias example](../examples/type-aliases.slang).
 
 Fixed arrays also support constructors: `float[3](1.0, 2.0)`, `float[3]()`,
@@ -581,12 +581,12 @@ matching default constructor also remains uninitialized.
 See [constructor calls](../tests/conformance/positive/user-constructors.slang),
 [default construction](../tests/conformance/positive/user-constructors-defaults.slang)
 and [global initialization](../tests/conformance/positive/user-constructors-global.slang).
-Generic constructors and definite-assignment warnings remain
+Generic constructor parameters and definite-assignment warnings remain
 unimplemented.
 
 ## Struct methods
 
-Nongeneric structs can declare instance and static methods. Instance methods
+Structs and specialized type templates can declare instance and static methods. Instance methods
 are nonmutating by default; `[mutating]` makes `this` writable and requires a
 writable receiver at the call site. `[nonmutating]` explicitly selects the default.
 
@@ -686,11 +686,11 @@ storage keeps its initialization value in native HLSL, while Slang 2026.21's
 constant IR operand aliases the mutable storage. Static resource aliases pass
 native DXC checks, but the pinned oracle fails HLSL emission for the
 [resource-alias fixture](../tests/native/static-resource-members.slang).
-Generic owners, properties and other target layouts remain absent.
+Properties and other target layouts remain absent.
 
 ## Nested structs and aliases
 
-Nongeneric structs can contain structs, `typedef` and `typealias` members.
+Structs can contain structs, `typedef` and `typealias` members.
 Select them with `.` or `::` in declarations, function signatures, resource
 arguments and constructors:
 
@@ -726,14 +726,56 @@ Legacy visibility also applies to nested declarations. Reflection preserves
 qualified static member names such as `Outer.Inner.count`; canonical value types
 and HLSL use separate generated names. Struct declaration depth is limited to
 32, while alias and value-type cycles receive bounded diagnostics.
-Local type declarations, generic owners and aliases, namespace declarations,
+Local type declarations, namespace declarations,
 and general expression syntax in type positions remain unported. See the
 [nested-type fixture](../tests/conformance/positive/nested-types.slang).
+
+## User type templates
+
+Structs and `typealias` declarations support type parameters and defaults:
+
+```slang
+struct Pair<T = int, U = T> { T first; U second; };
+typealias IntegerPair<T = int> = Pair<T, int>;
+Pair<> first = Pair<>(2, 3);
+IntegerPair<float> second = {4, 5};
+```
+
+Each application supplies explicit angle brackets, including `<>` when defaults
+supply every argument. Defaults can refer to preceding parameters. Transparent
+aliases, scalar spellings and supported computed array/vector/matrix dimensions
+share a canonical specialization. Distinct argument types retain distinct fields,
+constructors, methods and static storage. Generic owners can contain ordinary
+nested types or further templates, such as `Outer<int>.Item<float>`; nested
+defaults retain enclosing arguments. Imported templates accept caller-defined
+type arguments while preserving their declaration module's value visibility.
+
+Expansion is bounded to 1,024 concrete applications, 32 nested argument expansions
+and 65,536 cloned syntax nodes. Diagnostics retain the template's source location.
+Recursive value types still use the existing bounded value-type checker, even
+when upstream would discard an unused recursive value. Canonical shape folding
+uses the currently supported scalar constant evaluator, including lexical locals;
+general constant function execution remains absent.
+
+This is explicit concrete specialization. Full polymorphic body checking remains
+unimplemented: dependent operations are checked after substitution, and unused
+templates receive structural type-name and duplicate-parameter validation only.
+The native compiler can therefore accept dependent operations or unused invalid
+bodies rejected by upstream. Interfaces, constraints, generic functions/methods,
+value parameters, partial applications and constructor inference remain unported.
+The existing restriction on local names matching module type aliases also applies
+inside instantiated templates.
+
+The [type fixture](../tests/conformance/positive/generic-types.slang) records one
+oracle optimization difference: Slang 2026.21 reuses a repeated static method call
+despite its write to mutable member storage. Native HLSL retains both calls, and
+separate exact DXIL goldens record the differing counter results.
 
 ## Brace initializer lists
 
 `{...}` uses the type of its declaration, assignment destination, return type,
-or selected function parameter. Lists support nested data-only structs, fixed
+or selected function parameter. Lists support memberwise resource-valued structs,
+direct resource-handle copies, nested data structs, fixed
 arrays, scalars, vectors, and matrices. Trailing commas and empty lists are valid.
 
 ```slang

@@ -207,6 +207,23 @@ impl Parser {
             };
             i = end;
         }
+        while self.tokens.get(i).is_some_and(|t| t.is(".") || t.is("::")) {
+            i += 1;
+            if !self
+                .tokens
+                .get(i)
+                .is_some_and(|t| t.kind == TokenKind::Identifier)
+            {
+                return false;
+            }
+            i += 1;
+            if self.tokens.get(i).is_some_and(|t| t.is("<")) {
+                let Some(end) = self.type_application_end(i - 1) else {
+                    return false;
+                };
+                i = end;
+            }
+        }
         while self.tokens.get(i).is_some_and(|t| t.is("[")) {
             let mut depth = 1;
             i += 1;

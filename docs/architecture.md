@@ -32,6 +32,24 @@ bindings preserve local lexical priority, isolate global initializers from calle
 locals, and restore the ordinary checker environment after folding. Shape
 constants use 64-bit intermediate arithmetic, matching upstream's type-level
 folding; ordinary shader constants retain their checked 32-bit or 64-bit types.
+
+User type specialization runs between module linking and concrete semantic
+checking. The linker gives parameters declaration-scoped names; a mutable AST
+visitor substitutes canonical type arguments, renames owned declarations and
+assigns fresh expression IDs. A work queue registers nested templates and caches
+each concrete application. Alias and shape canonicalization uses the existing
+typed constant evaluator with lexical bindings. Expansion has instance, depth and
+node budgets; it never invokes the upstream compiler.
+
+Cloned declarations preserve source byte coordinates and receive an instantiation
+context in `Span`. Semantic declaration maps use source, start, end and context,
+so two specializations cannot overwrite their field types or initialization plans.
+`Module.generic_instances` records argument types visible in each context,
+including captured enclosing arguments. This allows imported templates to use
+caller-defined types while retaining module isolation for ordinary values.
+The specialized declarations then use ordinary checking, layout and HLSL lowering.
+Full polymorphic validation, witness tables and IR-level generic specialization
+remain unimplemented.
 Shape conversions between different scalar types apply the destination's bit
 width. Identity constructors preserve wider shape intermediates, following
 `TypeCastIntVal::tryFoldImpl`; implicit global and local initializers follow
@@ -443,7 +461,7 @@ functions without rejecting compilation. Temporary tree addresses associate
 analysis results with expressions only within this pass; graphs expose stable
 value/block indices, not addresses.
 
-Memory SSA, aggregate propagation, specialization, IR linking, canonicalization,
+Memory SSA, aggregate propagation, general IR specialization, IR linking, canonicalization,
 and the full upstream pass pipeline remain unimplemented. Backends must not
 depend on the AST or semantic checker.
 

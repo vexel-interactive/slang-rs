@@ -66,10 +66,10 @@ pub struct CheckedModule {
     pub diagnostics: Vec<Diagnostic>,
 }
 
-/// Byte-span key used to distinguish declarations in separate scopes and files.
-pub type SpanKey = (usize, usize, usize);
+/// Declaration location and instantiation context within a compilation.
+pub type SpanKey = (usize, usize, usize, usize);
 pub fn span_key(span: Span) -> SpanKey {
-    (span.source.0, span.start, span.end)
+    (span.source.0, span.start, span.end, span.context)
 }
 
 #[derive(Clone)]
@@ -118,6 +118,7 @@ pub(crate) struct Checker {
     pub current_constructor: Option<String>,
     pub current_type: Option<String>,
     pub current_static_type: Option<String>,
+    pub generic_type_contexts: BTreeMap<usize, BTreeSet<String>>,
     pub static_fields: BTreeMap<(String, String), String>,
     pub static_owners: BTreeMap<String, String>,
     pub nested_types: BTreeMap<(String, String), String>,
@@ -184,6 +185,7 @@ fn check_with_metadata(
     symbols: BTreeMap<String, SymbolOrigin>,
     default_matrix_major: slang_layout::MatrixMajor,
 ) -> Result<CheckedModule, Vec<Diagnostic>> {
+    let (module, symbols) = crate::generic::specialize(module, symbols).map_err(|d| vec![d])?;
     if let Some(import) = module.imports.first() {
         return Err(vec![Diagnostic::error(
             "T001",
@@ -198,84 +200,7 @@ fn check_with_metadata(
             "module members must be loaded before semantic checking",
         )]);
     }
-    let mut checker = Checker {
-        default_matrix_major,
-        scopes: vec![BTreeMap::new()],
-        functions: BTreeMap::new(),
-        structures: BTreeMap::new(),
-        expression_types: BTreeMap::new(),
-        constant_buffer_loads: BTreeSet::new(),
-        swizzle_indices: BTreeMap::new(),
-        implicit_members: BTreeMap::new(),
-        variable_initializations: BTreeMap::new(),
-        constructor_initializations: BTreeMap::new(),
-        constructors: BTreeMap::new(),
-        current_constructor: None,
-        current_type: None,
-        current_static_type: None,
-        static_fields: module
-            .static_members
-            .iter()
-            .map(|m| ((m.owner.clone(), m.name.clone()), m.variable_name.clone()))
-            .collect(),
-        static_owners: module
-            .static_members
-            .iter()
-            .map(|m| (m.variable_name.clone(), m.owner.clone()))
-            .collect(),
-        static_references: BTreeMap::new(),
-        static_type_lookups: BTreeSet::new(),
-        nested_types: module
-            .nested_types
-            .iter()
-            .map(|m| ((m.owner.clone(), m.name.clone()), m.type_name.clone()))
-            .collect(),
-        type_owners: module
-            .nested_types
-            .iter()
-            .map(|m| (m.type_name.clone(), m.owner.clone()))
-            .collect(),
-        methods: BTreeMap::new(),
-        method_receivers: BTreeMap::new(),
-        declaration_types: BTreeMap::new(),
-        matrix_layouts: BTreeMap::new(),
-        diagnostics: vec![],
-        return_type: Type::Void,
-        loops: 0,
-        switches: 0,
-        symbols,
-        current_module: ModuleId(0),
-        public_types: BTreeSet::new(),
-        public_fields: BTreeSet::new(),
-        source_types: BTreeSet::new(),
-        function_names: BTreeMap::new(),
-        call_names: BTreeMap::new(),
-        call_output_parameters: BTreeMap::new(),
-        global_references: BTreeMap::new(),
-        aliases: BTreeMap::new(),
-        alias_types: BTreeMap::new(),
-        alias_matrix_layouts: BTreeMap::new(),
-        resolving_aliases: BTreeSet::new(),
-        struct_definitions: BTreeMap::new(),
-        shape_globals: module
-            .declarations
-            .iter()
-            .filter_map(|d| {
-                if let Declaration::Global(v) = d {
-                    Some((v.name.clone(), v.clone()))
-                } else {
-                    None
-                }
-            })
-            .collect(),
-        shape_bindings: BTreeMap::new(),
-        resolving_shape_globals: BTreeSet::new(),
-        initializations: BTreeMap::new(),
-        default_arguments: BTreeMap::new(),
-        case_values: BTreeMap::new(),
-        resource_bindings: BTreeMap::new(),
-        global_uniform_binding: None,
-    };
+    let mut checker = Checker::new(&module, symbols, default_matrix_major);
     checker.declare(&module);
     let global_declarations: BTreeMap<_, _> = module
         .declarations
@@ -454,6 +379,96 @@ fn check_with_metadata(
 }
 
 impl Checker {
+    pub(crate) fn new(
+        module: &Module,
+        symbols: BTreeMap<String, SymbolOrigin>,
+        default_matrix_major: slang_layout::MatrixMajor,
+    ) -> Self {
+        Self {
+            default_matrix_major,
+            scopes: vec![BTreeMap::new()],
+            functions: BTreeMap::new(),
+            structures: BTreeMap::new(),
+            expression_types: BTreeMap::new(),
+            constant_buffer_loads: BTreeSet::new(),
+            swizzle_indices: BTreeMap::new(),
+            implicit_members: BTreeMap::new(),
+            variable_initializations: BTreeMap::new(),
+            constructor_initializations: BTreeMap::new(),
+            constructors: BTreeMap::new(),
+            current_constructor: None,
+            current_type: None,
+            current_static_type: None,
+            generic_type_contexts: module
+                .generic_instances
+                .iter()
+                .map(|i| (i.context, crate::generic::argument_names(&i.arguments)))
+                .collect(),
+            static_fields: module
+                .static_members
+                .iter()
+                .map(|m| ((m.owner.clone(), m.name.clone()), m.variable_name.clone()))
+                .collect(),
+            static_owners: module
+                .static_members
+                .iter()
+                .map(|m| (m.variable_name.clone(), m.owner.clone()))
+                .collect(),
+            static_references: BTreeMap::new(),
+            static_type_lookups: BTreeSet::new(),
+            nested_types: module
+                .nested_types
+                .iter()
+                .map(|m| ((m.owner.clone(), m.name.clone()), m.type_name.clone()))
+                .collect(),
+            type_owners: module
+                .nested_types
+                .iter()
+                .map(|m| (m.type_name.clone(), m.owner.clone()))
+                .collect(),
+            methods: BTreeMap::new(),
+            method_receivers: BTreeMap::new(),
+            declaration_types: BTreeMap::new(),
+            matrix_layouts: BTreeMap::new(),
+            diagnostics: vec![],
+            return_type: Type::Void,
+            loops: 0,
+            switches: 0,
+            symbols,
+            current_module: ModuleId(0),
+            public_types: BTreeSet::new(),
+            public_fields: BTreeSet::new(),
+            source_types: BTreeSet::new(),
+            function_names: BTreeMap::new(),
+            call_names: BTreeMap::new(),
+            call_output_parameters: BTreeMap::new(),
+            global_references: BTreeMap::new(),
+            aliases: BTreeMap::new(),
+            alias_types: BTreeMap::new(),
+            alias_matrix_layouts: BTreeMap::new(),
+            resolving_aliases: BTreeSet::new(),
+            struct_definitions: BTreeMap::new(),
+            shape_globals: module
+                .declarations
+                .iter()
+                .filter_map(|d| {
+                    if let Declaration::Global(v) = d {
+                        Some((v.name.clone(), v.clone()))
+                    } else {
+                        None
+                    }
+                })
+                .collect(),
+            shape_bindings: BTreeMap::new(),
+            resolving_shape_globals: BTreeSet::new(),
+            initializations: BTreeMap::new(),
+            default_arguments: BTreeMap::new(),
+            case_values: BTreeMap::new(),
+            resource_bindings: BTreeMap::new(),
+            global_uniform_binding: None,
+        }
+    }
+
     pub(crate) fn reference_matrix_major(
         &mut self,
         reference: &TypeRef,

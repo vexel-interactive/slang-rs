@@ -21,6 +21,7 @@ pub(crate) struct Members {
     pub owners: BTreeMap<String, String>,
     pub types: BTreeMap<(String, String), String>,
     pub type_owners: BTreeMap<String, String>,
+    pub generic_parameters: BTreeMap<String, Vec<String>>,
 }
 
 impl Names {
@@ -146,6 +147,17 @@ pub(crate) fn link(
             ..Members::default()
         };
         for declaration in &nodes[id.0].syntax.declarations {
+            let generic = match declaration {
+                Declaration::Struct(s) => Some((&s.name, &s.generic_parameters)),
+                Declaration::TypeAlias(a) => Some((&a.name, &a.generic_parameters)),
+                _ => None,
+            };
+            if let Some((name, parameters)) = generic {
+                members.generic_parameters.insert(
+                    name.clone(),
+                    parameters.iter().map(|p| p.name.clone()).collect(),
+                );
+            }
             if let Declaration::Function(function) = declaration
                 && let Some(method) = &function.method
             {

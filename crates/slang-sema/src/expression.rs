@@ -463,9 +463,8 @@ impl Checker {
         let valid = match op {
             "&&" | "||" => matches!(a, Type::Scalar(_)) && matches!(b, Type::Scalar(_)),
             "==" | "!=" => common.is_some(),
-            "<" | "<=" | ">" | ">=" | "+" | "-" | "*" | "/" => {
-                a.numeric() && b.numeric() && common.is_some()
-            }
+            "<" | "<=" | ">" | ">=" => common.is_some(),
+            "+" | "-" | "*" | "/" => a.numeric() && b.numeric() && common.is_some(),
             "%" | "&" | "|" | "^" | "<<" | ">>" => a.integral() && b.integral() && common.is_some(),
             _ => false,
         };

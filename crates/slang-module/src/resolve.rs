@@ -17,6 +17,7 @@ pub(crate) struct Resolver<'a> {
     members: &'a Members,
     active_members: Option<std::collections::BTreeSet<String>>,
     active_owner: Option<String>,
+    generic_types: BTreeMap<String, String>,
 }
 
 impl<'a> Resolver<'a> {
@@ -41,6 +42,7 @@ impl<'a> Resolver<'a> {
             members,
             active_members: None,
             active_owner: None,
+            generic_types: BTreeMap::new(),
         }
     }
 
@@ -55,13 +57,19 @@ impl<'a> Resolver<'a> {
     }
 
     fn ty(&mut self, ty: &mut TypeRef) -> Result<(), Diagnostic> {
+        if let Some(base) = &mut ty.base {
+            self.ty(base)?;
+            return self.type_arguments(ty);
+        }
         let mut parts = ty.name.split("::");
         let base = parts.next().unwrap();
         let qualified = ty.name.contains("::");
         let local = qualified
             .then(|| self.scopes.iter().rev().find_map(|scope| scope.get(base)))
             .flatten();
-        let mut resolved = if let Some(local) = local {
+        let mut resolved = if let Some(parameter) = self.generic_types.get(base) {
+            parameter.clone()
+        } else if let Some(local) = local {
             local.clone()
         } else {
             let member = self.member_scope(base).is_some();
@@ -86,6 +94,10 @@ impl<'a> Resolver<'a> {
             resolved.push_str(member);
         }
         ty.name = resolved;
+        self.type_arguments(ty)
+    }
+
+    fn type_arguments(&mut self, ty: &mut TypeRef) -> Result<(), Diagnostic> {
         for argument in &mut ty.arguments {
             match argument {
                 slang_syntax::TypeArgument::Type(argument) => self.ty(argument)?,
@@ -126,7 +138,8 @@ impl<'a> Resolver<'a> {
             .iter()
             .rev()
             .find_map(|scope| scope.get(&source));
-        let captures = outer.is_some_and(|target| target == &source)
+        let captures = self.generic_types.contains_key(&source)
+            || outer.is_some_and(|target| target == &source)
             || [&self.own.values, &self.imported.values]
                 .iter()
                 .any(|names| {
@@ -155,14 +168,19 @@ impl<'a> Resolver<'a> {
         match declaration {
             Declaration::TypeAlias(alias) => {
                 self.active_owner = self.members.type_owners.get(&alias.name).cloned();
+                self.generic_types = self.generic_bindings(Some(&alias.name));
+                self.generic_parameters(&mut alias.generic_parameters)?;
                 self.active_members = self.owner_members(false);
                 alias.name = self.symbol(&alias.name, true, alias.span)?;
                 self.ty(&mut alias.target)?;
                 self.active_owner = None;
                 self.active_members = None;
+                self.generic_types.clear();
             }
             Declaration::Struct(structure) => {
                 self.active_owner = Some(structure.name.clone());
+                self.generic_types = self.generic_bindings(Some(&structure.name));
+                self.generic_parameters(&mut structure.generic_parameters)?;
                 self.active_members = self.owner_members(false);
                 structure.name = self.symbol(&structure.name, true, structure.span)?;
                 for field in &mut structure.fields {
@@ -170,17 +188,21 @@ impl<'a> Resolver<'a> {
                 }
                 self.active_owner = None;
                 self.active_members = None;
+                self.generic_types.clear();
             }
             Declaration::Global(variable) => {
                 self.active_owner = self.members.owners.get(&variable.name).cloned();
+                self.generic_types = self.generic_bindings(self.active_owner.as_deref());
                 self.active_members = self.owner_members(true);
                 self.variable(variable)?;
                 variable.name = self.symbol(&variable.name, false, variable.span)?;
                 self.active_owner = None;
                 self.active_members = None;
+                self.generic_types.clear();
             }
             Declaration::Function(function) => {
                 self.active_owner = function.owner_type().map(str::to_owned);
+                self.generic_types = self.generic_bindings(self.active_owner.as_deref());
                 let members = self.owner_members(true);
                 self.active_members = self.owner_members(false);
                 if let Some(owner) = &mut function.constructor {
@@ -228,6 +250,7 @@ impl<'a> Resolver<'a> {
                 self.scopes.pop();
                 self.active_members = None;
                 self.active_owner = None;
+                self.generic_types.clear();
             }
         }
         Ok(())
@@ -304,6 +327,40 @@ impl<'a> Resolver<'a> {
             | StmtKind::Discard
             | StmtKind::Return(None)
             | StmtKind::Empty => {}
+        }
+        Ok(())
+    }
+
+    fn generic_bindings(&self, owner: Option<&str>) -> BTreeMap<String, String> {
+        let mut owner = owner.map(str::to_owned);
+        let mut parameters = BTreeMap::new();
+        while let Some(current) = owner {
+            if let Some(names) = self.members.generic_parameters.get(&current) {
+                for name in names {
+                    parameters.entry(name.clone()).or_insert_with(|| {
+                        format!(
+                            "{}generic_{}_{}_{name}",
+                            self.local_prefix,
+                            current.len(),
+                            current
+                        )
+                    });
+                }
+            }
+            owner = self.members.type_owners.get(&current).cloned();
+        }
+        parameters
+    }
+
+    fn generic_parameters(
+        &mut self,
+        parameters: &mut [slang_syntax::GenericParameter],
+    ) -> Result<(), Diagnostic> {
+        for parameter in parameters {
+            parameter.name = self.generic_types[&parameter.name].clone();
+            if let Some(default) = &mut parameter.default {
+                self.ty(default)?;
+            }
         }
         Ok(())
     }
@@ -392,6 +449,7 @@ impl<'a> Resolver<'a> {
     }
 
     fn expression(&mut self, expression: &mut Expr) -> Result<(), Diagnostic> {
+        self.comparison_application(expression);
         expression.id = ExprId(*self.next_expression);
         *self.next_expression += 1;
         match &mut expression.kind {
@@ -402,6 +460,8 @@ impl<'a> Resolver<'a> {
             }
             ExprKind::Name(name) => {
                 if let Some(target) = self.scopes.iter().rev().find_map(|scope| scope.get(name)) {
+                    *name = target.clone();
+                } else if let Some(target) = self.generic_types.get(name) {
                     *name = target.clone();
                 } else if let Some(target) = self.member_target(name, false) {
                     *name = self.symbol(target, false, expression.span)?;
@@ -465,5 +525,64 @@ impl<'a> Resolver<'a> {
             }
         }
         Ok(())
+    }
+
+    /// A local value followed by `< b > (c)` is a pair of comparisons.
+    fn comparison_application(&self, expression: &mut Expr) {
+        let ExprKind::Call { callee, arguments } = &expression.kind else {
+            return;
+        };
+        let ExprKind::TypeApplication(ty) = &callee.kind else {
+            return;
+        };
+        if arguments.len() != 1 || ty.base.is_some() || !ty.arrays.is_empty() {
+            return;
+        }
+        let value = self.scopes.iter().rev().any(|s| s.contains_key(&ty.name))
+            || self.own.values.contains_key(&ty.name) && !self.own.types.contains_key(&ty.name)
+            || self.imported.values.contains_key(&ty.name)
+                && !self.imported.types.contains_key(&ty.name);
+        if !value {
+            return;
+        }
+        let [slang_syntax::TypeArgument::Type(right)] = ty.arguments.as_slice() else {
+            return;
+        };
+        if right.application
+            || !right.arrays.is_empty()
+            || !right.arguments.is_empty()
+            || right.base.is_some()
+        {
+            return;
+        }
+        let name = |name: String, span| {
+            let mut value = *callee.clone();
+            value.kind = ExprKind::Name(name);
+            value.span = span;
+            value.parenthesized = false;
+            value
+        };
+        let mut parts = right.name.split("::");
+        let mut right_value = name(parts.next().unwrap().into(), right.span);
+        for member in parts {
+            let mut value = *callee.clone();
+            value.kind = ExprKind::Member {
+                base: Box::new(right_value),
+                name: member.into(),
+                static_lookup: false,
+            };
+            right_value = value;
+        }
+        let mut comparison = *callee.clone();
+        comparison.kind = ExprKind::Binary {
+            op: "<".into(),
+            left: Box::new(name(ty.name.clone(), ty.span)),
+            right: Box::new(right_value),
+        };
+        expression.kind = ExprKind::Binary {
+            op: ">".into(),
+            left: Box::new(comparison),
+            right: Box::new(arguments[0].clone()),
+        };
     }
 }

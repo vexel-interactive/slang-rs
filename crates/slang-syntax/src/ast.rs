@@ -14,6 +14,16 @@ pub struct Module {
     pub static_members: Vec<StaticMemberInfo>,
     /// Source member names and owners of flattened struct and alias declarations.
     pub nested_types: Vec<NestedTypeInfo>,
+    /// Concrete type arguments visible in each instantiated declaration context.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub generic_instances: Vec<GenericInstanceInfo>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct GenericInstanceInfo {
+    pub context: usize,
+    pub type_name: String,
+    pub arguments: Vec<TypeRef>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -87,12 +97,31 @@ pub enum Declaration {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct TypeRef {
     pub name: String,
+    /// A qualified owner carrying its own generic arguments.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub base: Option<Box<TypeRef>>,
+    #[serde(skip_serializing_if = "is_false")]
+    pub application: bool,
+    /// An implicit receiver or constructor result synthesized by the parser.
+    #[serde(skip_serializing_if = "is_false")]
+    pub owner_ref: bool,
     pub arguments: Vec<TypeArgument>,
     /// Storage qualification; numeric value types retain their algebraic shape.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub matrix_major: Option<slang_layout::MatrixMajor>,
     /// Array dimensions from outermost to innermost.
     pub arrays: Vec<Expr>,
+    pub span: Span,
+}
+
+fn is_false(value: &bool) -> bool {
+    !value
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct GenericParameter {
+    pub name: String,
+    pub default: Option<TypeRef>,
     pub span: Span,
 }
 
@@ -114,6 +143,8 @@ pub struct Attribute {
 #[derive(Clone, Debug, Serialize)]
 pub struct TypeAlias {
     pub name: String,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub generic_parameters: Vec<GenericParameter>,
     pub target: TypeRef,
     pub modifiers: Vec<String>,
     pub span: Span,
@@ -122,6 +153,8 @@ pub struct TypeAlias {
 #[derive(Clone, Debug, Serialize)]
 pub struct Struct {
     pub name: String,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub generic_parameters: Vec<GenericParameter>,
     pub modifiers: Vec<String>,
     pub fields: Vec<Variable>,
     pub span: Span,
@@ -257,7 +290,7 @@ pub enum ExprKind {
     Bool(bool),
     String(String),
     Name(String),
-    /// A numeric type application used as a constructor callee.
+    /// A type application used as a constructor or qualified lookup base.
     TypeApplication(Box<TypeRef>),
     Unary {
         op: String,

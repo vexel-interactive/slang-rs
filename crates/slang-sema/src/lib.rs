@@ -12,6 +12,7 @@ mod declaration;
 mod default_argument;
 mod entry;
 mod expression;
+mod generic;
 mod initialization;
 mod initializer_list;
 mod interface;

@@ -632,6 +632,22 @@ The [value fixture](../tests/conformance/positive/nested-types.slang) and
 compare 21 matching compiled constant words. All 16 new differential cases
 match upstream acceptance; accepted artifacts are validated by DXC.
 
+Generic-type regressions cover independent concrete field and initialization
+contexts, constructors, mutating and static methods, defaults, transparent aliases,
+numeric/array shape identity, nested templates and enclosing arguments, resource
+handles, uniform layouts, imports, access control and source diagnostics.
+Invalid argument counts, unknown/default types, duplicate parameters, missing
+applications and bounded recursive expansion fail before lowering. Value/type
+shadowing and comparison/application ambiguities exercise the parser and linker.
+
+Six accepted fixtures and ten rejected fixtures compare upstream acceptance.
+Both compilers' accepted HLSL artifacts are validated by DXC. Five fixtures compare
+28 exact constant words; 26 match. Separate exact goldens document two counter
+words where Slang 2026.21 eliminates a repeated generic static method call despite
+its mutable-storage effect. The native-only HLSL suite checks all six accepted
+fixtures against their native results. This does not validate GPU execution,
+polymorphic constraints, generic functions or value parameters.
+
 [validation.json](validation.json) records the Windows validation run for this
 checkpoint. It includes the pinned compiler version, workspace checks, and
 differential corpus counts. It is a snapshot of that run, not a promise of

@@ -20,11 +20,11 @@ impl Checker {
                 }
             })
             .collect();
-        for ((source, start, end), element) in buffers {
+        for ((source, start, end, context), element) in buffers {
             if !self.constant_buffer_data(&element, &mut BTreeSet::new()) {
                 self.error(
                     "T002",
-                    Span::new(SourceId(source), start, end),
+                    Span::new(SourceId(source), start, end).with_context(context),
                     "resource-valued fields in constant buffers are not implemented",
                 );
             }

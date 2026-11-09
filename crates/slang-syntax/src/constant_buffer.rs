@@ -67,6 +67,7 @@ impl Parser {
         });
         let mut declarations = vec![
             Declaration::Struct(Struct {
+                generic_parameters: vec![],
                 name: element_type.clone(),
                 modifiers: modifiers.clone(),
                 fields,
@@ -75,9 +76,15 @@ impl Parser {
             Declaration::Global(Variable {
                 name: variable_name,
                 ty: TypeRef {
+                    base: None,
+                    application: false,
+                    owner_ref: false,
                     name: "ConstantBuffer".into(),
                     matrix_major: None,
                     arguments: vec![TypeArgument::Type(TypeRef {
+                        base: None,
+                        application: false,
+                        owner_ref: false,
                         name: element_type,
                         matrix_major: None,
                         arguments: vec![],

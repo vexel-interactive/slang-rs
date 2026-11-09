@@ -109,6 +109,9 @@ impl Checker {
     fn named_type(name: &str, span: Span) -> TypeRef {
         TypeRef {
             name: name.into(),
+            base: None,
+            application: false,
+            owner_ref: false,
             arguments: vec![],
             matrix_major: None,
             arrays: vec![],

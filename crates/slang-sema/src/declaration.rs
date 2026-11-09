@@ -135,11 +135,11 @@ impl Checker {
         } else if let Some(ty) = Type::builtin(&reference.name) {
             ty
         } else if self.aliases.contains_key(&reference.name)
-            && self.module_symbol_visible(&reference.name)
+            && self.type_symbol_visible(&reference.name, reference.span)
         {
             self.resolve_alias(&reference.name, reference.span)
         } else if self.structures.contains_key(&reference.name)
-            && self.module_symbol_visible(&reference.name)
+            && self.type_symbol_visible(&reference.name, reference.span)
         {
             Type::Struct(reference.name.clone())
         } else {

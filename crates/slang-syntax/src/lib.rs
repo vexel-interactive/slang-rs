@@ -10,6 +10,7 @@ mod module;
 mod parser;
 mod statement;
 mod visibility;
+pub mod visit;
 
 pub use ast::*;
 pub use literal::integer_literal;
