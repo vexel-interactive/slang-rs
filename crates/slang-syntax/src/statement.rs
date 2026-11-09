@@ -57,26 +57,12 @@ impl Parser {
                 body: Box::new(self.statement()?),
             }
         } else if self.eat("for") {
-            self.expect("(")?;
-            let initializer = Box::new(self.simple_statement()?);
-            let condition = if self.at(";") {
-                None
-            } else {
-                Some(self.expression(0)?)
-            };
-            self.expect(";")?;
-            let increment = if self.at(")") {
-                None
-            } else {
-                Some(self.expression(0)?)
-            };
-            self.expect(")")?;
-            StmtKind::For {
-                initializer,
-                condition,
-                increment,
-                body: Box::new(self.statement()?),
+            // Finish the header frame before descending into another statement.
+            let mut header = self.for_header()?;
+            if let StmtKind::For { body, .. } = header.as_mut() {
+                **body = self.statement()?;
             }
+            *header
         } else if self.eat("do") {
             let body = Box::new(self.statement()?);
             self.expect("while")?;
@@ -164,6 +150,32 @@ impl Parser {
             kind: StmtKind::Expression(expr),
             span: start.join(end),
         })
+    }
+
+    fn for_header(&mut self) -> Result<Box<StmtKind>, Diagnostic> {
+        self.expect("(")?;
+        let initializer = Box::new(self.simple_statement()?);
+        let condition = if self.at(";") {
+            None
+        } else {
+            Some(self.expression(0)?)
+        };
+        self.expect(";")?;
+        let increment = if self.at(")") {
+            None
+        } else {
+            Some(self.expression(0)?)
+        };
+        self.expect(")")?;
+        Ok(Box::new(StmtKind::For {
+            initializer,
+            condition,
+            increment,
+            body: Box::new(Stmt {
+                kind: StmtKind::Empty,
+                span: self.span(),
+            }),
+        }))
     }
 
     fn looks_like_variable(&self) -> bool {
