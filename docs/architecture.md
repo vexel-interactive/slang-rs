@@ -47,9 +47,16 @@ so two specializations cannot overwrite their field types or initialization plan
 `Module.generic_instances` records argument types visible in each context,
 including captured enclosing arguments. This allows imported templates to use
 caller-defined types while retaining module isolation for ordinary values.
-The specialized declarations then use ordinary checking, layout and HLSL lowering.
-Full polymorphic validation, witness tables and IR-level generic specialization
-remain unimplemented.
+An isolated symbolic pass first instantiates every template with distinct opaque
+parameter types and runs ordinary semantic checking, including on unused bodies.
+Numeric shapes with opaque components have private semantic struct identities;
+their selectors and indexes preserve the component type, while arithmetic has no
+witness and fails. Copy/default parameter constructors retain their source origin,
+so `T()` can lower to default initialization after substitution without allowing
+unsupported empty calls to concrete numeric constructors. Symbolic declarations
+are discarded. The concrete declarations use ordinary checking, layout and HLSL
+lowering. General constrained validation, witness tables and IR-level generic
+specialization remain unimplemented.
 Shape conversions between different scalar types apply the destination's bit
 width. Identity constructors preserve wider shape intermediates, following
 `TypeCastIntVal::tryFoldImpl`; implicit global and local initializers follow

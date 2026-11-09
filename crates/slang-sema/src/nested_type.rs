@@ -112,6 +112,7 @@ impl Checker {
             base: None,
             application: false,
             owner_ref: false,
+            parameter_ref: false,
             arguments: vec![],
             matrix_major: None,
             arrays: vec![],

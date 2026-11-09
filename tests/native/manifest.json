@@ -6769,6 +6769,20 @@
         "3": 1,
         "4": 0
       }
+    },
+    {
+      "file": "../conformance/positive/generic-symbolic-values.slang",
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 3,
+        "1": 0,
+        "2": 5,
+        "3": 4,
+        "4": 8,
+        "5": 9,
+        "6": 10,
+        "7": 0
+      }
     }
   ]
 }

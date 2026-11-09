@@ -119,6 +119,8 @@ pub(crate) struct Checker {
     pub current_type: Option<String>,
     pub current_static_type: Option<String>,
     pub generic_type_contexts: BTreeMap<usize, BTreeSet<String>>,
+    pub symbolic_types: BTreeSet<String>,
+    pub symbolic_shapes: BTreeMap<String, (Type, Vec<u8>)>,
     pub static_fields: BTreeMap<(String, String), String>,
     pub static_owners: BTreeMap<String, String>,
     pub nested_types: BTreeMap<(String, String), String>,
@@ -185,7 +187,24 @@ fn check_with_metadata(
     symbols: BTreeMap<String, SymbolOrigin>,
     default_matrix_major: slang_layout::MatrixMajor,
 ) -> Result<CheckedModule, Vec<Diagnostic>> {
+    crate::generic::validate_templates(&module, &symbols, default_matrix_major)?;
     let (module, symbols) = crate::generic::specialize(module, symbols).map_err(|d| vec![d])?;
+    check_concrete(
+        module,
+        modules,
+        symbols,
+        default_matrix_major,
+        BTreeSet::new(),
+    )
+}
+
+pub(crate) fn check_concrete(
+    module: Module,
+    modules: Vec<ModuleInfo>,
+    symbols: BTreeMap<String, SymbolOrigin>,
+    default_matrix_major: slang_layout::MatrixMajor,
+    symbolic_types: BTreeSet<String>,
+) -> Result<CheckedModule, Vec<Diagnostic>> {
     if let Some(import) = module.imports.first() {
         return Err(vec![Diagnostic::error(
             "T001",
@@ -201,6 +220,7 @@ fn check_with_metadata(
         )]);
     }
     let mut checker = Checker::new(&module, symbols, default_matrix_major);
+    checker.symbolic_types = symbolic_types;
     checker.declare(&module);
     let global_declarations: BTreeMap<_, _> = module
         .declarations
@@ -404,6 +424,8 @@ impl Checker {
                 .iter()
                 .map(|i| (i.context, crate::generic::argument_names(&i.arguments)))
                 .collect(),
+            symbolic_types: BTreeSet::new(),
+            symbolic_shapes: BTreeMap::new(),
             static_fields: module
                 .static_members
                 .iter()
@@ -505,7 +527,8 @@ impl Checker {
         while let Type::Array(element, _) = ty {
             ty = element;
         }
-        if !matches!(ty, Type::Matrix(..) | Type::Error) {
+        let symbolic_matrix = matches!(ty, Type::Struct(name) if self.symbolic_shapes.get(name).is_some_and(|(_, d)| d.len() == 2));
+        if !symbolic_matrix && !matches!(ty, Type::Matrix(..) | Type::Error) {
             self.error(
                 "T001",
                 span,

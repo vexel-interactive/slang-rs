@@ -105,6 +105,9 @@ pub struct TypeRef {
     /// An implicit receiver or constructor result synthesized by the parser.
     #[serde(skip_serializing_if = "is_false")]
     pub owner_ref: bool,
+    /// A constructor lookup originating from a generic type parameter.
+    #[serde(skip_serializing_if = "is_false")]
+    pub parameter_ref: bool,
     pub arguments: Vec<TypeArgument>,
     /// Storage qualification; numeric value types retain their algebraic shape.
     #[serde(skip_serializing_if = "Option::is_none")]

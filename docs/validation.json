@@ -6,7 +6,7 @@
     "rustfmt": "passed",
     "clippy_all_targets_warnings_denied": "passed",
     "unit_tests": 42,
-    "integration_tests": 406,
+    "integration_tests": 411,
     "doc_tests": 1,
     "conformance_comparison_tests": 27,
     "rustdoc": "passed",
@@ -16,11 +16,11 @@
   },
   "differential_validation": {
     "oracle": "Slang 2026.21",
-    "cases_passed": 608,
-    "cases_total": 608,
-    "matching_acceptance_cases": 596,
+    "cases_passed": 621,
+    "cases_total": 621,
+    "matching_acceptance_cases": 609,
     "documented_oracle_differences": 12,
-    "dxc_hlsl_artifacts_validated": 632,
+    "dxc_hlsl_artifacts_validated": 634,
     "dxc_invalid_hlsl_artifacts_rejected": 22,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
@@ -37,9 +37,9 @@
     "uniform_byte_layout_cases_compared": 61,
     "documented_oracle_physical_layout_differences": 12,
     "physical_buffer_layout_cases_compared": 43,
-    "compiled_constant_cases_compared": 43,
-    "compiled_constant_words_compared": 1246,
-    "compiled_constant_words_matching": 1232,
+    "compiled_constant_cases_compared": 44,
+    "compiled_constant_words_compared": 1254,
+    "compiled_constant_words_matching": 1240,
     "documented_oracle_constant_words_differing": 14,
     "documented_oracle_constant_cases_differing": 6,
     "documented_oracle_uniform_reflection_differences": 1,
@@ -53,8 +53,8 @@
   "remote_ci_executed": false,
   "remote_ci": null,
   "previous_remote_ci": {
-    "run_id": 42655478519,
-    "head_sha": "6fec4bb98985434ac862439eebdc1a70f3bd9c27",
+    "run_id": 42664741851,
+    "head_sha": "ab40164860631ff32d1ddf05e8c527ebf4c3d132",
     "conclusion": "success",
     "platforms": [
       "ubuntu-latest",
@@ -63,6 +63,16 @@
     ]
   },
   "earlier_remote_ci": [
+    {
+      "run_id": 42655478519,
+      "head_sha": "6fec4bb98985434ac862439eebdc1a70f3bd9c27",
+      "conclusion": "success",
+      "platforms": [
+        "ubuntu-latest",
+        "windows-latest",
+        "macos-latest"
+      ]
+    },
     {
       "run_id": 42640128485,
       "head_sha": "a947b3b308117ea33e296dc699670b971a311a47",
@@ -547,7 +557,7 @@
   },
   "native_hlsl_suite": {
     "manifest": "tests/native/manifest.json",
-    "artifacts_validated": 123,
+    "artifacts_validated": 124,
     "profiles": [
       "cs_6_0",
       "cs_6_2",
@@ -678,13 +688,14 @@
       "../conformance/positive/generic-type-identity.slang",
       "../conformance/positive/generic-resource-types.slang",
       "../conformance/positive/generic-type-module/main.slang",
-      "../conformance/positive/generic-type-comparisons.slang"
+      "../conformance/positive/generic-type-comparisons.slang",
+      "../conformance/positive/generic-symbolic-values.slang"
     ],
     "uniform_byte_layout_cases": 61,
     "matrix_layout_shapes": 96,
     "constant_buffer_numeric_layouts": 252,
-    "compiled_constant_cases": 30,
-    "compiled_constant_words": 1080
+    "compiled_constant_cases": 31,
+    "compiled_constant_words": 1088
   },
   "pointer_integer_validation": {
     "target_pointer_bits": 64,
@@ -956,13 +967,13 @@
     "complete_upstream_parity": false
   },
   "generic_type_validation": {
-    "integration_tests": 8,
-    "differential_cases": 16,
-    "matching_acceptance_cases": 16,
-    "dxc_hlsl_artifacts_validated": 12,
-    "compiled_constant_cases": 5,
-    "compiled_constant_words": 28,
-    "matching_words": 26,
+    "integration_tests": 13,
+    "differential_cases": 29,
+    "matching_acceptance_cases": 29,
+    "dxc_hlsl_artifacts_validated": 14,
+    "compiled_constant_cases": 6,
+    "compiled_constant_words": 36,
+    "matching_words": 34,
     "documented_oracle_constant_words_differing": 2,
     "struct_and_typealias_type_parameters": true,
     "type_defaults_and_canonical_alias_identity": true,
@@ -979,8 +990,6 @@
     "instance_limit": 1024,
     "argument_depth_limit": 32,
     "syntax_node_budget": 65536,
-    "polymorphic_body_checking": false,
-    "unused_template_body_checking": false,
     "value_parameters": false,
     "constraints_and_interfaces": false,
     "generic_functions_and_methods": false,
@@ -988,6 +997,19 @@
     "general_constant_execution": false,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
-    "oracle_static_method_difference": "Slang 2026.21 eliminates a repeated generic static method call despite its mutable member storage write; both compiled outputs have exact separate goldens."
+    "oracle_static_method_difference": "Slang 2026.21 eliminates a repeated generic static method call despite its mutable member storage write; both compiled outputs have exact separate goldens.",
+    "unconstrained_symbolic_body_checking": true,
+    "unused_template_body_checking": true,
+    "opaque_copy_and_default_construction": true,
+    "symbolic_numeric_selectors_indexes_and_layouts": true,
+    "symbolic_declarations_excluded_from_emission": true,
+    "full_polymorphic_constraints": false,
+    "pinned_upstream_hlsl_smoke_sources": [
+      "language-feature/generics/generic-default-type-param.slang"
+    ],
+    "pinned_upstream_hlsl_smoke_dxc_artifacts": 2,
+    "pinned_upstream_compiled_words": 4,
+    "pinned_upstream_matching_words": 4,
+    "original_gpu_cpu_and_shader_object_directives_passed": false
   }
 }

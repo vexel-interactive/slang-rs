@@ -8650,6 +8650,93 @@
       "accept": false,
       "entry": "main",
       "rust_code": "T018"
+    },
+    {
+      "file": "positive/generic-symbolic-values.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 3,
+        "1": 0,
+        "2": 5,
+        "3": 4,
+        "4": 8,
+        "5": 9,
+        "6": 10,
+        "7": 0
+      }
+    },
+    {
+      "file": "negative/generic-unused-body.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T011"
+    },
+    {
+      "file": "negative/generic-unused-initializer.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T001"
+    },
+    {
+      "file": "negative/generic-unconstrained-add.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T012"
+    },
+    {
+      "file": "negative/generic-unconstrained-member.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T013"
+    },
+    {
+      "file": "negative/generic-unconstrained-condition.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T009"
+    },
+    {
+      "file": "negative/generic-unconstrained-constructor.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/generic-unconstrained-return.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T008"
+    },
+    {
+      "file": "negative/generic-unused-call.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/generic-unused-self.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T002"
+    },
+    {
+      "file": "negative/generic-unused-break.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T007"
+    },
+    {
+      "file": "negative/generic-unused-local.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T003"
+    },
+    {
+      "file": "negative/generic-unused-swizzle.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T015"
     }
   ]
 }

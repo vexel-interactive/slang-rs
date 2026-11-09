@@ -648,6 +648,18 @@ its mutable-storage effect. The native-only HLSL suite checks all six accepted
 fixtures against their native results. This does not validate GPU execution,
 polymorphic constraints, generic functions or value parameters.
 
+Symbolic template validation adds five integration tests and thirteen differential
+cases. Unused bodies must reject unknown values, bad initialization/calls,
+unconstrained arithmetic, conversions and member access, invalid control flow,
+duplicate locals and repeated writable selectors. The
+[symbolic value fixture](../tests/conformance/positive/generic-symbolic-values.slang)
+checks eight matching compiled words for parameter copies/defaults, numeric
+selectors/indexes, matrix rows and mutation. Tests also ensure symbolic types
+never reach IR or HLSL and unused valid templates create no emitted instances.
+The pinned `language-feature/generics/generic-default-type-param.slang` source
+passes both HLSL frontends and DXC; its four compiled words match 42, 99, 21 and 31.
+The source's shader-object, GPU, Vulkan and CPU execution directives remain unrun.
+
 [validation.json](validation.json) records the Windows validation run for this
 checkpoint. It includes the pinned compiler version, workspace checks, and
 differential corpus counts. It is a snapshot of that run, not a promise of

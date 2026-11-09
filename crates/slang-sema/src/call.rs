@@ -113,6 +113,24 @@ impl Checker {
                     .insert(callee.id, Type::Meta(Box::new(target)));
                 return result;
             }
+            if arguments.is_empty()
+                && matches!(&callee.kind, ExprKind::TypeApplication(reference) if reference.parameter_ref)
+                && matches!(
+                    target,
+                    Type::Scalar(_) | Type::Vector(..) | Type::Matrix(..)
+                )
+            {
+                self.initializations.insert(
+                    callee.id,
+                    crate::Initialization {
+                        ty: target.clone(),
+                        kind: crate::InitializationKind::Zero,
+                    },
+                );
+                self.expression_types
+                    .insert(callee.id, Type::Meta(Box::new(target.clone())));
+                return target;
+            }
             if types.contains(&Type::InitializerList) {
                 if arguments.len() == 1 && matches!(target, Type::Vector(..) | Type::Matrix(..)) {
                     let scalar = Type::Scalar(target.scalar().unwrap());

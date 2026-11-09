@@ -15,6 +15,7 @@ pub(super) fn replace_type(ty: &mut TypeRef, types: &BTreeMap<String, TypeRef>) 
                 base: Some(Box::new(replacement)),
                 application: ty.application,
                 owner_ref: false,
+                parameter_ref: false,
                 arguments: ty.arguments.clone(),
                 matrix_major: ty.matrix_major,
                 arrays: vec![],
@@ -73,7 +74,9 @@ impl VisitorMut for Substitute<'_> {
         self.node(expression.span)?;
         if let ExprKind::Name(name) = &mut expression.kind {
             if let Some(argument) = self.types.get(name) {
-                expression.kind = ExprKind::TypeApplication(Box::new(argument.clone()));
+                let mut argument = argument.clone();
+                argument.parameter_ref = true;
+                expression.kind = ExprKind::TypeApplication(Box::new(argument));
             } else if name != self.root {
                 self.name(name);
             }

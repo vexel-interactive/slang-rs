@@ -302,6 +302,9 @@ impl Checker {
                 }
                 let ty = self.value_expression(base);
                 match ty {
+                    Type::Struct(ref symbolic) if self.symbolic_shapes.contains_key(symbolic) => {
+                        self.symbolic_selection(symbolic, name, expression.span)
+                    }
                     Type::Struct(ref structure)
                         if self
                             .structures
@@ -383,6 +386,9 @@ impl Checker {
                     );
                 }
                 let (result, size) = match ty {
+                    Type::Struct(ref name) if self.symbolic_shapes.contains_key(name) => {
+                        self.symbolic_index(name, expression.span)
+                    }
                     Type::Array(element, size) => (*element, Some(size)),
                     Type::Vector(s, n) => (Type::Scalar(s), Some(u32::from(n))),
                     Type::Matrix(s, _, columns) => (Type::Vector(s, columns), None),
@@ -516,6 +522,15 @@ impl Checker {
                     return false;
                 }
                 let unique = match self.expression_types.get(&base.id) {
+                    Some(Type::Struct(symbolic)) if self.symbolic_shapes.contains_key(symbolic) => {
+                        let (_, dimensions) = &self.symbolic_shapes[symbolic];
+                        let indices = if dimensions.len() == 1 {
+                            crate::swizzle::vector(name)
+                        } else {
+                            crate::swizzle::matrix(name, dimensions[0], dimensions[1])
+                        };
+                        indices.is_some_and(|v| crate::swizzle::unique(&v))
+                    }
                     Some(Type::Vector(..)) => {
                         crate::swizzle::vector(name).is_some_and(|v| crate::swizzle::unique(&v))
                     }

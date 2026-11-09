@@ -2,6 +2,7 @@
 
 mod canonical;
 mod substitute;
+mod symbolic;
 
 use slang_module::SymbolOrigin;
 use slang_source::{Diagnostic, Span};
@@ -38,18 +39,60 @@ struct Specializer {
     next_context: usize,
     remaining_nodes: usize,
     depth: usize,
+    symbolic_types: BTreeSet<String>,
+}
+
+struct SpecializedModule {
+    module: Module,
+    symbols: BTreeMap<String, SymbolOrigin>,
+    symbolic_types: BTreeSet<String>,
 }
 
 pub(super) fn specialize(
-    mut module: Module,
+    module: Module,
     symbols: BTreeMap<String, SymbolOrigin>,
 ) -> Result<(Module, BTreeMap<String, SymbolOrigin>), Diagnostic> {
+    specialize_inner(module, symbols, false).map(|result| (result.module, result.symbols))
+}
+
+pub(super) fn validate_templates(
+    module: &Module,
+    symbols: &BTreeMap<String, SymbolOrigin>,
+    major: slang_layout::MatrixMajor,
+) -> Result<(), Vec<Diagnostic>> {
     if !module
         .declarations
         .iter()
         .any(|d| !parameters(d).is_empty())
     {
-        return Ok((module, symbols));
+        return Ok(());
+    }
+    let result = specialize_inner(module.clone(), symbols.clone(), true).map_err(|d| vec![d])?;
+    crate::checker::check_concrete(
+        result.module,
+        vec![],
+        result.symbols,
+        major,
+        result.symbolic_types,
+    )
+    .map(|_| ())
+}
+
+fn specialize_inner(
+    mut module: Module,
+    symbols: BTreeMap<String, SymbolOrigin>,
+    symbolic: bool,
+) -> Result<SpecializedModule, Diagnostic> {
+    if !module
+        .declarations
+        .iter()
+        .any(|d| !parameters(d).is_empty())
+    {
+        return Ok(SpecializedModule {
+            module,
+            symbols,
+            symbolic_types: BTreeSet::new(),
+        });
     }
     let mut ids = Ids::default();
     for declaration in &mut module.declarations {
@@ -121,6 +164,7 @@ pub(super) fn specialize(
         next_context: ids.context.max(1),
         remaining_nodes: 65536,
         depth: 0,
+        symbolic_types: BTreeSet::new(),
     };
     let declarations = std::mem::take(&mut module.declarations);
     specializer.register(
@@ -129,14 +173,33 @@ pub(super) fn specialize(
         std::mem::take(&mut module.static_members),
         Some(&known),
     )?;
-    while let Some(mut declaration) = specializer.pending.pop_front() {
+    let mut validated = BTreeSet::new();
+    loop {
+        if symbolic
+            && let Some(name) = specializer
+                .templates
+                .keys()
+                .find(|n| !validated.contains(*n))
+                .cloned()
+        {
+            validated.insert(name.clone());
+            specializer.symbolic_instance(&name)?;
+            continue;
+        }
+        let Some(mut declaration) = specializer.pending.pop_front() else {
+            break;
+        };
         specializer.declaration(&mut declaration)?;
         module.declarations.push(declaration);
     }
     module.nested_types = specializer.nested_output;
     module.static_members = specializer.static_output;
     module.generic_instances = specializer.instance_output;
-    Ok((module, specializer.symbols))
+    Ok(SpecializedModule {
+        module,
+        symbols: specializer.symbols,
+        symbolic_types: specializer.symbolic_types,
+    })
 }
 
 impl Specializer {

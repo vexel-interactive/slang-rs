@@ -217,7 +217,9 @@ impl Checker {
             .map_or(Type::Scalar(crate::Scalar::Float), |argument| {
                 self.type_argument(argument)
             });
-        let Type::Scalar(scalar) = component else {
+        let symbolic =
+            matches!(&component, Type::Struct(name) if self.symbolic_types.contains(name));
+        if !symbolic && !matches!(component, Type::Scalar(_)) {
             if component != Type::Error {
                 self.error(
                     "T002",
@@ -226,7 +228,7 @@ impl Checker {
                 );
             }
             return Type::Error;
-        };
+        }
         let mut dimensions = vec![];
         for argument in reference.arguments.iter().skip(1) {
             let (value, span) = match argument {
@@ -262,6 +264,12 @@ impl Checker {
             dimensions.push(value as u8);
         }
         dimensions.resize(expected - 1, 4);
+        if symbolic {
+            return self.symbolic_shape(component, dimensions, reference.span);
+        }
+        let Type::Scalar(scalar) = component else {
+            unreachable!()
+        };
         if reference.name == "vector" {
             Type::Vector(scalar, dimensions[0])
         } else {

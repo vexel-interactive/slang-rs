@@ -757,14 +757,22 @@ when upstream would discard an unused recursive value. Canonical shape folding
 uses the currently supported scalar constant evaluator, including lexical locals;
 general constant function execution remains absent.
 
-This is explicit concrete specialization. Full polymorphic body checking remains
-unimplemented: dependent operations are checked after substitution, and unused
-templates receive structural type-name and duplicate-parameter validation only.
-The native compiler can therefore accept dependent operations or unused invalid
-bodies rejected by upstream. Interfaces, constraints, generic functions/methods,
+Before concrete specialization, templates are checked with distinct opaque
+parameters through the ordinary semantic checker. Unused bodies receive name,
+type, initialization, call, scope and control-flow checks. A parameter supports
+copying and default construction with `T(value)` and `T()`; unrelated numeric
+conversion, arithmetic and member access require constraints and are rejected.
+Symbolic vectors/matrices support copies, indexing, component selection and matrix
+layout modifiers while retaining their opaque component types. Symbolic types
+are discarded before concrete lowering and never appear in emitted artifacts.
+
+This does not implement general constrained polymorphism. Interfaces, witnesses,
+generic functions/methods,
 value parameters, partial applications and constructor inference remain unported.
-The existing restriction on local names matching module type aliases also applies
-inside instantiated templates.
+The existing restrictions on local names matching module type aliases and on
+fallthrough from nonvoid functions also apply inside checked templates. Full
+polymorphic conversions, overload ranking and receiver-dependent defaults remain
+incomplete.
 
 The [type fixture](../tests/conformance/positive/generic-types.slang) records one
 oracle optimization difference: Slang 2026.21 reuses a repeated static method call

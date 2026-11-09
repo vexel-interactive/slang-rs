@@ -366,6 +366,7 @@ fn expression_type(expression: &Expr) -> Option<TypeRef> {
         base,
         application: false,
         owner_ref: false,
+        parameter_ref: false,
         arguments: vec![],
         matrix_major: None,
         arrays: vec![],
