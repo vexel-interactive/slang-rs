@@ -762,6 +762,11 @@ parameters through the ordinary semantic checker. Unused bodies receive name,
 type, initialization, call, scope and control-flow checks. A parameter supports
 copying and default construction with `T(value)` and `T()`; unrelated numeric
 conversion, arithmetic and member access require constraints and are rejected.
+Parameter casts `(T)value` preserve exact scalar, vector, matrix, struct, fixed-array
+and resource values, including captured parameters in nested templates. Copy casts
+of `vector<T, N>` and `matrix<T, R, C>` retain their component identities. A cast
+such as `(T)3` still requires a conversion constraint and fails even in an unused
+template. Parenthesized value expressions keep their ordinary grouping meaning.
 Symbolic vectors/matrices support copies, indexing, component selection and matrix
 layout modifiers while retaining their opaque component types. Symbolic types
 are discarded before concrete lowering and never appear in emitted artifacts.

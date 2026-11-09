@@ -281,7 +281,13 @@ impl Parser {
                 .type_application_end(start)
                 .is_some_and(|end| self.tokens.get(end).is_some_and(|t| t.is(")")));
         }
-        self.tokens.get(start + 1).is_some_and(|t| t.is(")")) && builtin_cast_type(&token.text)
+        self.tokens.get(start + 1).is_some_and(|t| t.is(")"))
+            && (builtin_cast_type(&token.text)
+                || self
+                    .type_parameters
+                    .iter()
+                    .rev()
+                    .any(|p| p.contains(&token.text)))
     }
 
     /// Recognize angle brackets without consuming comparisons or shifting tokens.
@@ -338,7 +344,12 @@ impl Parser {
     }
 
     fn cast_expression(&mut self, start: Span) -> Result<Expr, Diagnostic> {
-        let target = self.ty()?;
+        let mut target = self.ty()?;
+        target.parameter_ref = self
+            .type_parameters
+            .iter()
+            .rev()
+            .any(|p| p.contains(&target.name));
         self.expect(")")?;
         let value = self.expression(14)?;
         let span = start.join(value.span);

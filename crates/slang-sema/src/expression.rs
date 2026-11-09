@@ -103,9 +103,12 @@ impl Checker {
             ExprKind::Bool(_) => Type::Scalar(Scalar::Bool),
             ExprKind::Cast { target, value } => {
                 let actual = self.value_expression(value);
+                let parameter_copy = target.parameter_ref;
                 let target = self.resolve_type(target);
+                let symbolic_copy = matches!(&target, Type::Struct(name) if self.symbolic_shapes.contains_key(name));
                 let valid = actual == Type::Error
                     || target == Type::Error
+                    || (parameter_copy || symbolic_copy) && actual == target
                     || match (&actual, &target) {
                         (
                             Type::Scalar(_),
@@ -121,6 +124,15 @@ impl Checker {
                         "T008",
                         expression.span,
                         format!("unsupported explicit cast from {actual} to {target}"),
+                    );
+                }
+                if parameter_copy && actual == target {
+                    self.initializations.insert(
+                        expression.id,
+                        crate::Initialization {
+                            ty: target.clone(),
+                            kind: crate::InitializationKind::Value(value.clone()),
+                        },
                     );
                 }
                 target

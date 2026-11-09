@@ -6,7 +6,7 @@
     "rustfmt": "passed",
     "clippy_all_targets_warnings_denied": "passed",
     "unit_tests": 42,
-    "integration_tests": 411,
+    "integration_tests": 414,
     "doc_tests": 1,
     "conformance_comparison_tests": 27,
     "rustdoc": "passed",
@@ -16,11 +16,11 @@
   },
   "differential_validation": {
     "oracle": "Slang 2026.21",
-    "cases_passed": 621,
-    "cases_total": 621,
-    "matching_acceptance_cases": 609,
+    "cases_passed": 624,
+    "cases_total": 624,
+    "matching_acceptance_cases": 612,
     "documented_oracle_differences": 12,
-    "dxc_hlsl_artifacts_validated": 634,
+    "dxc_hlsl_artifacts_validated": 638,
     "dxc_invalid_hlsl_artifacts_rejected": 22,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
@@ -37,9 +37,9 @@
     "uniform_byte_layout_cases_compared": 61,
     "documented_oracle_physical_layout_differences": 12,
     "physical_buffer_layout_cases_compared": 43,
-    "compiled_constant_cases_compared": 44,
-    "compiled_constant_words_compared": 1254,
-    "compiled_constant_words_matching": 1240,
+    "compiled_constant_cases_compared": 45,
+    "compiled_constant_words_compared": 1264,
+    "compiled_constant_words_matching": 1250,
     "documented_oracle_constant_words_differing": 14,
     "documented_oracle_constant_cases_differing": 6,
     "documented_oracle_uniform_reflection_differences": 1,
@@ -53,8 +53,8 @@
   "remote_ci_executed": false,
   "remote_ci": null,
   "previous_remote_ci": {
-    "run_id": 42664741851,
-    "head_sha": "ab40164860631ff32d1ddf05e8c527ebf4c3d132",
+    "run_id": 42667485987,
+    "head_sha": "5958446f8edbac106f4319d74c95a982cb5cb24d",
     "conclusion": "success",
     "platforms": [
       "ubuntu-latest",
@@ -63,6 +63,16 @@
     ]
   },
   "earlier_remote_ci": [
+    {
+      "run_id": 42664741851,
+      "head_sha": "ab40164860631ff32d1ddf05e8c527ebf4c3d132",
+      "conclusion": "success",
+      "platforms": [
+        "ubuntu-latest",
+        "windows-latest",
+        "macos-latest"
+      ]
+    },
     {
       "run_id": 42655478519,
       "head_sha": "6fec4bb98985434ac862439eebdc1a70f3bd9c27",
@@ -557,7 +567,7 @@
   },
   "native_hlsl_suite": {
     "manifest": "tests/native/manifest.json",
-    "artifacts_validated": 124,
+    "artifacts_validated": 126,
     "profiles": [
       "cs_6_0",
       "cs_6_2",
@@ -689,13 +699,15 @@
       "../conformance/positive/generic-resource-types.slang",
       "../conformance/positive/generic-type-module/main.slang",
       "../conformance/positive/generic-type-comparisons.slang",
-      "../conformance/positive/generic-symbolic-values.slang"
+      "../conformance/positive/generic-symbolic-values.slang",
+      "../conformance/positive/generic-copy-casts.slang",
+      "../conformance/positive/generic-resource-casts.slang"
     ],
     "uniform_byte_layout_cases": 61,
     "matrix_layout_shapes": 96,
     "constant_buffer_numeric_layouts": 252,
-    "compiled_constant_cases": 31,
-    "compiled_constant_words": 1088
+    "compiled_constant_cases": 32,
+    "compiled_constant_words": 1098
   },
   "pointer_integer_validation": {
     "target_pointer_bits": 64,
@@ -967,13 +979,13 @@
     "complete_upstream_parity": false
   },
   "generic_type_validation": {
-    "integration_tests": 13,
-    "differential_cases": 29,
-    "matching_acceptance_cases": 29,
-    "dxc_hlsl_artifacts_validated": 14,
-    "compiled_constant_cases": 6,
-    "compiled_constant_words": 36,
-    "matching_words": 34,
+    "integration_tests": 16,
+    "differential_cases": 32,
+    "matching_acceptance_cases": 32,
+    "dxc_hlsl_artifacts_validated": 18,
+    "compiled_constant_cases": 7,
+    "compiled_constant_words": 46,
+    "matching_words": 44,
     "documented_oracle_constant_words_differing": 2,
     "struct_and_typealias_type_parameters": true,
     "type_defaults_and_canonical_alias_identity": true,
@@ -1010,6 +1022,8 @@
     "pinned_upstream_hlsl_smoke_dxc_artifacts": 2,
     "pinned_upstream_compiled_words": 4,
     "pinned_upstream_matching_words": 4,
-    "original_gpu_cpu_and_shader_object_directives_passed": false
+    "original_gpu_cpu_and_shader_object_directives_passed": false,
+    "parameter_copy_casts": true,
+    "nested_receiver_and_constructor_results": true
   }
 }

@@ -391,9 +391,14 @@ impl Lowerer<'_> {
                 op: op.clone(),
                 value: Box::new(self.expression(value)?),
             },
-            ast::ExprKind::Cast { value, .. } => ExprKind::Cast {
-                value: Box::new(self.expression(value)?),
-            },
+            ast::ExprKind::Cast { value, .. } => {
+                if let Some(plan) = self.checked.initializations.get(&expression.id) {
+                    return self.planned_initialization(expression.id, plan, expression.span);
+                }
+                ExprKind::Cast {
+                    value: Box::new(self.expression(value)?),
+                }
+            }
             ast::ExprKind::Binary { op, left, right } => ExprKind::Binary {
                 op: op.clone(),
                 left: Box::new(self.expression(left)?),

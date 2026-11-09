@@ -53,7 +53,11 @@ Numeric shapes with opaque components have private semantic struct identities;
 their selectors and indexes preserve the component type, while arithmetic has no
 witness and fails. Copy/default parameter constructors retain their source origin,
 so `T()` can lower to default initialization after substitution without allowing
-unsupported empty calls to concrete numeric constructors. Symbolic declarations
+unsupported empty calls to concrete numeric constructors.
+Parameter copy casts retain this origin too; the checker records a value
+initialization plan that lowering consumes without emitting resource or aggregate
+HLSL casts. Synthesized receiver and constructor-result owner references survive
+outer substitutions until their nested owner is specialized. Symbolic declarations
 are discarded. The concrete declarations use ordinary checking, layout and HLSL
 lowering. General constrained validation, witness tables and IR-level generic
 specialization remain unimplemented.

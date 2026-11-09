@@ -42,6 +42,7 @@ pub fn parse(tokens: &[Token]) -> Result<Module, Vec<Diagnostic>> {
         static_members: vec![],
         type_prefix,
         type_owners: vec![],
+        type_parameters: vec![],
         nested_types: vec![],
     };
     let mut module = Module::default();
@@ -95,6 +96,7 @@ pub(crate) struct Parser {
     pub static_members: Vec<StaticMemberInfo>,
     pub type_prefix: String,
     pub type_owners: Vec<String>,
+    pub type_parameters: Vec<std::collections::BTreeSet<String>>,
     pub nested_types: Vec<NestedTypeInfo>,
 }
 

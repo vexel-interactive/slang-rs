@@ -660,6 +660,14 @@ The pinned `language-feature/generics/generic-default-type-param.slang` source
 passes both HLSL frontends and DXC; its four compiled words match 42, 99, 21 and 31.
 The source's shader-object, GPU, Vulkan and CPU execution directives remain unrun.
 
+Parameter copy-cast regressions add three integration tests and three differential
+cases. The [value fixture](../tests/conformance/positive/generic-copy-casts.slang)
+compares ten matching compiled words for scalar, vector, matrix, struct and array
+copies, captured nested parameters, receiver identities and constructor results.
+The [resource fixture](../tests/conformance/positive/generic-resource-casts.slang)
+checks copied read/write handles through both HLSL frontends and DXC. Unused
+unconstrained numeric-to-parameter casts must fail before specialization.
+
 [validation.json](validation.json) records the Windows validation run for this
 checkpoint. It includes the pinned compiler version, workspace checks, and
 differential corpus counts. It is a snapshot of that run, not a promise of

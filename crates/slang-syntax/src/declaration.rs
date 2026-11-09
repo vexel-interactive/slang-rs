@@ -93,6 +93,8 @@ impl Parser {
                 return Err(self.error("nested type depth exceeds 32"));
             }
             self.type_owners.push(name.clone());
+            self.type_parameters
+                .push(generic_parameters.iter().map(|p| p.name.clone()).collect());
             self.expect("{")?;
             let mut fields = vec![];
             let mut members = vec![];
@@ -249,6 +251,7 @@ impl Parser {
             }
             let end = self.expect("}")?;
             self.type_owners.pop();
+            self.type_parameters.pop();
             self.eat(";");
             let mut declarations = vec![Declaration::Struct(Struct {
                 name,

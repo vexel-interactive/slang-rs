@@ -24,6 +24,7 @@ pub(super) fn replace_type(ty: &mut TypeRef, types: &BTreeMap<String, TypeRef>) 
         }
         replacement.arrays.splice(0..0, ty.arrays.clone());
         replacement.matrix_major = ty.matrix_major.or(replacement.matrix_major);
+        replacement.parameter_ref |= ty.parameter_ref;
         replacement.span = ty.span;
         *ty = replacement;
     }
@@ -67,7 +68,6 @@ impl VisitorMut for Substitute<'_> {
         if ty.owner_ref || ty.name != self.root {
             self.name(&mut ty.name);
         }
-        ty.owner_ref = false;
         visit::walk_type(self, ty)
     }
     fn expression(&mut self, expression: &mut Expr) -> Result<(), Diagnostic> {
