@@ -444,26 +444,17 @@ fn inference_failures_and_unused_body_errors_are_not_hidden() {
     for call in ["pick({1,2},int2(3,4))", "pick(int2(3,4),{1,2})", "defaulted({2})"] {
         let source = format!(
             r#"
-                T pick<T>(T first, T second) {
-                    {
-                        return second;
-                    }
-                }
+                T pick<T>(T first, T second) {{
+                    return second;
+                }}
 
-                T defaulted<T = int>(T value) {
-                    {
-                        return value;
-                    }
-                }
+                T defaulted<T = int>(T value) {{
+                    return value;
+                }}
 
-                int run() {
-                    {
-                        return {
-                            call
-                        }
-                        .x;
-                    }
-                }
+                int run() {{
+                    return {call}.x;
+                }}
             "#
         );
         let error = compile_source(

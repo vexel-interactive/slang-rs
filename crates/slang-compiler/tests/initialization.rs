@@ -188,28 +188,22 @@ fn field_defaults_use_declaration_scope_but_supplied_values_use_caller_scope() {
             r#"
                 static float value = 2;
 
-                float helper() {
-                    {
-                        return value;
-                    }
-                }
+                float helper() {{
+                    return value;
+                }}
 
-                struct Pair {
-                    {
-                        float x;
-                        float y = helper() + value;
-                    }
-                };
+                struct Pair {{
+                    float x;
+                    float y = helper() + value;
+                }};
 
-                float run() {
-                    {
-                        float value = 9;
-                        float helper = 8;
-                        Pair p = { initializer };
+                float run() {{
+                    float value = 9;
+                    float helper = 8;
+                    Pair p = {initializer};
 
-                        return p.x + p.y;
-                    }
-                }
+                    return p.x + p.y;
+                }}
             "#
         ));
         let run = compiled.ir.functions.iter().find(|f| f.name == "run").unwrap();
