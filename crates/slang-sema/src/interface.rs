@@ -29,20 +29,20 @@ impl Checker {
             output: false,
             semantics: BTreeSet::new(),
         };
+
         let mut outputs = Interface {
             module,
             stage,
             output: true,
             semantics: BTreeSet::new(),
         };
+
         for parameter in &function.parameters {
             let ty = self.resolve_type(&parameter.ty);
             let input = !parameter.modifiers.iter().any(|m| m == "out");
-            let output = parameter
-                .modifiers
-                .iter()
-                .any(|m| m == "out" || m == "inout");
+            let output = parameter.modifiers.iter().any(|m| m == "out" || m == "inout");
             let flat = parameter.modifiers.iter().any(|m| m == "nointerpolation");
+
             if input {
                 self.interface_value(
                     &ty,
@@ -53,6 +53,7 @@ impl Checker {
                     flat,
                 );
             }
+
             if output {
                 self.interface_value(
                     &ty,
@@ -64,7 +65,9 @@ impl Checker {
                 );
             }
         }
+
         let result = self.resolve_type(&function.return_type);
+
         if result != Type::Void {
             self.interface_value(
                 &result,
@@ -75,12 +78,9 @@ impl Checker {
                 false,
             );
         } else if function.semantic.is_some() {
-            self.error(
-                "T006",
-                function.span,
-                "a void return cannot have a semantic",
-            );
+            self.error("T006", function.span, "a void return cannot have a semantic");
         }
+
         if stage == ShaderStage::Vertex && !outputs.semantics.contains("SV_POSITION0") {
             self.error("T006", function.span, "vertex output requires SV_Position");
         }
@@ -99,6 +99,7 @@ impl Checker {
             self.error("T006", span, "shader interface nesting exceeds 128 levels");
             return;
         }
+
         if let Type::Struct(name) = ty {
             if semantic.is_some() {
                 self.error(
@@ -108,6 +109,7 @@ impl Checker {
                 );
                 return;
             }
+
             if let Some(structure) = interface.module.declarations.iter().find_map(|d| match d {
                 Declaration::Struct(s) if &s.name == name => Some(s),
                 _ => None,
@@ -124,11 +126,14 @@ impl Checker {
                     );
                 }
             }
+
             return;
         }
+
         if *ty == Type::Error {
             return;
         }
+
         if !matches!(ty, Type::Scalar(_) | Type::Vector(..)) {
             self.error(
                 "T001",
@@ -137,30 +142,32 @@ impl Checker {
             );
             return;
         }
+
         let Some(semantic) = semantic else {
             self.error("T006", span, "shader interface leaf requires a semantic");
             return;
         };
+
         let (name, index) = semantic_parts(semantic);
         let key = format!("{name}{index}");
+
         if !interface.semantics.insert(key) {
-            self.error(
-                "T006",
-                span,
-                format!("duplicate shader interface semantic '{semantic}'"),
-            );
+            self.error("T006", span, format!("duplicate shader interface semantic '{semantic}'"));
         }
+
         let valid = match (interface.stage, interface.output, name.as_str(), index) {
             (ShaderStage::Vertex, true, "SV_POSITION", 0)
             | (ShaderStage::Fragment, false, "SV_POSITION", 0) => {
                 *ty == Type::Vector(Scalar::Float, 4)
             }
+
             (ShaderStage::Vertex, false, "SV_VERTEXID" | "SV_INSTANCEID", 0)
             | (ShaderStage::Fragment, false, "SV_PRIMITIVEID" | "SV_SAMPLEINDEX", 0)
             | (ShaderStage::Fragment, _, "SV_COVERAGE", 0) => *ty == Type::Scalar(Scalar::Uint),
             (ShaderStage::Fragment, false, "SV_ISFRONTFACE", 0) => {
                 *ty == Type::Scalar(Scalar::Bool)
             }
+
             (ShaderStage::Fragment, true, "SV_TARGET", 0..=7) => ty.numeric(),
             (
                 ShaderStage::Fragment,
@@ -173,8 +180,10 @@ impl Checker {
                     && !(interface.stage == ShaderStage::Fragment && interface.output)
                     && !(interface.stage == ShaderStage::Fragment && ty.integral() && !flat)
             }
+
             _ => false,
         };
+
         if !valid {
             self.error("T006", span, format!("unsupported semantic '{semantic}' or incompatible type {ty} for this shader interface"));
         }
@@ -182,15 +191,15 @@ impl Checker {
 }
 
 // HLSL semantics are case-insensitive and an absent numeric suffix means zero.
+
 fn semantic_parts(semantic: &str) -> (String, u32) {
     let semantic = semantic.to_ascii_uppercase();
-    let suffix = semantic
-        .trim_end_matches(|c: char| c.is_ascii_digit())
-        .len();
+    let suffix = semantic.trim_end_matches(|c: char| c.is_ascii_digit()).len();
     let index = if suffix == semantic.len() {
         0
     } else {
         semantic[suffix..].parse().unwrap_or(u32::MAX)
     };
+
     (semantic[..suffix].into(), index)
 }

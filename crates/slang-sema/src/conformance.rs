@@ -16,29 +16,26 @@ use std::collections::{BTreeMap, BTreeSet};
 impl Checker {
     pub(crate) fn declare_conformances(&mut self, module: &Module) {
         let mut inheritance = BTreeMap::new();
-        for interface in self
-            .interface_definitions
-            .values()
-            .cloned()
-            .collect::<Vec<_>>()
-        {
-            self.current_module = self
-                .symbols
-                .get(&interface.name)
-                .map_or(Default::default(), |o| o.module);
+
+        for interface in self.interface_definitions.values().cloned().collect::<Vec<_>>() {
+            self.current_module =
+                self.symbols.get(&interface.name).map_or(Default::default(), |o| o.module);
             self.current_static_type = Some(interface.name.clone());
             self.check_visibility_modifiers(&interface.modifiers, interface.span);
             let bases = self.interface_bases(&interface.bases);
             inheritance.insert(interface.name.clone(), bases);
+
             for requirement in &interface.requirements {
                 let (_, parameters, result) =
                     self.requirement_signature(&interface.name, requirement);
                 if interface.modifiers.iter().any(|m| m == "public") {
                     self.require_public_type(&result, requirement.span);
+
                     for (parameter, ty) in requirement.parameters.iter().zip(&parameters) {
                         self.require_public_type(ty, parameter.span);
                     }
                 }
+
                 for (parameter, ty) in requirement.parameters.iter().zip(&parameters) {
                     let directions = parameter
                         .modifiers
@@ -47,10 +44,7 @@ impl Checker {
                         .count();
                     if directions > 1
                         || parameter.modifiers.iter().any(|m| m == "const")
-                            && parameter
-                                .modifiers
-                                .iter()
-                                .any(|m| m == "out" || m == "inout")
+                            && parameter.modifiers.iter().any(|m| m == "out" || m == "inout")
                     {
                         self.error(
                             "T001",
@@ -58,6 +52,7 @@ impl Checker {
                             "conflicting interface parameter modifiers",
                         );
                     }
+
                     if *ty == Type::Void {
                         self.error(
                             "T002",
@@ -66,6 +61,7 @@ impl Checker {
                         );
                     }
                 }
+
                 if !requirement.generic_parameters.is_empty()
                     || requirement.constructor.is_some() && requirement.body.is_some()
                 {
@@ -75,6 +71,7 @@ impl Checker {
                         "generic requirements and default interface constructors are not implemented",
                     );
                 }
+
                 if requirement
                     .modifiers
                     .iter()
@@ -93,39 +90,32 @@ impl Checker {
                 }
             }
         }
-        for interface in self
-            .interface_definitions
-            .values()
-            .cloned()
-            .collect::<Vec<_>>()
-        {
+
+        for interface in self.interface_definitions.values().cloned().collect::<Vec<_>>() {
             match interface_closure(&interface.name, &inheritance, interface.span) {
                 Ok(bases) => {
                     self.conformances.insert(interface.name, bases);
                 }
+
                 Err(diagnostic) => self.diagnostics.push(diagnostic),
             }
         }
-        for structure in self
-            .struct_definitions
-            .values()
-            .cloned()
-            .collect::<Vec<_>>()
-        {
-            self.current_module = self
-                .symbols
-                .get(&structure.name)
-                .map_or(Default::default(), |o| o.module);
+
+        for structure in self.struct_definitions.values().cloned().collect::<Vec<_>>() {
+            self.current_module =
+                self.symbols.get(&structure.name).map_or(Default::default(), |o| o.module);
             self.current_static_type = Some(structure.name.clone());
             let mut interfaces = BTreeSet::new();
+
             for base in self.interface_bases(&structure.bases) {
                 if let Some(bases) = self.conformances.get(&base) {
                     interfaces.extend(bases.iter().cloned());
                 }
+
                 interfaces.insert(base);
             }
-            self.conformances
-                .insert(structure.name.clone(), interfaces.clone());
+
+            self.conformances.insert(structure.name.clone(), interfaces.clone());
             let requirements = interfaces
                 .iter()
                 .flat_map(|name| {
@@ -151,12 +141,14 @@ impl Checker {
                 }
             }
         }
+
         self.current_module = Default::default();
         self.current_static_type = None;
     }
 
     fn interface_bases(&mut self, references: &[TypeRef]) -> BTreeSet<String> {
         let mut bases = BTreeSet::new();
+
         for reference in references {
             match self.resolve_type(reference) {
                 Type::Interface(name) => {
@@ -164,6 +156,7 @@ impl Checker {
                         self.error("T032", reference.span, "duplicate interface base");
                     }
                 }
+
                 Type::Error => {}
                 _ => self.error(
                     "T032",
@@ -172,6 +165,7 @@ impl Checker {
                 ),
             }
         }
+
         bases
     }
 
@@ -185,11 +179,7 @@ impl Checker {
         RequirementOwner(owner)
             .function(&mut function)
             .expect("requirement substitution cannot fail");
-        let parameters = function
-            .parameters
-            .iter()
-            .map(|p| self.resolve_type(&p.ty))
-            .collect();
+        let parameters = function.parameters.iter().map(|p| self.resolve_type(&p.ty)).collect();
         let result = self.resolve_type(&function.return_type);
         (function, parameters, result)
     }
@@ -209,6 +199,7 @@ impl Checker {
                     .or_insert_with(|| format!("{owner}_constructor_requirement"))
                     .clone()
             };
+
             let signature = Signature {
                 declaration: span_key(function.span),
                 parameters,
@@ -221,15 +212,12 @@ impl Checker {
                 defined: true,
                 public: true,
                 target_name: name.clone(),
-                defaults: function
-                    .parameters
-                    .iter()
-                    .map(|p| p.initializer.clone())
-                    .collect(),
+                defaults: function.parameters.iter().map(|p| p.initializer.clone()).collect(),
                 method: function.method.clone(),
                 default_type_arguments: 0,
                 generic: false,
             };
+
             self.symbolic_requirements.insert(
                 (signature.declaration, owner.into()),
                 ConstraintCallInfo {
@@ -242,11 +230,10 @@ impl Checker {
                         .map_or(self.current_module.0, |o| o.module.0),
                 },
             );
-            self.direct_witnesses.insert(
-                witness::key(owner, interface, requirement.span),
-                signature.clone(),
-            );
+            self.direct_witnesses
+                .insert(witness::key(owner, interface, requirement.span), signature.clone());
             let overloads = self.functions.entry(name).or_default();
+
             if let Some(existing) = overloads.iter().find(|s| {
                 s.parameters == signature.parameters
                     && s.result == signature.result
@@ -256,13 +243,11 @@ impl Checker {
             }) {
                 let binding =
                     self.symbolic_requirements[&(signature.declaration, owner.into())].clone();
-                self.symbolic_requirements
-                    .insert((existing.declaration, owner.into()), binding);
-                self.direct_witnesses.insert(
-                    witness::key(owner, interface, requirement.span),
-                    existing.clone(),
-                );
+                self.symbolic_requirements.insert((existing.declaration, owner.into()), binding);
+                self.direct_witnesses
+                    .insert(witness::key(owner, interface, requirement.span), existing.clone());
             }
+
             if !overloads.iter().any(|s| {
                 s.parameters == signature.parameters
                     && s.result == signature.result
@@ -284,20 +269,19 @@ impl Checker {
         span: Span,
     ) {
         let (required, parameters, result) = self.requirement_signature(owner, requirement);
-        let name = required
-            .method
-            .as_ref()
-            .map_or("__init", |m| m.name.as_str());
+        let name = required.method.as_ref().map_or("__init", |m| m.name.as_str());
         let target = if required.constructor.is_some() {
             self.constructors.get(owner)
         } else {
             self.methods.get(&(owner.into(), name.into()))
         };
+
         let witness = target.and_then(|t| self.functions.get(t)).and_then(|overloads| overloads.iter().find(|signature| {
             signature.defined && signature.parameters == parameters && signature.result == result
                 && signature.method.as_ref().map(|m| m.is_static) == required.method.as_ref().map(|m| m.is_static)
                 && module.declarations.iter().any(|d| matches!(d, Declaration::Function(f) if span_key(f.span) == signature.declaration && parameter_modes(f) == parameter_modes(&required)))
         })).cloned();
+
         if let Some(witness) = &witness {
             if requirement.body.is_some()
                 && let Some(function) = module.declarations.iter().find_map(|d| match d {
@@ -312,17 +296,14 @@ impl Checker {
                     "missing 'override' keyword for an interface default implementation",
                 );
             }
+
             self.interface_witnesses.insert(witness.declaration);
-            self.direct_witnesses.insert(
-                witness::key(owner, interface, requirement.span),
-                witness.clone(),
-            );
+            self.direct_witnesses
+                .insert(witness::key(owner, interface, requirement.span), witness.clone());
         }
+
         if witness.is_none()
-            && !parameters
-                .iter()
-                .chain(std::iter::once(&result))
-                .any(|t| *t == Type::Error)
+            && !parameters.iter().chain(std::iter::once(&result)).any(|t| *t == Type::Error)
         {
             self.error("T032", span, format!("type '{}' does not implement interface requirement '{name}' with the required signature", self.source_name(owner)));
         }
@@ -371,6 +352,7 @@ pub(crate) fn interface_closure(
                 "cyclic or excessively nested interface inheritance",
             ));
         }
+
         if let Some(bases) = inheritance.get(root) {
             for base in bases {
                 if !output.contains(base) {
@@ -378,10 +360,12 @@ pub(crate) fn interface_closure(
                 }
             }
         }
+
         active.remove(root);
         output.insert(root.into());
         Ok(())
     }
+
     let mut output = BTreeSet::new();
     visit(root, inheritance, &mut BTreeSet::new(), &mut output, span)?;
     Ok(output)
@@ -404,9 +388,18 @@ fn contains_interface(ty: &Type) -> bool {
     match ty {
         Type::Interface(_) => true,
         Type::Array(element, _)
-        | Type::Buffer { element, .. }
-        | Type::ConstantBuffer { element, .. }
-        | Type::Texture { element, .. } => contains_interface(element),
+        | Type::Buffer {
+            element,
+            ..
+        }
+        | Type::ConstantBuffer {
+            element,
+            ..
+        }
+        | Type::Texture {
+            element,
+            ..
+        } => contains_interface(element),
         _ => false,
     }
 }
@@ -417,9 +410,11 @@ impl RequirementOwner<'_> {
         if let Some(owner) = &mut function.constructor {
             *owner = self.0.into();
         }
+
         if let Some(method) = &mut function.method {
             method.owner = self.0.into();
         }
+
         visit::walk_function(self, function)
     }
 }
@@ -431,6 +426,7 @@ impl VisitorMut for RequirementOwner<'_> {
             ty.arguments.clear();
             ty.application = false;
         }
+
         visit::walk_type(self, ty)
     }
 }

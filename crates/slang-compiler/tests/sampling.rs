@@ -1,13 +1,8 @@
 use slang_compiler::{CompileOptions, MemoryIncludes, compile_source};
 
 fn compile(source: &str) -> slang_compiler::Compilation {
-    compile_source(
-        "sampling.slang",
-        source,
-        &CompileOptions::default(),
-        &MemoryIncludes::default(),
-    )
-    .unwrap()
+    compile_source("sampling.slang", source, &CompileOptions::default(), &MemoryIncludes::default())
+        .unwrap()
 }
 
 #[test]
@@ -19,14 +14,10 @@ fn bias_and_gradient_methods_preserve_texture_element_types_and_dimensions() {
         half2 read3(float3 uv){return t3.SampleGrad(state,uv,float3(1),float3(1))+t3.SampleBias(state,uv,0.0);}
         float3 readCube(float3 uv){return tc.SampleGrad(state,uv,float3(1),float3(1))+tc.SampleBias(state,uv,0.0);}",
     );
-    let types: Vec<_> = compiled
-        .ir
-        .functions
-        .iter()
-        .map(|f| f.return_type.to_string())
-        .collect();
+    let types: Vec<_> = compiled.ir.functions.iter().map(|f| f.return_type.to_string()).collect();
     assert_eq!(types, ["float", "float4", "half2", "float3"]);
     let code = compiled.artifact.unwrap();
+
     assert_eq!(code.matches(".SampleGrad(").count(), 4);
     assert_eq!(code.matches(".SampleBias(").count(), 4);
 }
@@ -80,9 +71,7 @@ fn unsupported_sampling_receivers_and_invalid_gradients_are_rejected() {
             &MemoryIncludes::default(),
         )
         .unwrap_err();
-        assert!(
-            error.diagnostics.iter().any(|d| d.code == code),
-            "{source}: {error}"
-        );
+
+        assert!(error.diagnostics.iter().any(|d| d.code == code), "{source}: {error}");
     }
 }

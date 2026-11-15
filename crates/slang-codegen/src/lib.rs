@@ -71,6 +71,7 @@ pub fn emit(module: &slang_ir::Module, target: Target) -> Result<String, Diagnos
             format!("target '{target}' has not been implemented"),
         ));
     }
+
     Ok(hlsl::emit(module))
 }
 

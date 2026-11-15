@@ -2,10 +2,7 @@ use super::*;
 use crate::effects::{assign, expression, variable};
 
 pub(super) fn output(parameter: &Variable) -> bool {
-    parameter
-        .modifiers
-        .iter()
-        .any(|m| matches!(m.as_str(), "out" | "inout"))
+    parameter.modifiers.iter().any(|m| matches!(m.as_str(), "out" | "inout"))
 }
 
 impl Lowerer {
@@ -28,6 +25,7 @@ impl Lowerer {
         // implicit integer address view asks for aggressive resource addressing.
         let addressable = addressable(argument, parameter.ty != argument.ty);
         let location = self.freeze(argument, statements)?;
+
         if addressable {
             return Ok(if parameter.ty == argument.ty {
                 location
@@ -39,32 +37,40 @@ impl Lowerer {
                 }
             });
         }
+
         let local = self.storage(parameter, span);
-        let input = parameter
-            .modifiers
-            .iter()
-            .any(|m| matches!(m.as_str(), "in" | "inout"));
+        let input = parameter.modifiers.iter().any(|m| matches!(m.as_str(), "in" | "inout"));
         if input {
             statements.push(expression(assign(local.clone(), location.clone())));
         }
+
         fixups.push(expression(assign(location, local.clone())));
         Ok(local)
     }
 
     fn freeze(&mut self, value: &Expr, statements: &mut Vec<Stmt>) -> Result<Expr, Diagnostic> {
         let mut value = value.clone();
+
         match &mut value.kind {
             ExprKind::AddressView(location) => **location = self.freeze(location, statements)?,
             ExprKind::Name(_) | ExprKind::GlobalName(_) => {}
-            ExprKind::Member { base, .. } => **base = self.freeze(base, statements)?,
-            ExprKind::Index { base, index } => {
+            ExprKind::Member {
+                base,
+                ..
+            } => **base = self.freeze(base, statements)?,
+            ExprKind::Index {
+                base,
+                index,
+            } => {
                 if matches!(base.ty, Type::Buffer { .. } | Type::Texture { .. }) {
                     **base = self.coordinate(base, statements);
                 } else {
                     **base = self.freeze(base, statements)?;
                 }
+
                 **index = self.coordinate(index, statements);
             }
+
             _ => {
                 return Err(unsupported(
                     value.span,
@@ -72,6 +78,7 @@ impl Lowerer {
                 ));
             }
         }
+
         Ok(scalar_location(value))
     }
 
@@ -79,10 +86,9 @@ impl Lowerer {
         if matches!(value.kind, ExprKind::Integer(_) | ExprKind::Bool(_)) {
             return value.clone();
         }
-        let local = self.storage(
-            &variable(String::new(), value.ty.clone(), value.span),
-            value.span,
-        );
+
+        let local =
+            self.storage(&variable(String::new(), value.ty.clone(), value.span), value.span);
         statements.push(expression(assign(local.clone(), value.clone())));
         local
     }
@@ -92,36 +98,43 @@ impl Lowerer {
 /// scalar locations to the original storage after their coordinates are frozen.
 fn scalar_location(value: Expr) -> Expr {
     match &value.kind {
-        ExprKind::Index { base, index }
-            if matches!(base.kind, ExprKind::Member { .. })
-                && matches!(value.ty, Type::Scalar(_)) =>
+        ExprKind::Index {
+            base,
+            index,
+        } if matches!(base.kind, ExprKind::Member { .. })
+            && matches!(value.ty, Type::Scalar(_)) =>
         {
             component(*base.clone(), *index.clone())
         }
-        ExprKind::Member { base, name } if matches!(value.ty, Type::Scalar(_)) => {
+
+        ExprKind::Member {
+            base,
+            name,
+        } if matches!(value.ty, Type::Scalar(_)) => {
             if let Some(indices) = base.ty.component_indices(name) {
                 component(
                     *base.clone(),
-                    integer(
-                        indices[0],
-                        Type::Scalar(slang_sema::Scalar::Int),
-                        value.span,
-                    ),
+                    integer(indices[0], Type::Scalar(slang_sema::Scalar::Int), value.span),
                 )
             } else {
                 value
             }
         }
+
         _ => value,
     }
 }
 
 fn component(base: Expr, index: Expr) -> Expr {
-    if let ExprKind::Member { base: source, name } = &base.kind
+    if let ExprKind::Member {
+        base: source,
+        name,
+    } = &base.kind
         && let Some(indices) = source.ty.component_indices(name)
     {
         return component(*source.clone(), selection(&index, &indices));
     }
+
     match base.ty {
         Type::Matrix(scalar, _, columns) => {
             let row = crate::effects::binary(
@@ -137,6 +150,7 @@ fn component(base: Expr, index: Expr) -> Expr {
             let row = indexed(base, row, Type::Vector(scalar, columns));
             indexed(row, column, Type::Scalar(scalar))
         }
+
         Type::Vector(scalar, _) => indexed(base, index, Type::Scalar(scalar)),
         _ => base,
     }
@@ -149,7 +163,9 @@ fn selection(index: &Expr, components: &[u8]) -> Expr {
     {
         return integer(*component, index.ty.clone(), index.span);
     }
+
     let mut value = integer(*components.last().unwrap(), index.ty.clone(), index.span);
+
     for (position, component) in components.iter().enumerate().rev().skip(1) {
         let mut condition = crate::effects::binary(
             "==",
@@ -167,6 +183,7 @@ fn selection(index: &Expr, components: &[u8]) -> Expr {
             },
         };
     }
+
     value
 }
 
@@ -196,33 +213,46 @@ fn addressable(value: &Expr, aggressive: bool) -> bool {
     match &value.kind {
         ExprKind::AddressView(location) => addressable(location, aggressive),
         ExprKind::Name(_) | ExprKind::GlobalName(_) => true,
-        ExprKind::Member { base, .. } => {
+        ExprKind::Member {
+            base,
+            ..
+        } => {
             let scalar_selection = matches!(value.ty, Type::Scalar(_));
+
             if matches!(base.ty, Type::Vector(..) | Type::Matrix(..)) {
                 scalar_selection && addressable(swizzle_base(base), true)
             } else {
                 addressable(base, true)
             }
         }
-        ExprKind::Index { base, .. } => {
+
+        ExprKind::Index {
+            base,
+            ..
+        } => {
             if matches!(value.ty, Type::Scalar(_))
                 && matches!(base.ty, Type::Vector(..))
                 && matches!(base.kind, ExprKind::Member { .. })
             {
                 return addressable(swizzle_base(base), true);
             }
+
             if matches!(base.ty, Type::Buffer { .. } | Type::Texture { .. }) {
                 aggressive
             } else {
                 addressable(base, aggressive)
             }
         }
+
         _ => false,
     }
 }
 
 fn swizzle_base(value: &Expr) -> &Expr {
-    if let ExprKind::Member { base, .. } = &value.kind
+    if let ExprKind::Member {
+        base,
+        ..
+    } = &value.kind
         && matches!(base.ty, Type::Vector(..) | Type::Matrix(..))
     {
         swizzle_base(base)

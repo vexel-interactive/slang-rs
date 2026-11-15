@@ -10,14 +10,9 @@ use slang_syntax::{ConstraintCallInfo, ExprId, TypeRef};
 use std::collections::BTreeMap;
 
 pub(crate) type WitnessKey = (String, String, usize, usize, usize);
+
 pub(crate) fn key(owner: &str, interface: &str, span: Span) -> WitnessKey {
-    (
-        owner.into(),
-        interface.into(),
-        span.source.0,
-        span.start,
-        span.end,
-    )
+    (owner.into(), interface.into(), span.source.0, span.start, span.end)
 }
 
 pub(crate) fn reference(name: String, span: Span) -> TypeRef {
@@ -43,10 +38,10 @@ impl Checker {
                 None
             }
         });
+
         if let Some(owner) = owner
-            && let Some(binding) = self
-                .symbolic_requirements
-                .get(&(signature.declaration, owner.into()))
+            && let Some(binding) =
+                self.symbolic_requirements.get(&(signature.declaration, owner.into()))
         {
             self.constraint_calls.insert(callee, binding.clone());
         }
@@ -65,6 +60,7 @@ impl Checker {
         owner: &str,
     ) -> Option<Result<Signature, Diagnostic>> {
         let binding = self.constraint_binding(site)?;
+
         if binding.owner.name != owner || !binding.owner.arrays.is_empty() {
             return Some(Err(Diagnostic::error(
                 "T032",
@@ -72,13 +68,10 @@ impl Checker {
                 "constrained call receiver changed during specialization",
             )));
         }
+
         let Some(mut signature) = self
             .direct_witnesses
-            .get(&key(
-                owner,
-                &binding.interface.name,
-                binding.requirement.span,
-            ))
+            .get(&key(owner, &binding.interface.name, binding.requirement.span))
             .cloned()
         else {
             return Some(Err(Diagnostic::error(
@@ -87,12 +80,9 @@ impl Checker {
                 "selected interface requirement has no direct witness",
             )));
         };
-        signature.defaults = binding
-            .requirement
-            .parameters
-            .iter()
-            .map(|p| p.initializer.clone())
-            .collect();
+
+        signature.defaults =
+            binding.requirement.parameters.iter().map(|p| p.initializer.clone()).collect();
         Some(Ok(signature))
     }
 
@@ -109,6 +99,7 @@ impl Checker {
                 self.check_constraint_defaults(&binding);
                 Ok(signature)
             }
+
             Err(diagnostic) => {
                 self.diagnostics.push(diagnostic);
                 Err(())
@@ -118,6 +109,7 @@ impl Checker {
 
     pub(crate) fn record_plan_constraints(&mut self, plan: &Initialization) {
         let mut plans = vec![plan];
+
         while let Some(plan) = plans.pop() {
             match &plan.kind {
                 InitializationKind::ConstructorCall {
@@ -129,26 +121,28 @@ impl Checker {
                     if let Some(site) = site
                         && let Type::Struct(owner) = &plan.ty
                     {
-                        if let Some(binding) = self
-                            .symbolic_requirements
-                            .get(&(*declaration, owner.clone()))
-                            .cloned()
+                        if let Some(binding) =
+                            self.symbolic_requirements.get(&(*declaration, owner.clone())).cloned()
                         {
                             match site {
                                 ConstraintSite::Expression(id) => {
                                     self.constraint_calls.insert(*id, binding);
                                 }
+
                                 ConstraintSite::Variable(span) => {
                                     self.constraint_variables.insert(span_key(*span), binding);
                                 }
                             }
                         }
+
                         if let Some(binding) = self.constraint_binding(*site).cloned() {
                             self.check_constraint_defaults(&binding);
                         }
                     }
+
                     plans.extend(arguments);
                 }
+
                 InitializationKind::Aggregate(values) => plans.extend(values),
                 _ => {}
             }
@@ -164,6 +158,7 @@ impl Checker {
         self.current_type = binding.requirement.method.as_ref().map(|m| m.owner.clone());
         self.current_static_type = Some(binding.owner.name.clone());
         let mut parameters = BTreeMap::new();
+
         for parameter in &binding.requirement.parameters {
             let ty = self.resolve_type(&parameter.ty);
             parameters.insert(
@@ -177,6 +172,7 @@ impl Checker {
                 },
             );
         }
+
         self.scopes.push(parameters);
         self.parameter_defaults(&binding.requirement);
         self.scopes.pop();

@@ -135,6 +135,7 @@ pub(super) fn validate_templates(
             variables: module.constraint_variables.clone(),
         });
     }
+
     let result =
         specialize_inner(module.clone(), symbols.clone(), true, major).map_err(|d| vec![d])?;
     let checked = crate::checker::check_concrete(
@@ -179,29 +180,33 @@ fn specialize_inner(
             default_instance_contexts: BTreeSet::new(),
         });
     }
+
     let mut ids = Ids::default();
+
     for declaration in &mut module.declarations {
         ids.declaration(declaration)?;
     }
+
     for binding in module.constraint_calls.values_mut() {
         ids.ty(&mut binding.owner)?;
         ids.ty(&mut binding.interface)?;
         visit::walk_function(&mut ids, &mut binding.requirement)?;
     }
+
     for variable in &mut module.constraint_variables {
         ids.ty(&mut variable.call.owner)?;
         ids.ty(&mut variable.call.interface)?;
         visit::walk_function(&mut ids, &mut variable.call.requirement)?;
     }
+
     let mut prefix = "_slang_generic_".to_owned();
-    while module
-        .declarations
-        .iter()
-        .any(|d| declaration_name(d).starts_with(&prefix))
+
+    while module.declarations.iter().any(|d| declaration_name(d).starts_with(&prefix))
         || symbols.keys().any(|n| n.starts_with(&prefix))
     {
         prefix.push('_');
     }
+
     let known: BTreeSet<_> = module
         .declarations
         .iter()
@@ -213,30 +218,30 @@ fn specialize_inner(
             _ => None,
         })
         .chain(
-            module
-                .declarations
-                .iter()
-                .flat_map(|d| parameters(d).iter().map(|p| p.name.clone())),
+            module.declarations.iter().flat_map(|d| parameters(d).iter().map(|p| p.name.clone())),
         )
         .collect();
     let mut shapes = crate::checker::Checker::new(&module, symbols.clone(), major);
+
     for declaration in &module.declarations {
         match declaration {
             Declaration::Struct(s) => {
                 shapes.structures.insert(s.name.clone(), BTreeMap::new());
                 shapes.struct_definitions.insert(s.name.clone(), s.clone());
             }
+
             Declaration::Interface(i) => {
-                shapes
-                    .interface_definitions
-                    .insert(i.name.clone(), i.clone());
+                shapes.interface_definitions.insert(i.name.clone(), i.clone());
             }
+
             Declaration::TypeAlias(a) if parameters(declaration).is_empty() => {
                 shapes.aliases.insert(a.name.clone(), a.target.clone());
             }
+
             _ => {}
         }
     }
+
     let mut specializer = Specializer {
         shapes,
         public_types: module
@@ -246,12 +251,15 @@ fn specialize_inner(
                 Declaration::Struct(s) if s.modifiers.iter().any(|m| m == "public") => {
                     Some(s.name.clone())
                 }
+
                 Declaration::Interface(i) if i.modifiers.iter().any(|m| m == "public") => {
                     Some(i.name.clone())
                 }
+
                 Declaration::TypeAlias(a) if a.modifiers.iter().any(|m| m == "public") => {
                     Some(a.name.clone())
                 }
+
                 _ => None,
             })
             .collect(),
@@ -298,6 +306,7 @@ fn specialize_inner(
         default_body_calls: BTreeMap::new(),
         default_body_variables: BTreeMap::new(),
     };
+
     let declarations = std::mem::take(&mut module.declarations);
     specializer.register(
         declarations,
@@ -306,6 +315,7 @@ fn specialize_inner(
         Some(&known),
     )?;
     let mut validated = BTreeSet::new();
+
     loop {
         if symbolic
             && let Some(name) = specializer
@@ -318,12 +328,15 @@ fn specialize_inner(
             specializer.symbolic_instance(&name)?;
             continue;
         }
+
         let Some(mut declaration) = specializer.pending.pop_front() else {
             break;
         };
+
         specializer.declaration(&mut declaration)?;
         module.declarations.push(declaration);
     }
+
     specializer.infer_calls(&mut module, major)?;
     let default_instance_contexts = specializer
         .default_method_contexts
@@ -358,14 +371,11 @@ impl Specializer {
                 self.method_names.insert(method.name.clone());
             }
         }
-        let owners: BTreeMap<_, _> = nested
-            .iter()
-            .map(|n| (n.type_name.clone(), n.owner.clone()))
-            .collect();
-        let static_owners: BTreeMap<_, _> = statics
-            .iter()
-            .map(|s| (s.variable_name.clone(), s.owner.clone()))
-            .collect();
+
+        let owners: BTreeMap<_, _> =
+            nested.iter().map(|n| (n.type_name.clone(), n.owner.clone())).collect();
+        let static_owners: BTreeMap<_, _> =
+            statics.iter().map(|s| (s.variable_name.clone(), s.owner.clone())).collect();
         let roots: BTreeSet<_> = declarations
             .iter()
             .filter(|d| !matches!(d, Declaration::Function(_)) && !parameters(d).is_empty())
@@ -374,25 +384,32 @@ impl Specializer {
         let containing = |name: &str| {
             let mut current = Some(name);
             let mut found = None;
+
             while let Some(name) = current {
                 if roots.contains(name) {
                     found = Some(name.to_owned());
                 }
+
                 current = owners.get(name).map(String::as_str);
             }
+
             found
         };
+
         let root_for = |declaration: &Declaration| {
             let name = match declaration {
                 Declaration::Function(f) => f.owner_type().unwrap_or(&f.name),
-                Declaration::Global(v) => static_owners
-                    .get(&v.name)
-                    .map_or(v.name.as_str(), String::as_str),
+                Declaration::Global(v) => {
+                    static_owners.get(&v.name).map_or(v.name.as_str(), String::as_str)
+                }
                 _ => declaration_name(declaration),
             };
+
             containing(name)
         };
+
         let mut templates = BTreeMap::<String, Template>::new();
+
         for declaration in &declarations {
             if !parameters(declaration).is_empty()
                 && containing(declaration_name(declaration)).as_deref()
@@ -401,6 +418,7 @@ impl Specializer {
                 let name = declaration_name(declaration).to_owned();
                 constraint::validate_parameters(parameters(declaration))?;
                 let mut names = BTreeSet::new();
+
                 for parameter in parameters(declaration) {
                     if !names.insert(&parameter.name) {
                         return Err(Diagnostic::error(
@@ -410,12 +428,14 @@ impl Specializer {
                         ));
                     }
                 }
+
                 if templates.contains_key(&name) || self.templates.contains_key(&name) {
                     return Err(error(
                         declaration_span(declaration),
                         "duplicate generic type declaration",
                     ));
                 }
+
                 templates.insert(
                     name.clone(),
                     Template {
@@ -430,7 +450,9 @@ impl Specializer {
                 );
             }
         }
+
         let mut functions = vec![];
+
         for mut declaration in declarations {
             if match &declaration {
                 Declaration::Struct(s) => s.modifiers.iter().any(|m| m == "public"),
@@ -438,9 +460,9 @@ impl Specializer {
                 Declaration::TypeAlias(a) => a.modifiers.iter().any(|m| m == "public"),
                 _ => false,
             } {
-                self.public_types
-                    .insert(declaration_name(&declaration).into());
+                self.public_types.insert(declaration_name(&declaration).into());
             }
+
             if let Some(root) = root_for(&declaration) {
                 if let Some(known) = known {
                     let module = self.symbols.get(&root).map_or(0, |o| o.module.0);
@@ -452,43 +474,40 @@ impl Specializer {
                     }
                     .declaration(&mut declaration)?;
                 }
-                templates
-                    .get_mut(&root)
-                    .unwrap()
-                    .declarations
-                    .push(declaration);
+
+                templates.get_mut(&root).unwrap().declarations.push(declaration);
             } else {
                 if matches!(&declaration, Declaration::Function(f) if !f.generic_parameters.is_empty())
                 {
                     functions.push(declaration);
                     continue;
                 }
+
                 if let Declaration::Function(f) = &declaration {
                     self.ordinary_functions.insert(f.name.clone());
                 }
+
                 if let Declaration::TypeAlias(alias) = &declaration {
-                    self.aliases
-                        .insert(alias.name.clone(), alias.target.clone());
+                    self.aliases.insert(alias.name.clone(), alias.target.clone());
                 }
+
                 if let Declaration::Struct(s) = &declaration {
-                    self.shapes
-                        .struct_definitions
-                        .insert(s.name.clone(), s.clone());
-                    self.shapes
-                        .structures
-                        .insert(s.name.clone(), BTreeMap::new());
+                    self.shapes.struct_definitions.insert(s.name.clone(), s.clone());
+                    self.shapes.structures.insert(s.name.clone(), BTreeMap::new());
                 }
+
                 if let Declaration::Interface(i) = &declaration {
-                    self.shapes
-                        .interface_definitions
-                        .insert(i.name.clone(), i.clone());
+                    self.shapes.interface_definitions.insert(i.name.clone(), i.clone());
                 }
+
                 if let Declaration::Global(v) = &declaration {
                     self.shapes.shape_globals.insert(v.name.clone(), v.clone());
                 }
+
                 self.pending.push_back(declaration);
             }
         }
+
         for member in nested {
             if let Some(root) = containing(&member.type_name) {
                 if root == member.type_name {
@@ -501,13 +520,12 @@ impl Specializer {
                     templates.get_mut(&root).unwrap().nested.push(member);
                 }
             } else {
-                self.nested.insert(
-                    (member.owner.clone(), member.name.clone()),
-                    member.type_name.clone(),
-                );
+                self.nested
+                    .insert((member.owner.clone(), member.name.clone()), member.type_name.clone());
                 self.nested_output.push(member);
             }
         }
+
         for member in statics {
             if let Some(root) = containing(&member.owner) {
                 templates.get_mut(&root).unwrap().statics.push(member);
@@ -522,6 +540,7 @@ impl Specializer {
                 self.static_output.push(member);
             }
         }
+
         self.templates.extend(templates);
         self.register_functions(functions, known)?;
         Ok(())
@@ -536,10 +555,13 @@ impl Specializer {
         if self.depth >= 32 {
             return Err(error(span, "generic specialization limit exceeded"));
         }
+
         let template = self.templates[name].clone();
+
         if supplied.len() > template.parameters.len() {
             return Err(error(span, "too many generic type arguments"));
         }
+
         self.depth += 1;
         let result = self.instantiate_inner(name, template, supplied, span);
         self.depth -= 1;
@@ -555,26 +577,27 @@ impl Specializer {
     ) -> Result<String, Diagnostic> {
         let mut substitutions = BTreeMap::new();
         let mut arguments = vec![];
+
         for (index, parameter) in template.parameters.iter().enumerate() {
             let mut argument = match supplied.get(index) {
                 Some(TypeArgument::Type(ty)) => ty.clone(),
                 Some(_) => {
-                    return Err(error(
-                        span,
-                        "generic type parameter requires a type argument",
-                    ));
+                    return Err(error(span, "generic type parameter requires a type argument"));
                 }
+
                 None => parameter
                     .default
                     .clone()
                     .ok_or_else(|| error(span, "missing generic type argument"))?,
             };
+
             substitute::replace_type(&mut argument, &substitutions);
             self.canonical(&mut argument, 0)?;
             self.validate_argument(&mut argument)?;
             substitutions.insert(parameter.name.clone(), argument.clone());
             arguments.push(argument);
         }
+
         if !self.constraints_satisfied(&template.parameters, &substitutions)? {
             return Err(Diagnostic::error(
                 "T033",
@@ -582,19 +605,20 @@ impl Specializer {
                 "generic type arguments do not satisfy the interface constraints",
             ));
         }
+
         let key = (
             template_key.to_owned(),
-            arguments
-                .iter()
-                .map(canonical::type_key)
-                .collect::<Vec<_>>(),
+            arguments.iter().map(canonical::type_key).collect::<Vec<_>>(),
         );
+
         if let Some(name) = self.instances.get(&key) {
             return Ok(name.clone());
         }
+
         if self.instances.len() >= 1024 {
             return Err(error(span, "generic specialization limit exceeded"));
         }
+
         let context = self.next_context;
         self.next_context += 1;
         let target = format!("{}{}", self.prefix, context);
@@ -614,10 +638,8 @@ impl Specializer {
                 )
             })
             .collect();
-        let parent_context = template
-            .declarations
-            .first()
-            .map_or(0, |d| declaration_span(d).context);
+        let parent_context =
+            template.declarations.first().map_or(0, |d| declaration_span(d).context);
         let mut declarations = template.declarations;
         let mut visitor = substitute::Substitute {
             root: &template.name,
@@ -630,45 +652,37 @@ impl Specializer {
             constraint_calls: &mut self.constraint_calls,
             constraint_variables: &mut self.constraint_variables,
         };
+
         for declaration in &mut declarations {
             if declaration_name(declaration) == template.name {
                 clear_parameters(declaration);
             }
+
             visitor.declaration(declaration)?;
         }
-        self.generated.extend(
-            declarations
-                .iter()
-                .map(|d| crate::span_key(declaration_span(d))),
-        );
-        let source = self
-            .symbols
-            .get(&template.name)
-            .map_or(template.name.clone(), |o| o.name.clone());
+
+        self.generated.extend(declarations.iter().map(|d| crate::span_key(declaration_span(d))));
+        let source =
+            self.symbols.get(&template.name).map_or(template.name.clone(), |o| o.name.clone());
         let display = format!(
             "{source}<{}>",
-            arguments
-                .iter()
-                .map(canonical::type_key)
-                .collect::<Vec<_>>()
-                .join(", ")
+            arguments.iter().map(canonical::type_key).collect::<Vec<_>>().join(", ")
         );
+
         for (old, new) in &names {
-            let mut origin = self
-                .symbols
-                .get(old)
-                .cloned()
-                .unwrap_or_else(|| SymbolOrigin {
-                    module: Default::default(),
-                    name: old.clone(),
-                });
+            let mut origin = self.symbols.get(old).cloned().unwrap_or_else(|| SymbolOrigin {
+                module: Default::default(),
+                name: old.clone(),
+            });
             origin.name = if old == &template.name {
                 display.clone()
             } else {
                 origin.name.replacen(&source, &display, 1)
             };
+
             self.symbols.insert(new.clone(), origin);
         }
+
         self.shapes.symbols = self.symbols.clone();
         let nested = template
             .nested
@@ -690,13 +704,10 @@ impl Specializer {
                 s
             })
             .collect();
-        if let Some(parent) = self
-            .instance_output
-            .iter()
-            .find(|i| i.context == parent_context)
-        {
+        if let Some(parent) = self.instance_output.iter().find(|i| i.context == parent_context) {
             arguments.extend(parent.arguments.clone());
         }
+
         self.instance_output.push(GenericInstanceInfo {
             context,
             type_name: target.clone(),
@@ -704,6 +715,7 @@ impl Specializer {
             parameter_count: template.parameters.len(),
             arguments,
         });
+
         if let Some(mut owner) = template.owner {
             owner.type_name = target.clone();
             // Keep lexical ownership without conflating distinct applications in member lookup.
@@ -711,6 +723,7 @@ impl Specializer {
             owner.span = owner.span.with_context(context);
             self.nested_output.push(owner);
         }
+
         self.register(declarations, nested, statics, None)?;
         Ok(target)
     }
@@ -719,9 +732,11 @@ impl Specializer {
         if self.function_templates.contains_key(&ty.name) {
             return Err(error(ty.span, "generic function is not a type"));
         }
+
         if ty.base.is_none() && ty.name.contains("::") {
             let mut parts = ty.name.split("::");
             let mut name = parts.next().unwrap().to_owned();
+
             for member in parts {
                 if let Some(target) = self.nested.get(&(name.clone(), member.into())) {
                     self.accessible(target, ty.span)?;
@@ -731,8 +746,10 @@ impl Specializer {
                     name.push_str(member);
                 }
             }
+
             ty.name = name;
         }
+
         if let Some(mut base) = ty.base.take() {
             self.expand(&mut base)?;
             self.canonical(&mut base, 0)?;
@@ -743,16 +760,16 @@ impl Specializer {
                 .ok_or_else(|| error(ty.span, "unknown nested generic type"))?;
             self.accessible(&ty.name, ty.span)?;
         }
+
         if self.templates.contains_key(&ty.name) {
             if self.templates[&ty.name].function {
                 return Err(error(ty.span, "generic function is not a type"));
             }
+
             if !ty.application {
-                return Err(error(
-                    ty.span,
-                    "generic type requires explicit angle brackets",
-                ));
+                return Err(error(ty.span, "generic type requires explicit angle brackets"));
             }
+
             ty.name = self.instantiate(&ty.name, &ty.arguments, ty.span)?;
             ty.arguments.clear();
             ty.application = false;
@@ -763,22 +780,17 @@ impl Specializer {
                 }
             }
         }
+
         Ok(())
     }
 
     fn accessible(&self, name: &str, span: Span) -> Result<(), Diagnostic> {
-        if self
-            .symbols
-            .get(name)
-            .is_some_and(|o| o.module != self.shapes.current_module)
+        if self.symbols.get(name).is_some_and(|o| o.module != self.shapes.current_module)
             && !self.public_types.contains(name)
         {
-            return Err(Diagnostic::error(
-                "T018",
-                span,
-                "nested type is internal to its module",
-            ));
+            return Err(Diagnostic::error("T018", span, "nested type is internal to its module"));
         }
+
         Ok(())
     }
 
@@ -788,11 +800,9 @@ impl Specializer {
             && !self.shapes.interface_definitions.contains_key(&ty.name)
             && !self.aliases.contains_key(&ty.name)
         {
-            return Err(error(
-                ty.span,
-                format!("unknown generic argument type '{}'", ty.name),
-            ));
+            return Err(error(ty.span, format!("unknown generic argument type '{}'", ty.name)));
         }
+
         let known = self
             .shapes
             .structures
@@ -816,20 +826,30 @@ impl VisitorMut for Specializer {
         self.expand(ty)?;
         visit::walk_type(self, ty)
     }
+
     fn expression(&mut self, expression: &mut Expr) -> Result<(), Diagnostic> {
         self.specialize_constraint_call(expression.id)?;
         self.normalize_member_application(expression)?;
-        if let ExprKind::Call { callee, arguments } = &mut expression.kind {
+
+        if let ExprKind::Call {
+            callee,
+            arguments,
+        } = &mut expression.kind
+        {
             self.specialize_constraint_call(callee.id)?;
             let requirement = self.normalize_default_requirement(callee);
             self.normalize_member_application(callee)?;
+
             if requirement || self.constraint_calls.contains_key(&callee.id) {
                 self.member_receiver(callee)?;
+
                 for argument in arguments {
                     self.expression(argument)?;
                 }
+
                 return Ok(());
             }
+
             let application = match &callee.kind {
                 ExprKind::Name(name)
                     if self.function_templates.contains_key(name)
@@ -838,11 +858,20 @@ impl VisitorMut for Specializer {
                 {
                     Some((name.clone(), vec![], false))
                 }
-                ExprKind::Member { name, .. } if self.method_names.contains(name) => {
-                    Some((name.clone(), vec![], false))
-                }
-                ExprKind::GenericApplication { callee, arguments } => match &callee.kind {
-                    ExprKind::Member { name, .. } => Some((name.clone(), arguments.clone(), true)),
+
+                ExprKind::Member {
+                    name,
+                    ..
+                } if self.method_names.contains(name) => Some((name.clone(), vec![], false)),
+
+                ExprKind::GenericApplication {
+                    callee,
+                    arguments,
+                } => match &callee.kind {
+                    ExprKind::Member {
+                        name,
+                        ..
+                    } => Some((name.clone(), arguments.clone(), true)),
                     _ => None,
                 },
                 ExprKind::TypeApplication(reference)
@@ -852,15 +881,15 @@ impl VisitorMut for Specializer {
                                 && self.method_names.contains(&reference.name)) =>
                 {
                     if !reference.arrays.is_empty() || reference.matrix_major.is_some() {
-                        return Err(error(
-                            reference.span,
-                            "invalid generic function application",
-                        ));
+                        return Err(error(reference.span, "invalid generic function application"));
                     }
+
                     Some((reference.name.clone(), reference.arguments.clone(), true))
                 }
+
                 _ => None,
             };
+
             if let Some((name, mut supplied, explicit)) = application {
                 for argument in &mut supplied {
                     let TypeArgument::Type(argument) = argument else {
@@ -869,9 +898,11 @@ impl VisitorMut for Specializer {
                             "generic type parameter requires a type argument",
                         ));
                     };
+
                     self.canonical(argument, 0)?;
                     self.validate_argument(argument)?;
                 }
+
                 self.inference_calls.insert(
                     callee.id,
                     InferenceCall {
@@ -883,27 +914,29 @@ impl VisitorMut for Specializer {
                     },
                 );
                 self.member_receiver(callee)?;
+
                 for argument in arguments {
                     self.expression(argument)?;
                 }
+
                 return Ok(());
             }
         }
+
         if let ExprKind::TypeApplication(reference) = &expression.kind
             && reference.base.is_none()
             && self.function_templates.contains_key(&reference.name)
         {
             if !reference.arrays.is_empty() || reference.matrix_major.is_some() {
-                return Err(error(
-                    reference.span,
-                    "invalid generic function application",
-                ));
+                return Err(error(reference.span, "invalid generic function application"));
             }
+
             let name =
                 self.apply_function(&reference.name, &reference.arguments, expression.span)?;
             expression.kind = ExprKind::Name(name);
             return Ok(());
         }
+
         if let ExprKind::Name(name) = &expression.kind
             && (self.templates.contains_key(name) || self.function_templates.contains_key(name))
             && !self.ordinary_functions.contains(name)
@@ -917,8 +950,10 @@ impl VisitorMut for Specializer {
                 },
             ));
         }
+
         visit::walk_expression(self, expression)
     }
+
     fn declaration(&mut self, declaration: &mut Declaration) -> Result<(), Diagnostic> {
         self.shapes.current_static_type = match declaration {
             Declaration::Function(function) => function.owner_type().map(str::to_owned),
@@ -930,49 +965,57 @@ impl VisitorMut for Specializer {
                 .map(|s| s.owner.clone()),
             _ => None,
         };
+
         self.shapes.current_module = self
             .symbols
             .get(declaration_name(declaration))
             .map_or(Default::default(), |o| o.module);
         let site = crate::span_key(declaration_span(declaration));
+
         if self.generated.contains(&site)
             && !self.active.contains(&site)
-            && !self
-                .validation_contexts
-                .contains(&declaration_span(declaration).context)
+            && !self.validation_contexts.contains(&declaration_span(declaration).context)
         {
             return self.signature_declaration(declaration);
         }
+
         self.active.insert(site);
+
         if let Declaration::Interface(interface) = declaration {
             self.interface_headers(interface)?;
+
             if self.symbolic {
                 self.validate_default_interface(interface)?;
             }
+
             return Ok(());
         }
+
         if matches!(declaration, Declaration::Function(_)) {
             self.shapes.scopes.push(BTreeMap::new());
         }
+
         visit::walk_declaration(self, declaration)?;
+
         if matches!(declaration, Declaration::Function(_)) {
             self.shapes.scopes.pop();
         }
+
         Ok(())
     }
+
     fn variable(&mut self, variable: &mut Variable) -> Result<(), Diagnostic> {
         self.specialize_constraint_variable(variable.span)?;
         visit::walk_variable(self, variable)?;
+
         if self.shapes.scopes.len() > 1 {
             let ty = crate::Type::builtin(&variable.ty.name).unwrap_or(crate::Type::Error);
             let constant = if variable.modifiers.iter().any(|m| m == "const") {
-                variable
-                    .initializer
-                    .as_ref()
-                    .and_then(|e| self.shape_value(e))
+                variable.initializer.as_ref().and_then(|e| self.shape_value(e))
             } else {
                 None
             };
+
             self.shapes.scopes.last_mut().unwrap().insert(
                 variable.name.clone(),
                 crate::checker::Binding {
@@ -984,20 +1027,26 @@ impl VisitorMut for Specializer {
                 },
             );
         }
+
         Ok(())
     }
+
     fn statement(&mut self, statement: &mut Stmt) -> Result<(), Diagnostic> {
         let scope = matches!(
             statement.kind,
             StmtKind::Block(_) | StmtKind::For { .. } | StmtKind::Switch { .. }
         );
+
         if scope {
             self.shapes.scopes.push(BTreeMap::new());
         }
+
         visit::walk_statement(self, statement)?;
+
         if scope {
             self.shapes.scopes.pop();
         }
+
         Ok(())
     }
 }
@@ -1011,6 +1060,7 @@ impl VisitorMut for Ids {
     fn span(&mut self, span: &mut Span) {
         self.context = self.context.max(span.context + 1);
     }
+
     fn expression_id(&mut self, id: &mut ExprId) {
         self.expression = self.expression.max(id.0 + 1);
     }
@@ -1024,17 +1074,23 @@ struct Validator<'a> {
 }
 impl VisitorMut for Validator<'_> {
     fn expression(&mut self, expression: &mut Expr) -> Result<(), Diagnostic> {
-        if let ExprKind::Call { callee, arguments } = &mut expression.kind
+        if let ExprKind::Call {
+            callee,
+            arguments,
+        } = &mut expression.kind
             && let ExprKind::TypeApplication(reference) = &mut callee.kind
             && reference.base.is_none()
             && self.method_names.contains(&reference.name)
         {
             visit::walk_type(self, reference)?;
+
             for argument in arguments {
                 self.expression(argument)?;
             }
+
             return Ok(());
         }
+
         visit::walk_expression(self, expression)
     }
 
@@ -1051,6 +1107,7 @@ impl VisitorMut for Validator<'_> {
                 format!("unknown type '{}' in generic declaration", ty.name),
             ));
         }
+
         visit::walk_type(self, ty)
     }
 }
@@ -1058,17 +1115,21 @@ impl VisitorMut for Validator<'_> {
 pub(super) fn argument_names(arguments: &[TypeRef]) -> BTreeSet<String> {
     let mut names = BTreeSet::new();
     let mut pending = arguments.iter().collect::<Vec<_>>();
+
     while let Some(ty) = pending.pop() {
         names.insert(ty.name.clone());
+
         if let Some(base) = &ty.base {
             pending.push(base);
         }
+
         for argument in &ty.arguments {
             if let TypeArgument::Type(ty) = argument {
                 pending.push(ty);
             }
         }
     }
+
     names
 }
 
@@ -1081,6 +1142,7 @@ fn parameters(declaration: &Declaration) -> &[GenericParameter] {
         _ => &[],
     }
 }
+
 fn clear_parameters(declaration: &mut Declaration) {
     match declaration {
         Declaration::Struct(s) => s.generic_parameters.clear(),
@@ -1090,6 +1152,7 @@ fn clear_parameters(declaration: &mut Declaration) {
         _ => {}
     }
 }
+
 fn declaration_name(declaration: &Declaration) -> &str {
     match declaration {
         Declaration::Struct(s) => &s.name,
@@ -1099,6 +1162,7 @@ fn declaration_name(declaration: &Declaration) -> &str {
         Declaration::Function(f) => &f.name,
     }
 }
+
 fn declaration_span(declaration: &Declaration) -> Span {
     match declaration {
         Declaration::Struct(s) => s.span,
@@ -1108,6 +1172,7 @@ fn declaration_span(declaration: &Declaration) -> Span {
         Declaration::Function(f) => f.span,
     }
 }
+
 fn error(span: Span, message: impl Into<String>) -> Diagnostic {
     Diagnostic::error("T002", span, message)
 }

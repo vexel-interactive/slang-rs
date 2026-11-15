@@ -49,17 +49,22 @@ pub fn propagate(graph: &Graph) -> Propagation {
         pending: VecDeque::new(),
         queued: vec![false; graph.blocks.len()],
     };
+
     if !graph.blocks.is_empty() {
         solver.result.reachable[0] = true;
+
         for parameter in &graph.blocks[0].parameters {
             solver.result.values[parameter.0] = Lattice::Any;
         }
+
         solver.enqueue(BlockId(0));
     }
+
     while let Some(block) = solver.pending.pop_front() {
         solver.queued[block.0] = false;
         solver.block(block);
     }
+
     solver.result
 }
 
@@ -82,8 +87,10 @@ impl Solver<'_> {
     fn update(&mut self, value: ValueId, incoming: Lattice) {
         let old = self.result.values[value.0];
         let new = old.join(incoming);
+
         if old != new {
             self.result.values[value.0] = new;
+
             for block in self.users[value.0].clone() {
                 self.enqueue(block);
             }
@@ -92,44 +99,49 @@ impl Solver<'_> {
 
     fn block(&mut self, id: BlockId) {
         let block = &self.graph.blocks[id.0];
+
         for instruction in &block.instructions {
             let value = self.evaluate(instruction);
             self.update(instruction.result, value);
         }
+
         let edges = block.terminator.edges();
         let active: Vec<usize> = match &block.terminator {
             Terminator::Jump(_) => vec![0],
-            Terminator::Branch { condition, .. } => match self.result.values[condition.0] {
+            Terminator::Branch {
+                condition,
+                ..
+            } => match self.result.values[condition.0] {
                 Lattice::None => vec![],
                 Lattice::Constant(bits) => vec![usize::from(bits == 0)],
                 Lattice::Any => vec![0, 1],
             },
             Terminator::Switch {
-                selector, cases, ..
+                selector,
+                cases,
+                ..
             } => match self.result.values[selector.0] {
                 Lattice::None => vec![],
-                Lattice::Constant(bits) => vec![
-                    cases
-                        .iter()
-                        .position(|(label, _)| *label == bits)
-                        .unwrap_or(cases.len()),
-                ],
+                Lattice::Constant(bits) => {
+                    vec![cases.iter().position(|(label, _)| *label == bits).unwrap_or(cases.len())]
+                }
                 Lattice::Any => (0..edges.len()).collect(),
             },
             _ => vec![],
         };
+
         for index in active {
             let edge = edges[index];
             self.result.executable_edges[id.0][index] = true;
             let fresh = !self.result.reachable[edge.target.0];
             self.result.reachable[edge.target.0] = true;
-            for (&argument, &parameter) in edge
-                .arguments
-                .iter()
-                .zip(&self.graph.blocks[edge.target.0].parameters)
+
+            for (&argument, &parameter) in
+                edge.arguments.iter().zip(&self.graph.blocks[edge.target.0].parameters)
             {
                 self.update(parameter, self.result.values[argument.0]);
             }
+
             if fresh {
                 self.enqueue(edge.target);
             }
@@ -140,6 +152,7 @@ impl Solver<'_> {
         let Some(target) = constant::scalar(&self.graph.values[instruction.result.0].ty) else {
             return Lattice::Any;
         };
+
         let unary = |value: ValueId, operation: &dyn Fn(i64) -> Option<i64>| match self
             .result
             .values[value.0]
@@ -147,6 +160,7 @@ impl Solver<'_> {
             Lattice::Constant(bits) => operation(bits).map_or(Lattice::Any, Lattice::Constant),
             other => other,
         };
+
         match &instruction.operation {
             Operation::Constant(bits) => Lattice::Constant(constant::normalize(*bits, target)),
             Operation::Unknown(_) => Lattice::Any,
@@ -156,11 +170,19 @@ impl Solver<'_> {
             {
                 unary(*value, &|bits| Some(constant::normalize(bits, target)))
             }
-            Operation::Unary { op, value } => {
-                unary(*value, &|bits| constant::unary(op, bits, target))
-            }
-            Operation::Binary { op, left, right } => {
+
+            Operation::Unary {
+                op,
+                value,
+            } => unary(*value, &|bits| constant::unary(op, bits, target)),
+
+            Operation::Binary {
+                op,
+                left,
+                right,
+            } => {
                 let operand = constant::scalar(&self.graph.values[left.0].ty);
+
                 match (self.result.values[left.0], self.result.values[right.0]) {
                     (Lattice::Any, _) | (_, Lattice::Any) => Lattice::Any,
                     (Lattice::None, _) | (_, Lattice::None) => Lattice::None,
@@ -169,6 +191,7 @@ impl Solver<'_> {
                         .map_or(Lattice::Any, Lattice::Constant),
                 }
             }
+
             _ => Lattice::Any,
         }
     }

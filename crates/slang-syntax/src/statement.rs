@@ -15,9 +15,11 @@ impl Parser {
         let start = self.span();
         let kind = if self.eat("{") {
             let mut statements = vec![];
+
             while !self.at("}") && !self.at_end() {
                 statements.push(self.statement()?);
             }
+
             let end = self.expect("}")?;
             return Ok(Stmt {
                 kind: StmtKind::Block(statements),
@@ -31,6 +33,7 @@ impl Parser {
             } else {
                 Some(self.expression(0)?)
             };
+
             self.expect(";")?;
             StmtKind::Return(value)
         } else if self.eat("if") {
@@ -43,6 +46,7 @@ impl Parser {
             } else {
                 None
             };
+
             StmtKind::If {
                 condition,
                 then_branch,
@@ -59,9 +63,15 @@ impl Parser {
         } else if self.eat("for") {
             // Finish the header frame before descending into another statement.
             let mut header = self.for_header()?;
-            if let StmtKind::For { body, .. } = header.as_mut() {
+
+            if let StmtKind::For {
+                body,
+                ..
+            } = header.as_mut()
+            {
                 **body = self.statement()?;
             }
+
             *header
         } else if self.eat("do") {
             let body = Box::new(self.statement()?);
@@ -70,13 +80,17 @@ impl Parser {
             let condition = self.expression(0)?;
             self.expect(")")?;
             self.expect(";")?;
-            StmtKind::DoWhile { body, condition }
+            StmtKind::DoWhile {
+                body,
+                condition,
+            }
         } else if self.eat("switch") {
             self.expect("(")?;
             let selector = self.expression(0)?;
             self.expect(")")?;
             self.expect("{")?;
             let mut cases = vec![];
+
             while !self.at("}") && !self.at_end() {
                 let label_span = self.span();
                 let value = if self.eat("case") {
@@ -86,19 +100,26 @@ impl Parser {
                 } else {
                     return Err(self.error("expected case or default label"));
                 };
+
                 self.expect(":")?;
                 let mut statements = vec![];
+
                 while !self.at("case") && !self.at("default") && !self.at("}") && !self.at_end() {
                     statements.push(self.statement()?);
                 }
+
                 cases.push(SwitchCase {
                     value,
                     statements,
                     span: label_span,
                 });
             }
+
             self.expect("}")?;
-            StmtKind::Switch { selector, cases }
+            StmtKind::Switch {
+                selector,
+                cases,
+            }
         } else if self.eat("break") {
             self.expect(";")?;
             StmtKind::Break
@@ -111,10 +132,8 @@ impl Parser {
         } else {
             return self.simple_statement();
         };
-        let end = self
-            .tokens
-            .get(self.offset.saturating_sub(1))
-            .map_or(start, |t| t.span);
+
+        let end = self.tokens.get(self.offset.saturating_sub(1)).map_or(start, |t| t.span);
         Ok(Stmt {
             kind,
             span: start.join(end),
@@ -123,12 +142,14 @@ impl Parser {
 
     fn simple_statement(&mut self) -> Result<Stmt, Diagnostic> {
         let start = self.span();
+
         if self.eat(";") {
             return Ok(Stmt {
                 kind: StmtKind::Empty,
                 span: start,
             });
         }
+
         if self.looks_like_variable() {
             let modifiers = self.modifiers();
             let ty = self.ty()?;
@@ -144,6 +165,7 @@ impl Parser {
                 span: start.join(end),
             });
         }
+
         let expr = self.expression(0)?;
         let end = self.expect(";")?;
         Ok(Stmt {
@@ -160,12 +182,14 @@ impl Parser {
         } else {
             Some(self.expression(0)?)
         };
+
         self.expect(";")?;
         let increment = if self.at(")") {
             None
         } else {
             Some(self.expression(0)?)
         };
+
         self.expect(")")?;
         Ok(Box::new(StmtKind::For {
             initializer,
@@ -180,6 +204,7 @@ impl Parser {
 
     fn looks_like_variable(&self) -> bool {
         let mut i = self.offset;
+
         while self.tokens.get(i).is_some_and(|t| {
             matches!(
                 t.text.as_str(),
@@ -195,50 +220,51 @@ impl Parser {
         }) {
             i += 1;
         }
-        if !self
-            .tokens
-            .get(i)
-            .is_some_and(|t| t.kind == TokenKind::Identifier)
-        {
+
+        if !self.tokens.get(i).is_some_and(|t| t.kind == TokenKind::Identifier) {
             return false;
         }
+
         i += 1;
+
         while self.tokens.get(i).is_some_and(|t| t.is(".") || t.is("::")) {
-            if !self
-                .tokens
-                .get(i + 1)
-                .is_some_and(|t| t.kind == TokenKind::Identifier)
-            {
+            if !self.tokens.get(i + 1).is_some_and(|t| t.kind == TokenKind::Identifier) {
                 return false;
             }
+
             i += 2;
         }
+
         if self.tokens.get(i).is_some_and(|t| t.is("<")) {
             let Some(end) = self.type_application_end(i - 1) else {
                 return false;
             };
+
             i = end;
         }
+
         while self.tokens.get(i).is_some_and(|t| t.is(".") || t.is("::")) {
             i += 1;
-            if !self
-                .tokens
-                .get(i)
-                .is_some_and(|t| t.kind == TokenKind::Identifier)
-            {
+
+            if !self.tokens.get(i).is_some_and(|t| t.kind == TokenKind::Identifier) {
                 return false;
             }
+
             i += 1;
+
             if self.tokens.get(i).is_some_and(|t| t.is("<")) {
                 let Some(end) = self.type_application_end(i - 1) else {
                     return false;
                 };
+
                 i = end;
             }
         }
+
         while self.tokens.get(i).is_some_and(|t| t.is("[")) {
             let mut depth = 1;
             i += 1;
+
             while let Some(token) = self.tokens.get(i) {
                 if token.is("[") {
                     depth += 1;
@@ -247,17 +273,19 @@ impl Parser {
                 } else if token.is(";") || token.is("{") || token.is("}") {
                     return false;
                 }
+
                 i += 1;
+
                 if depth == 0 {
                     break;
                 }
             }
+
             if depth != 0 {
                 return false;
             }
         }
-        self.tokens
-            .get(i)
-            .is_some_and(|t| t.kind == TokenKind::Identifier)
+
+        self.tokens.get(i).is_some_and(|t| t.kind == TokenKind::Identifier)
     }
 }

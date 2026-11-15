@@ -8,23 +8,30 @@ pub(crate) fn emit(module: &Module) -> String {
         text: String::new(),
         indent: 0,
     };
+
     let mut emitted = BTreeSet::new();
     emitter.line(match module.matrix_major {
         slang_layout::MatrixMajor::Row => "#pragma pack_matrix(row_major)",
         slang_layout::MatrixMajor::Column => "#pragma pack_matrix(column_major)",
     });
     emitter.line("");
+
     for structure in &module.structures {
         emitter.structure(module, structure, &mut emitted);
     }
+
     let mut signatures = BTreeSet::new();
+
     for function in &module.functions {
         let signature = signature(function);
+
         if signatures.insert(signature.clone()) {
             emitter.line(&format!("{signature};"));
         }
     }
+
     emitter.line("");
+
     if let Some(binding) = module.global_uniform_binding {
         // This target name cannot be produced by identifier(): source names
         // beginning with _slang_ receive another prefix, and globals is unreserved.
@@ -33,52 +40,52 @@ pub(crate) fn emit(module: &Module) -> String {
         emitter.indent += 1;
         let mut uniforms: Vec<_> = match &module.global_uniform_fields {
             Some(fields) => fields.iter().collect(),
-            None => module
-                .globals
-                .iter()
-                .filter(|g| g.is_global_uniform())
-                .collect(),
+            None => module.globals.iter().filter(|g| g.is_global_uniform()).collect(),
         };
+
         uniforms.sort_by_key(|g| g.uniform_layout.as_ref().map(|layout| layout.offset));
+
         for global in uniforms {
             emitter.line(&format!("{};", uniform_variable(global)));
         }
+
         emitter.indent -= 1;
         emitter.line("};");
         emitter.line("");
     }
+
     for global in &module.globals {
-        if let Some(buffer) = module
-            .constant_buffers
-            .iter()
-            .find(|b| b.variable_name == global.name)
+        if let Some(buffer) =
+            module.constant_buffers.iter().find(|b| b.variable_name == global.name)
         {
             let Some(binding) = global.binding else {
                 continue;
             };
-            emitter.line(&format!(
-                "cbuffer {} : {}",
-                identifier(&global.name),
-                binding.register
-            ));
+
+            emitter.line(&format!("cbuffer {} : {}", identifier(&global.name), binding.register));
             emitter.line("{");
             emitter.indent += 1;
+
             for field in &buffer.fields {
                 emitter.line(&format!("{};", uniform_variable(field)));
             }
+
             emitter.indent -= 1;
             emitter.line("};");
             continue;
         }
+
         if !module.uniform_value_functions.contains_key(&global.name)
             && (module.global_uniform_binding.is_none() || !global.is_global_uniform())
         {
             emitter.line(&format!("{};", variable(global)));
         }
     }
+
     if !module.globals.is_empty() {
         emitter.line("");
     }
+
     for function in &module.functions {
         if let Some(body) = &function.body {
             if let Some(entry) = module.entry_points.iter().find(|e| e.name == function.name)
@@ -86,11 +93,13 @@ pub(crate) fn emit(module: &Module) -> String {
             {
                 emitter.line(&format!("[numthreads({x}, {y}, {z})]"));
             }
+
             emitter.line(&signature(function));
             emitter.statement(body);
             emitter.line("");
         }
     }
+
     emitter.text
 }
 
@@ -105,6 +114,7 @@ impl Emitter {
             self.text.push_str(&"    ".repeat(self.indent));
             self.text.push_str(text);
         }
+
         self.text.push('\n');
     }
 
@@ -112,23 +122,29 @@ impl Emitter {
         if !emitted.insert(structure.name.clone()) {
             return;
         }
+
         for field in &structure.fields {
             let mut ty = &field.ty;
+
             while let Type::Array(element, _) = ty {
                 ty = element;
             }
+
             if let Type::Struct(name) = ty
                 && let Some(dependency) = module.structures.iter().find(|s| &s.name == name)
             {
                 self.structure(module, dependency, emitted);
             }
         }
+
         self.line(&format!("struct {}", identifier(&structure.name)));
         self.line("{");
         self.indent += 1;
+
         for field in &structure.fields {
             self.line(&format!("{};", variable(field)));
         }
+
         self.indent -= 1;
         self.line("};");
         self.line("");
@@ -153,26 +169,32 @@ impl Emitter {
                     self.statement(statement);
                 }
             }
+
             StmtKind::Block(statements) => {
                 self.line("{");
                 self.indent += 1;
+
                 for statement in statements {
                     self.statement(statement);
                 }
+
                 self.indent -= 1;
                 self.line("}");
             }
+
             StmtKind::Variable(value) => self.line(&format!("{};", variable(value))),
             StmtKind::Variables(variables) => {
                 for value in variables {
                     self.line(&format!("{};", variable(value)));
                 }
             }
+
             StmtKind::Expression(value) => self.line(&format!("{};", expression(value))),
-            StmtKind::Return(value) => self.line(&value.as_ref().map_or_else(
-                || "return;".into(),
-                |v| format!("return {};", expression(v)),
-            )),
+            StmtKind::Return(value) => self.line(
+                &value
+                    .as_ref()
+                    .map_or_else(|| "return;".into(), |v| format!("return {};", expression(v))),
+            ),
             StmtKind::If {
                 condition,
                 then_branch,
@@ -180,38 +202,56 @@ impl Emitter {
             } => {
                 self.line(&format!("if ({})", expression(condition)));
                 self.controlled_body(then_branch);
+
                 if let Some(branch) = else_branch {
                     self.line("else");
                     self.controlled_body(branch);
                 }
             }
-            StmtKind::While { condition, body } => {
+
+            StmtKind::While {
+                condition,
+                body,
+            } => {
                 self.line(&format!("while ({})", expression(condition)));
                 self.controlled_body(body);
             }
-            StmtKind::DoWhile { body, condition } => {
+
+            StmtKind::DoWhile {
+                body,
+                condition,
+            } => {
                 self.line("do");
                 self.controlled_body(body);
                 self.line(&format!("while ({});", expression(condition)));
             }
-            StmtKind::Switch { selector, cases } => {
+
+            StmtKind::Switch {
+                selector,
+                cases,
+            } => {
                 self.line(&format!("switch ({})", expression(selector)));
                 self.line("{");
                 self.indent += 1;
+
                 for case in cases {
                     self.line(&case.value.as_ref().map_or_else(
                         || "default:".into(),
                         |value| format!("case {}:", expression(value)),
                     ));
                     self.indent += 1;
+
                     for statement in &case.statements {
                         self.statement(statement);
                     }
+
                     self.indent -= 1;
                 }
+
                 self.indent -= 1;
                 self.line("}");
             }
+
             StmtKind::For {
                 initializer,
                 condition,
@@ -220,29 +260,32 @@ impl Emitter {
             } => {
                 // Independent declarations preserve mixed array suffixes. Keep
                 // their enclosing scope identical to the source for loop.
-                let group = matches!(
-                    initializer.kind,
-                    StmtKind::Variables(_) | StmtKind::Sequence(_)
-                );
+                let group =
+                    matches!(initializer.kind, StmtKind::Variables(_) | StmtKind::Sequence(_));
+
                 if group {
                     self.line("{");
                     self.indent += 1;
                     self.statement(initializer);
                 }
+
                 let init = match &initializer.kind {
                     StmtKind::Variable(v) => variable(v),
                     StmtKind::Expression(e) => expression(e),
                     _ => String::new(),
                 };
+
                 let condition = condition.as_ref().map_or_else(String::new, expression);
                 let increment = increment.as_ref().map_or_else(String::new, expression);
                 self.line(&format!("for ({init}; {condition}; {increment})"));
                 self.controlled_body(body);
+
                 if group {
                     self.indent -= 1;
                     self.line("}");
                 }
             }
+
             StmtKind::Break => self.line("break;"),
             StmtKind::Continue => self.line("continue;"),
             StmtKind::Discard => self.line("discard;"),
@@ -261,27 +304,30 @@ fn uniform_variable(value: &Variable) -> String {
 
 fn variable(variable: &Variable) -> String {
     let mut text = String::new();
+
     for modifier in &variable.modifiers {
         text.push_str(modifier);
         text.push(' ');
     }
+
     let mut ty = &variable.ty;
     let mut suffix = String::new();
+
     while let Type::Array(element, length) = ty {
         suffix.push_str(&format!("[{length}]"));
         ty = element;
     }
-    text.push_str(&format!(
-        "{} {}{suffix}",
-        type_name(ty),
-        identifier(&variable.name)
-    ));
+
+    text.push_str(&format!("{} {}{suffix}", type_name(ty), identifier(&variable.name)));
+
     if let Some(semantic) = &variable.semantic {
         text.push_str(&format!(" : {semantic}"));
     }
+
     if let Some(binding) = &variable.binding {
         text.push_str(&format!(" : {}", binding.register));
     }
+
     if let Some(initializer) = &variable.initializer {
         text.push_str(&format!(" = {}", expression(initializer)));
     }
@@ -294,16 +340,9 @@ fn signature(function: &Function) -> String {
     } else {
         format!("{} ", function.modifiers.join(" "))
     };
-    let params = function
-        .parameters
-        .iter()
-        .map(variable)
-        .collect::<Vec<_>>()
-        .join(", ");
-    let semantic = function
-        .semantic
-        .as_ref()
-        .map_or_else(String::new, |s| format!(" : {s}"));
+
+    let params = function.parameters.iter().map(variable).collect::<Vec<_>>().join(", ");
+    let semantic = function.semantic.as_ref().map_or_else(String::new, |s| format!(" : {s}"));
     format!(
         "{modifiers}{} {}({params}){semantic}",
         type_name(&function.return_type),
@@ -330,6 +369,7 @@ fn floating_literal(text: &str) -> String {
     {
         return text.into();
     }
+
     let scientific = literal.value != 0.0 && (literal.value < 1e-6 || literal.value >= 1e6);
     let mut number = if literal.kind == slang_lexer::FloatKind::Double {
         if scientific {
@@ -344,9 +384,11 @@ fn floating_literal(text: &str) -> String {
             (literal.value as f32).to_string()
         }
     };
+
     if !number.contains(['.', 'e', 'E']) {
         number.push_str(".0");
     }
+
     match literal.kind {
         slang_lexer::FloatKind::Half => format!("((half){number}f)"),
         slang_lexer::FloatKind::Double => format!("{number}L"),
@@ -356,59 +398,76 @@ fn floating_literal(text: &str) -> String {
 
 fn expression(expr: &Expr) -> String {
     match &expr.kind {
-        ExprKind::BlockExpression { .. } | ExprKind::AddressView(_) => {
+        ExprKind::BlockExpression {
+            ..
+        }
+        | ExprKind::AddressView(_) => {
             unreachable!("statement expressions must be normalized before HLSL emission")
         }
+
         ExprKind::ConstantBufferLoad(value) => expression(value),
         ExprKind::DeclarationDefault(value) => expression(value),
         ExprKind::Zero => format!("(({})0)", type_name(&expr.ty)),
         ExprKind::Construct(values) => {
             let values = values.iter().map(expression).collect::<Vec<_>>().join(", ");
+
             if matches!(expr.ty, Type::Vector(..) | Type::Matrix(..)) {
                 format!("{}({values})", type_name(&expr.ty))
             } else {
                 format!("{{{values}}}")
             }
         }
+
         ExprKind::Integer(text) => text.clone(),
         ExprKind::Float(text) => floating_literal(text),
         ExprKind::Name(name) | ExprKind::GlobalName(name) => identifier(name),
         ExprKind::Bool(value) => value.to_string(),
-        ExprKind::Unary { op, value } => format!("({op}{})", expression(value)),
-        ExprKind::Cast { value } => format!("(({}){})", type_name(&expr.ty), expression(value)),
-        ExprKind::Binary { op, left, right } => {
+        ExprKind::Unary {
+            op,
+            value,
+        } => format!("({op}{})", expression(value)),
+        ExprKind::Cast {
+            value,
+        } => format!("(({}){})", type_name(&expr.ty), expression(value)),
+        ExprKind::Binary {
+            op,
+            left,
+            right,
+        } => {
             format!("({} {op} {})", expression(left), expression(right))
         }
-        ExprKind::Call { name, arguments }
-            if Type::builtin(name).as_ref() == Some(&expr.ty)
-                && arguments.len() == 1
-                && matches!(expr.ty, Type::Vector(..) | Type::Matrix(..))
-                && matches!(arguments[0].ty, Type::Scalar(_)) =>
+
+        ExprKind::Call {
+            name,
+            arguments,
+        } if Type::builtin(name).as_ref() == Some(&expr.ty)
+            && arguments.len() == 1
+            && matches!(expr.ty, Type::Vector(..) | Type::Matrix(..))
+            && matches!(arguments[0].ty, Type::Scalar(_)) =>
         {
             format!("(({}){})", type_name(&expr.ty), expression(&arguments[0]))
         }
-        ExprKind::Call { name, arguments } => format!(
+
+        ExprKind::Call {
+            name,
+            arguments,
+        } => format!(
             "{}({})",
             if Type::builtin(name).is_some() {
                 type_name(&expr.ty)
             } else {
                 identifier(name)
             },
-            arguments
-                .iter()
-                .map(expression)
-                .collect::<Vec<_>>()
-                .join(", ")
+            arguments.iter().map(expression).collect::<Vec<_>>().join(", ")
         ),
-        ExprKind::IntrinsicCall { name, arguments } => format!(
-            "{name}({})",
-            arguments
-                .iter()
-                .map(expression)
-                .collect::<Vec<_>>()
-                .join(", ")
-        ),
-        ExprKind::Member { base, name } => format!("({}).{}", expression(base), identifier(name)),
+        ExprKind::IntrinsicCall {
+            name,
+            arguments,
+        } => format!("{name}({})", arguments.iter().map(expression).collect::<Vec<_>>().join(", ")),
+        ExprKind::Member {
+            base,
+            name,
+        } => format!("({}).{}", expression(base), identifier(name)),
         ExprKind::MethodCall {
             receiver,
             name,
@@ -416,13 +475,12 @@ fn expression(expr: &Expr) -> String {
         } => format!(
             "({}).{name}({})",
             expression(receiver),
-            arguments
-                .iter()
-                .map(expression)
-                .collect::<Vec<_>>()
-                .join(", ")
+            arguments.iter().map(expression).collect::<Vec<_>>().join(", ")
         ),
-        ExprKind::Index { base, index } => format!("({})[{}]", expression(base), expression(index)),
+        ExprKind::Index {
+            base,
+            index,
+        } => format!("({})[{}]", expression(base), expression(index)),
         ExprKind::Conditional {
             condition,
             then_value,
@@ -433,6 +491,9 @@ fn expression(expr: &Expr) -> String {
             expression(then_value),
             expression(else_value)
         ),
-        ExprKind::Postfix { op, value } => format!("({}{op})", expression(value)),
+        ExprKind::Postfix {
+            op,
+            value,
+        } => format!("({}{op})", expression(value)),
     }
 }

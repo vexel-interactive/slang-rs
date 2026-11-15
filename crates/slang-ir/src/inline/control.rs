@@ -15,14 +15,17 @@ impl Lowerer {
                 "ForceInline argument count does not match checked parameters",
             ));
         }
+
         self.active.push(function.name.clone());
         let mut statements = vec![];
         let mut fixups = vec![];
         let mut bindings = BTreeMap::new();
+
         for (parameter, argument) in function.parameters.iter().zip(arguments) {
             let local = self.argument(parameter, argument, &mut statements, &mut fixups, span)?;
             bindings.insert(parameter.name.clone(), local);
         }
+
         let result = if function.return_type == Type::Void {
             Expr {
                 ty: Type::Void,
@@ -30,15 +33,11 @@ impl Lowerer {
                 span,
             }
         } else {
-            self.storage(
-                &variable(String::new(), function.return_type.clone(), span),
-                span,
-            )
+            self.storage(&variable(String::new(), function.return_type.clone(), span), span)
         };
-        let returned = self.storage(
-            &variable(String::new(), Type::Scalar(Scalar::Bool), span),
-            span,
-        );
+
+        let returned =
+            self.storage(&variable(String::new(), Type::Scalar(Scalar::Bool), span), span);
         statements.push(expression(assign(returned.clone(), boolean(false, span))));
         statements.push(self.control(
             function.body.as_ref().unwrap(),
@@ -55,6 +54,7 @@ impl Lowerer {
                 value: Box::new(result),
             },
         };
+
         self.expression(&mut value)?;
         self.active.pop();
         Ok(value)
@@ -76,12 +76,15 @@ impl Lowerer {
                 let scoped = matches!(statement.kind, StmtKind::Block(_));
                 let saved = scoped.then(|| bindings.clone());
                 let mut statements = vec![];
+
                 for value in values {
                     statements.push(self.control(value, bindings, result, returned)?);
                 }
+
                 if let Some(saved) = saved {
                     *bindings = saved;
                 }
+
                 return Ok(if scoped {
                     block(statements, span)
                 } else {
@@ -91,18 +94,23 @@ impl Lowerer {
                     }
                 });
             }
+
             StmtKind::Variable(value) => {
                 let mut expressions = vec![];
                 self.local(value, bindings, &mut expressions, span)?;
                 StmtKind::Sequence(expressions.into_iter().map(expression).collect())
             }
+
             StmtKind::Variables(values) => {
                 let mut expressions = vec![];
+
                 for value in values {
                     self.local(value, bindings, &mut expressions, span)?;
                 }
+
                 StmtKind::Sequence(expressions.into_iter().map(expression).collect())
             }
+
             StmtKind::Expression(value) => StmtKind::Expression(capture(value, bindings)?),
             StmtKind::Return(Some(value)) => StmtKind::Block(vec![
                 expression(if result.ty == Type::Void {
@@ -116,8 +124,10 @@ impl Lowerer {
                 if result.ty != Type::Void {
                     return Err(unsupported(span, "ForceInline requires a return value"));
                 }
+
                 StmtKind::Expression(assign(returned.clone(), boolean(true, span)))
             }
+
             StmtKind::If {
                 condition,
                 then_branch,
@@ -127,21 +137,20 @@ impl Lowerer {
                 then_branch: Box::new(self.control(then_branch, bindings, result, returned)?),
                 else_branch: else_branch
                     .as_ref()
-                    .map(|branch| {
-                        self.control(branch, bindings, result, returned)
-                            .map(Box::new)
-                    })
+                    .map(|branch| self.control(branch, bindings, result, returned).map(Box::new))
                     .transpose()?,
             },
-            StmtKind::While { condition, body } => StmtKind::While {
-                condition: binary(
-                    "&&",
-                    negate(returned.clone()),
-                    capture(condition, bindings)?,
-                ),
+            StmtKind::While {
+                condition,
+                body,
+            } => StmtKind::While {
+                condition: binary("&&", negate(returned.clone()), capture(condition, bindings)?),
                 body: Box::new(self.control(body, bindings, result, returned)?),
             },
-            StmtKind::DoWhile { body, condition } => {
+            StmtKind::DoWhile {
+                body,
+                condition,
+            } => {
                 let body = self.control(body, bindings, result, returned)?;
                 StmtKind::DoWhile {
                     body: Box::new(body),
@@ -152,6 +161,7 @@ impl Lowerer {
                     ),
                 }
             }
+
             StmtKind::For {
                 initializer,
                 condition,
@@ -177,6 +187,7 @@ impl Lowerer {
                             ty: Type::Scalar(Scalar::Int),
                             span,
                         };
+
                         Ok::<_, Diagnostic>(Expr {
                             ty: zero.ty.clone(),
                             span,
@@ -200,33 +211,49 @@ impl Lowerer {
                     body: Box::new(body),
                 }
             }
-            StmtKind::Switch { selector, cases } => {
+
+            StmtKind::Switch {
+                selector,
+                cases,
+            } => {
                 let selector = capture(selector, bindings)?;
                 let saved = bindings.clone();
                 let mut values = vec![];
+
                 for case in cases {
-                    let value = case
-                        .value
-                        .as_ref()
-                        .map(|value| capture(value, bindings))
-                        .transpose()?;
+                    let value =
+                        case.value.as_ref().map(|value| capture(value, bindings)).transpose()?;
                     let mut statements = vec![];
+
                     for value in &case.statements {
                         statements.push(self.control(value, bindings, result, returned)?);
                     }
-                    values.push(SwitchCase { value, statements });
+
+                    values.push(SwitchCase {
+                        value,
+                        statements,
+                    });
                 }
+
                 *bindings = saved;
                 StmtKind::Switch {
                     selector,
                     cases: values,
                 }
             }
+
             StmtKind::Break => StmtKind::Break,
             StmtKind::Continue => StmtKind::Continue,
             StmtKind::Discard => StmtKind::Discard,
             StmtKind::Empty => return Ok(statement.clone()),
         };
-        Ok(guard(negate(returned.clone()), Stmt { span, kind }))
+
+        Ok(guard(
+            negate(returned.clone()),
+            Stmt {
+                span,
+                kind,
+            },
+        ))
     }
 }

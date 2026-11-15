@@ -19,14 +19,15 @@ impl Specializer {
         if !self.symbolic {
             return false;
         }
+
         let mut changed = false;
+
         for context in self.default_method_contexts.values() {
             if !self.symbolic_types.contains(&context.owner) {
                 continue;
             }
-            changed |= self
-                .checked_default_interfaces
-                .insert(context.interface.clone());
+
+            changed |= self.checked_default_interfaces.insert(context.interface.clone());
             for (id, binding) in &probe.constraint_calls {
                 if binding.owner.name == context.owner {
                     let original = self.expression_origins.get(id).copied().unwrap_or(*id);
@@ -34,6 +35,7 @@ impl Specializer {
                         .insert((context.interface.clone(), original), binding.clone());
                 }
             }
+
             for (span, binding) in &probe.constraint_variables {
                 if binding.owner.name == context.owner {
                     let (source, start, end, _) = *span;
@@ -44,6 +46,7 @@ impl Specializer {
                 }
             }
         }
+
         changed
     }
 
@@ -51,20 +54,17 @@ impl Specializer {
         let Some(context) = self.default_method_contexts.get(&callee.span.context) else {
             return false;
         };
+
         if let ExprKind::Name(name) = &callee.kind
             && context.members.contains(name)
-            && !self
-                .shapes
-                .scopes
-                .iter()
-                .skip(1)
-                .any(|s| s.contains_key(name))
+            && !self.shapes.scopes.iter().skip(1).any(|s| s.contains_key(name))
         {
             let receiver = if context.is_static {
                 &context.owner
             } else {
                 "this"
             };
+
             let mut base = callee.clone();
             base.id = ExprId(self.next_expression);
             base.kind = ExprKind::Name(receiver.into());
@@ -75,6 +75,7 @@ impl Specializer {
                 static_lookup: context.is_static,
             };
         }
+
         matches!(&callee.kind, ExprKind::Member { base, name, .. }
             if context.members.contains(name)
                 && matches!(&base.kind, ExprKind::Name(n) if n == "this" || n == &context.owner))
@@ -84,22 +85,26 @@ impl Specializer {
         let mut members = BTreeSet::new();
         let mut visited = BTreeSet::new();
         let mut pending = vec![interface];
+
         while let Some(interface) = pending.pop() {
             if !visited.insert(&interface.name) {
                 continue;
             }
+
             members.extend(
                 interface
                     .requirements
                     .iter()
                     .filter_map(|f| f.method.as_ref().map(|m| m.name.clone())),
             );
+
             for base in &interface.bases {
                 if let Some(base) = self.shapes.interface_definitions.get(&base.name) {
                     pending.push(base);
                 }
             }
         }
+
         members
     }
 
@@ -107,19 +112,20 @@ impl Specializer {
         &mut self,
         interface: &mut Interface,
     ) -> Result<(), Diagnostic> {
-        self.shapes.current_module = self
-            .symbols
-            .get(&interface.name)
-            .map_or(Default::default(), |o| o.module);
+        self.shapes.current_module =
+            self.symbols.get(&interface.name).map_or(Default::default(), |o| o.module);
         self.shapes.current_static_type = Some(interface.name.clone());
+
         for base in &mut interface.bases {
             self.ty(base)?;
         }
+
         for requirement in &mut interface.requirements {
             let body = requirement.body.take();
             visit::walk_function(self, requirement)?;
             requirement.body = body;
         }
+
         Ok(())
     }
 
@@ -132,16 +138,13 @@ impl Specializer {
         {
             return Ok(());
         }
+
         let context = self.next_context;
         self.next_context += 1;
         let owner = format!("{}interface_self_{context}", self.prefix);
-        let module = self
-            .symbols
-            .get(&interface.name)
-            .map_or(Default::default(), |o| o.module);
+        let module = self.symbols.get(&interface.name).map_or(Default::default(), |o| o.module);
         self.symbolic_types.insert(owner.clone());
-        self.symbolic_parameters
-            .insert(owner.clone(), witness::reference("This", interface.span));
+        self.symbolic_parameters.insert(owner.clone(), witness::reference("This", interface.span));
         self.symbols.insert(
             owner.clone(),
             SymbolOrigin {
@@ -164,6 +167,7 @@ impl Specializer {
             None,
         )?;
         let names = self.default_names(&owner, interface, &BTreeMap::new());
+
         for requirement in &interface.requirements {
             if requirement.body.is_some()
                 && requirement.generic_parameters.is_empty()
@@ -177,6 +181,7 @@ impl Specializer {
                 self.pending.push_back(declaration);
             }
         }
+
         Ok(())
     }
 
@@ -187,6 +192,7 @@ impl Specializer {
         methods: &BTreeMap<(String, String), String>,
     ) -> BTreeMap<String, String> {
         let mut names = BTreeMap::from([(interface.name.clone(), owner.into())]);
+
         for requirement in &interface.requirements {
             if let Some(method) = &requirement.method {
                 let target = methods
@@ -196,6 +202,7 @@ impl Specializer {
                 names.insert(requirement.name.clone(), target);
             }
         }
+
         names
     }
 
@@ -215,6 +222,7 @@ impl Specializer {
         let mut types =
             BTreeMap::from([("This".into(), witness::reference(owner, requirement.span))]);
         let mut declaration = Declaration::Function(Box::new(requirement.clone()));
+
         if self.symbolic && validation_context.is_none() {
             SeedBindings {
                 specializer: self,
@@ -224,6 +232,7 @@ impl Specializer {
             }
             .declaration(&mut declaration)?;
         }
+
         substitute::Substitute {
             root: &interface.name,
             names,
@@ -237,13 +246,12 @@ impl Specializer {
         }
         .declaration(&mut declaration)?;
         let name = declaration_name(&declaration).to_owned();
+
         if let Declaration::Function(function) = &mut declaration {
             function.modifiers.push("override".into());
         }
-        let module = self
-            .symbols
-            .get(&interface.name)
-            .map_or(Default::default(), |o| o.module);
+
+        let module = self.symbols.get(&interface.name).map_or(Default::default(), |o| o.module);
         self.symbols.insert(
             name.clone(),
             SymbolOrigin {
@@ -251,8 +259,7 @@ impl Specializer {
                 name: format!("{owner}.{}", requirement.method.as_ref().unwrap().name),
             },
         );
-        self.generated
-            .insert(crate::span_key(declaration_span(&declaration)));
+        self.generated.insert(crate::span_key(declaration_span(&declaration)));
         self.default_method_contexts.insert(
             context,
             Context {
@@ -280,45 +287,39 @@ impl Specializer {
         if !module.declarations.iter().any(has_bodies) {
             return Ok(false);
         }
+
         let mut checker = Checker::new(module, self.symbols.clone(), major);
         checker.symbolic_types = self.symbolic_types.clone();
         checker.declare(module);
         checker.declare_conformances(module);
         let mut candidates =
             BTreeMap::<(String, String, Vec<String>, bool), Vec<(String, Function)>>::new();
-        for structure in checker
-            .struct_definitions
-            .values()
-            .cloned()
-            .collect::<Vec<_>>()
-        {
+        for structure in checker.struct_definitions.values().cloned().collect::<Vec<_>>() {
             if checker.symbolic_types.contains(&structure.name) {
                 continue;
             }
-            let interfaces = checker
-                .conformances
-                .get(&structure.name)
-                .cloned()
-                .unwrap_or_default();
+
+            let interfaces = checker.conformances.get(&structure.name).cloned().unwrap_or_default();
             for name in interfaces {
                 let interface = checker.interface_definitions[&name].clone();
+
                 if self.symbolic && !self.checked_default_interfaces.contains(&name) {
                     continue;
                 }
+
                 for requirement in &interface.requirements {
                     if requirement.body.is_none()
                         || !requirement.generic_parameters.is_empty()
                         || requirement.method.is_none()
-                        || checker
-                            .direct_witnesses
-                            .contains_key(&crate::conformance::witness::key(
-                                &structure.name,
-                                &name,
-                                requirement.span,
-                            ))
+                        || checker.direct_witnesses.contains_key(&crate::conformance::witness::key(
+                            &structure.name,
+                            &name,
+                            requirement.span,
+                        ))
                     {
                         continue;
                     }
+
                     let (_, parameters, _) =
                         checker.requirement_signature(&structure.name, requirement);
                     let method = requirement.method.as_ref().unwrap();
@@ -328,14 +329,13 @@ impl Specializer {
                         parameters.iter().map(Type::to_string).collect(),
                         method.is_static,
                     );
-                    candidates
-                        .entry(key)
-                        .or_default()
-                        .push((name.clone(), requirement.clone()));
+                    candidates.entry(key).or_default().push((name.clone(), requirement.clone()));
                 }
             }
         }
+
         let changed = !candidates.is_empty();
+
         for ((owner, method, _, _), requirements) in candidates {
             let selected = requirements
                 .iter()
@@ -356,12 +356,14 @@ impl Specializer {
                     format!("ambiguous default interface method '{method}'"),
                 ));
             }
+
             let (name, requirement) = selected[0];
             let interface = &checker.interface_definitions[name];
             let names = self.default_names(&owner, interface, &checker.methods);
             let declaration = self.clone_default(&owner, interface, requirement, &names, None)?;
             self.pending.push_back(declaration);
         }
+
         Ok(changed)
     }
 }
@@ -375,26 +377,16 @@ struct SeedBindings<'a> {
 
 impl SeedBindings<'_> {
     fn owner_type(&mut self, binding: &ConstraintCallInfo) {
-        self.types.insert(
-            binding.owner.name.clone(),
-            witness::reference(self.owner, binding.owner.span),
-        );
+        self.types
+            .insert(binding.owner.name.clone(), witness::reference(self.owner, binding.owner.span));
     }
 }
 
 impl VisitorMut for SeedBindings<'_> {
     fn expression_id(&mut self, id: &mut ExprId) {
-        let original = self
-            .specializer
-            .expression_origins
-            .get(id)
-            .copied()
-            .unwrap_or(*id);
-        if let Some(binding) = self
-            .specializer
-            .default_body_calls
-            .get(&(self.interface.into(), original))
-            .cloned()
+        let original = self.specializer.expression_origins.get(id).copied().unwrap_or(*id);
+        if let Some(binding) =
+            self.specializer.default_body_calls.get(&(self.interface.into(), original)).cloned()
         {
             self.owner_type(&binding);
             self.specializer.constraint_calls.insert(*id, binding);
@@ -403,17 +395,14 @@ impl VisitorMut for SeedBindings<'_> {
 
     fn variable(&mut self, variable: &mut Variable) -> Result<(), Diagnostic> {
         let span = crate::span_key(variable.span.with_context(0));
-        if let Some(binding) = self
-            .specializer
-            .default_body_variables
-            .get(&(self.interface.into(), span))
-            .cloned()
+
+        if let Some(binding) =
+            self.specializer.default_body_variables.get(&(self.interface.into(), span)).cloned()
         {
             self.owner_type(&binding);
-            self.specializer
-                .constraint_variables
-                .insert(crate::span_key(variable.span), binding);
+            self.specializer.constraint_variables.insert(crate::span_key(variable.span), binding);
         }
+
         visit::walk_variable(self, variable)
     }
 }

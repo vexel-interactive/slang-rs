@@ -11,9 +11,11 @@ use std::collections::BTreeMap;
 pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
     let names = crate::visit::names(module);
     let mut prefix = "_slang_empty_array_".to_owned();
+
     while names.iter().any(|name| name.starts_with(&prefix)) {
         prefix.push('_');
     }
+
     let mut lowerer = Lowerer {
         prefix,
         types: BTreeMap::new(),
@@ -21,15 +23,13 @@ pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
         structures: vec![],
         functions: vec![],
         globals: vec![],
-        source_structures: module
-            .structures
-            .iter()
-            .map(|s| (s.name.clone(), s.clone()))
-            .collect(),
+        source_structures: module.structures.iter().map(|s| (s.name.clone(), s.clone())).collect(),
     };
+
     for global in &mut module.globals {
         let empty_resource = global.ty.is_resource() && global.ty.is_empty_array();
         lowerer.variable(global)?;
+
         if empty_resource {
             global.modifiers = vec!["static".into()];
             global.initializer.get_or_insert_with(|| Expr {
@@ -39,30 +39,37 @@ pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
             });
         }
     }
+
     for structure in &mut module.structures {
         for field in &mut structure.fields {
             lowerer.variable(field)?;
         }
     }
+
     for buffer in &mut module.constant_buffers {
         for field in buffer.fields.iter_mut().chain(&mut buffer.views) {
             lowerer.variable(field)?;
         }
     }
+
     if let Some(fields) = &mut module.global_uniform_fields {
         for field in fields {
             lowerer.variable(field)?;
         }
     }
+
     for function in &mut module.functions {
         lowerer.ty(&mut function.return_type);
+
         for parameter in &mut function.parameters {
             lowerer.variable(parameter)?;
         }
+
         if let Some(body) = &mut function.body {
             lowerer.statement(body)?;
         }
     }
+
     module.structures.splice(0..0, lowerer.structures);
     module.functions.extend(lowerer.functions);
     module.globals.extend(lowerer.globals);
@@ -95,19 +102,35 @@ impl Lowerer {
                     self.types.insert(key, name.clone());
                     name
                 };
+
                 *ty = Type::Struct(name);
             }
+
             Type::Array(element, _)
-            | Type::ConstantBuffer { element, .. }
-            | Type::Buffer { element, .. }
-            | Type::Texture { element, .. }
+            | Type::ConstantBuffer {
+                element,
+                ..
+            }
+            | Type::Buffer {
+                element,
+                ..
+            }
+            | Type::Texture {
+                element,
+                ..
+            }
             | Type::Meta(element) => self.ty(element),
-            Type::Callable { parameters, result } => {
+            Type::Callable {
+                parameters,
+                result,
+            } => {
                 for parameter in parameters {
                     self.ty(parameter);
                 }
+
                 self.ty(result);
             }
+
             _ => {}
         }
     }
@@ -115,17 +138,19 @@ impl Lowerer {
     fn variable(&mut self, variable: &mut Variable) -> Result<(), Diagnostic> {
         self.ty(&mut variable.ty);
         let mut element = &variable.ty;
+
         while let Type::Array(inner, _) = element {
             element = inner;
         }
+
         if matches!(element, Type::Struct(name) if self.types.values().any(|n| n == name)) {
-            variable
-                .modifiers
-                .retain(|m| !matches!(m.as_str(), "row_major" | "column_major"));
+            variable.modifiers.retain(|m| !matches!(m.as_str(), "row_major" | "column_major"));
         }
+
         if let Some(initializer) = &mut variable.initializer {
             self.expression(initializer)?;
         }
+
         Ok(())
     }
 
@@ -141,6 +166,7 @@ impl Lowerer {
                 "dynamic indexing of empty resource arrays is not implemented",
             ));
         }
+
         self.ty(&mut element);
         let key = format!("{} {}", base.ty, index.ty);
         let (function, global, storage) = if let Some(names) = self.indices.get(&key) {
@@ -176,10 +202,10 @@ impl Lowerer {
                     }]),
                 }),
             });
-            self.indices
-                .insert(key, (function.clone(), global.clone(), storage.clone()));
+            self.indices.insert(key, (function.clone(), global.clone(), storage.clone()));
             (function, global, storage)
         };
+
         let span = base.span;
         Ok(Expr {
             ty: element,
@@ -207,6 +233,7 @@ impl Lowerer {
     fn resource_data(&self, ty: &Type) -> bool {
         let mut pending = vec![ty];
         let mut visited = std::collections::BTreeSet::new();
+
         while let Some(ty) = pending.pop() {
             match ty {
                 Type::Array(_, 0) => {}
@@ -216,10 +243,12 @@ impl Lowerer {
                         pending.extend(structure.fields.iter().map(|f| &f.ty));
                     }
                 }
+
                 ty if ty.is_resource() => return true,
                 _ => {}
             }
         }
+
         false
     }
 }
@@ -229,13 +258,19 @@ impl Visitor for Lowerer {
         let empty_index = matches!(&expression.kind, ExprKind::Index { base, .. }
             if base.ty.is_empty_array());
         walk_expression(self, expression)?;
+
         if empty_index {
-            if let ExprKind::Index { base, index } = &expression.kind {
+            if let ExprKind::Index {
+                base,
+                index,
+            } = &expression.kind
+            {
                 *expression = self.index(*base.clone(), *index.clone(), expression.ty.clone())?;
             }
         } else {
             self.ty(&mut expression.ty);
         }
+
         Ok(())
     }
 
@@ -246,10 +281,13 @@ impl Visitor for Lowerer {
                 for variable in variables {
                     self.variable(variable)?;
                 }
+
                 return Ok(());
             }
+
             _ => {}
         }
+
         walk_statement(self, statement)
     }
 }

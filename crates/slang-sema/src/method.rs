@@ -25,14 +25,12 @@ impl Checker {
         let (owner, type_receiver) = if let Some(base) = base {
             self.member_owner(base)?
         } else {
-            let current = self
-                .current_type
-                .as_ref()
-                .or(self.current_static_type.as_ref())?;
+            let current = self.current_type.as_ref().or(self.current_static_type.as_ref())?;
             let owner = self.lexical_member_owner(current, name)?;
             let type_receiver = owner != *current || self.lookup("this").is_none();
             (owner, type_receiver)
         };
+
         let function = self.methods.get(&(owner.clone(), name.into())).cloned()?;
         let type_receiver = type_receiver
             || matches!(
@@ -42,10 +40,7 @@ impl Checker {
                     ..
                 }
             );
-        let module = self
-            .symbols
-            .get(&function)
-            .map_or(slang_module::ModuleId(0), |o| o.module);
+        let module = self.symbols.get(&function).map_or(slang_module::ModuleId(0), |o| o.module);
         let constrained = self.constraint_call_signature(callee.id, &owner);
         let mut matches: Vec<_> = if let Some(signature) = constrained {
             match signature {
@@ -64,9 +59,7 @@ impl Checker {
                             || module == self.current_module
                             || self.constraint_witness_access(signature, &owner, span))
                         && types.len() <= parameters.len()
-                        && signature.defaults[offset + types.len()..]
-                            .iter()
-                            .all(Option::is_some)
+                        && signature.defaults[offset + types.len()..].iter().all(Option::is_some)
                         && types
                             .iter()
                             .zip(parameters)
@@ -75,6 +68,7 @@ impl Checker {
                 .cloned()
                 .collect()
         };
+
         let score = |signature: &Signature| {
             let offset = usize::from(!signature.method.as_ref().unwrap().is_static);
             let conversions = types
@@ -85,12 +79,9 @@ impl Checker {
                     a.literal_conversion_cost(b, slang_syntax::integer_literal(expr).ok().flatten())
                 })
                 .sum::<usize>();
-            (
-                conversions,
-                signature.default_type_arguments,
-                signature.generic,
-            )
+            (conversions, signature.default_type_arguments, signature.generic)
         };
+
         matches.sort_by_key(score);
         let Some(best) = matches.first() else {
             self.error(
@@ -100,6 +91,7 @@ impl Checker {
             );
             return Some(Type::Error);
         };
+
         if matches.get(1).is_some_and(|s| score(s) == score(best)) {
             self.error(
                 "T014",
@@ -107,9 +99,11 @@ impl Checker {
                 format!("ambiguous method '{}.{name}'", self.source_name(&owner)),
             );
         }
+
         if !best.defined {
             self.error("T014", span, "method has no definition");
         }
+
         let mut supplied = arguments.to_vec();
         let mut actual = types.to_vec();
         let receiver = if best.method.as_ref().unwrap().is_static {
@@ -122,14 +116,17 @@ impl Checker {
                 value.kind = ExprKind::Name("this".into());
                 value
             };
+
             actual.insert(0, self.expression(&value));
             supplied.insert(0, value);
+
             if let Some(base) = base {
                 MethodReceiver::Explicit(Box::new(base.clone()))
             } else {
                 MethodReceiver::Implicit(owner)
             }
         };
+
         let result = self.finish_user_call(callee, &supplied, &actual, best, span);
         self.method_receivers.insert(callee.id, receiver);
         Some(result)

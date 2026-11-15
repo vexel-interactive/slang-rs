@@ -14,15 +14,18 @@ impl Lowerer<'_> {
         let Some(owner) = &function.constructor else {
             return Ok(body);
         };
+
         let ty = Type::Struct(owner.clone());
         let receiver = Expr {
             ty: ty.clone(),
             kind: ExprKind::Name("this".into()),
             span: function.span,
         };
+
         let mut returns = Returns {
             receiver: receiver.clone(),
         };
+
         returns.statement(&mut body)?;
         let mut statements = vec![Stmt {
             kind: StmtKind::Variable(Variable {
@@ -38,10 +41,8 @@ impl Lowerer<'_> {
             }),
             span: function.span,
         }];
-        if let Some(values) = self
-            .checked
-            .constructor_initializations
-            .get(&span_key(function.span))
+
+        if let Some(values) = self.checked.constructor_initializations.get(&span_key(function.span))
         {
             for (name, value) in values {
                 let location = Expr {
@@ -52,12 +53,14 @@ impl Lowerer<'_> {
                     },
                     span: function.span,
                 };
+
                 statements.push(crate::effects::expression(crate::effects::assign(
                     location,
                     self.initialization(value, function.span)?,
                 )));
             }
         }
+
         statements.push(body);
         statements.push(Stmt {
             kind: StmtKind::Return(Some(receiver)),
@@ -74,10 +77,12 @@ impl Visitor for Returns {
     fn expression(&mut self, _: &mut Expr) -> Result<(), Diagnostic> {
         Ok(())
     }
+
     fn statement(&mut self, statement: &mut Stmt) -> Result<(), Diagnostic> {
         if let StmtKind::Return(None) = statement.kind {
             statement.kind = StmtKind::Return(Some(self.receiver.clone()));
         }
+
         walk_statement(self, statement)
     }
 }

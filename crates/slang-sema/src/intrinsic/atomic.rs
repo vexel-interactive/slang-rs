@@ -27,9 +27,11 @@ pub(crate) fn signature(name: &str, types: &[Type]) -> Option<Signature> {
         "InterlockedCompareStore" if types.len() == 3 => None,
         _ => return None,
     };
+
     let ty @ Type::Scalar(Scalar::Int | Scalar::Uint) = types.first()? else {
         return None;
     };
+
     Some(Signature {
         parameters: vec![ty.clone(); types.len()],
         output,
@@ -45,6 +47,7 @@ impl Checker {
                 "atomic destination requires groupshared storage or an element of an RW resource",
             );
         }
+
         self.require_writable(value);
     }
 
@@ -53,12 +56,24 @@ impl Checker {
             ExprKind::Name(name) => self
                 .lookup(name)
                 .is_some_and(|binding| matches!(binding.storage, Storage::GroupShared(_))),
-            ExprKind::Member { base, .. } => self.atomic_destination(base),
-            ExprKind::Index { base, .. } => {
+            ExprKind::Member {
+                base,
+                ..
+            } => self.atomic_destination(base),
+            ExprKind::Index {
+                base,
+                ..
+            } => {
                 if matches!(
                     self.expression_types.get(&base.id),
                     Some(
-                        Type::Buffer { writable: true, .. } | Type::Texture { writable: true, .. }
+                        Type::Buffer {
+                            writable: true,
+                            ..
+                        } | Type::Texture {
+                            writable: true,
+                            ..
+                        }
                     )
                 ) {
                     true
@@ -66,6 +81,7 @@ impl Checker {
                     self.atomic_destination(base)
                 }
             }
+
             _ => false,
         }
     }

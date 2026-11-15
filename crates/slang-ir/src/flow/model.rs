@@ -23,8 +23,14 @@ pub struct Value {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 pub enum Definition {
-    Parameter { block: BlockId, index: usize },
-    Instruction { block: BlockId, index: usize },
+    Parameter {
+        block: BlockId,
+        index: usize,
+    },
+    Instruction {
+        block: BlockId,
+        index: usize,
+    },
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -64,8 +70,17 @@ impl Operation {
         match self {
             Self::Constant(_) => vec![],
             Self::Unknown(values) => values.clone(),
-            Self::Copy(value) | Self::Convert(value) | Self::Unary { value, .. } => vec![*value],
-            Self::Binary { left, right, .. } => vec![*left, *right],
+            Self::Copy(value)
+            | Self::Convert(value)
+            | Self::Unary {
+                value,
+                ..
+            } => vec![*value],
+            Self::Binary {
+                left,
+                right,
+                ..
+            } => vec![*left, *right],
         }
     }
 }
@@ -98,30 +113,34 @@ impl Terminator {
         match self {
             Self::Jump(edge) => vec![edge],
             Self::Branch {
-                on_true, on_false, ..
+                on_true,
+                on_false,
+                ..
             } => vec![on_true, on_false],
-            Self::Switch { cases, default, .. } => cases
-                .iter()
-                .map(|(_, edge)| edge)
-                .chain([default])
-                .collect(),
+            Self::Switch {
+                cases,
+                default,
+                ..
+            } => cases.iter().map(|(_, edge)| edge).chain([default]).collect(),
             _ => vec![],
         }
     }
 
     pub fn operands(&self) -> Vec<ValueId> {
         let mut result = match self {
-            Self::Branch { condition, .. } => vec![*condition],
-            Self::Switch { selector, .. } => vec![*selector],
+            Self::Branch {
+                condition,
+                ..
+            } => vec![*condition],
+            Self::Switch {
+                selector,
+                ..
+            } => vec![*selector],
             Self::Return(Some(value)) => vec![*value],
             _ => vec![],
         };
-        result.extend(
-            self.edges()
-                .into_iter()
-                .flat_map(|edge| &edge.arguments)
-                .copied(),
-        );
+
+        result.extend(self.edges().into_iter().flat_map(|edge| &edge.arguments).copied());
         result
     }
 }

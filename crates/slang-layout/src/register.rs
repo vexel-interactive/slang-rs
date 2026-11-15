@@ -55,9 +55,11 @@ pub struct RegisterBinding {
 impl fmt::Display for RegisterBinding {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "register({}{}", self.class, self.index)?;
+
         if self.space != 0 {
             write!(f, ", space{}", self.space)?;
         }
+
         f.write_str(")")
     }
 }

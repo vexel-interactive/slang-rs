@@ -1,13 +1,8 @@
 use slang_compiler::{CompileOptions, MemoryIncludes, compile_source};
 
 fn compile(source: &str) -> slang_compiler::Compilation {
-    compile_source(
-        "packed.slang",
-        source,
-        &CompileOptions::default(),
-        &MemoryIncludes::default(),
-    )
-    .unwrap()
+    compile_source("packed.slang", source, &CompileOptions::default(), &MemoryIncludes::default())
+        .unwrap()
 }
 
 #[test]
@@ -20,14 +15,11 @@ fn explicit_fields_precede_automatic_packing_and_preserve_overlaps() {
         &compiled.reflection.uniform_types[&buffer.uniform_layout.as_ref().unwrap().type_name];
     assert_eq!(layout.size, 44);
     assert_eq!(
-        layout
-            .fields
-            .iter()
-            .map(|f| (f.name.as_str(), f.offset))
-            .collect::<Vec<_>>(),
+        layout.fields.iter().map(|f| (f.name.as_str(), f.offset)).collect::<Vec<_>>(),
         [("a", 36), ("b", 40), ("v", 8), ("alias", 36)]
     );
     let code = compiled.artifact.unwrap();
+
     assert!(code.contains("float a : packoffset(c2.y);"));
     assert!(code.contains("float2 v : packoffset(c0.z);"));
     assert!(!code[..code.find("cbuffer ").unwrap()].contains("packoffset"));
@@ -45,29 +37,12 @@ fn packing_is_relative_to_each_buffer_and_static_members_have_no_offset() {
         .map(|g| &compiled.reflection.uniform_types[&g.uniform_layout.as_ref().unwrap().type_name])
         .collect();
     assert_eq!(layouts[0].size, 16);
-    assert_eq!(
-        layouts[0]
-            .fields
-            .iter()
-            .map(|f| f.offset)
-            .collect::<Vec<_>>(),
-        [4, 12]
-    );
+    assert_eq!(layouts[0].fields.iter().map(|f| f.offset).collect::<Vec<_>>(), [4, 12]);
+
     assert_eq!(layouts[1].size, 56);
-    assert_eq!(
-        layouts[1]
-            .fields
-            .iter()
-            .map(|f| f.offset)
-            .collect::<Vec<_>>(),
-        [32, 52]
-    );
-    assert!(
-        compiled
-            .artifact
-            .unwrap()
-            .contains("static float storage = 1;")
-    );
+    assert_eq!(layouts[1].fields.iter().map(|f| f.offset).collect::<Vec<_>>(), [32, 52]);
+
+    assert!(compiled.artifact.unwrap().contains("static float storage = 1;"));
 }
 
 #[test]
@@ -83,16 +58,11 @@ fn imported_packing_and_default_arguments_keep_field_identity() {
         &includes,
     )
     .unwrap();
-    let layout = &compiled.reflection.uniform_types[&compiled.reflection.globals[0]
-        .uniform_layout
-        .as_ref()
-        .unwrap()
-        .type_name];
+    let layout = &compiled.reflection.uniform_types
+        [&compiled.reflection.globals[0].uniform_layout.as_ref().unwrap().type_name];
     assert_eq!(layout.size, 68);
-    assert_eq!(
-        layout.fields.iter().map(|f| f.offset).collect::<Vec<_>>(),
-        [60, 64]
-    );
+    assert_eq!(layout.fields.iter().map(|f| f.offset).collect::<Vec<_>>(), [60, 64]);
+
     assert!(compiled.artifact.is_none());
 }
 
@@ -128,11 +98,13 @@ fn packed_struct_handles_lower_to_loaded_values_with_source_reflection() {
         "struct S{float a:packoffset(c2.y);float b;float values[2];};ConstantBuffer<S> params:register(b3);float f(ConstantBuffer<S> p){return p.a+p.b+p.values[1];}float g(){return f(params);}",
     );
     let buffer = &compiled.reflection.globals[0];
+
     assert_eq!(buffer.type_name, "ConstantBuffer<S>");
     assert_eq!(buffer.resource_access.as_deref(), Some("read"));
     assert_eq!(buffer.binding.unwrap().register.index, 3);
     assert_eq!(compiled.reflection.uniform_types["S"].size, 68);
     let code = compiled.artifact.unwrap();
+
     assert!(code.contains("float f(S p)"));
     assert!(!code.contains("static const S params"));
     assert!(code.contains("packoffset(c2.y)"));
@@ -144,13 +116,17 @@ fn nested_packed_uniform_arrays_keep_absolute_offsets_and_bounded_expansion() {
     let compiled = compile(
         "struct S{float a:packoffset(c2.y);float b;};float x;uniform S data[2];float y;float f(){return x+data[1].a+y;}",
     );
+
     assert_eq!(compiled.reflection.global_uniform_size, Some(112));
     let data = &compiled.reflection.globals[1];
+
     assert_eq!(data.type_name, "S[2]");
     assert_eq!(data.uniform_layout.as_ref().unwrap().offset, 16);
     let code = compiled.artifact.unwrap();
+
     assert!(code.contains(&format!("{}()", data.target_name)));
     assert!(code.contains("packoffset(c6.y)"));
+
     for source in [
         "struct S{float a:packoffset(c2);};S data[65537];",
         "struct S{float a:packoffset(c2);};ConstantBuffer<S> params[2];",
@@ -162,6 +138,7 @@ fn nested_packed_uniform_arrays_keep_absolute_offsets_and_bounded_expansion() {
             &MemoryIncludes::default(),
         )
         .unwrap_err();
+
         assert!(error.diagnostics.iter().any(|d| d.code == "I004"));
     }
 }
@@ -176,11 +153,9 @@ fn imported_packed_templates_keep_original_names_and_field_access_rules() {
         &includes,
     )
     .unwrap();
+
     assert_eq!(compiled.reflection.globals[0].name, "params");
-    assert_eq!(
-        compiled.reflection.globals[0].module.as_deref(),
-        Some("library")
-    );
+    assert_eq!(compiled.reflection.globals[0].module.as_deref(), Some("library"));
     let error = compile_source(
         "root.slang",
         "import library;void g(){params.a=1;}",
@@ -188,6 +163,7 @@ fn imported_packed_templates_keep_original_names_and_field_access_rules() {
         &includes,
     )
     .unwrap_err();
+
     assert!(error.diagnostics.iter().any(|d| d.code == "T015"));
 }
 
@@ -207,6 +183,7 @@ fn packed_global_loads_do_not_capture_local_bindings_without_module_linking() {
     let checked = slang_sema::check(syntax).unwrap();
     let ir = slang_ir::lower(&checked).unwrap();
     let code = slang_codegen::emit(&ir, slang_codegen::Target::Hlsl).unwrap();
+
     assert!(code.contains("return (data).a;"));
     assert!(code.contains("uniform_view_load_"));
 }
@@ -216,14 +193,8 @@ fn packing_empty_values_does_not_create_storage_or_consume_a_register() {
     let compiled = compile(
         "struct E{};struct S{E empty:packoffset(c4);};ConstantBuffer<S> empty;cbuffer Full{float value;};",
     );
+
     assert!(compiled.reflection.globals[0].binding.is_none());
     assert_eq!(compiled.reflection.uniform_types["S"].size, 0);
-    assert_eq!(
-        compiled.reflection.globals[1]
-            .binding
-            .unwrap()
-            .register
-            .index,
-        0
-    );
+    assert_eq!(compiled.reflection.globals[1].binding.unwrap().register.index, 0);
 }

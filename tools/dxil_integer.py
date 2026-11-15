@@ -8,7 +8,6 @@ unselected SSA paths but cannot control a branch or reach an observed store.
 
 import re
 
-
 UNDEFINED = object()
 NAME = r"%[-\w.$]+"
 OPERAND = rf"(?:{NAME}|-?\d+|true|false|undef|poison)"
@@ -22,7 +21,9 @@ def signed(value, width):
 
 def interpret_integer_stores(dump, entry="main", max_steps=100_000):
     """Return the final scalar uint values of the single supported structured UAV."""
-    function = re.search(rf"^define void @{re.escape(entry)}\(\)\s*\{{\n(.*?)^\}}", dump, re.M | re.S)
+    function = re.search(
+        rf"^define void @{re.escape(entry)}\(\)\s*\{{\n(.*?)^\}}", dump, re.M | re.S
+    )
     if function is None:
         raise ValueError("expected a parameterless void DXIL entry")
     blocks = {"0": []}
@@ -109,24 +110,33 @@ def interpret_integer_stores(dump, entry="main", max_steps=100_000):
             if match := re.fullmatch(rf"br label %({LABEL})", instruction):
                 next_block = match[1]
                 break
-            if match := re.fullmatch(rf"br i1 ({OPERAND}), label %({LABEL}), label %({LABEL})", instruction):
+            if match := re.fullmatch(
+                rf"br i1 ({OPERAND}), label %({LABEL}), label %({LABEL})", instruction
+            ):
                 next_block = match[2] if observed(match[1], 1) else match[3]
                 break
             if instruction == "ret void":
                 return stores
-            if match := re.fullmatch(rf"switch i(\d+) ({OPERAND}), label %({LABEL}) \[ (.*) \]", instruction):
+            if match := re.fullmatch(
+                rf"switch i(\d+) ({OPERAND}), label %({LABEL}) \[ (.*) \]", instruction
+            ):
                 width, selector, default, cases = match.groups()
                 selected = observed(selector, int(width))
                 case_pattern = rf"i{width} (-?\d+), label %({LABEL})"
                 pairs = re.findall(case_pattern, cases)
                 if re.sub(case_pattern, "", cases).strip():
                     raise ValueError("unsupported DXIL switch cases")
-                chosen = [label for number, label in pairs if operand(number, int(width)) == selected]
+                chosen = [
+                    label for number, label in pairs if operand(number, int(width)) == selected
+                ]
                 if len(chosen) > 1:
                     raise ValueError("duplicate DXIL switch value")
                 next_block = chosen[0] if chosen else default
                 break
-            if match := re.fullmatch(rf"({NAME}) = call %dx.types.Handle @dx.op.createHandle\(i32 57, i8 1, i32 (\d+), i32 (\d+), i1 false\)", instruction):
+            if match := re.fullmatch(
+                rf"({NAME}) = call %dx.types.Handle @dx.op.createHandle\(i32 57, i8 1, i32 (\d+), i32 (\d+), i1 false\)",
+                instruction,
+            ):
                 name, binding, index = match.groups()
                 handle = (int(binding), int(index))
                 if resource is not None and resource != handle:
@@ -134,13 +144,18 @@ def interpret_integer_stores(dump, entry="main", max_steps=100_000):
                 resource = handle
                 values[name] = handle
                 continue
-            if match := re.fullmatch(rf"call void @dx.op.bufferStore.i32\(i32 69, %dx.types.Handle ({NAME}), i32 ({OPERAND}), i32 0, i32 ({OPERAND}), i32 undef, i32 undef, i32 undef, i8 1\)", instruction):
+            if match := re.fullmatch(
+                rf"call void @dx.op.bufferStore.i32\(i32 69, %dx.types.Handle ({NAME}), i32 ({OPERAND}), i32 0, i32 ({OPERAND}), i32 undef, i32 undef, i32 undef, i8 1\)",
+                instruction,
+            ):
                 handle, index, value = match.groups()
                 if resource is None or values.get(handle) != resource:
                     raise ValueError("unknown DXIL output resource")
                 stores[str(observed(index, 32))] = observed(value, 32)
                 continue
-            if match := re.fullmatch(rf"({NAME}) = (zext|sext|trunc) i(\d+) ({OPERAND}) to i(\d+)", instruction):
+            if match := re.fullmatch(
+                rf"({NAME}) = (zext|sext|trunc) i(\d+) ({OPERAND}) to i(\d+)", instruction
+            ):
                 name, op, source_width, source, width = match.groups()
                 source_width, width = int(source_width), int(width)
                 result = operand(source, source_width)
@@ -150,12 +165,22 @@ def interpret_integer_stores(dump, entry="main", max_steps=100_000):
                     result &= (1 << width) - 1
                 values[name] = result
                 continue
-            if match := re.fullmatch(rf"({NAME}) = select i1 ({OPERAND}), i(\d+) ({OPERAND}), i\3 ({OPERAND})", instruction):
+            if match := re.fullmatch(
+                rf"({NAME}) = select i1 ({OPERAND}), i(\d+) ({OPERAND}), i\3 ({OPERAND})",
+                instruction,
+            ):
                 name, condition, width, yes, no = match.groups()
                 condition = operand(condition, 1)
-                values[name] = UNDEFINED if condition is UNDEFINED else operand(yes if condition else no, int(width))
+                values[name] = (
+                    UNDEFINED
+                    if condition is UNDEFINED
+                    else operand(yes if condition else no, int(width))
+                )
                 continue
-            if match := re.fullmatch(rf"({NAME}) = icmp (eq|ne|slt|sle|sgt|sge|ult|ule|ugt|uge) i(\d+) ({OPERAND}), ({OPERAND})", instruction):
+            if match := re.fullmatch(
+                rf"({NAME}) = icmp (eq|ne|slt|sle|sgt|sge|ult|ule|ugt|uge) i(\d+) ({OPERAND}), ({OPERAND})",
+                instruction,
+            ):
                 name, op, width, a, b = match.groups()
                 width = int(width)
                 a, b = operand(a, width), operand(b, width)
@@ -164,10 +189,21 @@ def interpret_integer_stores(dump, entry="main", max_steps=100_000):
                 else:
                     if op.startswith("s"):
                         a, b = signed(a, width), signed(b, width)
-                    values[name] = int({"eq": a == b, "ne": a != b, "lt": a < b,
-                                        "le": a <= b, "gt": a > b, "ge": a >= b}[op if op in {"eq", "ne"} else op[1:]])
+                    values[name] = int(
+                        {
+                            "eq": a == b,
+                            "ne": a != b,
+                            "lt": a < b,
+                            "le": a <= b,
+                            "gt": a > b,
+                            "ge": a >= b,
+                        }[op if op in {"eq", "ne"} else op[1:]]
+                    )
                 continue
-            if match := re.fullmatch(rf"({NAME}) = (add|sub|mul|and|or|xor|shl|lshr|ashr|udiv|sdiv|urem|srem) ((?:(?:nsw|nuw|exact) )*)i(\d+) ({OPERAND}), ({OPERAND})", instruction):
+            if match := re.fullmatch(
+                rf"({NAME}) = (add|sub|mul|and|or|xor|shl|lshr|ashr|udiv|sdiv|urem|srem) ((?:(?:nsw|nuw|exact) )*)i(\d+) ({OPERAND}), ({OPERAND})",
+                instruction,
+            ):
                 name, op, flags, width, a, b = match.groups()
                 width = int(width)
                 a, b = operand(a, width), operand(b, width)
@@ -175,7 +211,12 @@ def interpret_integer_stores(dump, entry="main", max_steps=100_000):
                     values[name] = UNDEFINED
                     continue
                 mask = (1 << width) - 1
-                if op in {"shl", "lshr", "ashr"} and b >= width or op in {"udiv", "sdiv", "urem", "srem"} and b == 0:
+                if (
+                    op in {"shl", "lshr", "ashr"}
+                    and b >= width
+                    or op in {"udiv", "sdiv", "urem", "srem"}
+                    and b == 0
+                ):
                     values[name] = UNDEFINED
                     continue
                 if "exact" in flags:
@@ -183,10 +224,19 @@ def interpret_integer_stores(dump, entry="main", max_steps=100_000):
                 if flags and op not in {"add", "sub", "mul"}:
                     raise ValueError("flagged DXIL operation is not implemented")
                 if op in {"add", "sub", "mul"}:
-                    operation = {"add": lambda a,b: a+b, "sub": lambda a,b: a-b, "mul": lambda a,b: a*b}[op]
+                    operation = {
+                        "add": lambda a, b: a + b,
+                        "sub": lambda a, b: a - b,
+                        "mul": lambda a, b: a * b,
+                    }[op]
                     result = operation(a, b)
                     signed_result = operation(signed(a, width), signed(b, width))
-                    if "nuw" in flags and not 0 <= result <= mask or "nsw" in flags and not -(1 << (width - 1)) <= signed_result < (1 << (width - 1)):
+                    if (
+                        "nuw" in flags
+                        and not 0 <= result <= mask
+                        or "nsw" in flags
+                        and not -(1 << (width - 1)) <= signed_result < (1 << (width - 1))
+                    ):
                         values[name] = UNDEFINED
                         continue
                 elif op in {"udiv", "urem", "sdiv", "srem"}:
@@ -206,7 +256,11 @@ def interpret_integer_stores(dump, entry="main", max_steps=100_000):
                 elif op == "ashr":
                     result = signed(a, width) >> b
                 else:
-                    result = {"and": lambda a,b: a&b, "or": lambda a,b: a|b, "xor": lambda a,b: a^b}[op](a, b)
+                    result = {
+                        "and": lambda a, b: a & b,
+                        "or": lambda a, b: a | b,
+                        "xor": lambda a, b: a ^ b,
+                    }[op](a, b)
                 values[name] = result & mask
                 continue
             raise ValueError(f"unsupported DXIL integer instruction: {instruction}")

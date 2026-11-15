@@ -51,12 +51,15 @@ impl Arguments {
         let mut dump_ir = false;
         let mut json_diagnostics = false;
         let mut positional = false;
+
         while let Some(value) = values.next() {
             let text = value.to_str();
+
             if positional {
                 set_input(&mut input, value)?;
                 continue;
             }
+
             match text {
                 Some("--") => positional = true,
                 Some("--help" | "-h") => return Ok(Action::Help),
@@ -65,12 +68,14 @@ impl Arguments {
                 Some("--reflection") => {
                     reflection = Some(PathBuf::from(next(&mut values, "--reflection")?))
                 }
+
                 Some("-target") => {
                     options.target = next(&mut values, "-target")?
                         .to_str()
                         .ok_or("target must be UTF-8")?
                         .parse()?
                 }
+
                 Some("-entry") => {
                     options.entry_point = Some(
                         next(&mut values, "-entry")?
@@ -78,6 +83,7 @@ impl Arguments {
                             .map_err(|_| "entry point must be UTF-8")?,
                     )
                 }
+
                 Some("-profile") => {
                     options.profile = Some(
                         next(&mut values, "-profile")?
@@ -86,50 +92,57 @@ impl Arguments {
                             .parse()?,
                     );
                 }
+
                 Some("--check") => options.check_only = true,
                 Some("-enable-16bit-types") => options.native_16bit_types = true,
                 Some("-matrix-layout-row-major") => {
                     options.matrix_major = slang_compiler::MatrixMajor::Row
                 }
+
                 Some("-matrix-layout-column-major") => {
                     options.matrix_major = slang_compiler::MatrixMajor::Column
                 }
+
                 Some("--dump-ir") => {
                     dump_ir = true;
                     options.check_only = true;
                 }
+
                 Some("--diagnostics-json") => json_diagnostics = true,
-                Some("-I") => options
-                    .include_paths
-                    .push(PathBuf::from(next(&mut values, "-I")?)),
+                Some("-I") => options.include_paths.push(PathBuf::from(next(&mut values, "-I")?)),
                 Some("-D") => define(
                     &mut options,
-                    &next(&mut values, "-D")?
-                        .into_string()
-                        .map_err(|_| "macro must be UTF-8")?,
+                    &next(&mut values, "-D")?.into_string().map_err(|_| "macro must be UTF-8")?,
                 )?,
                 Some(text) if text.starts_with("-I") => {
                     options.include_paths.push(PathBuf::from(&text[2..]))
                 }
+
                 Some(text) if text.starts_with("-D") => define(&mut options, &text[2..])?,
                 Some(text) if text.starts_with('-') => {
                     return Err(format!("unknown option '{text}'"));
                 }
+
                 _ => set_input(&mut input, value)?,
             }
         }
+
         let input = input.ok_or("input file is required")?;
+
         if options.check_only && !dump_ir && output.is_some() {
             return Err("--check cannot be combined with -o".into());
         }
+
         if output.as_ref().is_some_and(|p| p == &input)
             || reflection.as_ref().is_some_and(|p| p == &input)
         {
             return Err("output path must differ from input path".into());
         }
+
         if output.is_some() && output == reflection {
             return Err("code and reflection output paths must differ".into());
         }
+
         Ok(Action::Compile(Box::new(Self {
             input,
             output,
@@ -142,19 +155,20 @@ impl Arguments {
 }
 
 fn next(values: &mut impl Iterator<Item = OsString>, option: &str) -> Result<OsString, String> {
-    values
-        .next()
-        .filter(|s| !s.is_empty())
-        .ok_or_else(|| format!("{option} requires a value"))
+    values.next().filter(|s| !s.is_empty()).ok_or_else(|| format!("{option} requires a value"))
 }
+
 fn set_input(input: &mut Option<PathBuf>, value: OsString) -> Result<(), String> {
     if input.replace(PathBuf::from(value)).is_some() {
         return Err("only one input file is supported".into());
     }
+
     Ok(())
 }
+
 fn define(options: &mut CompileOptions, text: &str) -> Result<(), String> {
     let (name, value) = text.split_once('=').unwrap_or((text, "1"));
+
     if name.is_empty()
         || !name
             .chars()
@@ -163,7 +177,9 @@ fn define(options: &mut CompileOptions, text: &str) -> Result<(), String> {
     {
         return Err("invalid macro name".into());
     }
+
     options.defines.insert(name.into(), value.into());
+
     Ok(())
 }
 
@@ -176,22 +192,16 @@ mod tests {
     #[test]
     fn matrix_layout_options_use_the_last_requested_default() {
         for (values, major) in [
+            (&["a.slang", "-matrix-layout-row-major"][..], slang_compiler::MatrixMajor::Row),
             (
-                &["a.slang", "-matrix-layout-row-major"][..],
-                slang_compiler::MatrixMajor::Row,
-            ),
-            (
-                &[
-                    "a.slang",
-                    "-matrix-layout-row-major",
-                    "-matrix-layout-column-major",
-                ][..],
+                &["a.slang", "-matrix-layout-row-major", "-matrix-layout-column-major"][..],
                 slang_compiler::MatrixMajor::Column,
             ),
         ] {
             let Ok(Action::Compile(a)) = args(values) else {
                 panic!()
             };
+
             assert_eq!(a.options.matrix_major, major);
         }
     }
@@ -203,11 +213,14 @@ mod tests {
         else {
             panic!()
         };
+
         assert_eq!(a.options.defines["N"], "4");
         let Ok(Action::Compile(a)) = args(&["a.slang", "-enable-16bit-types"]) else {
             panic!()
         };
+
         assert!(a.options.native_16bit_types);
+
         for values in [
             &["a", "-o"][..],
             &["a", "b"],

@@ -18,6 +18,7 @@ pub fn parse_character_literal(text: &str) -> Result<u32, CharacterLiteralError>
     let first = chars.next().ok_or(CharacterLiteralError::CharacterCount)?;
     let value = if first == '\\' {
         let escaped = chars.next().ok_or(CharacterLiteralError::Escape)?;
+
         match escaped {
             '\'' => 39,
             '"' => 34,
@@ -32,10 +33,12 @@ pub fn parse_character_literal(text: &str) -> Result<u32, CharacterLiteralError>
             'v' => 11,
             '0'..='7' => {
                 let mut value = escaped.to_digit(8).unwrap();
+
                 for _ in 0..2 {
                     let Some(digit) = chars.peek().and_then(|c| c.to_digit(8)) else {
                         break;
                     };
+
                     chars.next();
                     value = value * 8 + digit;
                 }
@@ -43,9 +46,11 @@ pub fn parse_character_literal(text: &str) -> Result<u32, CharacterLiteralError>
             }
             'x' | 'u' | 'U' => {
                 let braced = escaped != 'U' && chars.peek() == Some(&'{');
+
                 if braced {
                     chars.next();
                 }
+
                 let limit = if braced || escaped == 'x' {
                     255
                 } else if escaped == 'u' {
@@ -53,12 +58,15 @@ pub fn parse_character_literal(text: &str) -> Result<u32, CharacterLiteralError>
                 } else {
                     8
                 };
+
                 let mut value = 0_u32;
                 let mut digits = 0;
+
                 while digits < limit {
                     let Some(digit) = chars.peek().and_then(|c| c.to_digit(16)) else {
                         break;
                     };
+
                     chars.next();
                     value = value
                         .checked_mul(16)
@@ -66,6 +74,7 @@ pub fn parse_character_literal(text: &str) -> Result<u32, CharacterLiteralError>
                         .ok_or(CharacterLiteralError::Overflow)?;
                     digits += 1;
                 }
+
                 if digits == 0
                     || braced && chars.next() != Some('}')
                     || !braced && escaped != 'x' && digits != limit
@@ -74,17 +83,21 @@ pub fn parse_character_literal(text: &str) -> Result<u32, CharacterLiteralError>
                 }
                 value
             }
+
             _ => return Err(CharacterLiteralError::Escape),
         }
     } else {
         if matches!(first, '\'' | '\n' | '\r') {
             return Err(CharacterLiteralError::CharacterCount);
         }
+
         u32::from(first)
     };
+
     if chars.next().is_some() {
         return Err(CharacterLiteralError::CharacterCount);
     }
+
     Ok(value)
 }
 

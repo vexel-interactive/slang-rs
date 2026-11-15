@@ -25,27 +25,27 @@ pub(crate) fn lower(module: &mut Module, checked: &CheckedModule) -> Result<(), 
             let slang_syntax::Declaration::Function(function) = d else {
                 return None;
             };
-            function
-                .attributes
-                .iter()
-                .any(|a| a.name == "ForceInline")
-                .then(|| {
-                    checked
-                        .function_names
-                        .get(&span_key(function.span))
-                        .cloned()
-                        .unwrap_or_else(|| function.name.clone())
-                })
+
+            function.attributes.iter().any(|a| a.name == "ForceInline").then(|| {
+                checked
+                    .function_names
+                    .get(&span_key(function.span))
+                    .cloned()
+                    .unwrap_or_else(|| function.name.clone())
+            })
         })
         .collect();
     if forced.is_empty() {
         return Ok(());
     }
+
     let names = crate::visit::names(module);
     let mut prefix = "_slang_inline_".to_owned();
+
     while names.iter().any(|name| name.starts_with(&prefix)) {
         prefix.push('_');
     }
+
     let mut lowerer = Lowerer {
         templates: module
             .functions
@@ -68,10 +68,13 @@ pub(crate) fn lower(module: &mut Module, checked: &CheckedModule) -> Result<(), 
                 forced: &lowerer.forced,
                 found: false,
             };
+
             requests.expression(value)?;
+
             if !requests.found {
                 continue;
             }
+
             lowerer.remaining = MAX_INLINE_NODES;
             lowerer.expression(value)?;
             let name = format!("{}global_init_{}", lowerer.prefix, module.functions.len());
@@ -95,19 +98,23 @@ pub(crate) fn lower(module: &mut Module, checked: &CheckedModule) -> Result<(), 
             };
         }
     }
+
     for function in &mut module.functions {
         if let Some(body) = &mut function.body {
             lowerer.active.push(function.name.clone());
             lowerer.remaining = MAX_INLINE_NODES;
             lowerer.statement(body)?;
             lowerer.active.pop();
+
             if !lowerer.declarations.is_empty() {
                 let mut declarations = std::mem::take(&mut lowerer.declarations);
+
                 if let StmtKind::Block(values) = &mut body.kind {
                     declarations.append(values);
                 } else {
                     declarations.push(body.clone());
                 }
+
                 body.kind = StmtKind::Block(declarations);
             }
         }
@@ -126,6 +133,7 @@ impl Visitor for Requests<'_> {
         if matches!(&value.kind, ExprKind::Call { name, .. } if self.forced.contains(name)) {
             self.found = true;
         }
+
         walk_expression(self, value)
     }
 }
@@ -151,9 +159,7 @@ impl Lowerer {
         storage.binding = None;
         storage.uniform_layout = None;
         storage.pack_offset = None;
-        storage
-            .modifiers
-            .retain(|m| matches!(m.as_str(), "row_major" | "column_major"));
+        storage.modifiers.retain(|m| matches!(m.as_str(), "row_major" | "column_major"));
         self.declarations.push(Stmt {
             kind: StmtKind::Variable(storage),
             span,
@@ -177,6 +183,7 @@ impl Lowerer {
                 },
             }
         };
+
         Expr {
             ty: left.ty.clone(),
             span,
@@ -191,11 +198,9 @@ impl Lowerer {
     fn expand(&mut self, name: &str, arguments: &[Expr], span: Span) -> Result<Expr, Diagnostic> {
         if self.active.len() >= MAX_INLINE_DEPTH || self.active.iter().any(|active| active == name)
         {
-            return Err(unsupported(
-                span,
-                "recursive or excessively nested ForceInline expansion",
-            ));
+            return Err(unsupported(span, "recursive or excessively nested ForceInline expansion"));
         }
+
         let function =
             self.templates.get(name).cloned().ok_or_else(|| {
                 unsupported(span, "ForceInline requires an available function body")
@@ -203,18 +208,14 @@ impl Lowerer {
         if !(storable(&function.return_type) || function.return_type == Type::Void)
             || function.parameters.iter().any(|p| !storable(&p.ty))
         {
-            return Err(unsupported(
-                span,
-                "ForceInline non-value signatures are not implemented",
-            ));
+            return Err(unsupported(span, "ForceInline non-value signatures are not implemented"));
         }
+
         let body = function.body.as_ref().unwrap();
         let StmtKind::Block(statements) = &body.kind else {
-            return Err(unsupported(
-                span,
-                "ForceInline requires a linear function body",
-            ));
+            return Err(unsupported(span, "ForceInline requires a linear function body"));
         };
+
         let linear_result = statements.last().and_then(|statement| {
             if let StmtKind::Return(Some(result)) = &statement.kind {
                 Some(result)
@@ -236,22 +237,22 @@ impl Lowerer {
         if !linear {
             return self.expand_control(&function, arguments, span);
         }
+
         let Some(Stmt {
             kind: StmtKind::Return(Some(result)),
             ..
         }) = statements.last()
         else {
-            return Err(unsupported(
-                span,
-                "ForceInline requires a final numeric return",
-            ));
+            return Err(unsupported(span, "ForceInline requires a final numeric return"));
         };
+
         if arguments.len() != function.parameters.len() {
             return Err(unsupported(
                 span,
                 "ForceInline argument count does not match checked parameters",
             ));
         }
+
         self.active.push(name.into());
         let mut values = vec![];
         let mut bindings = BTreeMap::new();
@@ -261,16 +262,19 @@ impl Lowerer {
             values.push(self.assign(local.clone(), argument.clone(), span));
             bindings.insert(parameter.name.clone(), local);
         }
+
         for statement in &statements[..statements.len() - 1] {
             match &statement.kind {
                 StmtKind::Variable(variable) => {
                     self.local(variable, &mut bindings, &mut values, span)?
                 }
+
                 StmtKind::Variables(variables) => {
                     for variable in variables {
                         self.local(variable, &mut bindings, &mut values, span)?;
                     }
                 }
+
                 StmtKind::Expression(value) => values.push(capture(value, &bindings)?),
                 StmtKind::Empty => {}
                 _ => {
@@ -281,7 +285,9 @@ impl Lowerer {
                 }
             }
         }
+
         let mut result = capture(result, &bindings)?;
+
         if result.ty != function.return_type {
             result = Expr {
                 ty: function.return_type.clone(),
@@ -291,6 +297,7 @@ impl Lowerer {
                 },
             };
         }
+
         values.push(result);
         let mut result = sequence(values, span);
         // Expanded callees may themselves contain requested inline calls.
@@ -312,21 +319,18 @@ impl Lowerer {
                 .iter()
                 .any(|m| matches!(m.as_str(), "static" | "groupshared" | "volatile"))
         {
-            return Err(unsupported(
-                span,
-                "ForceInline local storage must be an ordinary value",
-            ));
+            return Err(unsupported(span, "ForceInline local storage must be an ordinary value"));
         }
+
         let local = self.storage(variable, span);
-        let initializer = variable
-            .initializer
-            .as_ref()
-            .map(|value| capture(value, bindings))
-            .transpose()?;
+        let initializer =
+            variable.initializer.as_ref().map(|value| capture(value, bindings)).transpose()?;
         bindings.insert(variable.name.clone(), local.clone());
+
         if let Some(value) = initializer {
             values.push(self.assign(local, value, span));
         }
+
         Ok(())
     }
 }
@@ -340,8 +344,10 @@ impl Visitor for Lowerer {
                     "ForceInline expansion size limit exceeded",
                 ));
             }
+
             self.remaining -= 1;
         }
+
         crate::visit::walk_statement(self, statement)
     }
 
@@ -353,14 +359,21 @@ impl Visitor for Lowerer {
                     "ForceInline expansion size limit exceeded",
                 ));
             }
+
             self.remaining -= 1;
         }
+
         walk_expression(self, expression)?;
-        if let ExprKind::Call { name, arguments } = &expression.kind
+
+        if let ExprKind::Call {
+            name,
+            arguments,
+        } = &expression.kind
             && self.forced.contains(name)
         {
             *expression = self.expand(name, arguments, expression.span)?;
         }
+
         Ok(())
     }
 }
@@ -370,6 +383,7 @@ fn capture(value: &Expr, bindings: &BTreeMap<String, Expr>) -> Result<Expr, Diag
     impl Visitor for Capture<'_> {
         fn expression(&mut self, expression: &mut Expr) -> Result<(), Diagnostic> {
             walk_expression(self, expression)?;
+
             if let ExprKind::Name(name) = &expression.kind
                 && let Some(value) = self.0.get(name)
             {
@@ -377,9 +391,11 @@ fn capture(value: &Expr, bindings: &BTreeMap<String, Expr>) -> Result<Expr, Diag
                 *expression = value.clone();
                 expression.span = span;
             }
+
             Ok(())
         }
     }
+
     let mut result = value.clone();
     Capture(bindings).expression(&mut result)?;
     Ok(result)
@@ -398,6 +414,7 @@ fn sequence(mut values: Vec<Expr>, span: Span) -> Expr {
     if values.len() == 1 {
         return values.pop().unwrap();
     }
+
     let right = values.split_off(values.len() / 2);
     let left = sequence(values, span);
     let right = sequence(right, span);

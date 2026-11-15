@@ -7,9 +7,7 @@ impl Specializer {
     pub(super) fn validation_template(&self, name: &str) -> bool {
         self.templates[name].declarations.first().is_some_and(|d| {
             !self.generated.contains(&span_key(declaration_span(d)))
-                || self
-                    .validation_contexts
-                    .contains(&declaration_span(d).context)
+                || self.validation_contexts.contains(&declaration_span(d).context)
         })
     }
 
@@ -20,59 +18,74 @@ impl Specializer {
         match declaration {
             Declaration::Function(function) => {
                 self.ty(&mut function.return_type)?;
+
                 for parameter in &mut function.parameters {
                     self.ty(&mut parameter.ty)?;
                 }
             }
+
             Declaration::Struct(structure) => {
                 for base in &mut structure.bases {
                     self.ty(base)?;
                 }
+
                 for field in &mut structure.fields {
                     self.ty(&mut field.ty)?;
                 }
             }
+
             Declaration::Interface(interface) => {
                 for base in &mut interface.bases {
                     self.ty(base)?;
                 }
+
                 for requirement in &mut interface.requirements {
                     self.ty(&mut requirement.return_type)?;
+
                     for parameter in &mut requirement.parameters {
                         self.ty(&mut parameter.ty)?;
                     }
                 }
             }
+
             Declaration::TypeAlias(alias) => self.ty(&mut alias.target)?,
             Declaration::Global(variable) => self.ty(&mut variable.ty)?,
         }
+
         Ok(())
     }
 
     pub(super) fn drain_pending(&mut self, module: &mut Module) -> Result<bool, Diagnostic> {
         let mut changed = false;
+
         while let Some(mut declaration) = self.pending.pop_front() {
             self.declaration(&mut declaration)?;
             module.declarations.push(declaration);
             changed = true;
         }
+
         Ok(changed)
     }
 
     pub(super) fn activate_referenced(&mut self, module: &mut Module) -> Result<bool, Diagnostic> {
         let mut references = References::default();
+
         for declaration in &mut module.declarations {
             let site = span_key(declaration_span(declaration));
+
             if !self.generated.contains(&site) || self.active.contains(&site) {
                 references.declaration(declaration)?;
             }
         }
+
         references.constraint_calls(&mut module.constraint_calls)?;
         references.constraint_variables(&mut module.constraint_variables)?;
         references.constraint_calls(&mut module.constraint_calls)?;
+
         loop {
             let mut changed = false;
             let before = references.0.len();
+
             for instance in &self.instance_output {
                 if references.0.contains(&instance.type_name) {
                     for argument in &instance.arguments {
@@ -80,16 +93,20 @@ impl Specializer {
                     }
                 }
             }
+
             changed |= references.0.len() != before;
+
             for nested in &self.nested_output {
                 if references.0.contains(&nested.type_name) {
                     changed |= references.0.insert(nested.owner.clone());
                 }
             }
+
             if !changed {
                 break;
             }
         }
+
         let contexts = module
             .declarations
             .iter()
@@ -100,9 +117,11 @@ impl Specializer {
             })
             .collect::<BTreeSet<_>>();
         let mut changed = false;
+
         for declaration in &mut module.declarations {
             let span = declaration_span(declaration);
             let site = span_key(span);
+
             if !matches!(declaration, Declaration::Function(_))
                 && contexts.contains(&span.context)
                 && self.generated.contains(&site)
@@ -112,6 +131,7 @@ impl Specializer {
                 changed = true;
             }
         }
+
         Ok(changed)
     }
 
@@ -121,9 +141,11 @@ impl Specializer {
         probe: &InferenceProbe,
     ) -> Result<bool, Diagnostic> {
         let mut changed = false;
+
         for declaration in &mut module.declarations {
             if let Declaration::Function(function) = declaration {
                 let site = span_key(function.span);
+
                 if self.generated.contains(&site)
                     && !self.active.contains(&site)
                     && probe
@@ -137,6 +159,7 @@ impl Specializer {
                 }
             }
         }
+
         Ok(changed)
     }
 
@@ -158,11 +181,11 @@ impl Specializer {
             !self.generated.contains(&site) || self.active.contains(&site)
         });
         let mut references = References::default();
+
         for declaration in &mut module.declarations {
-            references
-                .declaration(declaration)
-                .expect("reference traversal cannot fail");
+            references.declaration(declaration).expect("reference traversal cannot fail");
         }
+
         references
             .constraint_calls(&mut module.constraint_calls)
             .expect("reference traversal cannot fail");
@@ -172,40 +195,27 @@ impl Specializer {
         references
             .constraint_calls(&mut module.constraint_calls)
             .expect("reference traversal cannot fail");
-        module
-            .constraint_calls
-            .retain(|id, _| references.1.contains(id));
-        module
-            .constraint_variables
-            .retain(|v| references.2.contains(&span_key(v.span)));
+        module.constraint_calls.retain(|id, _| references.1.contains(id));
+        module.constraint_variables.retain(|v| references.2.contains(&span_key(v.span)));
         let names = module
             .declarations
             .iter()
             .map(|d| declaration_name(d).to_owned())
             .collect::<BTreeSet<_>>();
-        module
-            .nested_types
-            .retain(|n| names.contains(&n.owner) && names.contains(&n.type_name));
+        module.nested_types.retain(|n| names.contains(&n.owner) && names.contains(&n.type_name));
         module
             .static_members
             .retain(|s| names.contains(&s.owner) && names.contains(&s.variable_name));
-        module
-            .generic_instances
-            .retain(|i| names.contains(&i.type_name));
+        module.generic_instances.retain(|i| names.contains(&i.type_name));
         for application in &mut module.function_applications {
-            application
-                .candidates
-                .retain(|c| names.contains(&c.function));
+            application.candidates.retain(|c| names.contains(&c.function));
         }
+
         module.function_applications.retain(|a| {
             !a.candidates.is_empty() || self.constructor_applications.values().any(|n| n == &a.name)
         });
-        module
-            .generic_constructors
-            .retain(|c| names.contains(&c.owner));
-        module
-            .constructor_applications
-            .retain(|c| names.contains(&c.owner));
+        module.generic_constructors.retain(|c| names.contains(&c.owner));
+        module.constructor_applications.retain(|c| names.contains(&c.owner));
     }
 }
 
@@ -217,6 +227,7 @@ impl InferenceProbe {
         self.targets = checker.generic_call_names.clone();
         self.constructor_requests = checker.generic_constructor_requests.borrow().clone();
         self.selected_functions = checker.call_names.values().cloned().collect();
+
         for ((owner, ..), witness) in &checker.direct_witnesses {
             if checker
                 .struct_definitions
@@ -227,6 +238,7 @@ impl InferenceProbe {
                 self.selected_functions.insert(name.clone());
             }
         }
+
         self.ambiguities = checker
             .diagnostics
             .iter()
@@ -239,21 +251,19 @@ impl InferenceProbe {
             .chain(checker.variable_initializations.values())
             .collect::<Vec<_>>();
         plans.extend(checker.default_arguments.values().flatten());
-        plans.extend(
-            checker
-                .constructor_initializations
-                .values()
-                .flatten()
-                .map(|(_, p)| p),
-        );
+        plans.extend(checker.constructor_initializations.values().flatten().map(|(_, p)| p));
+
         while let Some(plan) = plans.pop() {
             match &plan.kind {
                 crate::InitializationKind::ConstructorCall {
-                    name, arguments, ..
+                    name,
+                    arguments,
+                    ..
                 } => {
                     self.selected_functions.insert(name.clone());
                     plans.extend(arguments);
                 }
+
                 crate::InitializationKind::Aggregate(values) => plans.extend(values),
                 _ => {}
             }
@@ -275,13 +285,16 @@ impl References {
                 visit::walk_function(self, &mut variable.call.requirement)?;
             }
         }
+
         Ok(())
     }
+
     fn constraint_calls(
         &mut self,
         calls: &mut BTreeMap<ExprId, ConstraintCallInfo>,
     ) -> Result<(), Diagnostic> {
         let mut visited = BTreeSet::new();
+
         loop {
             let pending = calls
                 .keys()
@@ -291,6 +304,7 @@ impl References {
             if pending.is_empty() {
                 break;
             }
+
             for id in pending {
                 visited.insert(id);
                 let binding = calls.get_mut(&id).unwrap();
@@ -299,6 +313,7 @@ impl References {
                 visit::walk_function(self, &mut binding.requirement)?;
             }
         }
+
         Ok(())
     }
 }
@@ -307,36 +322,45 @@ impl VisitorMut for References {
         self.2.insert(span_key(variable.span));
         visit::walk_variable(self, variable)
     }
+
     fn expression_id(&mut self, id: &mut ExprId) {
         self.1.insert(*id);
     }
+
     fn ty(&mut self, ty: &mut TypeRef) -> Result<(), Diagnostic> {
         self.0.insert(ty.name.clone());
         visit::walk_type(self, ty)
     }
+
     fn expression(&mut self, expression: &mut Expr) -> Result<(), Diagnostic> {
         if let ExprKind::Name(name) = &expression.kind {
             self.0.insert(name.clone());
         }
+
         visit::walk_expression(self, expression)
     }
+
     fn declaration(&mut self, declaration: &mut Declaration) -> Result<(), Diagnostic> {
         if let Declaration::Interface(interface) = declaration {
             for base in &mut interface.bases {
                 self.ty(base)?;
             }
+
             for requirement in &mut interface.requirements {
                 let body = requirement.body.take();
                 visit::walk_function(self, requirement)?;
                 requirement.body = body;
             }
+
             return Ok(());
         }
+
         if let Declaration::Function(function) = declaration
             && let Some(owner) = function.owner_type()
         {
             self.0.insert(owner.to_owned());
         }
+
         visit::walk_declaration(self, declaration)
     }
 }

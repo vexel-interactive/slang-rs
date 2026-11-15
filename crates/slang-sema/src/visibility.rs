@@ -20,23 +20,14 @@ impl Checker {
     }
 
     pub(crate) fn check_visibility_modifiers(&mut self, modifiers: &[String], span: Span) {
-        if modifiers
-            .iter()
-            .filter(|m| matches!(m.as_str(), "public" | "internal"))
-            .count()
-            > 1
-        {
+        if modifiers.iter().filter(|m| matches!(m.as_str(), "public" | "internal")).count() > 1 {
             self.error("T018", span, "conflicting visibility modifiers");
         }
     }
 
     pub(crate) fn require_public_type(&mut self, ty: &Type, span: Span) {
         if !self.public_type(ty, span.context) {
-            self.error(
-                "T018",
-                span,
-                format!("public declaration exposes an internal type {ty}"),
-            );
+            self.error("T018", span, format!("public declaration exposes an internal type {ty}"));
         }
     }
 
@@ -49,22 +40,27 @@ impl Checker {
                         .get(&context)
                         .is_some_and(|types| types.contains(name))
             }
+
             Type::Array(element, _)
-            | Type::ConstantBuffer { element, .. }
-            | Type::Buffer { element, .. }
-            | Type::Texture { element, .. } => self.public_type(element, context),
+            | Type::ConstantBuffer {
+                element,
+                ..
+            }
+            | Type::Buffer {
+                element,
+                ..
+            }
+            | Type::Texture {
+                element,
+                ..
+            } => self.public_type(element, context),
             _ => true,
         }
     }
 
     pub(crate) fn field_accessible(&self, structure: &str, field: &str) -> bool {
-        let owner = self
-            .symbols
-            .get(structure)
-            .map_or(slang_module::ModuleId(0), |o| o.module);
+        let owner = self.symbols.get(structure).map_or(slang_module::ModuleId(0), |o| o.module);
         owner == self.current_module
-            || self
-                .public_fields
-                .contains(&(structure.to_owned(), field.to_owned()))
+            || self.public_fields.contains(&(structure.to_owned(), field.to_owned()))
     }
 }

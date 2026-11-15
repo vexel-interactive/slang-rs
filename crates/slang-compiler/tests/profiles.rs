@@ -10,33 +10,23 @@ fn explicit_compute_profiles_upgrade_to_derivative_requirements() {
             profile: Some(profile.parse().unwrap()),
             ..CompileOptions::default()
         };
-        let compiled = compile_source(
-            "profile.slang",
-            SOURCE,
-            &options,
-            &MemoryIncludes::default(),
-        )
-        .unwrap();
+
+        let compiled =
+            compile_source("profile.slang", SOURCE, &options, &MemoryIncludes::default()).unwrap();
         let expected = if matches!(profile, "cs_6_0" | "cs_6_5") {
             "cs_6_6"
         } else {
             profile
         };
+
+        assert_eq!(compiled.reflection.entry_points[0].target_profile.as_deref(), Some(expected));
+
         assert_eq!(
-            compiled.reflection.entry_points[0]
-                .target_profile
-                .as_deref(),
-            Some(expected)
-        );
-        assert_eq!(
-            compiled
-                .diagnostics
-                .iter()
-                .filter(|d| d.code == "C003")
-                .count(),
+            compiled.diagnostics.iter().filter(|d| d.code == "C003").count(),
             usize::from(expected != profile)
         );
         let reflection = serde_json::to_value(&compiled.reflection).unwrap();
+
         assert_eq!(reflection["entry_points"][0]["target_profile"], expected);
     }
 }
@@ -49,53 +39,32 @@ fn profiles_reject_stage_mismatches_and_apply_to_the_selected_entry() {
         profile: Some("ps_6_4".parse().unwrap()),
         ..CompileOptions::default()
     };
-    let compiled = compile_source(
-        "profile.slang",
-        source,
-        &options,
-        &MemoryIncludes::default(),
-    )
-    .unwrap();
-    assert_eq!(
-        compiled.reflection.entry_points[0]
-            .target_profile
-            .as_deref(),
-        Some("cs_6_2")
-    );
-    assert_eq!(
-        compiled.reflection.entry_points[1]
-            .target_profile
-            .as_deref(),
-        Some("ps_6_4")
-    );
+
+    let compiled =
+        compile_source("profile.slang", source, &options, &MemoryIncludes::default()).unwrap();
+
+    assert_eq!(compiled.reflection.entry_points[0].target_profile.as_deref(), Some("cs_6_2"));
+
+    assert_eq!(compiled.reflection.entry_points[1].target_profile.as_deref(), Some("ps_6_4"));
     let options = CompileOptions {
         profile: Some("ps_6_4".parse().unwrap()),
         ..CompileOptions::default()
     };
-    let error = compile_source(
-        "profile.slang",
-        source,
-        &options,
-        &MemoryIncludes::default(),
-    )
-    .unwrap_err();
+
+    let error =
+        compile_source("profile.slang", source, &options, &MemoryIncludes::default()).unwrap_err();
+
     assert!(error.diagnostics.iter().any(|d| d.code == "C004"));
 }
 
 #[test]
 fn shader_profiles_validate_spelling_stage_and_model() {
     let profile: ShaderProfile = "cs_6_6".parse().unwrap();
+
     assert_eq!(profile.stage(), ShaderStage::Compute);
     assert_eq!(profile.shader_model(), [6, 6]);
-    for value in [
-        "cs_5_0",
-        "ps_6_10",
-        "gs_6_0",
-        "sm_6_0",
-        "vs_6_01",
-        "cs_6",
-        "cs_6_6_extra",
-    ] {
+
+    for value in ["cs_5_0", "ps_6_10", "gs_6_0", "sm_6_0", "vs_6_01", "cs_6", "cs_6_6_extra"] {
         assert!(value.parse::<ShaderProfile>().is_err(), "{value}");
     }
 }
@@ -106,32 +75,21 @@ fn check_only_keeps_profile_requirements_and_other_targets_are_explicit() {
         check_only: true,
         ..CompileOptions::default()
     };
-    let compiled = compile_source(
-        "profile.slang",
-        SOURCE,
-        &options,
-        &MemoryIncludes::default(),
-    )
-    .unwrap();
+
+    let compiled =
+        compile_source("profile.slang", SOURCE, &options, &MemoryIncludes::default()).unwrap();
+
     assert!(compiled.artifact.is_none());
-    assert_eq!(
-        compiled.reflection.entry_points[0]
-            .target_profile
-            .as_deref(),
-        Some("cs_6_6")
-    );
+    assert_eq!(compiled.reflection.entry_points[0].target_profile.as_deref(), Some("cs_6_6"));
     let options = CompileOptions {
         target: Target::Spirv,
         profile: Some("cs_6_6".parse().unwrap()),
         check_only: true,
         ..CompileOptions::default()
     };
-    let error = compile_source(
-        "profile.slang",
-        SOURCE,
-        &options,
-        &MemoryIncludes::default(),
-    )
-    .unwrap_err();
+
+    let error =
+        compile_source("profile.slang", SOURCE, &options, &MemoryIncludes::default()).unwrap_err();
+
     assert!(error.diagnostics.iter().any(|d| d.code == "C004"));
 }

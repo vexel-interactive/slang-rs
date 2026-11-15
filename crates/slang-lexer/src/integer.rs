@@ -21,7 +21,9 @@ pub fn parse_integer_suffix(suffix: &str) -> Option<IntegerSuffix> {
         width: IntegerWidth::Default,
         unsigned: false,
     };
+
     let mut chars = suffix.chars().peekable();
+
     while let Some(c) = chars.next() {
         match c {
             'u' | 'U' if !result.unsigned => result.unsigned = true,
@@ -35,9 +37,11 @@ pub fn parse_integer_suffix(suffix: &str) -> Option<IntegerSuffix> {
             'z' | 'Z' if result.width == IntegerWidth::Default => {
                 result.width = IntegerWidth::Pointer;
             }
+
             _ => return None,
         }
     }
+
     Some(result)
 }
 
@@ -77,13 +81,16 @@ impl IntegerLiteral {
             } else {
                 IntegerKind::Int64
             };
+
             self.signed_overflow = false;
         }
+
         self.bits = match op {
             "-" => self.bits.wrapping_neg(),
             "~" => !self.bits,
             _ => self.bits,
         };
+
         self.signed_minimum_exception = false;
         self
     }
@@ -111,7 +118,9 @@ pub fn parse_integer_literal(text: &str) -> Result<IntegerLiteral, IntegerLitera
     } else {
         IntegerKind::Uint64
     };
+
     let signed_overflow = decimal && !suffix.unsigned && bits > i64::MAX as u64;
+
     Ok(IntegerLiteral {
         kind,
         bits,
@@ -129,12 +138,9 @@ mod tests {
     #[test]
     fn suffix_widths_preserve_case_and_reject_repeated_markers() {
         for text in ["ll", "LL", "uLL", "Ull", "LLu", "llU"] {
-            assert_eq!(
-                parse_integer_suffix(text).unwrap().width,
-                IntegerWidth::LongLong,
-                "{text}"
-            );
+            assert_eq!(parse_integer_suffix(text).unwrap().width, IntegerWidth::LongLong, "{text}");
         }
+
         for text in ["lL", "Ll", "uu", "uU", "lul", "zL", "LLz", "f"] {
             assert!(parse_integer_suffix(text).is_none(), "{text}");
         }
@@ -172,41 +178,25 @@ mod tests {
     #[test]
     fn prefix_minus_consumes_only_the_signed_minimum_exception() {
         let minimum = parse_integer_literal("2147483648").unwrap().prefix("-");
+
         assert_eq!(minimum.kind, IntegerKind::Int);
         assert_eq!(minimum.bits as i64, -2147483648);
         assert_eq!(
-            parse_integer_literal("2147483648LL")
-                .unwrap()
-                .prefix("-")
-                .kind,
+            parse_integer_literal("2147483648LL").unwrap().prefix("-").kind,
             IntegerKind::Int64
         );
+
         assert_eq!(
-            parse_integer_literal("2147483648")
-                .unwrap()
-                .prefix("+")
-                .prefix("-")
-                .kind,
+            parse_integer_literal("2147483648").unwrap().prefix("+").prefix("-").kind,
             IntegerKind::Int64
         );
-        let minimum = parse_integer_literal("9223372036854775808")
-            .unwrap()
-            .prefix("-");
+        let minimum = parse_integer_literal("9223372036854775808").unwrap().prefix("-");
         assert_eq!(minimum.kind, IntegerKind::Int64);
         assert_eq!(minimum.bits as i64, i64::MIN);
         assert!(!minimum.signed_overflow);
-        assert!(
-            parse_integer_literal("9223372036854775808")
-                .unwrap()
-                .prefix("~")
-                .signed_overflow
-        );
-        assert!(
-            parse_integer_literal("9223372036854775809")
-                .unwrap()
-                .prefix("-")
-                .signed_overflow
-        );
+        assert!(parse_integer_literal("9223372036854775808").unwrap().prefix("~").signed_overflow);
+
+        assert!(parse_integer_literal("9223372036854775809").unwrap().prefix("-").signed_overflow);
     }
 
     #[test]
@@ -222,13 +212,13 @@ mod tests {
         ] {
             assert_eq!(parse_integer_literal(text).unwrap().kind, kind, "{text}");
         }
-        let minimum = parse_integer_literal("9223372036854775808Z")
-            .unwrap()
-            .prefix("-");
+
+        let minimum = parse_integer_literal("9223372036854775808Z").unwrap().prefix("-");
         assert_eq!(minimum.kind, IntegerKind::IntPtr);
         assert_eq!(minimum.bits as i64, i64::MIN);
         assert!(!minimum.signed_overflow);
         let smaller = parse_integer_literal("2147483648Z").unwrap().prefix("-");
+
         assert_eq!(smaller.kind, IntegerKind::IntPtr);
         assert_eq!(smaller.bits as i64, -2147483648);
         assert!(parse_integer_literal("18446744073709551616UZ").is_err());

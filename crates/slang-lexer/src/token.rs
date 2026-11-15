@@ -28,9 +28,6 @@ impl Token {
     }
 
     pub fn is_trivia(&self) -> bool {
-        matches!(
-            self.kind,
-            TokenKind::Whitespace | TokenKind::Newline | TokenKind::Comment
-        )
+        matches!(self.kind, TokenKind::Whitespace | TokenKind::Newline | TokenKind::Comment)
     }
 }

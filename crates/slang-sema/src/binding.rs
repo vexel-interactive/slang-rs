@@ -10,15 +10,14 @@ impl Checker {
         let Some(annotation) = variable.register else {
             return;
         };
+
         if matches!(scope, VariableScope::Parameter)
             || matches!(scope, VariableScope::Global)
-                && variable
-                    .modifiers
-                    .iter()
-                    .any(|m| matches!(m.as_str(), "static" | "groupshared"))
+                && variable.modifiers.iter().any(|m| matches!(m.as_str(), "static" | "groupshared"))
         {
             return;
         }
+
         if !matches!(scope, VariableScope::Global) {
             self.error(
                 "T022",
@@ -27,6 +26,7 @@ impl Checker {
             );
             return;
         }
+
         let (class, count) = match resource_range(ty) {
             Ok(Some(range)) => range,
             Ok(None) if *ty == Type::Error => return,
@@ -44,13 +44,16 @@ impl Checker {
                         "register annotations on resource-valued aggregates are not implemented",
                     );
                 }
+
                 return;
             }
+
             Err(error) => {
                 self.error("T022", annotation.span, error.to_string());
                 return;
             }
         };
+
         if annotation.binding.class != class {
             self.error(
                 "T022",
@@ -59,24 +62,23 @@ impl Checker {
             );
             return;
         }
+
         if self.is_empty_type(ty) {
             return;
         }
+
         let binding = ResourceBinding {
             register: annotation.binding,
             count,
             explicit: true,
         };
+
         if binding.end() > u64::from(MAX_REGISTER_INDEX) + 1 {
-            self.error(
-                "T022",
-                annotation.span,
-                "resource register range is too large",
-            );
+            self.error("T022", annotation.span, "resource register range is too large");
             return;
         }
-        self.resource_bindings
-            .insert(span_key(variable.span), binding);
+
+        self.resource_bindings.insert(span_key(variable.span), binding);
     }
 
     /// One warning per intersecting range, without expanding resource arrays or
@@ -89,6 +91,7 @@ impl Checker {
                 let Declaration::Global(variable) = declaration else {
                     return None;
                 };
+
                 self.resource_bindings
                     .get(&span_key(variable.span))
                     .map(|&binding| (binding, variable))
@@ -96,6 +99,7 @@ impl Checker {
             .collect();
         ranges.sort_by_key(|(b, _)| (b.register.class, b.register.space, b.register.index));
         let mut previous: Option<(ResourceBinding, &Variable)> = None;
+
         for (binding, variable) in ranges {
             if let Some((prior, declaration)) = previous
                 && prior.register.class == binding.register.class
@@ -117,22 +121,21 @@ impl Checker {
                         prior.register, prior.count
                     )),
                 );
+
                 if prior.end() >= binding.end() {
                     continue;
                 }
             }
+
             previous = Some((binding, variable));
         }
     }
 
     pub(crate) fn allocate_resource_bindings(&mut self, module: &Module) {
-        if self
-            .diagnostics
-            .iter()
-            .any(|d| d.severity == Severity::Error)
-        {
+        if self.diagnostics.iter().any(|d| d.severity == Severity::Error) {
             return;
         }
+
         let buffer_members: std::collections::BTreeSet<_> = module
             .constant_buffers
             .iter()
@@ -146,20 +149,20 @@ impl Checker {
                 let Declaration::Global(variable) = declaration else {
                     return None;
                 };
+
                 if buffer_members.contains(&span_key(variable.span)) {
                     return None;
                 }
-                (!variable
-                    .modifiers
-                    .iter()
-                    .any(|m| matches!(m.as_str(), "static" | "groupshared")))
-                .then_some(variable)
+
+                (!variable.modifiers.iter().any(|m| matches!(m.as_str(), "static" | "groupshared")))
+                    .then_some(variable)
             })
             .collect();
         // Linking emits dependencies first. Parameter layout instead starts
         // with the root module, then follows module discovery order.
         globals.sort_by_key(|v| self.symbols.get(&v.name).map_or(0, |o| o.module.0));
         let mut allocator = RegisterAllocator::default();
+
         for binding in self.resource_bindings.values() {
             // Every explicit range has already passed the same range bounds.
             if let Err(error) = allocator.reserve(*binding) {
@@ -171,6 +174,7 @@ impl Checker {
                 return;
             }
         }
+
         if let Some(uniform) = globals.iter().find(|v| {
             let ty = &self.declaration_types[&span_key(v.span)];
             !ty.is_resource() && !self.is_empty_type(ty)
@@ -184,14 +188,18 @@ impl Checker {
                 }
             }
         }
+
         for global in globals {
             let key = span_key(global.span);
+
             if self.is_empty_type(&self.declaration_types[&key]) {
                 continue;
             }
+
             if self.resource_bindings.contains_key(&key) {
                 continue;
             }
+
             let range = match resource_range(&self.declaration_types[&key]) {
                 Ok(Some(range)) => range,
                 Ok(None) => continue,
@@ -200,10 +208,12 @@ impl Checker {
                     continue;
                 }
             };
+
             match allocator.allocate(range.0, range.1, 0) {
                 Ok(binding) => {
                     self.resource_bindings.insert(key, binding);
                 }
+
                 Err(error) => self.error("T022", global.span, error.to_string()),
             }
         }
@@ -213,50 +223,74 @@ impl Checker {
     pub(crate) fn is_empty_type(&self, ty: &Type) -> bool {
         let mut stack = vec![ty];
         let mut visited = std::collections::BTreeSet::new();
+
         while let Some(ty) = stack.pop() {
             match ty {
                 Type::Void => {}
                 Type::Array(_, 0) => {}
                 Type::Array(element, _) => stack.push(element),
-                Type::ConstantBuffer { element, .. } => stack.push(element),
+                Type::ConstantBuffer {
+                    element,
+                    ..
+                } => stack.push(element),
                 Type::Struct(name) => {
                     if visited.insert(name) {
                         let Some(fields) = self.structures.get(name) else {
                             return false;
                         };
+
                         stack.extend(fields.values());
                     }
                 }
+
                 _ => return false,
             }
         }
+
         true
     }
 }
 
 fn resource_range(mut ty: &Type) -> Result<Option<(RegisterClass, u32)>, AllocationError> {
     let mut dimensions = vec![];
+
     while let Type::Array(element, size) = ty {
         dimensions.push(*size);
         ty = element;
     }
+
     let class = match ty {
-        Type::ConstantBuffer { .. } => RegisterClass::ConstantBuffer,
-        Type::ByteBuffer { writable }
-        | Type::Buffer { writable, .. }
-        | Type::Texture { writable, .. } => {
+        Type::ConstantBuffer {
+            ..
+        } => RegisterClass::ConstantBuffer,
+        Type::ByteBuffer {
+            writable,
+        }
+        | Type::Buffer {
+            writable,
+            ..
+        }
+        | Type::Texture {
+            writable,
+            ..
+        } => {
             if *writable {
                 RegisterClass::UnorderedAccess
             } else {
                 RegisterClass::ShaderResource
             }
         }
-        Type::Sampler { .. } => RegisterClass::Sampler,
+
+        Type::Sampler {
+            ..
+        } => RegisterClass::Sampler,
         _ => return Ok(None),
     };
+
     if dimensions.contains(&0) {
         return Ok(Some((class, 0)));
     }
+
     let count = dimensions.into_iter().try_fold(1_u32, |count, size| {
         count.checked_mul(size).ok_or(AllocationError::InvalidRange)
     })?;

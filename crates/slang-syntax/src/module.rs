@@ -5,27 +5,34 @@ use slang_source::Diagnostic;
 impl Parser {
     pub(crate) fn module_directive(&mut self, module: &mut Module) -> Result<(), Diagnostic> {
         let start = self.span();
+
         if self.at("module") || self.at("implementing") {
             let primary = self.eat("module");
+
             if !primary {
                 self.expect("implementing")?;
             }
+
             if module.module_declared || module.name.is_some() || module.implementation.is_some() {
                 return Err(self.error("duplicate module declaration"));
             }
+
             if !module.declarations.is_empty()
                 || !module.imports.is_empty()
                 || !module.file_includes.is_empty()
             {
                 return Err(self.error("module declaration must precede imports and declarations"));
             }
+
             if primary && self.eat(";") {
                 module.module_declared = true;
                 return Ok(());
             }
+
             let path = self.module_reference(!primary)?;
             self.expect(";")?;
             let name = Some(path.trim_end_matches(".slang").to_owned());
+
             if primary {
                 module.module_declared = true;
                 module.name = name;
@@ -50,6 +57,7 @@ impl Parser {
                 span: start.join(end),
             });
         }
+
         Ok(())
     }
 
@@ -66,18 +74,23 @@ impl Parser {
             } else {
                 identifier
             };
+
             while file_reference && self.eat(".") {
                 path.push('/');
                 path.push_str(&self.identifier()?.text.replace('_', "-"));
             }
+
             path
         };
+
         if path.is_empty() {
             return Err(self.error("empty module path"));
         }
+
         if !path.ends_with(".slang") {
             path.push_str(".slang");
         }
+
         Ok(path)
     }
 }

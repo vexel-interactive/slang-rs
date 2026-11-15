@@ -7,10 +7,13 @@ pub(crate) fn evaluate(tokens: &[Token]) -> Result<i64, Diagnostic> {
         offset: 0,
         depth: 0,
     };
+
     let result = parser.expr(0, true)?;
+
     if parser.offset != tokens.len() {
         return Err(parser.error("unexpected tokens in #if expression"));
     }
+
     Ok(i64::from(result))
 }
 
@@ -36,6 +39,7 @@ impl Evaluator<'_> {
         if self.depth >= 128 {
             return Err(self.error("#if expression nesting limit exceeded"));
         }
+
         self.depth += 1;
         let result = self.expr_inner(min, execute);
         self.depth -= 1;
@@ -43,17 +47,17 @@ impl Evaluator<'_> {
     }
 
     fn expr_inner(&mut self, min: u8, execute: bool) -> Result<i32, Diagnostic> {
-        let token = self
-            .tokens
-            .get(self.offset)
-            .ok_or_else(|| self.error("expected #if expression"))?;
+        let token =
+            self.tokens.get(self.offset).ok_or_else(|| self.error("expected #if expression"))?;
         self.offset += 1;
         let mut left = match token.text.as_str() {
             "(" => {
                 let value = self.expr(0, execute)?;
+
                 if !self.tokens.get(self.offset).is_some_and(|t| t.is(")")) {
                     return Err(self.error("expected ')'"));
                 }
+
                 self.offset += 1;
                 value
             }
@@ -65,6 +69,7 @@ impl Evaluator<'_> {
             _ if token.kind == TokenKind::Integer => crate::line::number(&token.text),
             _ => return Err(self.error("expected integer expression")),
         };
+
         while let Some(token) = self.tokens.get(self.offset) {
             let precedence = match token.text.as_str() {
                 "||" => 1,
@@ -79,17 +84,21 @@ impl Evaluator<'_> {
                 "*" | "/" | "%" => 10,
                 _ => break,
             };
+
             if precedence < min {
                 break;
             }
+
             let op = token.text.as_str();
             self.offset += 1;
             let rhs_execute = execute && !(op == "&&" && left == 0 || op == "||" && left != 0);
             let right = self.expr(precedence + 1, rhs_execute)?;
+
             if !execute {
                 left = 0;
                 continue;
             }
+
             left = match op {
                 "||" => i32::from(left != 0 || right != 0),
                 "&&" => i32::from(left != 0 && right != 0),
@@ -106,6 +115,7 @@ impl Evaluator<'_> {
                     if !(0..32).contains(&right) {
                         return Err(self.error("invalid shift amount in #if"));
                     }
+
                     if op == "<<" {
                         left.wrapping_shl(right as u32)
                     } else {
@@ -119,15 +129,18 @@ impl Evaluator<'_> {
                     if right == 0 {
                         return Err(self.error("division by zero in #if"));
                     }
+
                     if op == "/" {
                         left.wrapping_div(right)
                     } else {
                         left.wrapping_rem(right)
                     }
                 }
+
                 _ => unreachable!(),
             };
         }
+
         Ok(left)
     }
 }

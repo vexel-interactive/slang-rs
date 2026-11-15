@@ -17,6 +17,7 @@ pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
         default_major,
         native_16bit_types,
     );
+
     if packed.is_empty()
         && !module.globals.iter().any(|g| {
             field_matrix_view(g, default_major, native_16bit_types)
@@ -26,22 +27,18 @@ pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
     {
         return Ok(());
     }
-    let direct: BTreeSet<_> = module
-        .constant_buffers
-        .iter()
-        .map(|b| b.variable_name.clone())
-        .collect();
+
+    let direct: BTreeSet<_> =
+        module.constant_buffers.iter().map(|b| b.variable_name.clone()).collect();
     let names = crate::visit::names(module);
     let mut prefix = "_slang_uniform_view_".to_owned();
+
     while names.iter().any(|n| n.starts_with(&prefix)) {
         prefix.push('_');
     }
+
     let mut builder = Builder {
-        structures: module
-            .structures
-            .iter()
-            .map(|s| (s.name.clone(), s.clone()))
-            .collect(),
+        structures: module.structures.iter().map(|s| (s.name.clone(), s.clone())).collect(),
         layouts: &module.uniform_types,
         packed: &packed,
         default_major,
@@ -50,20 +47,19 @@ pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
         next: 0,
         remaining: 65536,
     };
+
     let mut resource_indices = vec![];
     let mut shared_views = vec![];
+
     for buffer in &mut module.constant_buffers {
-        let global = module
-            .globals
-            .iter()
-            .find(|g| g.name == buffer.variable_name)
-            .unwrap();
+        let global = module.globals.iter().find(|g| g.name == buffer.variable_name).unwrap();
         let empty_fields = global.uniform_layout.as_ref().is_some_and(|layout| {
             builder.layouts[&layout.type_name]
                 .fields
                 .iter()
                 .any(|field| builder.layouts[&field.type_name].size == 0)
         });
+
         if !empty_fields
             && !buffer.fields.iter().any(|f| {
                 contains(&f.ty, &packed, native_16bit_types)
@@ -73,12 +69,14 @@ pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
         {
             continue;
         }
+
         let layout = global
             .uniform_layout
             .as_ref()
             .ok_or_else(|| error(global.span, "packed buffer has no data layout"))?;
         let offsets = &module.uniform_types[&layout.type_name].fields;
         let mut fields = vec![];
+
         for (field, offset) in buffer.fields.iter().zip(offsets) {
             if builder.layouts[&offset.type_name].size == 0
                 || requires_view(
@@ -103,16 +101,20 @@ pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
                 fields.push(field);
             }
         }
+
         buffer.fields = fields;
     }
+
     for (index, global) in module.globals.iter().enumerate() {
         if direct.contains(&global.name) {
             continue;
         }
+
         match &global.ty {
-            Type::ConstantBuffer { element, .. }
-                if contains(element, &packed, native_16bit_types) =>
-            {
+            Type::ConstantBuffer {
+                element,
+                ..
+            } if contains(element, &packed, native_16bit_types) => {
                 let mut fields = vec![];
                 let layout = global
                     .uniform_layout
@@ -130,15 +132,18 @@ pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
                 });
                 resource_indices.push(index);
             }
+
             Type::Array(..) if packed_handle(&global.ty, &packed, native_16bit_types) => {
                 return Err(error(
                     global.span,
                     "arrays of packed constant-buffer handles are not implemented",
                 ));
             }
+
             _ => {}
         }
     }
+
     let uniforms: Vec<_> = module
         .globals
         .iter()
@@ -152,6 +157,7 @@ pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
             || empty_layout(&module.globals[i], &module.uniform_types)
     }) {
         let mut fields = vec![];
+
         for &index in &uniforms {
             let global = &module.globals[index];
             let offset = global
@@ -183,30 +189,30 @@ pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
                 fields.push(field);
             }
         }
+
         module.global_uniform_fields = Some(fields);
     }
+
     for index in resource_indices {
         module.globals[index].modifiers = vec!["static".into(), "const".into()];
     }
-    let views = module
-        .constant_buffers
-        .iter()
-        .flat_map(|b| b.views.clone())
-        .chain(shared_views);
+
+    let views = module.constant_buffers.iter().flat_map(|b| b.views.clone()).chain(shared_views);
     let mut replacements = BTreeMap::new();
     let mut functions = vec![];
     let mut structures = vec![];
+
     for view in views {
         let (function, structure, replacement) = builder.getter(&view);
-        module
-            .uniform_value_functions
-            .insert(view.name.clone(), function.name.clone());
+        module.uniform_value_functions.insert(view.name.clone(), function.name.clone());
         replacements.insert(view.name.clone(), replacement);
         functions.push(function);
+
         if let Some(structure) = structure {
             structures.push(structure);
         }
     }
+
     module.functions.extend(functions);
     module.structures.extend(structures);
     let mut converter = Converter {
@@ -214,22 +220,27 @@ pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
         replacements: &replacements,
         native_16bit_types,
     };
+
     for global in &mut module.globals {
         if !direct.contains(&global.name) {
             converter.ty(&mut global.ty);
         }
     }
+
     for structure in &mut module.structures {
         for field in &mut structure.fields {
             converter.ty(&mut field.ty);
         }
     }
+
     for function in &mut module.functions {
         converter.ty(&mut function.return_type);
+
         for parameter in &mut function.parameters {
             converter.ty(&mut parameter.ty);
         }
     }
+
     converter.module(module)
 }
 
@@ -242,31 +253,32 @@ fn packed_structures(
     let mut reverse: BTreeMap<String, Vec<String>> = BTreeMap::new();
     let mut packed = BTreeSet::new();
     let mut queue = VecDeque::new();
+
     for structure in structures {
-        if layouts.get(&structure.name).is_some_and(|layout| {
-            layout
-                .fields
-                .iter()
-                .any(|f| layouts[&f.type_name].size == 0)
-        }) || structure.fields.iter().any(|f| {
-            f.pack_offset.is_some() || field_matrix_view(f, default_major, native_16bit_types)
-        }) {
+        if layouts
+            .get(&structure.name)
+            .is_some_and(|layout| layout.fields.iter().any(|f| layouts[&f.type_name].size == 0))
+            || structure.fields.iter().any(|f| {
+                f.pack_offset.is_some() || field_matrix_view(f, default_major, native_16bit_types)
+            })
+        {
             packed.insert(structure.name.clone());
             queue.push_back(structure.name.clone());
         }
+
         for field in &structure.fields {
             let mut ty = &field.ty;
+
             while let Type::Array(element, _) = ty {
                 ty = element;
             }
+
             if let Type::Struct(name) = ty {
-                reverse
-                    .entry(name.clone())
-                    .or_default()
-                    .push(structure.name.clone());
+                reverse.entry(name.clone()).or_default().push(structure.name.clone());
             }
         }
     }
+
     while let Some(name) = queue.pop_front() {
         if let Some(parents) = reverse.get(&name) {
             for parent in parents {
@@ -276,6 +288,7 @@ fn packed_structures(
             }
         }
     }
+
     packed
 }
 
@@ -283,16 +296,14 @@ fn empty_layout(
     field: &Variable,
     layouts: &BTreeMap<String, slang_layout::UniformTypeLayout>,
 ) -> bool {
-    field
-        .uniform_layout
-        .as_ref()
-        .is_some_and(|layout| layouts[&layout.type_name].size == 0)
+    field.uniform_layout.as_ref().is_some_and(|layout| layouts[&layout.type_name].size == 0)
 }
 
 fn contains(mut ty: &Type, packed: &BTreeSet<String>, native_16bit_types: bool) -> bool {
     while let Type::Array(element, _) = ty {
         ty = element;
     }
+
     native_matrix(ty, native_16bit_types)
         || matches!(ty, Type::Struct(name) if packed.contains(name))
 }
@@ -301,9 +312,11 @@ fn matrix_array(mut ty: &Type) -> bool {
     if !matches!(ty, Type::Array(..)) {
         return false;
     }
+
     while let Type::Array(element, _) = ty {
         ty = element;
     }
+
     matches!(ty, Type::Matrix(..))
 }
 
@@ -311,6 +324,7 @@ fn native_matrix(mut ty: &Type, enabled: bool) -> bool {
     while let Type::Array(element, _) = ty {
         ty = element;
     }
+
     enabled
         && matches!(
             ty,
@@ -353,6 +367,7 @@ fn requires_view(
     } else {
         slang_layout::MatrixMajor::Column
     };
+
     contains(ty, packed, native_16bit_types) || (matrix_array(ty) && major != default_major)
 }
 
@@ -360,6 +375,7 @@ fn packed_handle(mut ty: &Type, packed: &BTreeSet<String>, native_16bit_types: b
     while let Type::Array(element, _) = ty {
         ty = element;
     }
+
     matches!(ty, Type::ConstantBuffer { element, .. } if contains(element, packed, native_16bit_types))
 }
 
@@ -405,16 +421,19 @@ impl Builder<'_> {
                     span: view.span,
                 }],
             };
+
             result_type = Type::Struct(structure.name.clone());
             initializer = Expr {
                 ty: result_type.clone(),
                 kind: ExprKind::Construct(vec![initializer]),
                 span: view.span,
             };
+
             Some(structure)
         } else {
             None
         };
+
         let result = Variable {
             name: "_result".into(),
             ty: result_type.clone(),
@@ -426,6 +445,7 @@ impl Builder<'_> {
             initializer: Some(initializer),
             span: view.span,
         };
+
         let function = Function {
             name: name.clone(),
             return_type: result_type.clone(),
@@ -451,6 +471,7 @@ impl Builder<'_> {
             }),
             span: view.span,
         };
+
         let mut replacement = Expr {
             ty: result_type,
             kind: ExprKind::Call {
@@ -459,6 +480,7 @@ impl Builder<'_> {
             },
             span: view.span,
         };
+
         if structure.is_some() {
             replacement = Expr {
                 ty: view.ty.clone(),
@@ -469,6 +491,7 @@ impl Builder<'_> {
                 span: view.span,
             };
         }
+
         (function, structure, replacement)
     }
 
@@ -502,6 +525,7 @@ impl Builder<'_> {
                 Type::Struct(name) => {
                     let structure = self.structures[name].clone();
                     let mut values = vec![];
+
                     for (field, location) in structure.fields.iter().zip(&layout.fields) {
                         let at = offset
                             .checked_add(location.offset)
@@ -514,14 +538,18 @@ impl Builder<'_> {
                             fields,
                         )?);
                     }
+
                     ExprKind::Construct(values)
                 }
+
                 Type::Array(element, count) => {
                     if u64::from(*count) > self.remaining as u64 {
                         return Err(error(span, "packed uniform expansion limit exceeded"));
                     }
+
                     let stride = layout.array_stride.unwrap();
                     let mut values = vec![];
+
                     for i in 0..*count {
                         let at = stride
                             .checked_mul(u64::from(i))
@@ -535,8 +563,10 @@ impl Builder<'_> {
                             fields,
                         )?);
                     }
+
                     ExprKind::Construct(values)
                 }
+
                 Type::Matrix(scalar, rows, columns) => {
                     let row_major = layout.matrix_major == Some(slang_layout::MatrixMajor::Row);
                     let (width, count) = if row_major {
@@ -544,8 +574,10 @@ impl Builder<'_> {
                     } else {
                         (*rows, *columns)
                     };
+
                     let vector = Type::Vector(*scalar, width);
                     let mut vectors = vec![];
+
                     for unit in 0..count {
                         let name = format!("{}{}", self.prefix, self.next);
                         self.next += 1;
@@ -570,7 +602,9 @@ impl Builder<'_> {
                             span,
                         });
                     }
+
                     let mut values = vec![];
+
                     for row in 0..*rows {
                         for column in 0..*columns {
                             let (unit, component) = if row_major {
@@ -578,6 +612,7 @@ impl Builder<'_> {
                             } else {
                                 (column, row)
                             };
+
                             values.push(Expr {
                                 ty: Type::Scalar(*scalar),
                                 span,
@@ -592,8 +627,10 @@ impl Builder<'_> {
                             });
                         }
                     }
+
                     ExprKind::Construct(values)
                 }
+
                 _ => unreachable!(),
             }
         } else {
@@ -616,6 +653,7 @@ impl Builder<'_> {
             });
             ExprKind::Name(name)
         };
+
         Ok(Expr {
             ty: ty.clone(),
             kind,
@@ -632,11 +670,13 @@ struct Converter<'a> {
 impl Converter<'_> {
     fn ty(&self, ty: &mut Type) {
         match ty {
-            Type::ConstantBuffer { element, .. }
-                if contains(element, self.packed, self.native_16bit_types) =>
-            {
+            Type::ConstantBuffer {
+                element,
+                ..
+            } if contains(element, self.packed, self.native_16bit_types) => {
                 *ty = *element.clone();
             }
+
             Type::Array(element, _) => self.ty(element),
             _ => {}
         }
@@ -651,9 +691,11 @@ impl Visitor for Converter<'_> {
             *expression = replacement.clone();
             expression.span = span;
         }
+
         self.ty(&mut expression.ty);
         walk_expression(self, expression)
     }
+
     fn statement(&mut self, statement: &mut Stmt) -> Result<(), Diagnostic> {
         match &mut statement.kind {
             StmtKind::Variable(v) => self.ty(&mut v.ty),
@@ -662,8 +704,10 @@ impl Visitor for Converter<'_> {
                     self.ty(&mut v.ty);
                 }
             }
+
             _ => {}
         }
+
         walk_statement(self, statement)
     }
 }

@@ -19,6 +19,7 @@ fn independent_overload_arguments_defaults_and_alias_prototypes_are_specialized(
     )
     .unwrap();
     let code = compiled.artifact.unwrap();
+
     assert!(!code.contains("function_call_"), "{code}");
     assert!(!code.contains("symbolic"), "{code}");
 }
@@ -52,6 +53,7 @@ fn equivalent_signatures_late_defaults_and_concrete_ambiguity_fail() {
             &MemoryIncludes::default(),
         )
         .unwrap_err();
+
         assert!(error.diagnostics.iter().any(|d| d.code == code), "{error}");
     }
 }
@@ -66,6 +68,7 @@ fn imported_overload_visibility_and_caller_argument_types_remain_independent() {
         )]
         .into(),
     };
+
     compile_source(
         "main.slang",
         include_str!("../../../tests/conformance/positive/generic-overload-module/main.slang"),
@@ -82,8 +85,6 @@ fn imported_overload_visibility_and_caller_argument_types_remain_independent() {
         &includes,
     )
     .unwrap_err();
-    assert!(
-        error.diagnostics.iter().any(|d| d.code == "T014"),
-        "{error}"
-    );
+
+    assert!(error.diagnostics.iter().any(|d| d.code == "T014"), "{error}");
 }

@@ -19,9 +19,11 @@ impl Checker {
         span: Span,
     ) -> Type {
         let receiver = self.expression(base);
+
         if receiver == Type::Error || types.contains(&Type::Error) {
             return Type::Error;
         }
+
         let types: Vec<_> = types.iter().map(|ty| ty.value_type().clone()).collect();
         let Some(method) = signature(&receiver, name, &types) else {
             self.error(
@@ -31,20 +33,14 @@ impl Checker {
             );
             return Type::Error;
         };
+
         self.call_output_parameters.insert(
             crate::span_key(span),
-            (
-                name.to_owned(),
-                (0..arguments.len())
-                    .map(|i| i >= method.output_start)
-                    .collect(),
-            ),
+            (name.to_owned(), (0..arguments.len()).map(|i| i >= method.output_start).collect()),
         );
-        for (index, ((actual, expected), argument)) in types
-            .iter()
-            .zip(&method.parameters)
-            .zip(arguments)
-            .enumerate()
+
+        for (index, ((actual, expected), argument)) in
+            types.iter().zip(&method.parameters).zip(arguments).enumerate()
         {
             if index >= method.output_start {
                 if matches!(
@@ -57,7 +53,9 @@ impl Checker {
                         "constant-buffer contents are not writable output locations",
                     );
                 }
+
                 self.require_writable(argument);
+
                 if actual != expected {
                     self.error(
                         "T014",
@@ -69,6 +67,7 @@ impl Checker {
                 self.coerce_value(argument, expected);
             }
         }
+
         self.expression_types.insert(
             callee,
             Type::Callable {
@@ -88,13 +87,20 @@ fn signature(receiver: &Type, name: &str, types: &[Type]) -> Option<Method> {
             result,
         })
     };
+
     match receiver {
-        Type::ByteBuffer { writable } => byte_buffer(name, types, *writable),
-        Type::Buffer { element, .. } => match name {
+        Type::ByteBuffer {
+            writable,
+        } => byte_buffer(name, types, *writable),
+        Type::Buffer {
+            element,
+            ..
+        } => match name {
             "Load" => input(vec![Type::Scalar(Scalar::Int)], *element.clone()),
             "GetDimensions" if types.len() == 2 && types[0] == Type::Scalar(Scalar::Uint) => {
                 dimensions(types, 0, 2)
             }
+
             _ => None,
         },
         Type::Texture {
@@ -104,24 +110,25 @@ fn signature(receiver: &Type, name: &str, types: &[Type]) -> Option<Method> {
         } => {
             let width = dimension.coordinates();
             let coordinate = Type::numeric_shape(Scalar::Float, width);
-            let sampler = Type::Sampler { comparison: false };
-            let comparison = Type::Sampler { comparison: true };
+            let sampler = Type::Sampler {
+                comparison: false,
+            };
+            let comparison = Type::Sampler {
+                comparison: true,
+            };
             let floating = matches!(element.scalar(), Some(Scalar::Half | Scalar::Float));
+
             match name {
                 "Load" if *dimension != TextureDimension::Cube => input(
-                    vec![Type::numeric_shape(
-                        Scalar::Int,
-                        width + u8::from(!writable),
-                    )],
+                    vec![Type::numeric_shape(Scalar::Int, width + u8::from(!writable))],
                     *element.clone(),
                 ),
                 "Sample" if !writable && floating => {
                     input(vec![sampler, coordinate], *element.clone())
                 }
-                "SampleLevel" | "SampleBias" if !writable && floating => input(
-                    vec![sampler, coordinate, Type::Scalar(Scalar::Float)],
-                    *element.clone(),
-                ),
+                "SampleLevel" | "SampleBias" if !writable && floating => {
+                    input(vec![sampler, coordinate, Type::Scalar(Scalar::Float)], *element.clone())
+                }
                 "SampleGrad" if !writable && floating => input(
                     vec![sampler, coordinate.clone(), coordinate.clone(), coordinate],
                     *element.clone(),
@@ -140,9 +147,11 @@ fn signature(receiver: &Type, name: &str, types: &[Type]) -> Option<Method> {
                 "GetDimensions" if !writable && types.len() == dimension.dimensions() + 2 => {
                     dimensions(types, 1, dimension.dimensions() + 1)
                 }
+
                 _ => None,
             }
         }
+
         _ => None,
     }
 }
@@ -156,6 +165,7 @@ fn byte_buffer(name: &str, types: &[Type], writable: bool) -> Option<Method> {
         "4" => Some(4),
         _ => None,
     };
+
     if let Some(suffix) = name.strip_prefix("Load") {
         let components = width(suffix)?;
         return (types.len() == 1).then_some(Method {
@@ -164,6 +174,7 @@ fn byte_buffer(name: &str, types: &[Type], writable: bool) -> Option<Method> {
             result: Type::numeric_shape(Scalar::Uint, components),
         });
     }
+
     if let Some(suffix) = name.strip_prefix("Store") {
         let components = width(suffix)?;
         return (writable && types.len() == 2).then_some(Method {
@@ -172,9 +183,11 @@ fn byte_buffer(name: &str, types: &[Type], writable: bool) -> Option<Method> {
             result: Type::Void,
         });
     }
+
     if name == "GetDimensions" && types == [uint.clone()] {
         return dimensions(types, 0, 1);
     }
+
     if writable {
         let inputs = match name {
             "InterlockedAdd"
@@ -185,6 +198,7 @@ fn byte_buffer(name: &str, types: &[Type], writable: bool) -> Option<Method> {
             "InterlockedCompareExchange" => 3,
             _ => return None,
         };
+
         if types.len() == inputs + 1 {
             return Some(Method {
                 parameters: vec![uint; inputs + 1],
@@ -193,6 +207,7 @@ fn byte_buffer(name: &str, types: &[Type], writable: bool) -> Option<Method> {
             });
         }
     }
+
     None
 }
 
@@ -202,6 +217,7 @@ fn dimensions(types: &[Type], input_count: usize, outputs: usize) -> Option<Meth
         Type::Scalar(Scalar::Float) => Scalar::Float,
         _ => return None,
     };
+
     let mut parameters = vec![Type::Scalar(Scalar::Uint); input_count];
     parameters.extend(vec![Type::Scalar(scalar); outputs]);
     Some(Method {

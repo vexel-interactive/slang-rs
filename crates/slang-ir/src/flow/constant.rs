@@ -27,20 +27,22 @@ pub(super) fn literal(text: &str) -> Option<i64> {
         "(-9223372036854775807ll - 1ll)" => return Some(i64::MIN),
         _ => {}
     }
+
     for prefix in ["int16_t(", "uint16_t("] {
         if let Some(inner) = text.strip_prefix(prefix).and_then(|s| s.strip_suffix(')')) {
             return literal(inner);
         }
     }
+
     if let Some(inner) = text.strip_prefix('-') {
         return literal(inner).map(i64::wrapping_neg);
     }
+
     if let Some(inner) = text.strip_prefix('+') {
         return literal(inner);
     }
-    slang_lexer::parse_integer_literal(text)
-        .ok()
-        .map(|value| value.bits as i64)
+
+    slang_lexer::parse_integer_literal(text).ok().map(|value| value.bits as i64)
 }
 
 pub(super) fn unary(op: &str, bits: i64, ty: Scalar) -> Option<i64> {
@@ -90,5 +92,6 @@ pub(super) fn binary(op: &str, a: i64, b: i64, operand: Scalar, result: Scalar) 
         ">=" => i64::from(a >= b),
         _ => return None,
     };
+
     Some(normalize(value, result))
 }

@@ -12,16 +12,12 @@ fn compile(source: &str) -> Compilation {
 
 #[test]
 fn inferred_constructors_compete_with_memberwise_and_ordinary_overloads() {
-    compile(include_str!(
-        "../../../tests/conformance/positive/generic-constructor-values.slang"
-    ));
+    compile(include_str!("../../../tests/conformance/positive/generic-constructor-values.slang"));
 }
 
 #[test]
 fn owner_types_nested_scopes_globals_and_contextual_lists_are_preserved() {
-    compile(include_str!(
-        "../../../tests/conformance/positive/generic-constructor-owners.slang"
-    ));
+    compile(include_str!("../../../tests/conformance/positive/generic-constructor-owners.slang"));
 }
 
 #[test]
@@ -33,9 +29,7 @@ fn resource_handles_and_resource_valued_structs_use_user_constructors() {
 
 #[test]
 fn inline_constructors_preserve_loops_returns_and_shared_state() {
-    compile(include_str!(
-        "../../../tests/conformance/positive/generic-constructor-inline.slang"
-    ));
+    compile(include_str!("../../../tests/conformance/positive/generic-constructor-inline.slang"));
 }
 
 #[test]
@@ -50,6 +44,7 @@ fn imported_constructors_accept_private_caller_arguments_and_enforce_visibility(
         )]
         .into(),
     };
+
     compile_source(
         "main.slang",
         include_str!("../../../tests/conformance/positive/generic-constructor-module/main.slang"),
@@ -58,10 +53,8 @@ fn imported_constructors_accept_private_caller_arguments_and_enforce_visibility(
     )
     .unwrap();
     let error = compile_source("main.slang", include_str!("../../../tests/conformance/positive/generic-constructor-module/private-constructor.slang"), &CompileOptions::default(), &includes).unwrap_err();
-    assert!(
-        error.diagnostics.iter().any(|d| d.code == "T014"),
-        "{error}"
-    );
+
+    assert!(error.diagnostics.iter().any(|d| d.code == "T014"), "{error}");
 }
 
 #[test]
@@ -107,19 +100,39 @@ fn invalid_arguments_and_unused_opaque_constructor_bodies_are_checked() {
             &MemoryIncludes::default(),
         )
         .unwrap_err();
-        assert!(
-            error.diagnostics.iter().any(|d| d.code == code),
-            "{source}: {error}"
-        );
+
+        assert!(error.diagnostics.iter().any(|d| d.code == code), "{source}: {error}");
     }
 }
 
 #[test]
 fn generic_constructor_defaults_do_not_initialize_bare_variables_or_fields() {
     let compiled = compile(
-        "struct Marker{int value;__init<T=int>(T ignored=T()){value=7;}};struct Outer{Marker field;__init(){}};int run(){Marker local;return Marker().value;}",
+        r#"
+            struct Marker {
+                int value;
+
+                __init<T = int>(T ignored = T()) {
+                    value = 7;
+                }
+            };
+
+            struct Outer {
+                Marker field;
+
+                __init() {
+                }
+            };
+
+            int run() {
+                Marker local;
+
+                return Marker().value;
+            }
+        "#,
     );
     let artifact = compiled.artifact.unwrap();
+
     assert!(artifact.contains("Marker local;"), "{artifact}");
 }
 
@@ -136,16 +149,30 @@ fn aggregate_held_constant_buffers_materialize_through_one_handle() {
         .collect::<Vec<_>>();
     assert_eq!(loads.len(), 1);
     assert_eq!(loads[0].parameters.len(), 1);
-    assert!(matches!(
-        loads[0].parameters[0].ty,
-        slang_sema::Type::ConstantBuffer { .. }
-    ));
+    assert!(matches!(loads[0].parameters[0].ty, slang_sema::Type::ConstantBuffer { .. }));
 }
 
 #[test]
 fn recursive_constructor_inference_reuses_the_concrete_frontend_instance() {
     let compiled = compile(
-        "struct Marker{int value;__init<T>(T input,int depth){if(depth==0){value=3;return;}return Marker(input,depth-1);}};int run(){return Marker(int2(1,2),2).value;}",
+        r#"
+            struct Marker {
+                int value;
+
+                __init<T>(T input, int depth) {
+                    if (depth == 0) {
+                        value = 3;
+                        return;
+                    }
+                    return Marker(input, depth - 1);
+                }
+            };
+
+            int run() {
+                return Marker(int2(1, 2), 2).value;
+            }
+        "#,
     );
+
     assert_eq!(compiled.ir.functions.len(), 2);
 }

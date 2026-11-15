@@ -120,11 +120,9 @@ impl Module {
     pub fn static_member(&self, span: Span) -> Option<&StaticMemberInfo> {
         self.static_members.iter().find(|m| m.span == span)
     }
+
     pub fn constant_buffer_member(&self, span: Span) -> Option<&ConstantBufferMember> {
-        self.constant_buffers
-            .iter()
-            .flat_map(|b| &b.members)
-            .find(|m| m.span == span)
+        self.constant_buffers.iter().flat_map(|b| &b.members).find(|m| m.span == span)
     }
 }
 
@@ -191,7 +189,10 @@ pub struct GenericParameter {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub enum TypeArgument {
     Type(TypeRef),
-    Integer { value: u32, span: Span },
+    Integer {
+        value: u32,
+        span: Span,
+    },
     Expression(Box<Expr>),
 }
 
@@ -263,9 +264,7 @@ pub struct StructMethod {
 
 impl Function {
     pub fn owner_type(&self) -> Option<&str> {
-        self.constructor
-            .as_deref()
-            .or_else(|| self.method.as_ref().map(|m| m.owner.as_str()))
+        self.constructor.as_deref().or_else(|| self.method.as_ref().map(|m| m.owner.as_str()))
     }
 }
 
@@ -365,18 +364,26 @@ impl Expr {
         let (name, base) = match &self.kind {
             ExprKind::Name(name) => (name.clone(), None),
             ExprKind::TypeApplication(ty) => return Some(*ty.clone()),
-            ExprKind::Member { base, name, .. } => {
-                (name.clone(), Some(Box::new(base.type_reference()?)))
-            }
-            ExprKind::GenericApplication { callee, arguments } => {
+            ExprKind::Member {
+                base,
+                name,
+                ..
+            } => (name.clone(), Some(Box::new(base.type_reference()?))),
+
+            ExprKind::GenericApplication {
+                callee,
+                arguments,
+            } => {
                 let mut ty = callee.type_reference()?;
                 ty.arguments = arguments.clone();
                 ty.application = true;
                 ty.span = self.span;
                 return Some(ty);
             }
+
             _ => return None,
         };
+
         Some(TypeRef {
             name,
             base,

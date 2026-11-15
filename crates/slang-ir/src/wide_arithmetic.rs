@@ -15,21 +15,33 @@ struct Lowerer;
 impl Visitor for Lowerer {
     fn expression(&mut self, expression: &mut Expr) -> Result<(), Diagnostic> {
         walk_expression(self, expression)?;
-        if let ExprKind::Binary { op, left, .. } = &expression.kind
+
+        if let ExprKind::Binary {
+            op,
+            left,
+            ..
+        } = &expression.kind
             && matches!(op.as_str(), "<<" | ">>")
             && matches!(left.ty.scalar(), Some(Scalar::Int16 | Scalar::Uint16))
         {
             // DXC masks native 16-bit shift counts. Pinned SCCP saturates at
             // the operand width: zero, or sign extension for signed right shifts.
             let mut operation = expression.clone();
-            let ExprKind::Binary { left, right, .. } = &mut operation.kind else {
+            let ExprKind::Binary {
+                left,
+                right,
+                ..
+            } = &mut operation.kind
+            else {
                 unreachable!()
             };
+
             let scalar = if left.ty.scalar() == Some(Scalar::Uint16) {
                 Scalar::Uint
             } else {
                 Scalar::Int
             };
+
             let promoted = operation.ty.with_scalar(scalar);
             coerce(left, &promoted);
             let count_scalar = match right.ty.scalar().unwrap() {
@@ -37,6 +49,7 @@ impl Visitor for Lowerer {
                 Scalar::Int | Scalar::Uint => Scalar::Uint,
                 _ => Scalar::Uint64,
             };
+
             let count_type = right.ty.with_scalar(count_scalar);
             coerce(right, &count_type);
             **right = Expr {
@@ -54,38 +67,44 @@ impl Visitor for Lowerer {
                     ],
                 },
             };
+
             operation.ty = promoted;
             expression.kind = ExprKind::Cast {
                 value: Box::new(operation),
             };
+
             return Ok(());
         }
+
         match &mut expression.kind {
-            ExprKind::Binary { op, left, right }
-                if matches!(
-                    op.as_str(),
-                    "+" | "-"
-                        | "*"
-                        | "/"
-                        | "%"
-                        | "&"
-                        | "|"
-                        | "^"
-                        | "=="
-                        | "!="
-                        | "<"
-                        | "<="
-                        | ">"
-                        | ">="
-                        | "+="
-                        | "-="
-                        | "*="
-                        | "/="
-                        | "%="
-                        | "&="
-                        | "|="
-                        | "^="
-                ) =>
+            ExprKind::Binary {
+                op,
+                left,
+                right,
+            } if matches!(
+                op.as_str(),
+                "+" | "-"
+                    | "*"
+                    | "/"
+                    | "%"
+                    | "&"
+                    | "|"
+                    | "^"
+                    | "=="
+                    | "!="
+                    | "<"
+                    | "<="
+                    | ">"
+                    | ">="
+                    | "+="
+                    | "-="
+                    | "*="
+                    | "/="
+                    | "%="
+                    | "&="
+                    | "|="
+                    | "^="
+            ) =>
             {
                 if op.ends_with('=') && !matches!(op.as_str(), "==" | "!=" | "<=" | ">=") {
                     // Slang's compound overload fixes the operand type from its
@@ -97,6 +116,7 @@ impl Visitor for Lowerer {
                     coerce(right, &common);
                 }
             }
+
             ExprKind::Conditional {
                 then_value,
                 else_value,
@@ -105,9 +125,12 @@ impl Visitor for Lowerer {
                 coerce(then_value, &expression.ty);
                 coerce(else_value, &expression.ty);
             }
-            ExprKind::IntrinsicCall { name, arguments }
-                if (wide(&expression.ty) || arguments.iter().any(|a| wide(&a.ty)))
-                    && matches!(name.as_str(), "min" | "max" | "clamp" | "mul") =>
+
+            ExprKind::IntrinsicCall {
+                name,
+                arguments,
+            } if (wide(&expression.ty) || arguments.iter().any(|a| wide(&a.ty)))
+                && matches!(name.as_str(), "min" | "max" | "clamp" | "mul") =>
             {
                 for argument in arguments {
                     let target = if name == "mul" {
@@ -115,11 +138,14 @@ impl Visitor for Lowerer {
                     } else {
                         expression.ty.clone()
                     };
+
                     coerce(argument, &target);
                 }
             }
+
             _ => {}
         }
+
         Ok(())
     }
 }

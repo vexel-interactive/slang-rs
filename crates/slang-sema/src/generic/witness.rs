@@ -20,6 +20,7 @@ pub(super) fn set_owner(binding: &mut ConstraintCallInfo) {
     if let Some(method) = &mut binding.requirement.method {
         method.owner = binding.owner.name.clone();
     }
+
     if let Some(owner) = &mut binding.requirement.constructor {
         *owner = binding.owner.name.clone();
     }
@@ -33,20 +34,24 @@ pub(super) fn template_calls(
 ) -> Result<TemplateBindings, Diagnostic> {
     let mut calls = BTreeMap::new();
     let mut ignored = IgnoredCalls::default();
+
     for declaration in &module.declarations {
         if default_instance_contexts.contains(&declaration_span(declaration).context) {
             ignored.declaration(&mut declaration.clone())?;
         }
     }
+
     let mut visitor = Reify {
         module,
         parameters,
         depth: 0,
     };
+
     for (id, binding) in &module.constraint_calls {
         if ignored.0.contains(id) {
             continue;
         }
+
         let mut binding = binding.clone();
         visitor.ty(&mut binding.owner)?;
         visitor.ty(&mut binding.interface)?;
@@ -54,11 +59,14 @@ pub(super) fn template_calls(
         set_owner(&mut binding);
         calls.insert(origins.get(id).copied().unwrap_or(*id), binding);
     }
+
     let mut variables = vec![];
+
     for variable in &module.constraint_variables {
         if default_instance_contexts.contains(&variable.span.context) {
             continue;
         }
+
         let mut binding = variable.call.clone();
         visitor.ty(&mut binding.owner)?;
         visitor.ty(&mut binding.interface)?;
@@ -69,7 +77,11 @@ pub(super) fn template_calls(
             call: binding,
         });
     }
-    Ok(TemplateBindings { calls, variables })
+
+    Ok(TemplateBindings {
+        calls,
+        variables,
+    })
 }
 
 #[derive(Default)]
@@ -91,6 +103,7 @@ impl Reify<'_> {
         if self.depth >= 64 {
             return Err(error(span, "constraint type reconstruction limit exceeded"));
         }
+
         self.depth += 1;
         let result = self.named_inner(name, span);
         self.depth -= 1;
@@ -101,12 +114,8 @@ impl Reify<'_> {
         if let Some(parameter) = self.parameters.get(name) {
             return Ok(parameter.clone());
         }
-        if let Some(instance) = self
-            .module
-            .generic_instances
-            .iter()
-            .find(|i| i.type_name == name)
-        {
+
+        if let Some(instance) = self.module.generic_instances.iter().find(|i| i.type_name == name) {
             let mut ty = self.named(&instance.template_name, span)?;
             ty.application = true;
             ty.arguments = instance.arguments[..instance.parameter_count]
@@ -119,18 +128,16 @@ impl Reify<'_> {
                     self.ty(argument)?;
                 }
             }
+
             return Ok(ty);
         }
-        if let Some(nested) = self
-            .module
-            .nested_types
-            .iter()
-            .find(|n| n.type_name == name)
-        {
+
+        if let Some(nested) = self.module.nested_types.iter().find(|n| n.type_name == name) {
             let mut ty = reference(&nested.name, span);
             ty.base = Some(Box::new(self.named(&nested.owner, span)?));
             return Ok(ty);
         }
+
         Ok(reference(name, span))
     }
 }
@@ -138,24 +145,18 @@ impl Reify<'_> {
 impl VisitorMut for Reify<'_> {
     fn expression(&mut self, expression: &mut Expr) -> Result<(), Diagnostic> {
         if let ExprKind::Name(name) = &expression.kind {
-            let instance = self
-                .module
-                .generic_instances
-                .iter()
-                .find(|i| i.type_name == *name)
-                .or_else(|| {
-                    self.module
-                        .function_applications
-                        .iter()
-                        .find(|a| a.name == *name)
-                        .and_then(|a| {
+            let instance =
+                self.module.generic_instances.iter().find(|i| i.type_name == *name).or_else(|| {
+                    self.module.function_applications.iter().find(|a| a.name == *name).and_then(
+                        |a| {
                             a.candidates.iter().find_map(|c| {
                                 self.module
                                     .generic_instances
                                     .iter()
                                     .find(|i| i.type_name == c.function)
                             })
-                        })
+                        },
+                    )
                 });
             if let Some(instance) = instance {
                 let mut ty = self.named(&instance.template_name, expression.span)?;
@@ -168,23 +169,29 @@ impl VisitorMut for Reify<'_> {
                 expression.kind = ExprKind::TypeApplication(Box::new(ty));
             }
         }
+
         visit::walk_expression(self, expression)
     }
+
     fn ty(&mut self, ty: &mut TypeRef) -> Result<(), Diagnostic> {
         if ty.base.is_none() {
             let mut named = self.named(&ty.name, ty.span)?;
+
             if named.name != ty.name || named.base.is_some() || named.application {
                 named.arrays = std::mem::take(&mut ty.arrays);
                 named.matrix_major = ty.matrix_major;
                 named.parameter_ref = ty.parameter_ref;
                 named.span = ty.span;
+
                 if ty.application {
                     named.application = true;
                     named.arguments = std::mem::take(&mut ty.arguments);
                 }
+
                 *ty = named;
             }
         }
+
         visit::walk_type(self, ty)
     }
 }
@@ -192,20 +199,24 @@ impl VisitorMut for Reify<'_> {
 impl Specializer {
     pub(super) fn specialize_constraint_variable(&mut self, span: Span) -> Result<(), Diagnostic> {
         let site = crate::span_key(span);
+
         if !self.constraint_variables.contains_key(&site)
             || !self.processed_constraint_variables.insert(site)
         {
             return Ok(());
         }
+
         let mut binding = self.constraint_variables.remove(&site).unwrap();
         self.specialize_constraint_binding(&mut binding)?;
         self.constraint_variables.insert(site, binding);
         Ok(())
     }
+
     pub(super) fn specialize_constraint_call(&mut self, id: ExprId) -> Result<(), Diagnostic> {
         if !self.constraint_calls.contains_key(&id) || !self.processed_constraint_calls.insert(id) {
             return Ok(());
         }
+
         let mut binding = self.constraint_calls.remove(&id).unwrap();
         self.specialize_constraint_binding(&mut binding)?;
         self.constraint_calls.insert(id, binding);

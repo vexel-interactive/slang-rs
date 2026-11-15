@@ -12,7 +12,11 @@ impl Checker {
     }
 
     fn load_type(&mut self, expression: &Expr, ty: Type) -> Type {
-        if let Type::ConstantBuffer { element, .. } = ty {
+        if let Type::ConstantBuffer {
+            element,
+            ..
+        } = ty
+        {
             self.constant_buffer_loads.insert(expression.id);
             *element
         } else {
@@ -31,6 +35,7 @@ impl Checker {
                     slang_lexer::IntegerKind::IntPtr => Scalar::IntPtr,
                     slang_lexer::IntegerKind::UintPtr => Scalar::UintPtr,
                 };
+
                 if literal.signed_overflow
                     && !self
                         .diagnostics
@@ -43,36 +48,37 @@ impl Checker {
                         "integer literal exceeds the signed range; interpreting as unsigned",
                     ));
                 }
+
                 let ty = Type::Scalar(scalar);
                 self.expression_types.insert(expression.id, ty.clone());
                 return ty;
             }
+
             Err(_) => {
-                self.error(
-                    "T010",
-                    expression.span,
-                    "invalid or overflowing integer literal",
-                );
+                self.error("T010", expression.span, "invalid or overflowing integer literal");
                 self.expression_types.insert(expression.id, Type::Error);
                 return Type::Error;
             }
+
             Ok(None) => {}
         }
+
         let ty = match &expression.kind {
-            ExprKind::GenericApplication { .. } => {
-                self.error(
-                    "T014",
-                    expression.span,
-                    "generic member application requires a call",
-                );
+            ExprKind::GenericApplication {
+                ..
+            } => {
+                self.error("T014", expression.span, "generic member application requires a call");
                 Type::Error
             }
+
             ExprKind::InitializerList(values) => {
                 for value in values {
                     self.expression(value);
                 }
+
                 Type::InitializerList
             }
+
             ExprKind::Integer(_) => unreachable!("integer literals handled above"),
             ExprKind::Float(text) => match slang_lexer::parse_float_literal(text) {
                 Ok(literal) => {
@@ -81,6 +87,7 @@ impl Checker {
                         slang_lexer::FloatKind::Float => Scalar::Float,
                         slang_lexer::FloatKind::Double => Scalar::Double,
                     };
+
                     let warning = if literal.out_of_range {
                         Some(if literal.value.is_finite() {
                             ("T027", "floating-point literal underflows to zero")
@@ -92,30 +99,36 @@ impl Checker {
                     } else {
                         None
                     };
+
                     if let Some((code, message)) = warning
                         && !self
                             .diagnostics
                             .iter()
                             .any(|d| d.code == code && d.span == expression.span)
                     {
-                        self.diagnostics
-                            .push(Diagnostic::warning(code, expression.span, message));
+                        self.diagnostics.push(Diagnostic::warning(code, expression.span, message));
                     }
+
                     Type::Scalar(scalar)
                 }
+
                 Err(_) => {
                     self.error("T010", expression.span, "invalid floating-point literal");
                     Type::Error
                 }
             },
             ExprKind::Bool(_) => Type::Scalar(Scalar::Bool),
-            ExprKind::Cast { target, value } => {
+            ExprKind::Cast {
+                target,
+                value,
+            } => {
                 let parameter_copy = target.parameter_ref;
                 let actual = if parameter_copy {
                     self.expression(value)
                 } else {
                     self.value_expression(value)
                 };
+
                 let target = self.resolve_type(target);
                 let symbolic_copy = matches!(&target, Type::Struct(name) if self.symbolic_shapes.contains_key(name));
                 let valid = actual == Type::Error
@@ -138,6 +151,7 @@ impl Checker {
                         format!("unsupported explicit cast from {actual} to {target}"),
                     );
                 }
+
                 if parameter_copy && actual == target {
                     self.initializations.insert(
                         expression.id,
@@ -147,8 +161,10 @@ impl Checker {
                         },
                     );
                 }
+
                 target
             }
+
             ExprKind::String(_) => {
                 self.error(
                     "T001",
@@ -157,44 +173,27 @@ impl Checker {
                 );
                 Type::Error
             }
+
             ExprKind::Name(name) => {
-                let owner = self
-                    .current_type
-                    .as_ref()
-                    .or(self.current_static_type.as_ref())
-                    .cloned();
-                let local = self
-                    .scopes
-                    .iter()
-                    .skip(1)
-                    .any(|scope| scope.contains_key(name));
+                let owner =
+                    self.current_type.as_ref().or(self.current_static_type.as_ref()).cloned();
+                let local = self.scopes.iter().skip(1).any(|scope| scope.contains_key(name));
                 if !local
                     && let Some(owner) = &owner
                     && let Some(ty) = self.static_field(expression, owner, name)
                 {
                     ty
                 } else if let Some(owner) = &self.current_type
-                    && !self
-                        .scopes
-                        .iter()
-                        .skip(1)
-                        .any(|scope| scope.contains_key(name))
-                    && let Some(ty) = self
-                        .structures
-                        .get(owner)
-                        .and_then(|fields| fields.get(name))
-                        .cloned()
+                    && !self.scopes.iter().skip(1).any(|scope| scope.contains_key(name))
+                    && let Some(ty) =
+                        self.structures.get(owner).and_then(|fields| fields.get(name)).cloned()
                 {
                     if self.lookup("this").is_none() {
-                        self.error(
-                            "T013",
-                            expression.span,
-                            "instance field requires a receiver",
-                        );
+                        self.error("T013", expression.span, "instance field requires a receiver");
                         return Type::Error;
                     }
-                    self.implicit_members
-                        .insert(expression.id, Type::Struct(owner.clone()));
+
+                    self.implicit_members.insert(expression.id, Type::Struct(owner.clone()));
                     ty
                 } else if !local
                     && let Some(owner) = &owner
@@ -216,22 +215,25 @@ impl Checker {
                     {
                         self.global_references.insert(expression.id, declaration);
                     }
+
                     binding.ty
                 } else {
                     self.error("T011", expression.span, format!("unknown value '{name}'"));
                     Type::Error
                 }
             }
+
             ExprKind::TypeApplication(_) => {
-                self.error(
-                    "T001",
-                    expression.span,
-                    "type applications require a constructor call",
-                );
+                self.error("T001", expression.span, "type applications require a constructor call");
                 Type::Error
             }
-            ExprKind::Unary { op, value } => {
+
+            ExprKind::Unary {
+                op,
+                value,
+            } => {
                 let ty = self.value_expression(value);
+
                 match op.as_str() {
                     "!" if ty.scalar().is_some() => ty.boolean_shape(),
                     "~" if ty.integral() => ty.clone(),
@@ -240,6 +242,7 @@ impl Checker {
                         self.require_writable(value);
                         ty.clone()
                     }
+
                     _ if ty == Type::Error => Type::Error,
                     _ => {
                         self.error(
@@ -251,20 +254,28 @@ impl Checker {
                     }
                 }
             }
-            ExprKind::Postfix { value, .. } => {
+
+            ExprKind::Postfix {
+                value,
+                ..
+            } => {
                 let ty = self.value_expression(value);
                 self.require_writable(value);
+
                 if !ty.numeric() && ty != Type::Error {
-                    self.error(
-                        "T012",
-                        expression.span,
-                        "increment requires a numeric value",
-                    );
+                    self.error("T012", expression.span, "increment requires a numeric value");
                 }
+
                 ty
             }
-            ExprKind::Binary { op, left, right } => {
+
+            ExprKind::Binary {
+                op,
+                left,
+                right,
+            } => {
                 let a = self.expression(left);
+
                 if op == "=" {
                     self.require_writable(left);
                     self.check_value(right, &a);
@@ -275,12 +286,14 @@ impl Checker {
                 ) {
                     let b = self.value_expression(right);
                     self.require_writable(left);
+
                     if matches!(op.as_str(), "<<=" | ">>=") {
                         self.binary(op.trim_end_matches('='), &a, &b, expression.span);
                     } else {
                         self.require_conversion(&b, &a, right.span);
                         self.binary(op.trim_end_matches('='), &a, &a, expression.span);
                     }
+
                     a
                 } else {
                     let a = self.load_type(left, a);
@@ -289,10 +302,15 @@ impl Checker {
                     } else {
                         self.value_expression(right)
                     };
+
                     self.binary(op, &a, &b, expression.span)
                 }
             }
-            ExprKind::Call { callee, arguments } => self.call(callee, arguments, expression.span),
+
+            ExprKind::Call {
+                callee,
+                arguments,
+            } => self.call(callee, arguments, expression.span),
             ExprKind::Member {
                 base,
                 name,
@@ -303,12 +321,14 @@ impl Checker {
                         self.expression_types.insert(expression.id, ty.clone());
                         return ty;
                     }
+
                     if let Some(ty) = self.nested_type(&owner, name, expression.span) {
                         self.static_type_lookups.insert(expression.id);
                         let ty = Type::Meta(Box::new(ty));
                         self.expression_types.insert(expression.id, ty.clone());
                         return ty;
                     }
+
                     if type_receiver || *static_lookup {
                         self.error(
                             "T013",
@@ -319,20 +339,20 @@ impl Checker {
                         return Type::Error;
                     }
                 }
+
                 if *static_lookup {
-                    self.error(
-                        "T013",
-                        expression.span,
-                        "scope lookup requires a static field",
-                    );
+                    self.error("T013", expression.span, "scope lookup requires a static field");
                     self.expression_types.insert(expression.id, Type::Error);
                     return Type::Error;
                 }
+
                 let ty = self.value_expression(base);
+
                 match ty {
                     Type::Struct(ref symbolic) if self.symbolic_shapes.contains_key(symbolic) => {
                         self.symbolic_selection(symbolic, name, expression.span)
                     }
+
                     Type::Struct(ref structure)
                         if self
                             .structures
@@ -347,6 +367,7 @@ impl Checker {
                         );
                         Type::Error
                     }
+
                     Type::Struct(structure) => self
                         .structures
                         .get(&structure)
@@ -374,6 +395,7 @@ impl Checker {
                             Type::Error
                         }
                     }
+
                     Type::Matrix(scalar, rows, columns) => {
                         if let Some(indices) = crate::swizzle::matrix(name, rows, columns) {
                             Type::numeric_shape(scalar, indices.len() as u8)
@@ -386,24 +408,29 @@ impl Checker {
                             Type::Error
                         }
                     }
+
                     Type::Error => Type::Error,
                     _ => {
-                        self.error(
-                            "T013",
-                            expression.span,
-                            format!("{ty} has no field '{name}'"),
-                        );
+                        self.error("T013", expression.span, format!("{ty} has no field '{name}'"));
                         Type::Error
                     }
                 }
             }
-            ExprKind::Index { base, index } => {
+
+            ExprKind::Index {
+                base,
+                index,
+            } => {
                 let ty = self.value_expression(base);
                 let index_type = self.value_expression(index);
                 let width = match &ty {
-                    Type::Texture { dimension, .. } => dimension.coordinates(),
+                    Type::Texture {
+                        dimension,
+                        ..
+                    } => dimension.coordinates(),
                     _ => 1,
                 };
+
                 if index_type != Type::Error
                     && !(index_type.integral() && index_type.width() == Some(width))
                 {
@@ -413,16 +440,23 @@ impl Checker {
                         format!("index requires an integer with {width} component(s)"),
                     );
                 }
+
                 let (result, size) = match ty {
                     Type::Struct(ref name) if self.symbolic_shapes.contains_key(name) => {
                         self.symbolic_index(name, expression.span)
                     }
+
                     Type::Array(element, size) => (*element, Some(size)),
                     Type::Vector(s, n) => (Type::Scalar(s), Some(u32::from(n))),
                     Type::Matrix(s, _, columns) => (Type::Vector(s, columns), None),
-                    Type::Buffer { element, .. } => (*element, None),
+                    Type::Buffer {
+                        element,
+                        ..
+                    } => (*element, None),
                     Type::Texture {
-                        element, dimension, ..
+                        element,
+                        dimension,
+                        ..
                     } if dimension != TextureDimension::Cube => (*element, None),
                     Type::Error => (Type::Error, None),
                     _ => {
@@ -430,21 +464,23 @@ impl Checker {
                         (Type::Error, None)
                     }
                 };
+
                 if let Some(size) = size
-                    && self
-                        .integer_constant(index)
-                        .is_some_and(|v| v < 0 || v >= i64::from(size))
+                    && self.integer_constant(index).is_some_and(|v| v < 0 || v >= i64::from(size))
                 {
                     self.error("T013", index.span, "constant index is out of bounds");
                 }
+
                 if self.numeric_selection(base)
                     && let Some(value) = self.integer_constant(index)
                     && let Ok(value) = u8::try_from(value)
                 {
                     self.swizzle_indices.insert(expression.id, value);
                 }
+
                 result
             }
+
             ExprKind::Conditional {
                 condition,
                 then_value,
@@ -453,10 +489,12 @@ impl Checker {
                 self.condition(condition);
                 let mut a = self.expression(then_value);
                 let mut b = self.expression(else_value);
+
                 if a != b {
                     a = self.load_type(then_value, a);
                     b = self.load_type(else_value, b);
                 }
+
                 if a == Type::InitializerList && b == Type::InitializerList {
                     self.error(
                         "T021",
@@ -465,6 +503,7 @@ impl Checker {
                     );
                     return Type::Error;
                 }
+
                 if a == Type::InitializerList && b != Type::InitializerList {
                     self.coerce_value(then_value, &b);
                     a = b.clone();
@@ -472,6 +511,7 @@ impl Checker {
                     self.coerce_value(else_value, &a);
                     b = a.clone();
                 }
+
                 if a == b {
                     a
                 } else {
@@ -482,6 +522,7 @@ impl Checker {
                 }
             }
         };
+
         self.expression_types.insert(expression.id, ty.clone());
         ty
     }
@@ -490,9 +531,11 @@ impl Checker {
         if *a == Type::Error || *b == Type::Error {
             return Type::Error;
         }
+
         if op == "," {
             return b.clone();
         }
+
         let common = Type::common(a, b);
         let valid = match op {
             "&&" | "||" => matches!(a, Type::Scalar(_)) && matches!(b, Type::Scalar(_)),
@@ -502,14 +545,12 @@ impl Checker {
             "%" | "&" | "|" | "^" | "<<" | ">>" => a.integral() && b.integral() && common.is_some(),
             _ => false,
         };
+
         if !valid {
-            self.error(
-                "T012",
-                span,
-                format!("operator {op} is not defined for {a} and {b}"),
-            );
+            self.error("T012", span, format!("operator {op} is not defined for {a} and {b}"));
             return Type::Error;
         }
+
         if matches!(op, "&&" | "||") {
             Type::Scalar(Scalar::Bool)
         } else if matches!(op, "==" | "!=" | "<" | "<=" | ">" | ">=") {
@@ -531,9 +572,11 @@ impl Checker {
         if self.constant_buffer_loads.contains(&expr.id) {
             return false;
         }
+
         if let Some(target) = self.static_references.get(&expr.id) {
             return self.lookup(target).is_some_and(|b| b.writable);
         }
+
         match &expr.kind {
             ExprKind::Name(name) => {
                 if self.implicit_members.contains_key(&expr.id) {
@@ -542,13 +585,17 @@ impl Checker {
                     self.lookup(name).is_some_and(|b| b.writable)
                 }
             }
-            ExprKind::Member { base, name, .. } => {
-                if matches!(
-                    self.expression_types.get(&base.id),
-                    Some(Type::ConstantBuffer { .. })
-                ) {
+
+            ExprKind::Member {
+                base,
+                name,
+                ..
+            } => {
+                if matches!(self.expression_types.get(&base.id), Some(Type::ConstantBuffer { .. }))
+                {
                     return false;
                 }
+
                 let unique = match self.expression_types.get(&base.id) {
                     Some(Type::Struct(symbolic)) if self.symbolic_shapes.contains_key(symbolic) => {
                         let (_, dimensions) = &self.symbolic_shapes[symbolic];
@@ -557,22 +604,42 @@ impl Checker {
                         } else {
                             crate::swizzle::matrix(name, dimensions[0], dimensions[1])
                         };
+
                         indices.is_some_and(|v| crate::swizzle::unique(&v))
                     }
+
                     Some(Type::Vector(..)) => {
                         crate::swizzle::vector(name).is_some_and(|v| crate::swizzle::unique(&v))
                     }
+
                     Some(Type::Matrix(_, rows, columns)) => {
                         crate::swizzle::matrix(name, *rows, *columns)
                             .is_some_and(|v| crate::swizzle::unique(&v))
                     }
+
                     _ => true,
                 };
+
                 unique && self.writable(base)
             }
-            ExprKind::Index { base, index } => match self.expression_types.get(&base.id) {
-                Some(Type::ConstantBuffer { .. }) => false,
-                Some(Type::Buffer { writable, .. } | Type::Texture { writable, .. }) => *writable,
+
+            ExprKind::Index {
+                base,
+                index,
+            } => match self.expression_types.get(&base.id) {
+                Some(Type::ConstantBuffer {
+                    ..
+                }) => false,
+                Some(
+                    Type::Buffer {
+                        writable,
+                        ..
+                    }
+                    | Type::Texture {
+                        writable,
+                        ..
+                    },
+                ) => *writable,
                 _ => {
                     (!self.numeric_selection(base) || self.integer_constant(index).is_some())
                         && self.writable(base)
@@ -583,7 +650,12 @@ impl Checker {
     }
 
     fn numeric_selection(&self, expr: &Expr) -> bool {
-        if let ExprKind::Member { base, name, .. } = &expr.kind {
+        if let ExprKind::Member {
+            base,
+            name,
+            ..
+        } = &expr.kind
+        {
             self.expression_types
                 .get(&base.id)
                 .is_some_and(|ty| ty.component_indices(name).is_some())

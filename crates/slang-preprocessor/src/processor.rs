@@ -2,6 +2,7 @@ use crate::{
     condition, expand,
     macros::{self, Builtin, Macro},
 };
+
 use slang_lexer::{Token, TokenKind, lex};
 use slang_source::{Diagnostic, Severity, SourceId, SourceMap, Span};
 use std::collections::{BTreeMap, BTreeSet};
@@ -60,6 +61,7 @@ pub fn preprocess(
         once: BTreeSet::new(),
         diagnostics: vec![],
     };
+
     for (name, builtin) in [("__LINE__", Builtin::Line), ("__FILE__", Builtin::File)] {
         processor.macros.insert(
             name.into(),
@@ -71,6 +73,7 @@ pub fn preprocess(
             },
         );
     }
+
     for (name, value) in &options.defines {
         let body = lex(root, value)
             .tokens
@@ -88,6 +91,7 @@ pub fn preprocess(
             },
         );
     }
+
     let mut tokens = processor.file(root, 0);
     let end = processor.sources.get(root).map_or(0, |f| f.text.len());
     tokens.push(Token {
@@ -115,12 +119,12 @@ impl Processor<'_> {
         let Some(file) = self.sources.get(id).cloned() else {
             return vec![];
         };
-        self.sources
-            .clear_line_directives(id)
-            .expect("existing source ID");
+
+        self.sources.clear_line_directives(id).expect("existing source ID");
         if self.once.contains(&file.name) {
             return vec![];
         }
+
         if depth >= self.options.max_include_depth {
             self.diagnostics.push(Diagnostic::error(
                 "P001",
@@ -129,10 +133,12 @@ impl Processor<'_> {
             ));
             return vec![];
         }
+
         let lexed = lex(id, &file.text);
         self.diagnostics.extend(lexed.diagnostics);
         let mut tokens = vec![];
         let mut iter = lexed.tokens.into_iter().peekable();
+
         while let Some(token) = iter.next() {
             if token.is("\\") && iter.peek().is_some_and(|t| t.kind == TokenKind::Newline) {
                 iter.next();
@@ -140,20 +146,25 @@ impl Processor<'_> {
                 tokens.push(token);
             }
         }
+
         let mut conditions: Vec<Conditional> = vec![];
         let mut output = vec![];
         let mut pending = vec![];
+
         for line in tokens.split(|t| matches!(t.kind, TokenKind::Newline | TokenKind::Eof)) {
             let significant: Vec<Token> = line.iter().filter(|t| !t.is_trivia()).cloned().collect();
             let active = conditions.last().is_none_or(|c| c.active);
+
             if significant.first().is_some_and(|t| t.is("#")) {
                 output.extend(self.expand(&pending));
                 pending.clear();
                 let Some(directive) = significant.get(1) else {
                     continue;
                 };
+
                 let args = &significant[2..];
                 let span = directive.span;
+
                 match directive.text.as_str() {
                     "if" | "ifdef" | "ifndef" => {
                         let value = if !active {
@@ -166,6 +177,7 @@ impl Processor<'_> {
                         } else {
                             self.macros.contains_key(&args[0].text) != directive.is("ifndef")
                         };
+
                         conditions.push(Conditional {
                             parent: active,
                             active: active && value,
@@ -180,6 +192,7 @@ impl Processor<'_> {
                                 self.error(span, "#elif after #else");
                                 continue;
                             }
+
                             let should_evaluate = frame.parent && !frame.taken;
                             let value = should_evaluate && self.condition(args);
                             let frame = conditions.last_mut().unwrap();
@@ -195,9 +208,11 @@ impl Processor<'_> {
                                 self.error(span, "duplicate #else");
                                 continue;
                             }
+
                             frame.active = frame.parent && !frame.taken;
                             frame.taken = true;
                             frame.seen_else = true;
+
                             if !args.is_empty() {
                                 self.error(span, "unexpected tokens after #else");
                             }
@@ -209,14 +224,17 @@ impl Processor<'_> {
                         if conditions.pop().is_none() {
                             self.error(span, "#endif without #if");
                         }
+
                         if !args.is_empty() {
                             self.error(span, "unexpected tokens after #endif");
                         }
                     }
+
                     _ if !active => {}
                     "define" => self.define(args),
                     "line" => {
                         let args = self.expand(args);
+
                         match crate::line::parse(&args) {
                             Ok((directive, consumed)) => {
                                 if let Err(message) =
@@ -224,10 +242,12 @@ impl Processor<'_> {
                                 {
                                     self.error(span, message);
                                 }
+
                                 if let Some(extra) = args.get(consumed) {
                                     self.error(extra.span, "unexpected tokens after #line");
                                 }
                             }
+
                             Err(diagnostic) => self.diagnostics.push(diagnostic),
                         }
                     }
@@ -246,15 +266,13 @@ impl Processor<'_> {
                             && args.last().is_some_and(|t| t.is(">"))
                         {
                             Some((
-                                args[1..args.len() - 1]
-                                    .iter()
-                                    .map(|t| t.text.as_str())
-                                    .collect(),
+                                args[1..args.len() - 1].iter().map(|t| t.text.as_str()).collect(),
                                 true,
                             ))
                         } else {
                             None
                         };
+
                         if let Some((name, system)) = requested {
                             match self.resolver.resolve(&file.name, &name, system) {
                                 Ok((name, text)) => {
@@ -263,29 +281,31 @@ impl Processor<'_> {
                                         output.extend(self.file(id, depth + 1));
                                     }
                                 }
-                                Err(message) => self
-                                    .diagnostics
-                                    .push(Diagnostic::error("P003", span, message)),
+
+                                Err(message) => {
+                                    self.diagnostics.push(Diagnostic::error("P003", span, message))
+                                }
                             }
                         } else {
                             self.error(span, "expected a quoted or angle-bracket include path");
                         }
                     }
+
                     "pragma" if args.len() == 1 && args[0].is("once") => {
                         self.once.insert(file.name.clone());
                     }
                     "error" | "warning" => {
-                        let message = args
-                            .iter()
-                            .map(|t| t.text.as_str())
-                            .collect::<Vec<_>>()
-                            .join(" ");
+                        let message =
+                            args.iter().map(|t| t.text.as_str()).collect::<Vec<_>>().join(" ");
                         let mut diagnostic = Diagnostic::error("P004", span, message);
+
                         if directive.is("warning") {
                             diagnostic.severity = Severity::Warning;
                         }
+
                         self.diagnostics.push(diagnostic);
                     }
+
                     _ => self.error(
                         span,
                         format!("unsupported preprocessing directive #{}", directive.text),
@@ -295,7 +315,9 @@ impl Processor<'_> {
                 pending.extend(significant);
             }
         }
+
         output.extend(self.expand(&pending));
+
         for condition in conditions {
             self.error(condition.span, "unterminated conditional directive");
         }
@@ -303,8 +325,7 @@ impl Processor<'_> {
     }
 
     fn error(&mut self, span: Span, message: impl Into<String>) {
-        self.diagnostics
-            .push(Diagnostic::error("P002", span, message));
+        self.diagnostics.push(Diagnostic::error("P002", span, message));
     }
 
     fn expand(&mut self, tokens: &[Token]) -> Vec<Token> {
@@ -320,30 +341,42 @@ impl Processor<'_> {
     fn condition(&mut self, tokens: &[Token]) -> bool {
         let mut replaced = vec![];
         let mut i = 0;
+
         while i < tokens.len() {
             if tokens[i].is("defined") {
                 let span = tokens[i].span;
                 i += 1;
                 let parens = tokens.get(i).is_some_and(|t| t.is("("));
+
                 if parens {
                     i += 1;
                 }
+
                 let Some(name) = tokens.get(i).filter(|t| t.kind == TokenKind::Identifier) else {
                     self.error(span, "expected macro name after defined");
                     return false;
                 };
+
                 let value = self.macros.contains_key(&name.text);
                 i += 1;
+
                 if parens {
                     if !tokens.get(i).is_some_and(|t| t.is(")")) {
                         self.error(span, "expected ')' after defined");
                         return false;
                     }
+
                     i += 1;
                 }
+
                 replaced.push(Token {
                     kind: TokenKind::Integer,
-                    text: if value { "1" } else { "0" }.into(),
+                    text: if value {
+                        "1"
+                    } else {
+                        "0"
+                    }
+                    .into(),
                     span,
                 });
             } else {
@@ -351,7 +384,9 @@ impl Processor<'_> {
                 i += 1;
             }
         }
+
         let expanded = self.expand(&replaced);
+
         match condition::evaluate(&expanded) {
             Ok(value) => value != 0,
             Err(diagnostic) => {
@@ -367,16 +402,13 @@ impl Processor<'_> {
                 self.builtin_redefinition(&name, args[0].span);
                 self.macros.insert(name, definition);
             }
+
             Err(diagnostic) => self.diagnostics.push(diagnostic),
         }
     }
 
     fn builtin_redefinition(&mut self, name: &str, span: Span) {
-        if self
-            .macros
-            .get(name)
-            .is_some_and(|definition| definition.builtin.is_some())
-        {
+        if self.macros.get(name).is_some_and(|definition| definition.builtin.is_some()) {
             self.diagnostics.push(Diagnostic::warning(
                 "P010",
                 span,
@@ -395,6 +427,7 @@ mod tests {
             Err(format!("missing {name}"))
         }
     }
+
     fn run(text: &str) -> Preprocessed {
         let mut sources = SourceMap::default();
         let id = sources.add("test", text);
@@ -406,13 +439,10 @@ mod tests {
         let result = run(
             "#define ADD(x,y) ((x)+(y))\n#define ALIAS ADD\n#define SELF SELF\nALIAS(ADD(1,2), 3) SELF",
         );
+
         assert!(result.diagnostics.is_empty(), "{:?}", result.diagnostics);
         assert_eq!(
-            result
-                .tokens
-                .iter()
-                .map(|t| t.text.as_str())
-                .collect::<String>(),
+            result.tokens.iter().map(|t| t.text.as_str()).collect::<String>(),
             "((((1)+(2)))+(3))SELF"
         );
     }
@@ -422,6 +452,7 @@ mod tests {
         let result = run(
             "#define X 1 + \\\n2\n#if defined(X) && X == 3 && (1 || 1/0)\nyes\n#else\n#error no\n#endif\n",
         );
+
         assert!(result.diagnostics.is_empty(), "{:?}", result.diagnostics);
         assert_eq!(result.tokens[0].text, "yes");
     }
@@ -431,15 +462,13 @@ mod tests {
         let result = run(
             "#define X 42\n#define STR(x) #x\n#define CAT(a,b) a##b\n#define SUM(a,...) a+__VA_ARGS__\nSTR(X) STR(a  + b) CAT(fl,oat) SUM(1,2) CAT(,ok) CAT(ok,)\n",
         );
+
         assert!(result.diagnostics.is_empty(), "{:?}", result.diagnostics);
         assert_eq!(
-            result
-                .tokens
-                .iter()
-                .map(|t| t.text.as_str())
-                .collect::<String>(),
+            result.tokens.iter().map(|t| t.text.as_str()).collect::<String>(),
             "\"X\"\"a + b\"float1+2okok"
         );
+
         for source in [
             "#define CAT(a,b) a##b\nCAT(+,*)",
             "#define F(x) ##x",
@@ -453,6 +482,7 @@ mod tests {
     #[test]
     fn excessive_conditional_nesting_is_a_diagnostic() {
         let source = format!("#if {}1{}\n#endif", "(".repeat(1000), ")".repeat(1000));
+
         assert!(!run(&source).diagnostics.is_empty());
     }
 
@@ -461,6 +491,7 @@ mod tests {
         let result = run(
             "#define BAD(a,b) a+b\n#define STR(x) #x\n#define IGNORE(x) 1\nSTR(BAD(1)) IGNORE(BAD(1))",
         );
+
         assert!(result.diagnostics.is_empty(), "{:?}", result.diagnostics);
         assert_eq!(result.tokens[0].text, "\"BAD(1)\"");
         assert_eq!(result.tokens[1].text, "1");
@@ -471,6 +502,7 @@ mod tests {
         let result = run(
             "#define HERE __LINE__\r\n#define ID(x) x\r\nHERE ID(\r\n__LINE__\r\n) __LINE__\r\n",
         );
+
         assert!(result.diagnostics.is_empty(), "{:?}", result.diagnostics);
         let values: Vec<_> = result
             .tokens
@@ -482,6 +514,7 @@ mod tests {
         let result = run(
             "#define STR(x) #x\n#define EXPAND(x) STR(x)\n#define CAT(a,b) a##b\nSTR(__LINE__) EXPAND(__LINE__) CAT(__LI,NE__)",
         );
+
         assert!(result.diagnostics.is_empty(), "{:?}", result.diagnostics);
         assert_eq!(result.tokens[0].text, "\"__LINE__\"");
         assert_eq!(result.tokens[1].text, "\"4\"");
@@ -493,12 +526,11 @@ mod tests {
         let mut sources = SourceMap::default();
         let id = sources.add("C:\\shaders\\\"quoted\"\\shader.slang", "__FILE__");
         let result = preprocess(&mut sources, id, &NoIncludes, &Options::default());
+
         assert!(result.diagnostics.is_empty());
         assert_eq!(result.tokens[0].kind, TokenKind::String);
-        assert_eq!(
-            result.tokens[0].text,
-            r#""C:\\shaders\\\"quoted\"\\shader.slang""#
-        );
+        assert_eq!(result.tokens[0].text, r#""C:\\shaders\\\"quoted\"\\shader.slang""#);
+
         assert_eq!(result.tokens[0].span, Span::new(id, 0, 8));
     }
 
@@ -507,6 +539,7 @@ mod tests {
         let result = run(
             "#if !defined(__LINE__) || !defined(__FILE__)\n#error missing builtins\n#endif\n#define __LINE__ 17\n__LINE__\n#undef __LINE__\n#ifdef __LINE__\n#error undef failed\n#endif\n__LINE__",
         );
+
         assert_eq!(result.diagnostics.len(), 1);
         assert_eq!(result.diagnostics[0].code, "P010");
         assert_eq!(result.diagnostics[0].severity, Severity::Warning);

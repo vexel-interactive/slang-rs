@@ -10,8 +10,15 @@ from dxil_integer import interpret_integer_stores
 
 
 def run(command):
-    result = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60)
-    return {"accepted": result.returncode == 0, "returncode": result.returncode, "stdout": result.stdout, "stderr": result.stderr}
+    result = subprocess.run(
+        command, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60
+    )
+    return {
+        "accepted": result.returncode == 0,
+        "returncode": result.returncode,
+        "stdout": result.stdout,
+        "stderr": result.stderr,
+    }
 
 
 def compare_results(case, rust, oracle, validators):
@@ -22,9 +29,17 @@ def compare_results(case, rust, oracle, validators):
     if "rust_warning" in case:
         passed = passed and case["rust_warning"] in rust["stderr"]
     for compiler, result in [("rust", rust), ("oracle", oracle)]:
-        passed = passed and all(text in result["stderr"] for text in case.get(f"{compiler}_stderr_contains", []))
-    return passed and all(v["accepted"] == v["expected_accept"] and v.get("layout_passed", True) and v.get("strides_passed", True)
-                          and v.get("constant_stores_passed", True) and v.get("integer_stores_passed", True) for v in validators)
+        passed = passed and all(
+            text in result["stderr"] for text in case.get(f"{compiler}_stderr_contains", [])
+        )
+    return passed and all(
+        v["accepted"] == v["expected_accept"]
+        and v.get("layout_passed", True)
+        and v.get("strides_passed", True)
+        and v.get("constant_stores_passed", True)
+        and v.get("integer_stores_passed", True)
+        for v in validators
+    )
 
 
 def normalize_dxc_constant_stores(dump):
@@ -38,24 +53,37 @@ def normalize_dxc_constant_stores(dump):
     handles = set()
     split_values = {}
     values = {}
-    split_pattern = re.compile(r"(%\w+) = call %dx\.types\.splitdouble @dx\.op\.splitDouble\.f64\(i32 102, double ([^ )]+)\)")
+    split_pattern = re.compile(
+        r"(%\w+) = call %dx\.types\.splitdouble @dx\.op\.splitDouble\.f64\(i32 102, double ([^ )]+)\)"
+    )
     extract_pattern = re.compile(r"(%\w+) = extractvalue %dx\.types\.splitdouble (%\w+), ([01])\b")
-    pattern = re.compile(r"call void @dx\.op\.bufferStore\.i32\(i32 69, %dx\.types\.Handle ([^,]+), "
-                         r"i32 (\d+), i32 0, i32 (-?\d+|%\w+), i32 undef, i32 undef, i32 undef, i8 1\)")
-    raw_pattern = re.compile(r"call void @dx\.op\.rawBufferStore\.i32\(i32 140, %dx\.types\.Handle ([^,]+), "
-                             r"i32 (\d+), i32 0, i32 (-?\d+|%\w+), i32 undef, i32 undef, i32 undef, i8 1, i32 4\)")
+    pattern = re.compile(
+        r"call void @dx\.op\.bufferStore\.i32\(i32 69, %dx\.types\.Handle ([^,]+), "
+        r"i32 (\d+), i32 0, i32 (-?\d+|%\w+), i32 undef, i32 undef, i32 undef, i8 1\)"
+    )
+    raw_pattern = re.compile(
+        r"call void @dx\.op\.rawBufferStore\.i32\(i32 140, %dx\.types\.Handle ([^,]+), "
+        r"i32 (\d+), i32 0, i32 (-?\d+|%\w+), i32 undef, i32 undef, i32 undef, i8 1, i32 4\)"
+    )
     for line in dump.splitlines():
         if match := split_pattern.search(line):
             name, number = match.groups()
-            bits = int(number, 16) if number.startswith("0x") else struct.unpack("<Q", struct.pack("<d", float(number)))[0]
-            if not 0 <= bits <= 0xffffffffffffffff:
+            bits = (
+                int(number, 16)
+                if number.startswith("0x")
+                else struct.unpack("<Q", struct.pack("<d", float(number)))[0]
+            )
+            if not 0 <= bits <= 0xFFFFFFFFFFFFFFFF:
                 raise ValueError("invalid double constant bits")
-            split_values[name] = (bits & 0xffffffff, bits >> 32)
+            split_values[name] = (bits & 0xFFFFFFFF, bits >> 32)
         if match := extract_pattern.search(line):
             name, source, component = match.groups()
             if source in split_values:
                 values[name] = split_values[source][int(component)]
-        if not any(op in line for op in ["call void @dx.op.bufferStore.", "call void @dx.op.rawBufferStore."]):
+        if not any(
+            op in line
+            for op in ["call void @dx.op.bufferStore.", "call void @dx.op.rawBufferStore."]
+        ):
             continue
         match = pattern.search(line) or raw_pattern.search(line)
         if match is None:
@@ -64,12 +92,12 @@ def normalize_dxc_constant_stores(dump):
         handles.add(handle)
         if len(handles) != 1 or index in stores:
             raise ValueError("ambiguous resource or repeated constant store")
-        if value.startswith('%'):
+        if value.startswith("%"):
             if value not in values:
                 raise ValueError("nonconstant structured-buffer store")
             stores[index] = values[value]
         else:
-            stores[index] = int(value) & 0xffffffff
+            stores[index] = int(value) & 0xFFFFFFFF
     return stores
 
 
@@ -78,7 +106,11 @@ def dxc_type_arguments(profile, reflection=None):
     if reflection is not None:
         return reflection.get("target_compiler_args", [])
     parts = profile.split("_")
-    return ["-enable-16bit-types"] if len(parts) == 3 and parts[1] == "6" and int(parts[2]) >= 2 else []
+    return (
+        ["-enable-16bit-types"]
+        if len(parts) == 3 and parts[1] == "6" and int(parts[2]) >= 2
+        else []
+    )
 
 
 def expected_constant_stores(case, compiler):
@@ -98,7 +130,9 @@ def expected_uniform_locations(case, compiler):
             raise ValueError("oracle reflection differences require native layouts and a reason")
         native = case["uniform_layouts"]
         oracle = case["oracle_uniform_layouts"]
-        if native.keys() != oracle.keys() or any(native[path].keys() != oracle[path].keys() for path in native):
+        if native.keys() != oracle.keys() or any(
+            native[path].keys() != oracle[path].keys() for path in native
+        ):
             raise ValueError("oracle reflection layouts must check the same fields and attributes")
         if compiler == "oracle":
             return oracle
@@ -108,7 +142,12 @@ def expected_uniform_locations(case, compiler):
 def normalize_bindings(reflection, compiler):
     """Compare direct global resource ranges without claiming uniform byte layout."""
     result = {}
-    classes = {"constantBuffer": "b", "shaderResource": "t", "unorderedAccess": "u", "samplerState": "s"}
+    classes = {
+        "constantBuffer": "b",
+        "shaderResource": "t",
+        "unorderedAccess": "u",
+        "samplerState": "s",
+    }
     for global_info in reflection["globals" if compiler == "rust" else "parameters"]:
         binding = global_info.get("binding")
         if binding is None:
@@ -119,7 +158,12 @@ def normalize_bindings(reflection, compiler):
             register_class = classes.get(binding.get("kind"))
             if register_class is None:
                 continue
-            normalized = {"class": register_class, "index": binding["index"], "space": binding.get("space", 0), "count": binding.get("count", 1)}
+            normalized = {
+                "class": register_class,
+                "index": binding["index"],
+                "space": binding.get("space", 0),
+                "count": binding.get("count", 1),
+            }
         name = global_info["name"]
         if name in result:
             raise ValueError(f"ambiguous resource name in reflection: {name}")
@@ -135,7 +179,9 @@ def compare_bindings(expected, reflection, compiler):
 def normalize_uniform_artifact_binding(artifact, compiler):
     """Inspect the named shared cbuffer in selected, unambiguous HLSL fixtures."""
     name = r"_slang_globals" if compiler == "rust" else r"globalParams_\d+"
-    matches = re.findall(rf"\bcbuffer\s+{name}\s*:\s*register\(\s*b(\d+)\s*(?:,\s*space(\d+)\s*)?\)", artifact)
+    matches = re.findall(
+        rf"\bcbuffer\s+{name}\s*:\s*register\(\s*b(\d+)\s*(?:,\s*space(\d+)\s*)?\)", artifact
+    )
     if len(matches) > 1:
         raise ValueError("ambiguous global uniform buffer in HLSL")
     if not matches:
@@ -148,7 +194,11 @@ def normalize_global_uniform_binding(reflection, compiler, artifact=None):
     """Compare native reflection with the oracle's emitted shared buffer register."""
     if compiler == "rust":
         binding = reflection.get("global_uniform_binding")
-        return None if binding is None else {key: binding[key] for key in ["class", "index", "space", "count"]}
+        return (
+            None
+            if binding is None
+            else {key: binding[key] for key in ["class", "index", "space", "count"]}
+        )
     scope = reflection["globalScope"]
     if scope["kind"] != "constantBuffer":
         return None
@@ -197,13 +247,25 @@ def normalize_uniform_locations(paths, reflection, compiler):
                     raise ValueError(f"missing or ambiguous uniform field: {path}")
                 field = fields[0]
                 offset += field["offset"] if compiler == "rust" else field["binding"]["offset"]
-                ty = reflection["uniform_types"][field["type_name"]] if compiler == "rust" else field["type"]
-            suffix = part[len(field_name):]
+                ty = (
+                    reflection["uniform_types"][field["type_name"]]
+                    if compiler == "rust"
+                    else field["type"]
+                )
+            suffix = part[len(field_name) :]
             if suffix != "[]" * (len(suffix) // 2):
                 raise ValueError(f"uniform paths support only first-element [] selectors: {path}")
             for _ in range(len(suffix) // 2):
-                ty = reflection["uniform_types"][ty["element_type"]] if compiler == "rust" else ty["elementType"]
-        size = ty["size"] if compiler == "rust" else next(s["value"] for s in ty["sizes"] if s["kind"] == "uniform")
+                ty = (
+                    reflection["uniform_types"][ty["element_type"]]
+                    if compiler == "rust"
+                    else ty["elementType"]
+                )
+        size = (
+            ty["size"]
+            if compiler == "rust"
+            else next(s["value"] for s in ty["sizes"] if s["kind"] == "uniform")
+        )
         result[path] = {"offset": offset, "size": size}
     return result
 
@@ -211,7 +273,9 @@ def normalize_uniform_locations(paths, reflection, compiler):
 def normalize_dxc_uniform_layouts(dump):
     """Read selected legacy DXC buffer definitions with unambiguous field names."""
     result = {}
-    for name, body in re.findall(r"^; cbuffer (\S+)\n; \{\n(.*?)^; \}\n", dump, re.MULTILINE | re.DOTALL):
+    for name, body in re.findall(
+        r"^; cbuffer (\S+)\n; \{\n(.*?)^; \}\n", dump, re.MULTILINE | re.DOTALL
+    ):
         offsets = {}
         for field, offset in re.findall(r"\b(\w+)(?:\[[^\]]+\])*\s*;\s*; Offset:\s*(\d+)", body):
             offset = int(offset)
@@ -227,15 +291,23 @@ def normalize_dxc_uniform_layouts(dump):
 
 def compare_uniform_locations(expected, reflection, compiler):
     actual = normalize_uniform_locations(expected, reflection, compiler)
-    return all(all(actual[path].get(key) == value for key, value in location.items())
-               for path, location in expected.items())
+    return all(
+        all(actual[path].get(key) == value for key, value in location.items())
+        for path, location in expected.items()
+    )
 
 
 def compare_dxc_uniform_layouts(expected, dump):
     actual = normalize_dxc_uniform_layouts(dump)
-    return all(name in actual and actual[name]["size"] == layout["size"]
-               and all(actual[name]["offsets"].get(field) == offset for field, offset in layout["offsets"].items())
-               for name, layout in expected.items())
+    return all(
+        name in actual
+        and actual[name]["size"] == layout["size"]
+        and all(
+            actual[name]["offsets"].get(field) == offset
+            for field, offset in layout["offsets"].items()
+        )
+        for name, layout in expected.items()
+    )
 
 
 def target_buffer_layouts(expected, reflection):
@@ -246,8 +318,11 @@ def target_resource_names(expected, reflection, classes):
     """Translate source buffer names through reflection without assuming hidden identifiers."""
     result = {}
     for name, layout in expected.items():
-        buffers = [g for g in reflection["globals"] if g["name"] == name
-                   and g.get("binding", {}).get("class") in classes]
+        buffers = [
+            g
+            for g in reflection["globals"]
+            if g["name"] == name and g.get("binding", {}).get("class") in classes
+        ]
         if len(buffers) > 1:
             raise ValueError(f"ambiguous constant-buffer name: {name}")
         target = buffers[0]["target_name"] if buffers else name
@@ -259,7 +334,9 @@ def target_resource_names(expected, reflection, classes):
 
 def normalize_dxc_resource_strides(dump):
     result = {}
-    for match in re.finditer(r"^; Resource bind info for (\w+)\r?\n; \{\r?\n(.*?)^; \}", dump, re.MULTILINE | re.DOTALL):
+    for match in re.finditer(
+        r"^; Resource bind info for (\w+)\r?\n; \{\r?\n(.*?)^; \}", dump, re.MULTILINE | re.DOTALL
+    ):
         name, body = match.groups()
         sizes = re.findall(r"\$Element;\s*; Offset:\s*0\s+Size:\s*(\d+)", body)
         if len(sizes) != 1 or name in result:
@@ -296,59 +373,116 @@ def main():
             if major not in {"row", "column"}:
                 raise ValueError(f"invalid matrix_major: {major}")
             common.append(f"-matrix-layout-{major}-major")
-        rust_command = [str(args.rust.resolve()), *common, "-o", str(rust_output), "--reflection", str(rust_output.with_suffix(".json"))]
+        rust_command = [
+            str(args.rust.resolve()),
+            *common,
+            "-o",
+            str(rust_output),
+            "--reflection",
+            str(rust_output.with_suffix(".json")),
+        ]
         if case.get("native_16bit_types"):
             rust_command.append("-enable-16bit-types")
         oracle_command = [str(args.oracle.resolve()), *common, "-o", str(oracle_output)]
-        if any(key in case for key in ["bindings", "global_uniform_binding", "uniform_layouts", "rust_dxc_layouts"]):
+        if any(
+            key in case
+            for key in ["bindings", "global_uniform_binding", "uniform_layouts", "rust_dxc_layouts"]
+        ):
             oracle_command.extend(["-reflection-json", str(oracle_output.with_suffix(".json"))])
         rust = run(rust_command)
         oracle = run(oracle_command)
         validators = []
         if args.dxc:
-            for compiler, result, output in [("rust", rust, rust_output), ("oracle", oracle, oracle_output)]:
+            for compiler, result, output in [
+                ("rust", rust, rust_output),
+                ("oracle", oracle, oracle_output),
+            ]:
                 if not result["accepted"]:
                     continue
                 validation_profile = case.get("profile", "cs_6_0")
-                reflection = json.loads(output.with_suffix(".json").read_text(encoding="utf-8")) if compiler == "rust" and output.with_suffix(".json").exists() else None
-                validation = run([str(args.dxc.resolve()), "-T", validation_profile, *dxc_type_arguments(validation_profile, reflection), "-E", case["entry"], "-Fo", str(output.with_suffix(".dxil")), str(output)])
+                reflection = (
+                    json.loads(output.with_suffix(".json").read_text(encoding="utf-8"))
+                    if compiler == "rust" and output.with_suffix(".json").exists()
+                    else None
+                )
+                validation = run(
+                    [
+                        str(args.dxc.resolve()),
+                        "-T",
+                        validation_profile,
+                        *dxc_type_arguments(validation_profile, reflection),
+                        "-E",
+                        case["entry"],
+                        "-Fo",
+                        str(output.with_suffix(".dxil")),
+                        str(output),
+                    ]
+                )
                 validation["compiler"] = compiler
                 validation["expected_accept"] = case.get(f"{compiler}_validation_accept", True)
                 if expected_strides := case.get(f"{compiler}_dxc_resource_strides"):
                     validation["strides_passed"] = False
                     if validation["accepted"]:
-                        dump = run([str(args.dxc.resolve()), "-dumpbin", str(output.with_suffix(".dxil"))])
+                        dump = run(
+                            [str(args.dxc.resolve()), "-dumpbin", str(output.with_suffix(".dxil"))]
+                        )
                         if compiler == "rust":
-                            expected_strides = target_resource_names(expected_strides, reflection, {"t", "u"})
-                        validation["strides_passed"] = dump["accepted"] and compare_dxc_resource_strides(expected_strides, dump["stdout"])
+                            expected_strides = target_resource_names(
+                                expected_strides, reflection, {"t", "u"}
+                            )
+                        validation["strides_passed"] = dump[
+                            "accepted"
+                        ] and compare_dxc_resource_strides(expected_strides, dump["stdout"])
                 if expected := case.get(f"{compiler}_dxc_layouts"):
                     validation["layout_passed"] = False
                     if validation["accepted"]:
-                        dump = run([str(args.dxc.resolve()), "-dumpbin", str(output.with_suffix(".dxil"))])
+                        dump = run(
+                            [str(args.dxc.resolve()), "-dumpbin", str(output.with_suffix(".dxil"))]
+                        )
                         try:
                             if compiler == "rust":
-                                reflection = json.loads(output.with_suffix(".json").read_text(encoding="utf-8"))
+                                reflection = json.loads(
+                                    output.with_suffix(".json").read_text(encoding="utf-8")
+                                )
                                 expected = target_buffer_layouts(expected, reflection)
-                            validation["layout_passed"] = dump["accepted"] and compare_dxc_uniform_layouts(expected, dump["stdout"])
-                            validation["layout_actual"] = normalize_dxc_uniform_layouts(dump["stdout"])
+                            validation["layout_passed"] = dump[
+                                "accepted"
+                            ] and compare_dxc_uniform_layouts(expected, dump["stdout"])
+                            validation["layout_actual"] = normalize_dxc_uniform_layouts(
+                                dump["stdout"]
+                            )
                         except (OSError, ValueError, KeyError, TypeError) as error:
                             validation["layout_error"] = str(error)
                 if "dxc_constant_stores" in case:
                     validation["constant_stores_passed"] = False
                     if validation["accepted"]:
-                        dump = run([str(args.dxc.resolve()), "-dumpbin", str(output.with_suffix(".dxil"))])
+                        dump = run(
+                            [str(args.dxc.resolve()), "-dumpbin", str(output.with_suffix(".dxil"))]
+                        )
                         try:
-                            validation["constant_stores_actual"] = normalize_dxc_constant_stores(dump["stdout"])
-                            validation["constant_stores_passed"] = dump["accepted"] and validation["constant_stores_actual"] == expected_constant_stores(case, compiler)
+                            validation["constant_stores_actual"] = normalize_dxc_constant_stores(
+                                dump["stdout"]
+                            )
+                            validation["constant_stores_passed"] = dump["accepted"] and validation[
+                                "constant_stores_actual"
+                            ] == expected_constant_stores(case, compiler)
                         except ValueError as error:
                             validation["constant_stores_error"] = str(error)
                 if "dxc_integer_stores" in case:
                     validation["integer_stores_passed"] = False
                     if validation["accepted"]:
-                        dump = run([str(args.dxc.resolve()), "-dumpbin", str(output.with_suffix(".dxil"))])
+                        dump = run(
+                            [str(args.dxc.resolve()), "-dumpbin", str(output.with_suffix(".dxil"))]
+                        )
                         try:
-                            validation["integer_stores_actual"] = interpret_integer_stores(dump["stdout"], case["entry"])
-                            validation["integer_stores_passed"] = dump["accepted"] and validation["integer_stores_actual"] == case["dxc_integer_stores"]
+                            validation["integer_stores_actual"] = interpret_integer_stores(
+                                dump["stdout"], case["entry"]
+                            )
+                            validation["integer_stores_passed"] = (
+                                dump["accepted"]
+                                and validation["integer_stores_actual"]
+                                == case["dxc_integer_stores"]
+                            )
                         except ValueError as error:
                             validation["integer_stores_error"] = str(error)
                 validators.append(validation)
@@ -357,11 +491,16 @@ def main():
         uniform_binding_checks = []
         layout_checks = []
         if "bindings" in case:
-            for compiler, compilation, output in [("rust", rust, rust_output), ("oracle", oracle, oracle_output)]:
+            for compiler, compilation, output in [
+                ("rust", rust, rust_output),
+                ("oracle", oracle, oracle_output),
+            ]:
                 check = {"compiler": compiler, "passed": False, "expected": case["bindings"]}
                 if compilation["accepted"]:
                     try:
-                        reflection = json.loads(output.with_suffix(".json").read_text(encoding="utf-8"))
+                        reflection = json.loads(
+                            output.with_suffix(".json").read_text(encoding="utf-8")
+                        )
                         check["actual"] = normalize_bindings(reflection, compiler)
                         check["passed"] = compare_bindings(case["bindings"], reflection, compiler)
                     except (OSError, ValueError, KeyError, TypeError) as error:
@@ -369,13 +508,24 @@ def main():
                 binding_checks.append(check)
             passed = passed and all(check["passed"] for check in binding_checks)
         if "global_uniform_binding" in case:
-            for compiler, compilation, output in [("rust", rust, rust_output), ("oracle", oracle, oracle_output)]:
-                check = {"compiler": compiler, "passed": False, "expected": case["global_uniform_binding"]}
+            for compiler, compilation, output in [
+                ("rust", rust, rust_output),
+                ("oracle", oracle, oracle_output),
+            ]:
+                check = {
+                    "compiler": compiler,
+                    "passed": False,
+                    "expected": case["global_uniform_binding"],
+                }
                 if compilation["accepted"]:
                     try:
-                        reflection = json.loads(output.with_suffix(".json").read_text(encoding="utf-8"))
+                        reflection = json.loads(
+                            output.with_suffix(".json").read_text(encoding="utf-8")
+                        )
                         artifact = output.read_text(encoding="utf-8")
-                        check["actual"] = normalize_global_uniform_binding(reflection, compiler, artifact)
+                        check["actual"] = normalize_global_uniform_binding(
+                            reflection, compiler, artifact
+                        )
                         check["artifact"] = normalize_uniform_artifact_binding(artifact, compiler)
                         check["passed"] = check["actual"] == check["expected"] == check["artifact"]
                     except (OSError, ValueError, KeyError, TypeError) as error:
@@ -383,31 +533,57 @@ def main():
                 uniform_binding_checks.append(check)
             passed = passed and all(check["passed"] for check in uniform_binding_checks)
         if "uniform_layouts" in case:
-            for compiler, compilation, output in [("rust", rust, rust_output), ("oracle", oracle, oracle_output)]:
+            for compiler, compilation, output in [
+                ("rust", rust, rust_output),
+                ("oracle", oracle, oracle_output),
+            ]:
                 expected = expected_uniform_locations(case, compiler)
                 check = {"compiler": compiler, "passed": False, "expected": expected}
                 if compilation["accepted"]:
                     try:
-                        reflection = json.loads(output.with_suffix(".json").read_text(encoding="utf-8"))
-                        check["actual"] = normalize_uniform_locations(expected, reflection, compiler)
+                        reflection = json.loads(
+                            output.with_suffix(".json").read_text(encoding="utf-8")
+                        )
+                        check["actual"] = normalize_uniform_locations(
+                            expected, reflection, compiler
+                        )
                         check["passed"] = compare_uniform_locations(expected, reflection, compiler)
                     except (OSError, ValueError, KeyError, TypeError, StopIteration) as error:
                         check["error"] = str(error)
                 layout_checks.append(check)
             passed = passed and all(check["passed"] for check in layout_checks)
-        results.append({"file": case["file"], "passed": passed, "rust": rust, "oracle": oracle, "validators": validators, "binding_checks": binding_checks, "uniform_binding_checks": uniform_binding_checks, "uniform_layout_checks": layout_checks})
+        results.append(
+            {
+                "file": case["file"],
+                "passed": passed,
+                "rust": rust,
+                "oracle": oracle,
+                "validators": validators,
+                "binding_checks": binding_checks,
+                "uniform_binding_checks": uniform_binding_checks,
+                "uniform_layout_checks": layout_checks,
+            }
+        )
         print(f"{'PASS' if passed else 'FAIL'} {case['file']}")
     report = {
         "kind": "acceptance, selected resource bindings, and HLSL validity, not execution equivalence",
         "passed": sum(r["passed"] for r in results),
         "total": len(results),
-        "dxc_valid_artifacts": sum(v["accepted"] and v["expected_accept"] for r in results for v in r["validators"]),
-        "dxc_invalid_artifacts_rejected": sum(not v["accepted"] and not v["expected_accept"] for r in results for v in r["validators"]),
+        "dxc_valid_artifacts": sum(
+            v["accepted"] and v["expected_accept"] for r in results for v in r["validators"]
+        ),
+        "dxc_invalid_artifacts_rejected": sum(
+            not v["accepted"] and not v["expected_accept"] for r in results for v in r["validators"]
+        ),
         "resource_binding_cases": sum(bool(r["binding_checks"]) for r in results),
         "global_uniform_binding_cases": sum(bool(r["uniform_binding_checks"]) for r in results),
         "uniform_layout_cases": sum(bool(r["uniform_layout_checks"]) for r in results),
-        "constant_store_cases": sum(any("constant_stores_passed" in v for v in r["validators"]) for r in results),
-        "integer_program_cases": sum(any("integer_stores_passed" in v for v in r["validators"]) for r in results),
+        "constant_store_cases": sum(
+            any("constant_stores_passed" in v for v in r["validators"]) for r in results
+        ),
+        "integer_program_cases": sum(
+            any("integer_stores_passed" in v for v in r["validators"]) for r in results
+        ),
         "cases": results,
     }
     args.output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8", newline="\n")

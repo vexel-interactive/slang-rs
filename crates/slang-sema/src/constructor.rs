@@ -15,12 +15,7 @@ impl Checker {
     ) -> Result<Option<Signature>, Diagnostic> {
         let types: Vec<_> = arguments
             .iter()
-            .map(|a| {
-                self.expression_types
-                    .get(&a.id)
-                    .cloned()
-                    .unwrap_or(Type::Error)
-            })
+            .map(|a| self.expression_types.get(&a.id).cloned().unwrap_or(Type::Error))
             .collect();
         let inferred = self.inferred_constructor_overloads(owner, &types, span)?;
         let name = self.constructors.get(owner);
@@ -31,16 +26,15 @@ impl Checker {
         } else {
             return Ok(None);
         };
+
         let target = Type::Struct(owner.into());
+
         if types == [target.clone()] && !overloads.iter().any(|s| s.parameters == [target.clone()])
         {
             return Ok(None);
         }
-        let source = self
-            .generic_constructors
-            .get(owner)
-            .map(|c| &c.function)
-            .or(name);
+
+        let source = self.generic_constructors.get(owner).map(|c| &c.function).or(name);
         let module = source
             .and_then(|name| self.symbols.get(name))
             .map_or(slang_module::ModuleId(0), |o| o.module);
@@ -69,14 +63,15 @@ impl Checker {
                 .sum::<usize>();
             (conversions, s.default_type_arguments, s.generic)
         };
+
         candidates.sort_by_key(score);
+
         if let Some(cost) = self.memberwise_constructor_score(owner, arguments, &types)
-            && candidates
-                .first()
-                .is_none_or(|s| (cost, 0, false) <= score(s))
+            && candidates.first().is_none_or(|s| (cost, 0, false) <= score(s))
         {
             return Ok(None);
         }
+
         let Some(best) = candidates.first() else {
             return Err(Diagnostic::error(
                 "T014",
@@ -84,6 +79,7 @@ impl Checker {
                 format!("no matching constructor for {}", self.source_name(owner)),
             ));
         };
+
         if candidates.get(1).is_some_and(|s| score(s) == score(best)) {
             return Err(Diagnostic::error(
                 "T014",
@@ -91,13 +87,11 @@ impl Checker {
                 format!("ambiguous constructor for {}", self.source_name(owner)),
             ));
         }
+
         if !best.defined {
-            return Err(Diagnostic::error(
-                "T014",
-                span,
-                "constructor has no definition",
-            ));
+            return Err(Diagnostic::error("T014", span, "constructor has no definition"));
         }
+
         Ok(Some((*best).clone()))
     }
 
@@ -116,8 +110,10 @@ impl Checker {
                 {
                     return Ok(None);
                 }
+
                 self.constructor_plan_at(ty, &[], span, Some(ConstraintSite::Variable(span)))
             }
+
             _ => Ok(None),
         }
     }
@@ -128,13 +124,15 @@ impl Checker {
         {
             return;
         }
+
         let ty = self.resolve_type(&variable.ty);
+
         match self.automatic_initialization(&ty, variable.span) {
             Ok(Some(plan)) => {
                 self.record_plan_constraints(&plan);
-                self.variable_initializations
-                    .insert(span_key(variable.span), plan);
+                self.variable_initializations.insert(span_key(variable.span), plan);
             }
+
             Ok(None) => {}
             Err(error) => self.diagnostics.push(error),
         }
@@ -144,6 +142,7 @@ impl Checker {
         let owner = function.constructor.as_ref().unwrap();
         let fields = self.struct_definitions[owner].fields.clone();
         let mut values = vec![];
+
         for field in fields {
             let ty = self.structures[owner][&field.name].clone();
             let value = if let Some(value) = &field.initializer {
@@ -160,12 +159,13 @@ impl Checker {
                     }
                 }
             };
+
             if let Some(value) = value {
                 self.record_plan_constraints(&value);
                 values.push((field.name, value));
             }
         }
-        self.constructor_initializations
-            .insert(span_key(function.span), values);
+
+        self.constructor_initializations.insert(span_key(function.span), values);
     }
 }

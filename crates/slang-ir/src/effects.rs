@@ -8,9 +8,11 @@ use std::collections::BTreeMap;
 pub(crate) fn lower(module: &mut Module, checked: &CheckedModule) -> Result<(), Diagnostic> {
     let names = crate::visit::names(module);
     let mut prefix = "_slang_effect_".to_owned();
+
     while names.iter().any(|name| name.starts_with(&prefix)) {
         prefix.push('_');
     }
+
     let signatures = module
         .functions
         .iter()
@@ -19,11 +21,7 @@ pub(crate) fn lower(module: &mut Module, checked: &CheckedModule) -> Result<(), 
                 f.name.clone(),
                 f.parameters
                     .iter()
-                    .map(|p| {
-                        p.modifiers
-                            .iter()
-                            .any(|m| matches!(m.as_str(), "out" | "inout"))
-                    })
+                    .map(|p| p.modifiers.iter().any(|m| matches!(m.as_str(), "out" | "inout")))
                     .collect(),
             )
         })
@@ -35,9 +33,11 @@ pub(crate) fn lower(module: &mut Module, checked: &CheckedModule) -> Result<(), 
         signatures,
         checked,
     };
+
     for function in &mut module.functions {
         if let Some(body) = &mut function.body {
             lowerer.statement(body)?;
+
             if !lowerer.declarations.is_empty() {
                 let mut declarations = std::mem::take(&mut lowerer.declarations);
                 declarations.push(body.clone());
@@ -82,6 +82,7 @@ impl Lowerer<'_> {
         ) {
             return;
         }
+
         let local = self.storage(&value.ty, value.span);
         prefix.push(expression(assign(local.clone(), value.clone())));
         *value = local;
@@ -93,6 +94,7 @@ impl Lowerer<'_> {
         } else {
             None
         };
+
         let mut outputs = signature
             .or_else(|| {
                 self.checked
@@ -117,6 +119,7 @@ impl Lowerer<'_> {
         // Ordinary HLSL inout calls can re-evaluate destination coordinates on
         // copy-out; native intrinsics keep their direct destination arguments.
         let mut prefixes = vec![];
+
         for (i, value) in values.iter_mut().enumerate() {
             prefixes.push(if outputs.get(i).copied().unwrap_or(false) {
                 self.location(value, freeze_outputs)?
@@ -124,9 +127,12 @@ impl Lowerer<'_> {
                 self.value(value)?
             });
         }
+
         let mut prefix = vec![];
+
         for (i, value) in values.iter_mut().enumerate() {
             prefix.append(&mut prefixes[i]);
+
             if prefixes[i + 1..].iter().any(|p| !p.is_empty()) {
                 if outputs.get(i).copied().unwrap_or(false) {
                     if !freeze_outputs {
@@ -137,6 +143,7 @@ impl Lowerer<'_> {
                 }
             }
         }
+
         Ok(prefix)
     }
 
@@ -146,27 +153,39 @@ impl Lowerer<'_> {
         if has_view(value) {
             *value = physical_location(value);
         }
+
         match &mut value.kind {
             ExprKind::Name(_) | ExprKind::GlobalName(_) => Ok(vec![]),
-            ExprKind::Member { base, .. } => {
+            ExprKind::Member {
+                base,
+                ..
+            } => {
                 if storage_path(base) && !base.ty.is_resource() {
                     self.location(base, freeze)
                 } else {
                     let mut prefix = self.value(base)?;
+
                     if freeze {
                         self.save(base, &mut prefix);
                     }
+
                     Ok(prefix)
                 }
             }
-            ExprKind::Index { base, index } => {
+
+            ExprKind::Index {
+                base,
+                index,
+            } => {
                 let is_storage = storage_path(base) && !base.ty.is_resource();
                 let mut prefix = if is_storage {
                     self.location(base, false)?
                 } else {
                     self.value(base)?
                 };
+
                 let mut index_prefix = self.value(index)?;
+
                 if freeze || !index_prefix.is_empty() {
                     if is_storage {
                         prefix.extend(self.location(base, true)?);
@@ -174,17 +193,23 @@ impl Lowerer<'_> {
                         self.save(base, &mut prefix);
                     }
                 }
+
                 prefix.append(&mut index_prefix);
+
                 if freeze {
                     self.save(index, &mut prefix);
                 }
+
                 Ok(prefix)
             }
+
             _ => {
                 let mut prefix = self.value(value)?;
+
                 if freeze {
                     self.save(value, &mut prefix);
                 }
+
                 Ok(prefix)
             }
         }
@@ -194,6 +219,7 @@ impl Lowerer<'_> {
         let span = value.span;
         let ty = value.ty.clone();
         let postfix = matches!(value.kind, ExprKind::Postfix { .. });
+
         match &mut value.kind {
             ExprKind::AddressView(_) => {
                 *value = physical_location(value);
@@ -201,6 +227,7 @@ impl Lowerer<'_> {
                 *value = convert(value.clone(), ty);
                 Ok(prefix)
             }
+
             ExprKind::BlockExpression {
                 statements,
                 value: result,
@@ -208,20 +235,30 @@ impl Lowerer<'_> {
                 for statement in statements.iter_mut() {
                     self.statement(statement)?;
                 }
+
                 let mut prefix = std::mem::take(statements);
                 prefix.extend(self.value(result)?);
                 *value = *result.clone();
                 Ok(prefix)
             }
+
             ExprKind::Construct(values) => self.arguments(values, &[], false),
-            ExprKind::Call { name, arguments } => {
+            ExprKind::Call {
+                name,
+                arguments,
+            } => {
                 let outputs = self.outputs(name, span, arguments.len(), true);
                 self.arguments(arguments, &outputs, true)
             }
-            ExprKind::IntrinsicCall { name, arguments } => {
+
+            ExprKind::IntrinsicCall {
+                name,
+                arguments,
+            } => {
                 let outputs = self.outputs(name, span, arguments.len(), false);
                 self.arguments(arguments, &outputs, false)
             }
+
             ExprKind::MethodCall {
                 receiver,
                 name,
@@ -230,15 +267,23 @@ impl Lowerer<'_> {
                 let mut prefix = self.value(receiver)?;
                 let outputs = self.outputs(name, span, arguments.len(), false);
                 let mut argument_prefix = self.arguments(arguments, &outputs, false)?;
+
                 if !argument_prefix.is_empty() {
                     self.save(receiver, &mut prefix);
                 }
+
                 prefix.append(&mut argument_prefix);
                 Ok(prefix)
             }
-            ExprKind::Unary { op, value: operand } | ExprKind::Postfix { op, value: operand }
-                if matches!(op.as_str(), "++" | "--") =>
-            {
+
+            ExprKind::Unary {
+                op,
+                value: operand,
+            }
+            | ExprKind::Postfix {
+                op,
+                value: operand,
+            } if matches!(op.as_str(), "++" | "--") => {
                 if has_view(operand) {
                     let viewed = operand.ty.clone();
                     let mut location = physical_location(operand);
@@ -253,27 +298,46 @@ impl Lowerer<'_> {
                         ty: Type::Scalar(Scalar::Int),
                         span,
                     };
+
                     let new = binary(
-                        if op == "++" { "+" } else { "-" },
+                        if op == "++" {
+                            "+"
+                        } else {
+                            "-"
+                        },
                         old.clone(),
                         convert(one, viewed.clone()),
                     );
                     let update = assign(location, new);
+
                     if postfix {
                         prefix.push(expression(update));
                         *value = old;
                     } else {
                         *value = convert(update, viewed);
                     }
+
                     return Ok(prefix);
                 }
+
                 self.location(operand, false)
             }
-            ExprKind::Unary { value, .. }
-            | ExprKind::Cast { value }
+
+            ExprKind::Unary {
+                value,
+                ..
+            }
+            | ExprKind::Cast {
+                value,
+            }
             | ExprKind::ConstantBufferLoad(value)
             | ExprKind::DeclarationDefault(value) => self.value(value),
-            ExprKind::Member { .. } | ExprKind::Index { .. } => {
+            ExprKind::Member {
+                ..
+            }
+            | ExprKind::Index {
+                ..
+            } => {
                 if has_view(value) {
                     *value = physical_location(value);
                     let prefix = self.location(value, false)?;
@@ -283,17 +347,27 @@ impl Lowerer<'_> {
                     self.location(value, false)
                 }
             }
-            ExprKind::Binary { op, left, right } if assignment(op) => {
+
+            ExprKind::Binary {
+                op,
+                left,
+                right,
+            } if assignment(op) => {
                 let view = has_view(left).then(|| left.ty.clone());
+
                 if view.is_some() {
                     **left = physical_location(left);
                 }
+
                 let mut prefix = self.location(left, false)?;
                 let mut right_prefix = self.value(right)?;
+
                 if !right_prefix.is_empty() {
                     prefix.extend(self.location(left, true)?);
                 }
+
                 prefix.append(&mut right_prefix);
+
                 if let Some(view) = view {
                     let result = if op == "=" {
                         convert(*right.clone(), view.clone())
@@ -305,18 +379,28 @@ impl Lowerer<'_> {
                         } else {
                             convert(*right.clone(), view.clone())
                         };
+
                         binary(operation, convert(*left.clone(), view), right)
                     };
+
                     *value = convert(assign(*left.clone(), result), ty);
                 }
+
                 Ok(prefix)
             }
-            ExprKind::Binary { op, left, right } if matches!(op.as_str(), "&&" | "||") => {
+
+            ExprKind::Binary {
+                op,
+                left,
+                right,
+            } if matches!(op.as_str(), "&&" | "||") => {
                 let mut prefix = self.value(left)?;
                 let mut right_prefix = self.value(right)?;
+
                 if right_prefix.is_empty() {
                     return Ok(prefix);
                 }
+
                 if !matches!(left.ty, Type::Scalar(_)) {
                     return Err(Diagnostic::error(
                         "I005",
@@ -324,6 +408,7 @@ impl Lowerer<'_> {
                         "statement-valued vector logical operands are not implemented",
                     ));
                 }
+
                 let result = self.storage(&Type::Scalar(Scalar::Bool), span);
                 prefix.push(expression(assign(result.clone(), *left.clone())));
                 let condition = if op == "&&" {
@@ -331,19 +416,27 @@ impl Lowerer<'_> {
                 } else {
                     negate(result.clone())
                 };
+
                 right_prefix.push(expression(assign(result.clone(), *right.clone())));
                 prefix.push(guard(condition, block(right_prefix, span)));
                 *value = result;
                 Ok(prefix)
             }
-            ExprKind::Binary { op, left, right } => {
+
+            ExprKind::Binary {
+                op,
+                left,
+                right,
+            } => {
                 let mut prefix = self.value(left)?;
                 let mut right_prefix = self.value(right)?;
+
                 if op == "," && no_value(left) {
                     prefix.append(&mut right_prefix);
                     *value = *right.clone();
                     return Ok(prefix);
                 }
+
                 if !right_prefix.is_empty() {
                     if op == "," {
                         prefix.push(expression(*left.clone()));
@@ -351,15 +444,20 @@ impl Lowerer<'_> {
                         *value = *right.clone();
                         return Ok(prefix);
                     }
+
                     self.save(left, &mut prefix);
                 }
+
                 prefix.append(&mut right_prefix);
+
                 if op == "," && no_value(right) {
                     prefix.push(expression(*left.clone()));
                     *value = *right.clone();
                 }
+
                 Ok(prefix)
             }
+
             ExprKind::Conditional {
                 condition,
                 then_value,
@@ -368,9 +466,11 @@ impl Lowerer<'_> {
                 let mut prefix = self.value(condition)?;
                 let mut then_prefix = self.value(then_value)?;
                 let mut else_prefix = self.value(else_value)?;
+
                 if then_prefix.is_empty() && else_prefix.is_empty() {
                     return Ok(prefix);
                 }
+
                 if !matches!(condition.ty, Type::Scalar(_)) {
                     return Err(Diagnostic::error(
                         "I005",
@@ -378,6 +478,7 @@ impl Lowerer<'_> {
                         "statement-valued vector conditional arms are not implemented",
                     ));
                 }
+
                 let result = if ty == Type::Void {
                     then_prefix.push(expression(*then_value.clone()));
                     else_prefix.push(expression(*else_value.clone()));
@@ -392,6 +493,7 @@ impl Lowerer<'_> {
                     else_prefix.push(expression(assign(result.clone(), *else_value.clone())));
                     result
                 };
+
                 prefix.push(Stmt {
                     span,
                     kind: StmtKind::If {
@@ -403,6 +505,7 @@ impl Lowerer<'_> {
                 *value = result;
                 Ok(prefix)
             }
+
             _ => Ok(vec![]),
         }
     }
@@ -414,8 +517,10 @@ impl Lowerer<'_> {
                 for value in values {
                     self.statement(value)?;
                 }
+
                 vec![]
             }
+
             StmtKind::Variable(variable) => variable
                 .initializer
                 .as_mut()
@@ -424,6 +529,7 @@ impl Lowerer<'_> {
                 .unwrap_or_default(),
             StmtKind::Variables(variables) => {
                 let mut prefixes = vec![];
+
                 for variable in variables.iter_mut() {
                     prefixes.push(
                         variable
@@ -434,8 +540,10 @@ impl Lowerer<'_> {
                             .unwrap_or_default(),
                     );
                 }
+
                 if prefixes.iter().any(|p| !p.is_empty()) {
                     let mut values = vec![];
+
                     for (variable, mut prefix) in
                         std::mem::take(variables).into_iter().zip(prefixes)
                     {
@@ -445,10 +553,13 @@ impl Lowerer<'_> {
                             span,
                         });
                     }
+
                     statement.kind = StmtKind::Sequence(values);
                 }
+
                 vec![]
             }
+
             StmtKind::Expression(value) | StmtKind::Return(Some(value)) => self.value(value)?,
             StmtKind::If {
                 condition,
@@ -457,23 +568,36 @@ impl Lowerer<'_> {
             } => {
                 let prefix = self.value(condition)?;
                 self.statement(then_branch)?;
+
                 if let Some(branch) = else_branch {
                     self.statement(branch)?;
                 }
+
                 prefix
             }
-            StmtKind::Switch { selector, cases } => {
+
+            StmtKind::Switch {
+                selector,
+                cases,
+            } => {
                 let prefix = self.value(selector)?;
+
                 for case in cases {
                     for value in &mut case.statements {
                         self.statement(value)?;
                     }
                 }
+
                 prefix
             }
-            StmtKind::While { condition, body } => {
+
+            StmtKind::While {
+                condition,
+                body,
+            } => {
                 let mut prefix = self.value(condition)?;
                 self.statement(body)?;
+
                 if !prefix.is_empty() {
                     prefix.push(guard(
                         negate(condition.clone()),
@@ -486,11 +610,17 @@ impl Lowerer<'_> {
                     *condition = boolean(true, span);
                     **body = block(prefix, span);
                 }
+
                 vec![]
             }
-            StmtKind::DoWhile { body, condition } => {
+
+            StmtKind::DoWhile {
+                body,
+                condition,
+            } => {
                 self.statement(body)?;
                 let mut condition_prefix = self.value(condition)?;
+
                 if !condition_prefix.is_empty() {
                     let first = self.storage(&Type::Scalar(Scalar::Bool), span);
                     condition_prefix.push(guard(
@@ -519,8 +649,10 @@ impl Lowerer<'_> {
                         },
                     ]);
                 }
+
                 vec![]
             }
+
             StmtKind::For {
                 initializer,
                 condition,
@@ -528,22 +660,19 @@ impl Lowerer<'_> {
                 body,
             } => {
                 self.statement(initializer)?;
-                let mut condition_prefix = condition
-                    .as_mut()
-                    .map(|v| self.value(v))
-                    .transpose()?
-                    .unwrap_or_default();
-                let mut increment_prefix = increment
-                    .as_mut()
-                    .map(|v| self.value(v))
-                    .transpose()?
-                    .unwrap_or_default();
+                let mut condition_prefix =
+                    condition.as_mut().map(|v| self.value(v)).transpose()?.unwrap_or_default();
+                let mut increment_prefix =
+                    increment.as_mut().map(|v| self.value(v)).transpose()?.unwrap_or_default();
                 self.statement(body)?;
+
                 if !condition_prefix.is_empty() || !increment_prefix.is_empty() {
                     let first = self.storage(&Type::Scalar(Scalar::Bool), span);
+
                     if let Some(increment) = increment {
                         increment_prefix.push(expression(increment.clone()));
                     }
+
                     if let Some(condition) = condition {
                         condition_prefix.push(guard(
                             negate(condition.clone()),
@@ -553,6 +682,7 @@ impl Lowerer<'_> {
                             },
                         ));
                     }
+
                     let mut values = vec![
                         guard(negate(first.clone()), block(increment_prefix, span)),
                         expression(assign(first.clone(), boolean(false, span))),
@@ -571,22 +701,28 @@ impl Lowerer<'_> {
                         },
                     ]);
                 }
+
                 vec![]
             }
+
             _ => vec![],
         };
+
         match &statement.kind {
             StmtKind::Expression(value) if no_value(value) => statement.kind = StmtKind::Empty,
             StmtKind::Return(Some(value)) if no_value(value) => {
                 statement.kind = StmtKind::Return(None)
             }
+
             _ => {}
         }
+
         if !prefix.is_empty() {
             let mut prefix = prefix;
             prefix.push(statement.clone());
             statement.kind = StmtKind::Sequence(prefix);
         }
+
         Ok(())
     }
 }
@@ -594,7 +730,14 @@ impl Lowerer<'_> {
 fn storage_path(value: &Expr) -> bool {
     match &value.kind {
         ExprKind::Name(_) | ExprKind::GlobalName(_) => true,
-        ExprKind::Index { base, .. } | ExprKind::Member { base, .. } => storage_path(base),
+        ExprKind::Index {
+            base,
+            ..
+        }
+        | ExprKind::Member {
+            base,
+            ..
+        } => storage_path(base),
         ExprKind::AddressView(location) => storage_path(location),
         _ => false,
     }
@@ -603,7 +746,14 @@ fn storage_path(value: &Expr) -> bool {
 fn has_view(value: &Expr) -> bool {
     match &value.kind {
         ExprKind::AddressView(_) => true,
-        ExprKind::Index { base, .. } | ExprKind::Member { base, .. } => has_view(base),
+        ExprKind::Index {
+            base,
+            ..
+        }
+        | ExprKind::Member {
+            base,
+            ..
+        } => has_view(base),
         _ => false,
     }
 }
@@ -612,17 +762,26 @@ fn physical_location(value: &Expr) -> Expr {
     if let ExprKind::AddressView(location) = &value.kind {
         return physical_location(location);
     }
+
     let mut value = value.clone();
-    if let ExprKind::Member { base, .. } | ExprKind::Index { base, .. } = &mut value.kind {
-        let numeric = matches!(
-            base.ty,
-            Type::Scalar(_) | Type::Vector(..) | Type::Matrix(..)
-        );
+
+    if let ExprKind::Member {
+        base,
+        ..
+    }
+    | ExprKind::Index {
+        base,
+        ..
+    } = &mut value.kind
+    {
+        let numeric = matches!(base.ty, Type::Scalar(_) | Type::Vector(..) | Type::Matrix(..));
         **base = physical_location(base);
+
         if numeric && let Some(scalar) = base.ty.scalar() {
             value.ty = value.ty.with_scalar(scalar);
         }
     }
+
     value
 }
 
@@ -641,10 +800,7 @@ fn convert(value: Expr, ty: Type) -> Expr {
 }
 
 fn assignment(op: &str) -> bool {
-    matches!(
-        op,
-        "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^=" | "<<=" | ">>="
-    )
+    matches!(op, "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^=" | "<<=" | ">>=")
 }
 
 pub(super) fn variable(name: String, ty: Type, span: Span) -> Variable {
@@ -671,6 +827,7 @@ pub(super) fn assign(left: Expr, mut right: Expr) -> Expr {
             },
         };
     }
+
     binary("=", left, right)
 }
 

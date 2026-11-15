@@ -11,15 +11,19 @@ impl Checker {
     /// Compute each struct's value depth once, without using the thread stack.
     pub(crate) fn validate_value_types(&mut self) {
         let mut states = BTreeMap::new();
+
         for root in self.structures.keys() {
             let mut stack = vec![(root.as_str(), false)];
+
             while let Some((name, exiting)) = stack.pop() {
                 if !exiting {
                     if states.contains_key(name) {
                         continue;
                     }
+
                     states.insert(name, State::Active);
                     stack.push((name, true));
+
                     if let Some(fields) = self.structures.get(name) {
                         for ty in fields.values() {
                             if let Some(child) = value_struct(ty) {
@@ -29,6 +33,7 @@ impl Checker {
                     }
                 } else {
                     let mut depth = Some(1);
+
                     if let Some(fields) = self.structures.get(name) {
                         for ty in fields.values() {
                             if let Some(child) = value_struct(ty) {
@@ -38,6 +43,7 @@ impl Checker {
                                     Some(State::Complete(Some(depth))) => Some(*depth + 1),
                                     _ => None,
                                 };
+
                                 depth = depth
                                     .zip(child_depth)
                                     .map(|(a, b)| a.max(b))
@@ -45,10 +51,12 @@ impl Checker {
                             }
                         }
                     }
+
                     states.insert(name, State::Complete(depth));
                 }
             }
         }
+
         let invalid: Vec<_> = states
             .into_iter()
             .filter(|(_, state)| matches!(state, State::Complete(None)))
@@ -58,10 +66,7 @@ impl Checker {
             self.error(
                 "T002",
                 span,
-                format!(
-                    "recursive or excessively nested value type '{}'",
-                    self.source_name(&name)
-                ),
+                format!("recursive or excessively nested value type '{}'", self.source_name(&name)),
             );
         }
     }
@@ -71,6 +76,7 @@ fn value_struct(mut ty: &Type) -> Option<&str> {
     while let Type::Array(element, _) = ty {
         ty = element;
     }
+
     if let Type::Struct(name) = ty {
         Some(name)
     } else {

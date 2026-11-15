@@ -18,15 +18,13 @@ impl IncludeResolver for FileIncludes {
         system: bool,
     ) -> Result<(String, String), String> {
         let mut candidates = vec![];
+
         if !system {
-            candidates.push(
-                Path::new(from)
-                    .parent()
-                    .unwrap_or(Path::new("."))
-                    .join(requested),
-            );
+            candidates.push(Path::new(from).parent().unwrap_or(Path::new(".")).join(requested));
         }
+
         candidates.extend(self.search_paths.iter().map(|root| root.join(requested)));
+
         for candidate in candidates {
             if candidate.is_file() {
                 let path = candidate
@@ -37,6 +35,7 @@ impl IncludeResolver for FileIncludes {
                 return Ok((source_name(&path), text));
             }
         }
+
         Err(format!("include file '{requested}' was not found"))
     }
 }
@@ -44,6 +43,7 @@ impl IncludeResolver for FileIncludes {
 /// Keep canonical identities readable and usable in source-level file macros.
 pub(crate) fn source_name(path: &Path) -> String {
     let name = path.to_string_lossy();
+
     if let Some(unc) = name.strip_prefix(r"\\?\UNC\") {
         format!(r"\\{unc}")
     } else if let Some(disk) = name.strip_prefix(r"\\?\")

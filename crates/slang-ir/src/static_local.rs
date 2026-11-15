@@ -10,27 +10,27 @@ use std::collections::BTreeMap;
 pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
     let names = crate::visit::names(module);
     let mut prefix = "_slang_static_".to_owned();
+
     while names.iter().any(|name| name.starts_with(&prefix)) {
         prefix.push('_');
     }
+
     let mut lowerer = Lowerer {
         prefix,
         globals: vec![],
         scopes: vec![],
     };
+
     for function in &mut module.functions {
-        lowerer.scopes.push(
-            function
-                .parameters
-                .iter()
-                .map(|p| (p.name.clone(), None))
-                .collect(),
-        );
+        lowerer.scopes.push(function.parameters.iter().map(|p| (p.name.clone(), None)).collect());
+
         if let Some(body) = &mut function.body {
             lowerer.statement(body)?;
         }
+
         lowerer.scopes.pop();
     }
+
     module.globals.extend(lowerer.globals);
     Ok(())
 }
@@ -46,29 +46,26 @@ impl Lowerer {
         if let Some(value) = &mut variable.initializer {
             self.expression(value)?;
         }
+
         if !variable.modifiers.iter().any(|m| m == "static") {
-            self.scopes
-                .last_mut()
-                .unwrap()
-                .insert(variable.name.clone(), None);
+            self.scopes.last_mut().unwrap().insert(variable.name.clone(), None);
             return Ok(None);
         }
+
         let name = format!("{}value_{}", self.prefix, self.globals.len());
         let mut storage = variable.clone();
         storage.name = name.clone();
         storage.modifiers = vec!["static".into()];
         storage.initializer = None;
         self.globals.push(storage);
-        self.scopes
-            .last_mut()
-            .unwrap()
-            .insert(variable.name.clone(), Some(name.clone()));
+        self.scopes.last_mut().unwrap().insert(variable.name.clone(), Some(name.clone()));
         let Some(initializer) = variable.initializer.take() else {
             return Ok(Some(Stmt {
                 kind: StmtKind::Empty,
                 span: variable.span,
             }));
         };
+
         let guard = format!("{}initialized_{}", self.prefix, self.globals.len());
         self.globals.push(Variable {
             name: guard.clone(),
@@ -126,6 +123,7 @@ impl Visitor for Lowerer {
         } else {
             walk_expression(self, expression)?;
         }
+
         Ok(())
     }
 
@@ -136,9 +134,11 @@ impl Visitor for Lowerer {
                     *statement = replacement;
                 }
             }
+
             StmtKind::Variables(variables) => {
                 let mut statements = vec![];
                 let mut changed = false;
+
                 for variable in variables {
                     if let Some(replacement) = self.variable(variable)? {
                         changed = true;
@@ -150,17 +150,26 @@ impl Visitor for Lowerer {
                         });
                     }
                 }
+
                 if changed {
                     statement.kind = StmtKind::Sequence(statements);
                 }
             }
-            StmtKind::For { .. } => {
+
+            StmtKind::For {
+                ..
+            } => {
                 self.scopes.push(BTreeMap::new());
                 walk_statement(self, statement)?;
                 self.scopes.pop();
-                let StmtKind::For { initializer, .. } = &mut statement.kind else {
+                let StmtKind::For {
+                    initializer,
+                    ..
+                } = &mut statement.kind
+                else {
                     unreachable!()
                 };
+
                 if matches!(initializer.kind, StmtKind::If { .. }) {
                     **initializer = Stmt {
                         span: initializer.span,
@@ -168,13 +177,19 @@ impl Visitor for Lowerer {
                     };
                 }
             }
-            StmtKind::Block(_) | StmtKind::Switch { .. } => {
+
+            StmtKind::Block(_)
+            | StmtKind::Switch {
+                ..
+            } => {
                 self.scopes.push(BTreeMap::new());
                 walk_statement(self, statement)?;
                 self.scopes.pop();
             }
+
             _ => walk_statement(self, statement)?,
         }
+
         Ok(())
     }
 }

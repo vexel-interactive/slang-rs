@@ -12,17 +12,11 @@ fn compile(source: &str) -> slang_compiler::Compilation {
 }
 
 fn fails(source: &str, code: &str) {
-    let error = compile_source(
-        "bad.slang",
-        source,
-        &CompileOptions::default(),
-        &MemoryIncludes::default(),
-    )
-    .unwrap_err();
-    assert!(
-        error.diagnostics.iter().any(|d| d.code == code),
-        "{source}: {error}"
-    );
+    let error =
+        compile_source("bad.slang", source, &CompileOptions::default(), &MemoryIncludes::default())
+            .unwrap_err();
+
+    assert!(error.diagnostics.iter().any(|d| d.code == code), "{source}: {error}");
 }
 
 #[test]
@@ -30,9 +24,11 @@ fn derivatives_preserve_all_floating_scalar_vector_and_matrix_shapes() {
     for scalar in [Scalar::Half, Scalar::Float, Scalar::Double] {
         let mut types = vec![Type::Scalar(scalar)];
         types.extend((1..=4).map(|width| Type::Vector(scalar, width)));
+
         for rows in 1..=4 {
             types.extend((1..=4).map(|columns| Type::Matrix(scalar, rows, columns)));
         }
+
         for ty in types {
             let calls = [
                 "ddx",
@@ -49,19 +45,16 @@ fn derivatives_preserve_all_floating_scalar_vector_and_matrix_shapes() {
             .join("");
             let source = format!("void run({ty} value){{{calls}}}");
             let compiled = compile(&source);
-            let run = compiled
-                .ir
-                .functions
-                .iter()
-                .find(|f| f.name == "run")
-                .unwrap();
+            let run = compiled.ir.functions.iter().find(|f| f.name == "run").unwrap();
             let slang_ir::StmtKind::Block(statements) = &run.body.as_ref().unwrap().kind else {
                 panic!()
             };
+
             for statement in statements {
                 let slang_ir::StmtKind::Variable(variable) = &statement.kind else {
                     panic!()
                 };
+
                 assert_eq!(variable.ty, ty);
                 assert_eq!(variable.initializer.as_ref().unwrap().ty, ty);
             }
@@ -75,6 +68,7 @@ fn integer_derivatives_select_float_shapes_and_explicit_input_conversions() {
         "float run(int x,uint2 y,int2x3 z){float a=ddx(x);float2 b=ddy(y);float2x3 c=fwidth_fine(z);return a+b.x+c[0][0];}",
     );
     let code = compiled.artifact.unwrap();
+
     assert!(code.contains("ddx(((float)x))"));
     assert!(code.contains("ddy(((float2)y))"));
     assert!(code.contains("((float2x3)z)"));
@@ -94,6 +88,7 @@ fn coarse_and_fine_width_helpers_evaluate_arguments_once_and_are_cached() {
     assert_eq!(helpers.len(), 2);
     assert!(helpers.iter().all(|f| f.parameters.len() == 1));
     let code = compiled.artifact.unwrap();
+
     assert_eq!(code.matches("next()").count(), 5); // Prototype, definition, three evaluations.
     assert!(code.contains("ddx_coarse(_input)"));
     assert!(code.contains("ddy_fine(_input)"));
@@ -103,12 +98,8 @@ fn coarse_and_fine_width_helpers_evaluate_arguments_once_and_are_cached() {
 fn selected_overloads_and_supplied_defaults_do_not_require_derivatives() {
     let source = "float read(){return ddx(1.0);}float sample(float x=read()){return x;}struct P{float x=read();};void pick(float x){ddy(x);}void pick(int x){}[shader(\"compute\")][numthreads(1,1,1)]void main(){pick(1);P p=P(2);float value=sample(3);}";
     let compiled = compile(source);
-    assert_eq!(
-        compiled.reflection.entry_points[0]
-            .target_profile
-            .as_deref(),
-        Some("cs_6_0")
-    );
+
+    assert_eq!(compiled.reflection.entry_points[0].target_profile.as_deref(), Some("cs_6_0"));
     fails(
         "float read(){return ddx(1.0);}float sample(float x=read()){return x;}[shader(\"compute\")][numthreads(1,1,1)]void main(){float value=sample();}",
         "T024",
@@ -122,13 +113,10 @@ fn compute_derivatives_require_valid_quad_dimensions() {
             "[shader(\"compute\")][numthreads({dimensions})]void main(){{float value=ddx(1.0);}}"
         );
         let compiled = compile(&source);
-        assert_eq!(
-            compiled.reflection.entry_points[0]
-                .target_profile
-                .as_deref(),
-            Some("cs_6_6")
-        );
+
+        assert_eq!(compiled.reflection.entry_points[0].target_profile.as_deref(), Some("cs_6_6"));
     }
+
     for dimensions in ["1,1,1", "2,1,1", "4,1,2", "3,2,1"] {
         fails(
             &format!(
@@ -160,15 +148,11 @@ fn imported_derivatives_keep_builtin_selection_and_diagnostic_locations() {
         )]
         .into(),
     };
+
     let source = "import math;float fwidth_coarse(float x){return x;}[shader(\"fragment\")]float4 main(float2 uv:TEXCOORD0):SV_Target{return float4(width(uv.x)+fwidth_coarse(uv.y));}";
     let compiled =
         compile_source("main.slang", source, &CompileOptions::default(), &files).unwrap();
-    assert!(
-        compiled
-            .artifact
-            .unwrap()
-            .contains("float _slang_fwidth_coarse(float x)")
-    );
+    assert!(compiled.artifact.unwrap().contains("float _slang_fwidth_coarse(float x)"));
     let error = compile_source(
         "main.slang",
         "import math;[shader(\"vertex\")]float4 main():SV_Position{return float4(width(1));}",
@@ -177,14 +161,8 @@ fn imported_derivatives_keep_builtin_selection_and_diagnostic_locations() {
     )
     .unwrap_err();
     let diagnostic = error.diagnostics.iter().find(|d| d.code == "T023").unwrap();
-    assert!(
-        error
-            .sources
-            .get(diagnostic.span.source)
-            .unwrap()
-            .name
-            .ends_with("math.slang")
-    );
+
+    assert!(error.sources.get(diagnostic.span.source).unwrap().name.ends_with("math.slang"));
 }
 
 #[test]

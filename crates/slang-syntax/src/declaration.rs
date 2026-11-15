@@ -6,6 +6,7 @@ use slang_source::Diagnostic;
 impl Parser {
     pub(crate) fn modifiers(&mut self) -> Vec<String> {
         let mut result = vec![];
+
         while self.current().is_some_and(|t| {
             matches!(
                 t.text.as_str(),
@@ -31,6 +32,7 @@ impl Parser {
             result.push(self.current().unwrap().text.clone());
             self.offset += 1;
         }
+
         result
     }
 
@@ -38,27 +40,28 @@ impl Parser {
         let start = self.span();
         let attributes = self.attributes()?;
         let modifiers = self.modifiers();
+
         if self.at("interface") {
             return self.interface_declaration(start, attributes, modifiers);
         }
+
         if self.eat("cbuffer") {
             if !attributes.is_empty()
-                || modifiers
-                    .iter()
-                    .any(|m| !matches!(m.as_str(), "public" | "internal"))
+                || modifiers.iter().any(|m| !matches!(m.as_str(), "public" | "internal"))
             {
                 return Err(self.error("unsupported cbuffer attributes or modifiers"));
             }
+
             return self.constant_buffer(start, modifiers);
         }
+
         if self.at("typedef") || self.at("typealias") {
             if !attributes.is_empty()
-                || modifiers
-                    .iter()
-                    .any(|m| !matches!(m.as_str(), "public" | "internal"))
+                || modifiers.iter().any(|m| !matches!(m.as_str(), "public" | "internal"))
             {
                 return Err(self.error("unsupported type alias attributes or modifiers"));
             }
+
             let (name, generic_parameters, mut target) = if self.eat("typealias") {
                 let name = self.identifier()?.text;
                 let parameters = self.generic_parameters()?;
@@ -70,6 +73,7 @@ impl Parser {
                 let name = self.identifier()?.text;
                 (name, vec![], target)
             };
+
             let name = self.nested_type_name(name, start);
             let trailing = self.array_sizes()?;
             target.arrays.splice(0..0, trailing);
@@ -82,32 +86,35 @@ impl Parser {
                 span: start.join(end),
             })]);
         }
+
         if self.eat("struct") {
             if !attributes.is_empty()
-                || modifiers
-                    .iter()
-                    .any(|m| !matches!(m.as_str(), "public" | "internal"))
+                || modifiers.iter().any(|m| !matches!(m.as_str(), "public" | "internal"))
             {
                 return Err(self.error("unsupported struct attributes or modifiers"));
             }
+
             let source_name = self.identifier()?.text;
             let name = self.nested_type_name(source_name, start);
             let generic_parameters = self.generic_parameters()?;
+
             if self.type_owners.len() >= 32 {
                 return Err(self.error("nested type depth exceeds 32"));
             }
+
             self.type_owners.push(name.clone());
-            self.type_parameters
-                .push(generic_parameters.iter().map(|p| p.name.clone()).collect());
+            self.type_parameters.push(generic_parameters.iter().map(|p| p.name.clone()).collect());
             let bases = self.inheritance_types()?;
             self.expect("{")?;
             let mut fields = vec![];
             let mut members = vec![];
+
             while !self.at("}") && !self.at_end() {
                 let member_offset = self.offset;
                 let member_start = self.span();
                 let attributes = self.attributes()?;
                 let member_modifiers = self.modifiers();
+
                 if self.at("struct")
                     || self.at("interface")
                     || self.at("typedef")
@@ -117,6 +124,7 @@ impl Parser {
                     members.extend(self.declaration()?);
                     continue;
                 }
+
                 if self.eat("__init") {
                     members.push(self.constructor_member(
                         &name,
@@ -126,14 +134,17 @@ impl Parser {
                     )?);
                     continue;
                 }
+
                 let ty = self.ty()?;
                 let member = self.identifier()?;
                 let method_parameters = self.generic_parameters()?;
+
                 if self.eat("(") {
                     self.type_parameters
                         .push(method_parameters.iter().map(|p| p.name.clone()).collect());
                     let mut parameters = self.parameters()?;
                     let is_static = member_modifiers.iter().any(|m| m == "static");
+
                     if !is_static {
                         parameters.insert(
                             0,
@@ -165,21 +176,23 @@ impl Parser {
                             },
                         );
                     }
+
                     let annotations = self.annotations()?;
+
                     if annotations.register.is_some() || annotations.pack_offset.is_some() {
                         return Err(self.error("methods cannot have storage annotations"));
                     }
+
                     let body = if self.eat(";") {
                         None
                     } else {
                         Some(self.statement()?)
                     };
-                    if body
-                        .as_ref()
-                        .is_some_and(|s| !matches!(s.kind, StmtKind::Block(_)))
-                    {
+
+                    if body.as_ref().is_some_and(|s| !matches!(s.kind, StmtKind::Block(_))) {
                         return Err(self.error("method body must be a block"));
                     }
+
                     self.type_parameters.pop();
                     members.push(Declaration::Function(Box::new(Function {
                         name: format!(
@@ -206,14 +219,18 @@ impl Parser {
                     })));
                     continue;
                 }
+
                 if !method_parameters.is_empty() {
                     return Err(self.error("generic fields are not implemented"));
                 }
+
                 if !attributes.is_empty() {
                     return Err(self.error("struct field attributes are not implemented"));
                 }
+
                 let is_static = member_modifiers.iter().any(|m| m == "static");
                 let variables = self.variables(ty, member, member_modifiers)?;
+
                 if is_static {
                     for mut variable in variables {
                         let member_name = variable.name.clone();
@@ -235,8 +252,10 @@ impl Parser {
                 } else {
                     fields.extend(variables);
                 }
+
                 self.expect(";")?;
             }
+
             let end = self.expect("}")?;
             self.type_owners.pop();
             self.type_parameters.pop();
@@ -252,6 +271,7 @@ impl Parser {
             declarations.extend(members);
             return Ok(declarations);
         }
+
         if self.current().is_some_and(|t| {
             matches!(
                 t.text.as_str(),
@@ -272,14 +292,16 @@ impl Parser {
                 self.current().unwrap().text
             )));
         }
+
         let ty = self.ty()?;
         let name = self.identifier()?;
         let generic_parameters = self.generic_parameters()?;
+
         if self.eat("(") {
-            self.type_parameters
-                .push(generic_parameters.iter().map(|p| p.name.clone()).collect());
+            self.type_parameters.push(generic_parameters.iter().map(|p| p.name.clone()).collect());
             let parameters = self.parameters()?;
             let annotations = self.annotations()?;
+
             if let Some(pack) = annotations.pack_offset {
                 return Err(Diagnostic::error(
                     "S001",
@@ -287,17 +309,17 @@ impl Parser {
                     "packoffset is not allowed on function results",
                 ));
             }
+
             let body = if self.eat(";") {
                 None
             } else {
                 Some(self.statement()?)
             };
-            if body
-                .as_ref()
-                .is_some_and(|s| !matches!(s.kind, StmtKind::Block(_)))
-            {
+
+            if body.as_ref().is_some_and(|s| !matches!(s.kind, StmtKind::Block(_))) {
                 return Err(self.error("function body must be a block"));
             }
+
             let span = start.join(body.as_ref().map_or(name.span, |s| s.span));
             self.type_parameters.pop();
             Ok(vec![Declaration::Function(Box::new(Function {
@@ -317,9 +339,11 @@ impl Parser {
             if !generic_parameters.is_empty() {
                 return Err(self.error("generic variables are not implemented"));
             }
+
             if !attributes.is_empty() {
                 return Err(self.error("global variable attributes are not implemented"));
             }
+
             let variables = self.variables(ty, name, modifiers)?;
             self.expect(";")?;
             Ok(variables.into_iter().map(Declaration::Global).collect())
@@ -328,6 +352,7 @@ impl Parser {
 
     pub(crate) fn parameters(&mut self) -> Result<Vec<Variable>, Diagnostic> {
         let mut parameters = vec![];
+
         if !(self.at(")")
             || self.at("void") && self.tokens.get(self.offset + 1).is_some_and(|t| t.is(")")))
         {
@@ -336,6 +361,7 @@ impl Parser {
                 let ty = self.ty()?;
                 let name = self.identifier()?;
                 parameters.push(self.variable(ty, name, modifiers)?);
+
                 if !self.eat(",") {
                     break;
                 }
@@ -343,6 +369,7 @@ impl Parser {
         } else {
             self.eat("void");
         }
+
         self.expect(")")?;
         Ok(parameters)
     }
@@ -351,6 +378,7 @@ impl Parser {
         let Some(owner) = self.type_owners.last() else {
             return name;
         };
+
         let target = format!("{}{}_{}_{}", self.type_prefix, owner.len(), owner, name);
         self.nested_types.push(NestedTypeInfo {
             owner: owner.clone(),
@@ -369,8 +397,7 @@ impl Parser {
         start: slang_source::Span,
     ) -> Result<Declaration, Diagnostic> {
         let generic_parameters = self.generic_parameters()?;
-        self.type_parameters
-            .push(generic_parameters.iter().map(|p| p.name.clone()).collect());
+        self.type_parameters.push(generic_parameters.iter().map(|p| p.name.clone()).collect());
         self.expect("(")?;
         let parameters = self.parameters()?;
         let body = if self.eat(";") {
@@ -378,12 +405,11 @@ impl Parser {
         } else {
             Some(self.statement()?)
         };
-        if body
-            .as_ref()
-            .is_some_and(|s| !matches!(s.kind, StmtKind::Block(_)))
-        {
+
+        if body.as_ref().is_some_and(|s| !matches!(s.kind, StmtKind::Block(_))) {
             return Err(self.error("constructor body must be a block"));
         }
+
         self.type_parameters.pop();
         Ok(Declaration::Function(Box::new(Function {
             name: format!("{}{}", self.constructor_prefix, owner),
@@ -414,50 +440,62 @@ impl Parser {
         if !self.eat("<") {
             return Ok(vec![]);
         }
+
         let mut parameters = vec![];
+
         loop {
             if self.at("let") {
                 return Err(self.error("generic value parameters are not implemented"));
             }
+
             let token = self.identifier()?;
             let constraints = if self.eat(":") {
                 let mut constraints = vec![self.ty()?];
+
                 while self.eat("&") {
                     constraints.push(self.ty()?);
                 }
+
                 constraints
             } else {
                 vec![]
             };
+
             let default = if self.eat("=") {
                 Some(self.ty()?)
             } else {
                 None
             };
+
             parameters.push(GenericParameter {
                 name: token.text,
                 constraints,
                 default,
                 span: token.span,
             });
+
             if !self.eat(",") {
                 break;
             }
         }
+
         self.close_type_arguments()?;
         Ok(parameters)
     }
 
     pub(crate) fn inheritance_types(&mut self) -> Result<Vec<TypeRef>, Diagnostic> {
         let mut bases = vec![];
+
         if self.eat(":") {
             loop {
                 bases.push(self.ty()?);
+
                 if !self.eat(",") {
                     break;
                 }
             }
         }
+
         Ok(bases)
     }
 
@@ -478,6 +516,7 @@ impl Parser {
     fn ty_inner(&mut self, qualified: bool) -> Result<TypeRef, Diagnostic> {
         let start = self.span();
         let mut matrix_major = None;
+
         while self.at("row_major") || self.at("column_major") {
             matrix_major = Some(if self.eat("row_major") {
                 slang_layout::MatrixMajor::Row
@@ -486,12 +525,15 @@ impl Parser {
                 slang_layout::MatrixMajor::Column
             });
         }
+
         let mut token = self.identifier()?;
+
         while qualified && (self.at(".") || self.at("::")) {
             self.offset += 1;
             token.text.push_str("::");
             token.text.push_str(&self.identifier()?.text);
         }
+
         let application = self.at("<");
         let arguments = self.type_arguments(&token.text)?;
         let mut reference = TypeRef {
@@ -505,6 +547,7 @@ impl Parser {
             arrays: vec![],
             span: start.join(self.tokens[self.offset - 1].span),
         };
+
         while qualified && (self.at(".") || self.at("::")) {
             self.offset += 1;
             let token = self.identifier()?;
@@ -522,6 +565,7 @@ impl Parser {
                 span: start.join(self.tokens[self.offset - 1].span),
             };
         }
+
         let mut arrays = self.array_sizes()?;
         arrays.reverse();
         reference.arrays = arrays;
@@ -531,6 +575,7 @@ impl Parser {
 
     pub(crate) fn type_arguments(&mut self, name: &str) -> Result<Vec<TypeArgument>, Diagnostic> {
         let mut arguments = vec![];
+
         if self.eat("<") {
             while !self.at(">") && !self.at(">>") {
                 if matches!(name, "vector" | "matrix") && !arguments.is_empty() {
@@ -562,12 +607,15 @@ impl Parser {
                 } else {
                     arguments.push(TypeArgument::Type(self.ty()?));
                 }
+
                 if !self.eat(",") {
                     break;
                 }
             }
+
             self.close_type_arguments()?;
         }
+
         Ok(arguments)
     }
 
@@ -583,6 +631,7 @@ impl Parser {
                 },
             );
         }
+
         self.expect(">")?;
         Ok(())
     }
@@ -601,6 +650,7 @@ impl Parser {
         } else {
             None
         };
+
         let span = ty.span.join(self.tokens[self.offset - 1].span);
         Ok(Variable {
             name: name.text,
@@ -622,29 +672,36 @@ impl Parser {
         modifiers: Vec<String>,
     ) -> Result<Vec<Variable>, Diagnostic> {
         let mut variables = vec![];
+
         loop {
             variables.push(self.variable(ty.clone(), name, modifiers.clone())?);
+
             if !self.eat(",") {
                 return Ok(variables);
             }
+
             name = self.identifier()?;
         }
     }
 
     pub(crate) fn array_sizes(&mut self) -> Result<Vec<Expr>, Diagnostic> {
         let mut arrays = vec![];
+
         while self.eat("[") {
             if arrays.len() >= 32 {
                 return Err(self.error("array nesting limit exceeded"));
             }
+
             arrays.push(self.expression(1)?);
             self.expect("]")?;
         }
+
         Ok(arrays)
     }
 
     pub(crate) fn attributes(&mut self) -> Result<Vec<Attribute>, Diagnostic> {
         let mut attributes = vec![];
+
         while self.eat("[") {
             let name = self.identifier()?;
             let arguments = if self.eat("(") {
@@ -652,6 +709,7 @@ impl Parser {
             } else {
                 vec![]
             };
+
             let end = self.expect("]")?;
             attributes.push(Attribute {
                 name: name.text,
@@ -659,19 +717,23 @@ impl Parser {
                 span: name.span.join(end),
             });
         }
+
         Ok(attributes)
     }
 
     pub(crate) fn arguments(&mut self, close: &str) -> Result<Vec<Expr>, Diagnostic> {
         let mut arguments = vec![];
+
         if !self.at(close) {
             loop {
                 arguments.push(self.expression(1)?);
+
                 if !self.eat(",") {
                     break;
                 }
             }
         }
+
         self.expect(close)?;
         Ok(arguments)
     }

@@ -21,6 +21,7 @@ fn matrix_algebra_has_dimension_checked_ir() {
     let slang_ir::StmtKind::Block(statements) = &main.body.as_ref().unwrap().kind else {
         panic!("expected a block");
     };
+
     let variables: Vec<_> = statements
         .iter()
         .filter_map(|s| match &s.kind {
@@ -43,6 +44,7 @@ fn scalar_splat_preserves_a_single_function_call() {
              float2x2 a=float2x2(value());float2x2 b=helper(2.0);}",
     );
     let code = compiled.artifact.unwrap();
+
     assert!(code.contains("((float2x2)value())"));
     assert!(code.contains("helper(2.0)"));
     assert_eq!(code.matches("value()").count(), 3); // Prototype, definition, call.
@@ -51,14 +53,8 @@ fn scalar_splat_preserves_a_single_function_call() {
 #[test]
 fn graphics_stages_preserve_semantics_and_reflection() {
     for (source, stage) in [
-        (
-            include_str!("../../../examples/vertex-transform.slang"),
-            ShaderStage::Vertex,
-        ),
-        (
-            include_str!("../../../examples/fragment-color.slang"),
-            ShaderStage::Fragment,
-        ),
+        (include_str!("../../../examples/vertex-transform.slang"), ShaderStage::Vertex),
+        (include_str!("../../../examples/fragment-color.slang"), ShaderStage::Fragment),
         (
             include_str!("../../../tests/conformance/positive/graphics-out.slang"),
             ShaderStage::Fragment,
@@ -70,12 +66,15 @@ fn graphics_stages_preserve_semantics_and_reflection() {
     ] {
         let compiled = compile(source);
         let entry = &compiled.reflection.entry_points[0];
+
         assert_eq!(entry.stage, stage);
         assert_eq!(entry.thread_group_size, None);
         assert_eq!(compiled.reflection.schema_version, 11);
         let json = serde_json::to_value(&compiled.reflection).unwrap();
+
         assert!(json["entry_points"][0].get("thread_group_size").is_none());
         let code = compiled.artifact.unwrap();
+
         assert!(!code.contains("numthreads"));
         assert!(code.contains("SV_Position"));
     }
@@ -84,30 +83,15 @@ fn graphics_stages_preserve_semantics_and_reflection() {
 #[test]
 fn invalid_matrix_dimensions_and_graphics_interfaces_fail() {
     for (source, expected) in [
-        (
-            include_str!("../../../tests/conformance/negative/matrix-product.slang"),
-            "T014",
-        ),
-        (
-            include_str!("../../../tests/conformance/negative/matrix-constructor.slang"),
-            "T014",
-        ),
-        (
-            include_str!("../../../tests/conformance/negative/matrix-index.slang"),
-            "T013",
-        ),
-        (
-            include_str!("../../../tests/conformance/negative/matrix-determinant.slang"),
-            "T014",
-        ),
+        (include_str!("../../../tests/conformance/negative/matrix-product.slang"), "T014"),
+        (include_str!("../../../tests/conformance/negative/matrix-constructor.slang"), "T014"),
+        (include_str!("../../../tests/conformance/negative/matrix-index.slang"), "T013"),
+        (include_str!("../../../tests/conformance/negative/matrix-determinant.slang"), "T014"),
         (
             "[shader(\"vertex\")][numthreads(1,1,1)]float4 main():SV_Position{return float4(0);}",
             "T006",
         ),
-        (
-            "[shader(\"vertex\")]float2 main():SV_Position{return float2(0);}",
-            "T006",
-        ),
+        ("[shader(\"vertex\")]float2 main():SV_Position{return float2(0);}", "T006"),
         (
             "[shader(\"fragment\")]float4 main(uint id:TEXCOORD):SV_Target{return float4(id);}",
             "T006",
@@ -128,10 +112,8 @@ fn invalid_matrix_dimensions_and_graphics_interfaces_fail() {
             &MemoryIncludes::default(),
         )
         .unwrap_err();
-        assert!(
-            error.diagnostics.iter().any(|d| d.code == expected),
-            "{source}: {error}"
-        );
+
+        assert!(error.diagnostics.iter().any(|d| d.code == expected), "{source}: {error}");
     }
 }
 
@@ -143,15 +125,12 @@ fn nested_graphics_structs_and_out_parameters_are_checked() {
          [shader(\"vertex\")]void main(uint id:SV_VertexID,out Output output){
              output.position.clip=float4(float(id),0,0,1);output.uv=float2(0);}",
     );
-    assert_eq!(
-        compiled.reflection.entry_points[0].stage,
-        ShaderStage::Vertex
-    );
+
+    assert_eq!(compiled.reflection.entry_points[0].stage, ShaderStage::Vertex);
+
     assert!(matches!(compiled.ir.functions[0].return_type, Type::Void));
     let compute = compile(include_str!("../../../examples/vector-add.slang"));
     let json = serde_json::to_value(&compute.reflection).unwrap();
-    assert_eq!(
-        json["entry_points"][0]["thread_group_size"],
-        serde_json::json!([64, 1, 1])
-    );
+
+    assert_eq!(json["entry_points"][0]["thread_group_size"], serde_json::json!([64, 1, 1]));
 }

@@ -10,6 +10,7 @@ fn switch_fallthrough_do_while_and_casts_lower_together() {
     )
     .unwrap();
     let code = compiled.artifact.unwrap();
+
     assert!(code.contains("case 4u:"));
     assert!(code.contains("while ((i < 4u));"));
     assert!(code.contains("((int)(values).x)"));
@@ -29,11 +30,10 @@ fn break_paths_do_not_count_as_return_paths() {
             &MemoryIncludes::default(),
         )
         .unwrap_err();
-        assert!(
-            error.diagnostics.iter().any(|d| d.code == "T005"),
-            "{source}: {error}"
-        );
+
+        assert!(error.diagnostics.iter().any(|d| d.code == "T005"), "{source}: {error}");
     }
+
     for source in [
         "int f(int x){switch(x){case 0:case 1:return 1;default:return 2;}}",
         "int f(bool x){do {return 1;}while(x);}",
@@ -68,12 +68,12 @@ fn switch_constants_follow_integer_types_and_scopes() {
             &MemoryIncludes::default(),
         )
         .unwrap_err();
-        assert!(
-            error.diagnostics.iter().any(|d| d.code == "T017"),
-            "{source}: {error}"
-        );
+
+        assert!(error.diagnostics.iter().any(|d| d.code == "T017"), "{source}: {error}");
     }
+
     let source = "static const int label=3;void f(int x){const int label=4;switch(x){case label:break;}}void g(int x){switch(x){case label:break;}}";
+
     assert!(
         compile_source(
             "scopes.slang",

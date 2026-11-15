@@ -22,6 +22,7 @@ pub fn lower_with_native_16bit(
         initializing: std::cell::RefCell::new(vec![]),
         initialization_nodes: std::cell::Cell::new(65536),
     };
+
     let mut module = Module {
         matrix_major: checked.matrix_major,
         native_16bit_types,
@@ -36,6 +37,7 @@ pub fn lower_with_native_16bit(
         functions: vec![],
         entry_points: checked.entry_points.clone(),
     };
+
     let buffer_members: std::collections::BTreeMap<_, _> = checked
         .module
         .constant_buffers
@@ -68,26 +70,28 @@ pub fn lower_with_native_16bit(
                     .collect::<Result<_, _>>()?,
             }),
             ast::Declaration::Global(variable) => {
-                if buffer_members
-                    .get(&span_key(variable.span))
-                    .is_some_and(|m| !m.static_storage)
-                {
+                if buffer_members.get(&span_key(variable.span)).is_some_and(|m| !m.static_storage) {
                     continue;
                 }
+
                 let mut global = lowerer.variable(variable)?;
+
                 if let Some(&value) = checked.global_constants.get(&span_key(variable.span)) {
                     let kind = match global.ty {
                         Type::Scalar(slang_sema::Scalar::Bool) => ExprKind::Bool(value != 0),
                         _ => ExprKind::Integer(crate::integer::literal_text(value, &global.ty)),
                     };
+
                     global.initializer = Some(Expr {
                         ty: global.ty.clone(),
                         kind,
                         span: variable.initializer.as_ref().unwrap().span,
                     });
                 }
+
                 module.globals.push(global);
             }
+
             ast::Declaration::Function(function) => module.functions.push(Function {
                 name: checked
                     .function_names
@@ -115,8 +119,10 @@ pub fn lower_with_native_16bit(
             }),
         }
     }
+
     for buffer in &checked.module.constant_buffers {
         let mut fields = vec![];
+
         for member in buffer.members.iter().filter(|m| !m.static_storage) {
             let field = global_declarations
                 .get(member.variable_name.as_str())
@@ -125,6 +131,7 @@ pub fn lower_with_native_16bit(
             lowered.pack_offset = member.pack_offset.map(|p| p.offset);
             fields.push(lowered);
         }
+
         module.constant_buffers.push(ConstantBuffer {
             name: buffer.name.clone(),
             variable_name: buffer.variable_name.clone(),
@@ -132,6 +139,7 @@ pub fn lower_with_native_16bit(
             views: vec![],
         });
     }
+
     crate::initialization::lower(&mut module)?;
     crate::array_result::lower(&mut module)?;
     crate::intrinsic::lower(&mut module)?;
@@ -161,11 +169,7 @@ pub(crate) struct Lowerer<'a> {
 }
 
 fn error(span: Span) -> Diagnostic {
-    Diagnostic::error(
-        "I001",
-        span,
-        "missing or invalid semantic information during IR lowering",
-    )
+    Diagnostic::error("I001", span, "missing or invalid semantic information during IR lowering")
 }
 
 impl Lowerer<'_> {
@@ -189,6 +193,7 @@ impl Lowerer<'_> {
                 .into(),
             );
         }
+
         result
     }
 
@@ -207,11 +212,7 @@ impl Lowerer<'_> {
             ty: self.declaration_type(variable.span)?,
             modifiers: self.target_modifiers(&variable.modifiers, variable.span),
             semantic: variable.semantic.clone(),
-            binding: self
-                .checked
-                .resource_bindings
-                .get(&span_key(variable.span))
-                .copied(),
+            binding: self.checked.resource_bindings.get(&span_key(variable.span)).copied(),
             uniform_layout: None,
             pack_offset: variable.pack_offset.map(|p| p.offset),
             initializer: if let Some(value) = &variable.initializer {
@@ -230,22 +231,17 @@ impl Lowerer<'_> {
     pub(crate) fn statement(&self, statement: &ast::Stmt) -> Result<Stmt, Diagnostic> {
         let kind = match &statement.kind {
             ast::StmtKind::Block(statements) => StmtKind::Block(
-                statements
-                    .iter()
-                    .map(|s| self.statement(s))
-                    .collect::<Result<_, _>>()?,
+                statements.iter().map(|s| self.statement(s)).collect::<Result<_, _>>()?,
             ),
             ast::StmtKind::Variable(variable) => StmtKind::Variable(self.variable(variable)?),
             ast::StmtKind::Variables(variables) => StmtKind::Variables(
-                variables
-                    .iter()
-                    .map(|v| self.variable(v))
-                    .collect::<Result<_, _>>()?,
+                variables.iter().map(|v| self.variable(v)).collect::<Result<_, _>>()?,
             ),
             ast::StmtKind::Expression(expr) => StmtKind::Expression(self.expression(expr)?),
             ast::StmtKind::Return(expr) => {
                 StmtKind::Return(expr.as_ref().map(|e| self.expression(e)).transpose()?)
             }
+
             ast::StmtKind::If {
                 condition,
                 then_branch,
@@ -258,15 +254,24 @@ impl Lowerer<'_> {
                     .map(|s| self.statement(s).map(Box::new))
                     .transpose()?,
             },
-            ast::StmtKind::While { condition, body } => StmtKind::While {
+            ast::StmtKind::While {
+                condition,
+                body,
+            } => StmtKind::While {
                 condition: self.expression(condition)?,
                 body: Box::new(self.statement(body)?),
             },
-            ast::StmtKind::DoWhile { body, condition } => StmtKind::DoWhile {
+            ast::StmtKind::DoWhile {
+                body,
+                condition,
+            } => StmtKind::DoWhile {
                 body: Box::new(self.statement(body)?),
                 condition: self.expression(condition)?,
             },
-            ast::StmtKind::Switch { selector, cases } => StmtKind::Switch {
+            ast::StmtKind::Switch {
+                selector,
+                cases,
+            } => StmtKind::Switch {
                 selector: self.expression(selector)?,
                 cases: cases
                     .iter()
@@ -321,6 +326,7 @@ impl Lowerer<'_> {
             ast::StmtKind::Discard => StmtKind::Discard,
             ast::StmtKind::Empty => StmtKind::Empty,
         };
+
         Ok(Stmt {
             kind,
             span: statement.span,
@@ -329,13 +335,11 @@ impl Lowerer<'_> {
 
     fn expression(&self, expression: &ast::Expr) -> Result<Expr, Diagnostic> {
         let value = self.expression_inner(expression)?;
-        Ok(
-            if self.checked.constant_buffer_loads.contains(&expression.id) {
-                constant_buffer_load(value)
-            } else {
-                value
-            },
-        )
+        Ok(if self.checked.constant_buffer_loads.contains(&expression.id) {
+            constant_buffer_load(value)
+        } else {
+            value
+        })
     }
 
     fn expression_inner(&self, expression: &ast::Expr) -> Result<Expr, Diagnostic> {
@@ -353,6 +357,7 @@ impl Lowerer<'_> {
                 span: expression.span,
             });
         }
+
         if let Some(target) = self.checked.static_references.get(&expression.id) {
             return Ok(Expr {
                 kind: ExprKind::GlobalName(target.clone()),
@@ -360,10 +365,14 @@ impl Lowerer<'_> {
                 span: expression.span,
             });
         }
+
         let kind = match &expression.kind {
-            ast::ExprKind::GenericApplication { .. } => {
+            ast::ExprKind::GenericApplication {
+                ..
+            } => {
                 unreachable!("generic member applications must be specialized before lowering")
             }
+
             ast::ExprKind::InitializerList(_) => {
                 let value = self
                     .checked
@@ -372,6 +381,7 @@ impl Lowerer<'_> {
                     .ok_or_else(|| error(expression.span))?;
                 return self.planned_initialization(expression.id, value, expression.span);
             }
+
             ast::ExprKind::Integer(value) => ExprKind::Integer(value.clone()),
             ast::ExprKind::Float(value) => ExprKind::Float(value.clone()),
             ast::ExprKind::Bool(value) => ExprKind::Bool(*value),
@@ -391,31 +401,46 @@ impl Lowerer<'_> {
                     ExprKind::Name(name.clone())
                 }
             }
-            ast::ExprKind::Unary { op, value } => ExprKind::Unary {
+
+            ast::ExprKind::Unary {
+                op,
+                value,
+            } => ExprKind::Unary {
                 op: op.clone(),
                 value: Box::new(self.expression(value)?),
             },
-            ast::ExprKind::Cast { value, .. } => {
+            ast::ExprKind::Cast {
+                value,
+                ..
+            } => {
                 if let Some(plan) = self.checked.initializations.get(&expression.id) {
                     return self.planned_initialization(expression.id, plan, expression.span);
                 }
+
                 ExprKind::Cast {
                     value: Box::new(self.expression(value)?),
                 }
             }
-            ast::ExprKind::Binary { op, left, right } => ExprKind::Binary {
+
+            ast::ExprKind::Binary {
+                op,
+                left,
+                right,
+            } => ExprKind::Binary {
                 op: op.clone(),
                 left: Box::new(self.expression(left)?),
                 right: Box::new(self.expression(right)?),
             },
-            ast::ExprKind::Call { callee, arguments } => {
+            ast::ExprKind::Call {
+                callee,
+                arguments,
+            } => {
                 if let Some(value) = self.checked.initializations.get(&callee.id) {
                     return self.planned_initialization(callee.id, value, expression.span);
                 }
-                let mut arguments: Vec<_> = arguments
-                    .iter()
-                    .map(|a| self.expression(a))
-                    .collect::<Result<_, _>>()?;
+
+                let mut arguments: Vec<_> =
+                    arguments.iter().map(|a| self.expression(a)).collect::<Result<_, _>>()?;
                 if let Some(defaults) = self.checked.default_arguments.get(&callee.id) {
                     self.enter_default(callee.id, expression.span)?;
                     let result = defaults
@@ -425,12 +450,14 @@ impl Lowerer<'_> {
                     self.initializing.borrow_mut().pop();
                     arguments.extend(result?);
                 }
+
                 if let Some(receiver) = self.checked.method_receivers.get(&callee.id) {
                     match receiver {
                         slang_sema::MethodReceiver::Static => {}
                         slang_sema::MethodReceiver::Explicit(base) => {
                             arguments.insert(0, self.expression(base)?)
                         }
+
                         slang_sema::MethodReceiver::Implicit(owner) => arguments.insert(
                             0,
                             Expr {
@@ -444,8 +471,10 @@ impl Lowerer<'_> {
                 // Intrinsic and resource signatures can infer a wider input type
                 // from output parameters. Preserve that choice in target code.
                 if !self.checked.call_names.contains_key(&callee.id)
-                    && let Some(Type::Callable { parameters, .. }) =
-                        self.checked.expression_types.get(&callee.id)
+                    && let Some(Type::Callable {
+                        parameters,
+                        ..
+                    }) = self.checked.expression_types.get(&callee.id)
                 {
                     for (argument, target) in arguments.iter_mut().zip(parameters) {
                         if &argument.ty != target {
@@ -473,9 +502,7 @@ impl Lowerer<'_> {
                     }
                 } else if let Some(Type::Meta(target)) =
                     self.checked.expression_types.get(&callee.id)
-                    && target
-                        .scalar()
-                        .is_some_and(slang_sema::Scalar::is_pointer_sized)
+                    && target.scalar().is_some_and(slang_sema::Scalar::is_pointer_sized)
                     && matches!(target.as_ref(), Type::Vector(..) | Type::Matrix(..))
                 {
                     if arguments.len() == 1 && matches!(arguments[0].ty, Type::Scalar(_)) {
@@ -504,6 +531,7 @@ impl Lowerer<'_> {
                                 arguments,
                             }
                         }
+
                         ast::ExprKind::Name(name) => ExprKind::Call {
                             name: self
                                 .checked
@@ -513,15 +541,18 @@ impl Lowerer<'_> {
                                 .unwrap_or_else(|| name.clone()),
                             arguments,
                         },
-                        ast::ExprKind::Member { .. }
-                            if self.checked.call_names.contains_key(&callee.id) =>
-                        {
-                            ExprKind::Call {
-                                name: self.checked.call_names[&callee.id].clone(),
-                                arguments,
-                            }
-                        }
-                        ast::ExprKind::Member { base, name, .. } => ExprKind::MethodCall {
+                        ast::ExprKind::Member {
+                            ..
+                        } if self.checked.call_names.contains_key(&callee.id) => ExprKind::Call {
+                            name: self.checked.call_names[&callee.id].clone(),
+                            arguments,
+                        },
+
+                        ast::ExprKind::Member {
+                            base,
+                            name,
+                            ..
+                        } => ExprKind::MethodCall {
                             receiver: Box::new(self.expression(base)?),
                             name: name.clone(),
                             arguments,
@@ -530,11 +561,19 @@ impl Lowerer<'_> {
                     }
                 }
             }
-            ast::ExprKind::Member { base, name, .. } => ExprKind::Member {
+
+            ast::ExprKind::Member {
+                base,
+                name,
+                ..
+            } => ExprKind::Member {
                 base: Box::new(self.expression(base)?),
                 name: name.clone(),
             },
-            ast::ExprKind::Index { base, index } => ExprKind::Index {
+            ast::ExprKind::Index {
+                base,
+                index,
+            } => ExprKind::Index {
                 base: Box::new(self.expression(base)?),
                 index: Box::new(
                     if let Some(value) = self.checked.swizzle_indices.get(&expression.id) {
@@ -558,7 +597,10 @@ impl Lowerer<'_> {
                 then_value: Box::new(self.expression(then_value)?),
                 else_value: Box::new(self.expression(else_value)?),
             },
-            ast::ExprKind::Postfix { op, value } => ExprKind::Postfix {
+            ast::ExprKind::Postfix {
+                op,
+                value,
+            } => ExprKind::Postfix {
                 op: op.clone(),
                 value: Box::new(self.expression(value)?),
             },
@@ -566,6 +608,7 @@ impl Lowerer<'_> {
                 return Err(error(expression.span));
             }
         };
+
         Ok(Expr {
             ty,
             kind,
@@ -589,6 +632,7 @@ impl Lowerer<'_> {
         if self.initializing.borrow().is_empty() {
             self.initialization_nodes.set(65536);
         }
+
         if self.initializing.borrow().len() >= 32 || self.initializing.borrow().contains(&id) {
             return Err(Diagnostic::error(
                 "I002",
@@ -596,6 +640,7 @@ impl Lowerer<'_> {
                 "recursive or excessively nested default expansion",
             ));
         }
+
         self.initializing.borrow_mut().push(id);
         Ok(())
     }
@@ -606,6 +651,7 @@ impl Lowerer<'_> {
         span: Span,
     ) -> Result<Expr, Diagnostic> {
         let remaining = self.initialization_nodes.get();
+
         if remaining == 0 {
             return Err(Diagnostic::error(
                 "I002",
@@ -613,10 +659,13 @@ impl Lowerer<'_> {
                 "aggregate default expansion size limit exceeded",
             ));
         }
+
         self.initialization_nodes.set(remaining - 1);
         let kind = match &value.kind {
             slang_sema::InitializationKind::ConstructorCall {
-                name, arguments, ..
+                name,
+                arguments,
+                ..
             } => ExprKind::Call {
                 name: name.clone(),
                 arguments: arguments
@@ -626,10 +675,7 @@ impl Lowerer<'_> {
             },
             slang_sema::InitializationKind::Zero => ExprKind::Zero,
             slang_sema::InitializationKind::Aggregate(values) => ExprKind::Construct(
-                values
-                    .iter()
-                    .map(|v| self.initialization(v, span))
-                    .collect::<Result<_, _>>()?,
+                values.iter().map(|v| self.initialization(v, span)).collect::<Result<_, _>>()?,
             ),
             slang_sema::InitializationKind::Value(source)
             | slang_sema::InitializationKind::DeclarationDefault(source) => {
@@ -639,6 +685,7 @@ impl Lowerer<'_> {
                 } else {
                     expression
                 };
+
                 let expression = if expression.ty == value.ty {
                     expression
                 } else {
@@ -650,11 +697,9 @@ impl Lowerer<'_> {
                         span,
                     }
                 };
+
                 return Ok(
-                    if matches!(
-                        value.kind,
-                        slang_sema::InitializationKind::DeclarationDefault(_)
-                    ) {
+                    if matches!(value.kind, slang_sema::InitializationKind::DeclarationDefault(_)) {
                         Expr {
                             ty: expression.ty.clone(),
                             span: expression.span,
@@ -666,6 +711,7 @@ impl Lowerer<'_> {
                 );
             }
         };
+
         Ok(Expr {
             ty: value.ty.clone(),
             kind,
@@ -675,7 +721,11 @@ impl Lowerer<'_> {
 }
 
 fn constant_buffer_load(value: Expr) -> Expr {
-    if let Type::ConstantBuffer { element, .. } = &value.ty {
+    if let Type::ConstantBuffer {
+        element,
+        ..
+    } = &value.ty
+    {
         Expr {
             ty: *element.clone(),
             span: value.span,

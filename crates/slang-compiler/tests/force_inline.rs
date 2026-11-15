@@ -1,22 +1,17 @@
 use slang_compiler::{Compilation, CompileOptions, MemoryIncludes, compile_source};
 
 fn compile(source: &str) -> Compilation {
-    compile_source(
-        "inline.slang",
-        source,
-        &CompileOptions::default(),
-        &MemoryIncludes::default(),
-    )
-    .unwrap()
+    compile_source("inline.slang", source, &CompileOptions::default(), &MemoryIncludes::default())
+        .unwrap()
 }
 
 #[test]
 fn forced_calls_expand_before_ssa_while_ordinary_calls_remain_opaque() {
-    let compiled = compile(include_str!(
-        "../../../tests/conformance/positive/force-inline-values.slang"
-    ));
+    let compiled =
+        compile(include_str!("../../../tests/conformance/positive/force-inline-values.slang"));
     let code = compiled.artifact.unwrap();
     let main = code.split("void main()").last().unwrap();
+
     for name in [
         "narrowIdentity",
         "narrowAdd",
@@ -44,6 +39,7 @@ fn captures_are_assigned_inside_conditional_arms_and_all_arguments_evaluate_once
     );
     let code = compiled.artifact.unwrap();
     let caller = code.split("int f(bool flag)").last().unwrap();
+
     assert_eq!(caller.matches("i++").count(), 4, "{caller}");
     assert!(caller.contains("flag ?"), "{caller}");
     assert!(!caller.contains("use("), "{caller}");
@@ -54,6 +50,7 @@ fn captures_are_assigned_inside_conditional_arms_and_all_arguments_evaluate_once
 fn prototypes_overloads_aliases_and_nested_calls_keep_selected_targets() {
     let code = compile("typedef uint16_t Small;[ForceInline]Small select(Small x);Small select(Small x){return x;}[ForceInline]int select(int x){return x+1;}[ForceInline]Small nested(Small x){return select(x);}uint f(){Small x=nested(Small(1));x<<=16;return uint(x)+uint(select(2));}").artifact.unwrap();
     let caller = code.split("uint f()").last().unwrap();
+
     assert!(caller.contains("return (0u +"), "{caller}");
     assert!(!caller.contains("select("), "{caller}");
     assert!(!caller.contains("nested("), "{caller}");
@@ -61,11 +58,11 @@ fn prototypes_overloads_aliases_and_nested_calls_keep_selected_targets() {
 
 #[test]
 fn ordinary_numeric_overloads_keep_distinct_selected_inline_bodies() {
-    let compiled = compile(include_str!(
-        "../../../tests/conformance/positive/force-inline-overloads.slang"
-    ));
+    let compiled =
+        compile(include_str!("../../../tests/conformance/positive/force-inline-overloads.slang"));
     let code = compiled.artifact.unwrap();
     let main = code.split("void main()").last().unwrap();
+
     assert!(!main.contains("adjusted__overload_0("), "{main}");
     assert!(!main.contains("adjusted__overload_1("), "{main}");
     assert!(main.contains("adjusted__overload_2("), "{main}");
@@ -83,6 +80,7 @@ fn imported_functions_preserve_global_references_under_caller_shadowing() {
     .unwrap();
     let code = compiled.artifact.unwrap();
     let caller = code.split("int f()").last().unwrap();
+
     assert!(!caller.contains("add("), "{caller}");
     assert!(caller.contains("6"), "{caller}");
 }
@@ -90,6 +88,7 @@ fn imported_functions_preserve_global_references_under_caller_shadowing() {
 #[test]
 fn generated_capture_names_avoid_source_prefixes() {
     let code=compile("static int _slang_inline_0=9;[ForceInline]int id(int x){return x;}int f(int x){return id(x)+_slang_inline_0;}").artifact.unwrap();
+
     assert!(code.contains("_slang_inline__0"), "{code}");
 }
 
@@ -97,14 +96,8 @@ fn generated_capture_names_avoid_source_prefixes() {
 fn malformed_attributes_and_unsupported_body_or_storage_forms_report_limits() {
     for (source, code) in [
         ("[ForceInline(1)]int f(int x){return x;}", "T006"),
-        (
-            "[ForceInline]int f(int x){return x;}static const int value=f(1);",
-            "T031",
-        ),
-        (
-            "[ForceInline]void f(inout int x){x=2;}void g(){float x=1.5;f(x);}",
-            "T015",
-        ),
+        ("[ForceInline]int f(int x){return x;}static const int value=f(1);", "T031"),
+        ("[ForceInline]void f(inout int x){x=2;}void g(){float x=1.5;f(x);}", "T015"),
     ] {
         let error = compile_source(
             "limits.slang",
@@ -113,30 +106,28 @@ fn malformed_attributes_and_unsupported_body_or_storage_forms_report_limits() {
             &MemoryIncludes::default(),
         )
         .unwrap_err();
-        assert!(
-            error.diagnostics.iter().any(|d| d.code == code),
-            "{source}: {error}"
-        );
+
+        assert!(error.diagnostics.iter().any(|d| d.code == code), "{source}: {error}");
     }
 }
 
 #[test]
 fn branches_loops_early_returns_and_lexical_scopes_expand_before_ssa() {
-    let compiled = compile(include_str!(
-        "../../../tests/conformance/positive/force-inline-control.slang"
-    ));
+    let compiled =
+        compile(include_str!("../../../tests/conformance/positive/force-inline-control.slang"));
     let json = serde_json::to_string(&compiled.ir).unwrap();
-    assert!(
-        !json.contains("BlockExpression"),
-        "statement expressions escaped normalization"
-    );
+
+    assert!(!json.contains("BlockExpression"), "statement expressions escaped normalization");
+
     for index in 0..compiled.ir.functions.len() {
         if let Some(graph) = slang_ir::flow::build_function(&compiled.ir, index) {
             graph.verify().unwrap();
         }
     }
+
     let code = compiled.artifact.unwrap();
     let main = code.split("void main()").last().unwrap();
+
     for name in [
         "choose",
         "scoped",
@@ -156,18 +147,21 @@ fn branches_loops_early_returns_and_lexical_scopes_expand_before_ssa() {
 
 #[test]
 fn dynamic_lifted_conditions_preserve_continue_and_output_locations() {
-    let compiled = compile(include_str!(
-        "../../../tests/conformance/positive/force-inline-effects.slang"
-    ));
+    let compiled =
+        compile(include_str!("../../../tests/conformance/positive/force-inline-effects.slang"));
     let json = serde_json::to_string(&compiled.ir).unwrap();
+
     assert!(!json.contains("BlockExpression"));
+
     for index in 0..compiled.ir.functions.len() {
         if let Some(graph) = slang_ir::flow::build_function(&compiled.ir, index) {
             graph.verify().unwrap();
         }
     }
+
     let code = compiled.artifact.unwrap();
     let main = code.split("void main(").last().unwrap();
+
     assert!(main.contains("continue;"), "{main}");
     assert!(main.contains("GetDimensions("), "{main}");
     assert!(main.contains("InterlockedAdd("), "{main}");
@@ -176,13 +170,14 @@ fn dynamic_lifted_conditions_preserve_continue_and_output_locations() {
 
 #[test]
 fn aggregate_inputs_results_and_void_returns_expand_with_value_copies() {
-    let compiled = compile(include_str!(
-        "../../../tests/conformance/positive/force-inline-aggregates.slang"
-    ));
+    let compiled =
+        compile(include_str!("../../../tests/conformance/positive/force-inline-aggregates.slang"));
     let json = serde_json::to_string(&compiled.ir).unwrap();
+
     assert!(!json.contains("BlockExpression"));
     let code = compiled.artifact.unwrap();
     let main = code.split("void main()").last().unwrap();
+
     for name in [
         "makePair",
         "transform",
@@ -202,21 +197,17 @@ fn aggregate_inputs_results_and_void_returns_expand_with_value_copies() {
 
 #[test]
 fn resource_inputs_and_results_keep_selected_handles() {
-    let compiled = compile(include_str!(
-        "../../../tests/conformance/positive/force-inline-resources.slang"
-    ));
+    let compiled =
+        compile(include_str!("../../../tests/conformance/positive/force-inline-resources.slang"));
     let json = serde_json::to_string(&compiled.ir).unwrap();
+
     assert!(!json.contains("BlockExpression"));
     let code = compiled.artifact.unwrap();
     let main = code.split("void main(").last().unwrap();
-    for name in [
-        "loadBuffer",
-        "selected",
-        "selectedUniform",
-        "readUniform",
-        "sampleValue",
-        "storeBytes",
-    ] {
+
+    for name in
+        ["loadBuffer", "selected", "selectedUniform", "readUniform", "sampleValue", "storeBytes"]
+    {
         assert!(!main.contains(&format!("{name}(")), "{name}: {main}");
     }
     assert!(main.contains("SampleLevel("), "{main}");
@@ -225,19 +216,22 @@ fn resource_inputs_and_results_keep_selected_handles() {
 
 #[test]
 fn output_arguments_preserve_aliases_coordinates_and_scratch_copy_back() {
-    let compiled = compile(include_str!(
-        "../../../tests/conformance/positive/force-inline-outputs.slang"
-    ));
+    let compiled =
+        compile(include_str!("../../../tests/conformance/positive/force-inline-outputs.slang"));
     let json = serde_json::to_string(&compiled.ir).unwrap();
+
     assert!(!json.contains("BlockExpression"));
     assert!(!json.contains("AddressView"));
+
     for index in 0..compiled.ir.functions.len() {
         if let Some(graph) = slang_ir::flow::build_function(&compiled.ir, index) {
             graph.verify().unwrap();
         }
     }
+
     let code = compiled.artifact.unwrap();
     let main = code.split("void main()").last().unwrap();
+
     for name in [
         "aliased",
         "readAfterArgument",
@@ -260,7 +254,9 @@ fn narrow_wide_and_pointer_output_views_preserve_storage_bits() {
         "../../../tests/conformance/positive/force-inline-output-views.slang"
     ));
     let json = serde_json::to_string(&compiled.ir).unwrap();
+
     assert!(!json.contains("BlockExpression") && !json.contains("AddressView"));
+
     for index in 0..compiled.ir.functions.len() {
         if let Some(graph) = slang_ir::flow::build_function(&compiled.ir, index) {
             graph.verify().unwrap();
@@ -289,10 +285,8 @@ fn output_locations_reject_value_conversions_that_cannot_form_integer_views() {
             &MemoryIncludes::default(),
         )
         .unwrap_err();
-        assert!(
-            error.diagnostics.iter().any(|d| d.code == "T015"),
-            "{source}: {error}"
-        );
+
+        assert!(error.diagnostics.iter().any(|d| d.code == "T015"), "{source}: {error}");
     }
 }
 
@@ -309,11 +303,9 @@ fn recursive_inline_expansion_is_bounded() {
             &MemoryIncludes::default(),
         )
         .unwrap_err();
+
         assert!(
-            error
-                .diagnostics
-                .iter()
-                .any(|d| d.code == "I005" && d.message.contains("recursive")),
+            error.diagnostics.iter().any(|d| d.code == "I005" && d.message.contains("recursive")),
             "{error}"
         );
     }
@@ -322,12 +314,15 @@ fn recursive_inline_expansion_is_bounded() {
 #[test]
 fn long_linear_bodies_do_not_create_deep_generated_expression_chains() {
     let mut source = "[ForceInline]int linear(int input){".to_owned();
+
     for index in 0..1000 {
         source.push_str(&format!("int value{index}=input+{index};"));
     }
+
     source.push_str("return value999;}int caller(int input){return linear(input);}");
     let code = compile(&source).artifact.unwrap();
     let caller = code.split("int caller(int input)").last().unwrap();
+
     assert!(!caller.contains("linear("), "{caller}");
     assert!(caller.contains("999"));
 }
@@ -335,12 +330,14 @@ fn long_linear_bodies_do_not_create_deep_generated_expression_chains() {
 #[test]
 fn exponential_inline_growth_reports_a_bounded_diagnostic() {
     let mut source = "[ForceInline]int f0(int x){return x;}".to_owned();
+
     for index in 1..18 {
         let previous = index - 1;
         source.push_str(&format!(
             "[ForceInline]int f{index}(int x){{return f{previous}(x)+f{previous}(x);}}"
         ));
     }
+
     let error = compile_source(
         "growth.slang",
         &source,
@@ -348,11 +345,9 @@ fn exponential_inline_growth_reports_a_bounded_diagnostic() {
         &MemoryIncludes::default(),
     )
     .unwrap_err();
+
     assert!(
-        error
-            .diagnostics
-            .iter()
-            .any(|d| d.code == "I005" && d.message.contains("size limit")),
+        error.diagnostics.iter().any(|d| d.code == "I005" && d.message.contains("size limit")),
         "{error}"
     );
 }

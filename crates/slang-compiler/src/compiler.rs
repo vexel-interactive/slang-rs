@@ -45,9 +45,11 @@ impl fmt::Display for CompileError {
             }
             writeln!(f, "{}", diagnostic.render(&self.sources))?;
         }
+
         Ok(())
     }
 }
+
 impl std::error::Error for CompileError {}
 
 /// Each call owns all compilation state and can run concurrently with other calls.
@@ -60,9 +62,7 @@ pub fn compile_source(
     let mut sources = SourceMap::default();
     let root = sources.add(name, text.to_owned());
     let mut defines = options.defines.clone();
-    defines
-        .entry("__SLANG__".into())
-        .or_insert_with(|| "1".into());
+    defines.entry("__SLANG__".into()).or_insert_with(|| "1".into());
     let program = slang_module::load(
         root,
         &mut sources,
@@ -83,6 +83,7 @@ pub fn compile_source(
             sources: sources.clone(),
         })?;
     warnings.extend(checked.diagnostics.iter().cloned());
+
     if let Some(entry) = &options.entry_point
         && !checked.entry_points.iter().any(|e| &e.name == entry)
     {
@@ -95,6 +96,7 @@ pub fn compile_source(
             sources,
         });
     }
+
     let profiles =
         crate::profile::resolve(&checked, options).map_err(|diagnostics| CompileError {
             diagnostics,
@@ -110,14 +112,14 @@ pub fn compile_source(
     let artifact = if options.check_only {
         None
     } else {
-        Some(
-            slang_codegen::emit(&ir, options.target).map_err(|diagnostic| CompileError {
-                diagnostics: vec![diagnostic],
-                sources: sources.clone(),
-            })?,
-        )
+        Some(slang_codegen::emit(&ir, options.target).map_err(|diagnostic| CompileError {
+            diagnostics: vec![diagnostic],
+            sources: sources.clone(),
+        })?)
     };
+
     let reflection = Reflection::from_module(&ir, options.target, &checked, &profiles.entries);
+
     Ok(Compilation {
         artifact,
         ir,

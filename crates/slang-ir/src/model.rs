@@ -57,10 +57,7 @@ impl Variable {
     /// Classify a global declaration, excluding resource handles and private storage.
     pub fn is_global_uniform(&self) -> bool {
         !self.ty.is_resource()
-            && !self
-                .modifiers
-                .iter()
-                .any(|m| matches!(m.as_str(), "static" | "groupshared"))
+            && !self.modifiers.iter().any(|m| matches!(m.as_str(), "static" | "groupshared"))
     }
 }
 

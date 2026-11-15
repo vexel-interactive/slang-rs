@@ -2,13 +2,8 @@ use slang_compiler::{CompileOptions, MemoryIncludes, compile_source};
 use slang_sema::{Scalar, Type};
 
 fn compile(source: &str) -> slang_compiler::Compilation {
-    compile_source(
-        "bits.slang",
-        source,
-        &CompileOptions::default(),
-        &MemoryIncludes::default(),
-    )
-    .unwrap_or_else(|error| panic!("{source}: {error}"))
+    compile_source("bits.slang", source, &CompileOptions::default(), &MemoryIncludes::default())
+        .unwrap_or_else(|error| panic!("{source}: {error}"))
 }
 
 #[test]
@@ -24,6 +19,7 @@ fn integer_bit_functions_preserve_signedness_width_and_unsigned_result_types() {
     ] {
         let mut types = vec![Type::Scalar(scalar)];
         types.extend((1..=4).map(|n| Type::Vector(scalar, n)));
+
         for ty in types {
             let parameter = ty.with_scalar(if scalar == Scalar::Bool {
                 Scalar::Int
@@ -39,14 +35,14 @@ fn integer_bit_functions_preserve_signedness_width_and_unsigned_result_types() {
             else {
                 panic!()
             };
+
             for (statement, expected) in
-                statements
-                    .iter()
-                    .zip([unsigned.clone(), unsigned.clone(), unsigned, parameter])
+                statements.iter().zip([unsigned.clone(), unsigned.clone(), unsigned, parameter])
             {
                 let slang_ir::StmtKind::Variable(variable) = &statement.kind else {
                     panic!()
                 };
+
                 assert_eq!(variable.initializer.as_ref().unwrap().ty, expected);
             }
         }
@@ -55,12 +51,9 @@ fn integer_bit_functions_preserve_signedness_width_and_unsigned_result_types() {
 
 #[test]
 fn wide_bit_operations_retain_values_types_and_single_evaluation() {
-    compile(include_str!(
-        "../../../tests/conformance/positive/integer64-bitops.slang"
-    ));
-    let code = compile("uint run(inout uint64_t value){return countbits(value++);}")
-        .artifact
-        .unwrap();
+    compile(include_str!("../../../tests/conformance/positive/integer64-bitops.slang"));
+    let code =
+        compile("uint run(inout uint64_t value){return countbits(value++);}").artifact.unwrap();
     assert_eq!(code.matches("(value++)").count(), 1, "{code}");
     assert!(code.contains("countbits((value++))"), "{code}");
 }
@@ -68,6 +61,7 @@ fn wide_bit_operations_retain_values_types_and_single_evaluation() {
 #[test]
 fn signed_inputs_and_boolean_promotions_remain_explicit() {
     let code = compile("void run(int value,bool2 flag){uint high=firstbithigh(value);int reversed=reversebits(value);uint2 counts=countbits(flag);}").artifact.unwrap();
+
     assert!(code.contains("firstbithigh(value)"), "{code}");
     assert!(code.contains("reversebits(value)"), "{code}");
     assert!(code.contains("countbits(((int2)flag))"), "{code}");
@@ -90,16 +84,15 @@ fn integer_bit_functions_reject_floating_aggregate_and_arity_inputs() {
             &MemoryIncludes::default(),
         )
         .unwrap_err();
-        assert!(
-            error.diagnostics.iter().any(|d| d.code == "T014"),
-            "{source}: {error}"
-        );
+
+        assert!(error.diagnostics.iter().any(|d| d.code == "T014"), "{source}: {error}");
     }
 }
 
 #[test]
 fn bit_operations_in_defaults_use_their_declaration_bindings() {
     let code = compile("static uint mask=15u;uint read(uint value=countbits(mask)){return value;}uint run(){uint mask=1u;return read();}").artifact.unwrap();
+
     assert!(code.contains("return countbits(mask);"), "{code}");
     assert!(code.contains("read(_slang"), "{code}");
 }

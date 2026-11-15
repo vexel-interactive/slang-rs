@@ -31,17 +31,16 @@ impl Span {
     }
 
     pub fn with_context(self, context: usize) -> Self {
-        Self { context, ..self }
+        Self {
+            context,
+            ..self
+        }
     }
 
     pub fn join(self, other: Self) -> Self {
         if self.source == other.source && self.context == other.context {
-            Self::new(
-                self.source,
-                self.start.min(other.start),
-                self.end.max(other.end),
-            )
-            .with_context(self.context)
+            Self::new(self.source, self.start.min(other.start), self.end.max(other.end))
+                .with_context(self.context)
         } else {
             self
         }
@@ -69,7 +68,10 @@ pub struct SourceLocation<'a> {
 #[derive(Clone, Debug)]
 pub enum LineDirective {
     Default,
-    Remap { line: i32, name: Option<String> },
+    Remap {
+        line: i32,
+        name: Option<String>,
+    },
 }
 
 #[derive(Clone, Debug)]
@@ -83,27 +85,23 @@ impl SourceFile {
     /// One-based line and Unicode scalar column, including the EOF position.
     pub fn location(&self, offset: usize) -> (usize, usize) {
         let mut offset = offset.min(self.text.len());
+
         while !self.text.is_char_boundary(offset) {
             offset -= 1;
         }
+
         let line = self.line_starts.partition_point(|&start| start <= offset) - 1;
-        (
-            line + 1,
-            self.text[self.line_starts[line]..offset].chars().count() + 1,
-        )
+        (line + 1, self.text[self.line_starts[line]..offset].chars().count() + 1)
     }
 
     /// Source display coordinates; physical byte spans and file identity stay intact.
     pub fn presumed_location(&self, offset: usize) -> SourceLocation<'_> {
         let (line, column) = self.location(offset);
-        let index = self
-            .line_directives
-            .partition_point(|d| d.offset <= offset.min(self.text.len()));
+        let index =
+            self.line_directives.partition_point(|d| d.offset <= offset.min(self.text.len()));
         let mapping = index.checked_sub(1).map(|i| &self.line_directives[i]);
         SourceLocation {
-            name: mapping
-                .and_then(|d| d.name.as_deref())
-                .unwrap_or(&self.name),
+            name: mapping.and_then(|d| d.name.as_deref()).unwrap_or(&self.name),
             line: (line as i32).wrapping_add(mapping.map_or(0, |d| d.adjustment)),
             column,
         }
@@ -111,18 +109,12 @@ impl SourceFile {
 
     pub fn line(&self, line: usize) -> Option<&str> {
         let start = *self.line_starts.get(line.checked_sub(1)?)?;
-        let end = self
-            .line_starts
-            .get(line)
-            .copied()
-            .unwrap_or(self.text.len());
+        let end = self.line_starts.get(line).copied().unwrap_or(self.text.len());
         Some(self.text[start..end].trim_end_matches(['\r', '\n']))
     }
 
     pub fn slice(&self, span: Span) -> Option<&str> {
-        (span.source == self.id)
-            .then(|| self.text.get(span.start..span.end))
-            .flatten()
+        (span.source == self.id).then(|| self.text.get(span.start..span.end)).flatten()
     }
 }
 
@@ -163,44 +155,42 @@ impl SourceMap {
         directive: LineDirective,
     ) -> Result<(), &'static str> {
         let file = self.files.get_mut(id.0).ok_or("invalid source ID")?;
+
         if offset > file.text.len() || !file.text.is_char_boundary(offset) {
             return Err("line directive offset is outside a source character boundary");
         }
-        if file
-            .line_directives
-            .last()
-            .is_some_and(|d| d.offset >= offset)
-        {
+
+        if file.line_directives.last().is_some_and(|d| d.offset >= offset) {
             return Err("line directives must be recorded in source order");
         }
+
         let mapping = match directive {
             LineDirective::Default => LineMapping {
                 offset,
                 adjustment: 0,
                 name: None,
             },
-            LineDirective::Remap { line, name } => {
+            LineDirective::Remap {
+                line,
+                name,
+            } => {
                 let name = name.unwrap_or_else(|| file.presumed_location(offset).name.to_owned());
                 LineMapping {
                     offset,
-                    adjustment: line
-                        .wrapping_sub(file.location(offset).0 as i32)
-                        .wrapping_sub(1),
+                    adjustment: line.wrapping_sub(file.location(offset).0 as i32).wrapping_sub(1),
                     name: Some(name),
                 }
             }
         };
+
         file.line_directives.push(mapping);
+
         Ok(())
     }
 
     /// Clear mapping metadata before preprocessing an existing source again.
     pub fn clear_line_directives(&mut self, id: SourceId) -> Result<(), &'static str> {
-        self.files
-            .get_mut(id.0)
-            .ok_or("invalid source ID")?
-            .line_directives
-            .clear();
+        self.files.get_mut(id.0).ok_or("invalid source ID")?.line_directives.clear();
         Ok(())
     }
 
@@ -218,6 +208,7 @@ mod tests {
         let mut map = SourceMap::default();
         let id = map.add("test", "α\r\nβ\n");
         let file = map.get(id).unwrap();
+
         assert_eq!(file.location(2), (1, 2));
         assert_eq!(file.location(4), (2, 1));
         assert_eq!(file.location(7), (3, 1));
@@ -251,12 +242,13 @@ mod tests {
             },
         )
         .unwrap();
-        map.add_line_directive(id, reset, LineDirective::Default)
-            .unwrap();
+        map.add_line_directive(id, reset, LineDirective::Default).unwrap();
         let file = map.get(id).unwrap();
+
         assert_eq!(file.presumed_location(0).name, "physical");
         assert_eq!(file.presumed_location(first).line, 49);
         let beta = text.find('β').unwrap();
+
         assert_eq!(file.location(beta), (2, 2));
         assert_eq!(
             file.presumed_location(beta),
@@ -266,13 +258,12 @@ mod tests {
                 column: 2
             }
         );
+
         assert_eq!(file.line(2), Some("αβ"));
         assert_eq!(file.line(3), Some("#line 0"));
         assert_eq!(file.presumed_location(text.find('γ').unwrap()).line, 0);
-        assert_eq!(
-            file.presumed_location(text.find('γ').unwrap()).name,
-            "virtual"
-        );
+        assert_eq!(file.presumed_location(text.find('γ').unwrap()).name, "virtual");
+
         assert_eq!(
             file.presumed_location(text.len()),
             SourceLocation {
@@ -282,6 +273,7 @@ mod tests {
             }
         );
         map.clear_line_directives(id).unwrap();
+
         assert_eq!(
             map.get(id).unwrap().presumed_location(beta),
             SourceLocation {
@@ -296,24 +288,18 @@ mod tests {
     fn line_directives_validate_offsets_source_ids_and_order() {
         let mut map = SourceMap::default();
         let id = map.add("test", "α\nβ");
-        assert!(
-            map.add_line_directive(SourceId(1), 0, LineDirective::Default)
-                .is_err()
-        );
+
+        assert!(map.add_line_directive(SourceId(1), 0, LineDirective::Default).is_err());
+
         assert!(map.clear_line_directives(SourceId(1)).is_err());
+
         for offset in [1, 6] {
-            assert!(
-                map.add_line_directive(id, offset, LineDirective::Default)
-                    .is_err()
-            );
+            assert!(map.add_line_directive(id, offset, LineDirective::Default).is_err());
         }
-        map.add_line_directive(id, 2, LineDirective::Default)
-            .unwrap();
+
+        map.add_line_directive(id, 2, LineDirective::Default).unwrap();
         for offset in [0, 2] {
-            assert!(
-                map.add_line_directive(id, offset, LineDirective::Default)
-                    .is_err()
-            );
+            assert!(map.add_line_directive(id, offset, LineDirective::Default).is_err());
         }
     }
 
@@ -331,6 +317,7 @@ mod tests {
         )
         .unwrap();
         let file = map.get(id).unwrap();
+
         assert_eq!(file.presumed_location(1).line, i32::MAX);
         assert_eq!(file.presumed_location(6).line, i32::MIN);
         assert_eq!(file.presumed_location(file.text.len()).line, i32::MIN + 1);

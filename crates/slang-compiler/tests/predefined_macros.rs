@@ -10,11 +10,13 @@ fn default_slang_define_can_be_overridden_by_the_caller() {
         &MemoryIncludes::default(),
     )
     .unwrap();
+
     assert!(default.artifact.unwrap().contains("return 1;"));
     let options = CompileOptions {
         defines: [("__SLANG__".into(), "0".into())].into(),
         ..CompileOptions::default()
     };
+
     let overridden =
         compile_source("root.slang", source, &options, &MemoryIncludes::default()).unwrap();
     assert!(overridden.artifact.unwrap().contains("return 2;"));
@@ -29,8 +31,10 @@ fn included_macro_definitions_use_root_invocations_and_local_header_lines() {
         )]
         .into(),
     };
+
     let compiled = compile_source("root.slang", "#include \"header.slang\"\nstatic const int rootLine=HEADER_LINE;\nint run(){return includedLine+rootLine;}\n", &CompileOptions::default(), &files).unwrap();
     let code = compiled.artifact.unwrap();
+
     assert!(code.contains("includedLine = 2;"));
     assert!(code.contains("rootLine = 2;"));
 }
@@ -44,6 +48,7 @@ fn imported_modules_get_fresh_location_builtins_and_the_slang_define() {
         )]
         .into(),
     };
+
     let compiled = compile_source(
         "root.slang",
         "import lib;\nint run(){return line()+__LINE__;}\n",
@@ -52,6 +57,7 @@ fn imported_modules_get_fresh_location_builtins_and_the_slang_define() {
     )
     .unwrap();
     let code = compiled.artifact.unwrap();
+
     assert!(code.contains("return 3;"));
     assert!(code.contains("+ 2)"));
 }
@@ -65,16 +71,14 @@ fn builtin_redefinition_warnings_keep_original_source_locations() {
         &MemoryIncludes::default(),
     )
     .unwrap();
+
     assert!(compiled.artifact.unwrap().contains("return 7;"));
     assert_eq!(compiled.diagnostics.len(), 1);
     let diagnostic = &compiled.diagnostics[0];
+
     assert_eq!(diagnostic.code, "P010");
     assert_eq!(
-        compiled
-            .sources
-            .get(diagnostic.span.source)
-            .unwrap()
-            .location(diagnostic.span.start),
+        compiled.sources.get(diagnostic.span.source).unwrap().location(diagnostic.span.start),
         (1, 9)
     );
 }
@@ -85,6 +89,7 @@ fn file_macro_can_request_a_pragma_once_source() {
     let files = MemoryIncludes {
         files: [("root.slang".into(), source.into())].into(),
     };
+
     let compiled =
         compile_source("root.slang", source, &CompileOptions::default(), &files).unwrap();
     assert_eq!(compiled.ir.functions.len(), 1);

@@ -5,6 +5,7 @@ impl Lowerer {
         let ExprKind::DeclarationDefault(value) = &expression.kind else {
             return false;
         };
+
         let name = format!("{}default_{}", self.prefix, self.functions.len());
         let array = matches!(value.ty, Type::Array(..));
         let mut statements = vec![];
@@ -23,6 +24,7 @@ impl Lowerer {
                     span: value.span,
                 }],
             };
+
             let initialize_zero = self.can_zero(&wrapper);
             self.generated_structures.push(wrapper.clone());
             let ty = Type::Struct(wrapper.name);
@@ -31,9 +33,11 @@ impl Lowerer {
                 span: value.span,
                 kind: ExprKind::Name(format!("{}default_result", self.prefix)),
             };
+
             let ExprKind::Name(local) = &result.kind else {
                 unreachable!()
             };
+
             statements.push(Stmt {
                 span: value.span,
                 kind: StmtKind::Variable(Variable {
@@ -75,6 +79,7 @@ impl Lowerer {
         } else {
             (value.ty.clone(), *value.clone())
         };
+
         statements.push(Stmt {
             span: value.span,
             kind: StmtKind::Return(Some(result)),
@@ -99,6 +104,7 @@ impl Lowerer {
                 arguments: vec![],
             },
         };
+
         expression.kind = if array {
             ExprKind::Member {
                 base: Box::new(call),
@@ -107,6 +113,7 @@ impl Lowerer {
         } else {
             call.kind
         };
+
         true
     }
 }

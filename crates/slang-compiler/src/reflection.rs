@@ -120,10 +120,7 @@ impl Reflection {
                         .map(|m| {
                             format!(
                                 "{}.{}",
-                                checked
-                                    .symbols
-                                    .get(&m.owner)
-                                    .map_or(m.owner.as_str(), |o| &o.name),
+                                checked.symbols.get(&m.owner).map_or(m.owner.as_str(), |o| &o.name),
                                 m.name
                             )
                         })
@@ -147,10 +144,7 @@ impl Reflection {
                         {
                             &global.name
                         } else {
-                            module
-                                .uniform_value_functions
-                                .get(&global.name)
-                                .unwrap_or(&global.name)
+                            module.uniform_value_functions.get(&global.name).unwrap_or(&global.name)
                         },
                         target,
                     ),
@@ -161,12 +155,28 @@ impl Reflection {
                     resource_access: match resource_element(
                         &checked.declaration_types[&slang_sema::span_key(global.span)],
                     ) {
-                        Type::ConstantBuffer { .. } => Some("read".into()),
-                        Type::ByteBuffer { writable }
-                        | Type::Buffer { writable, .. }
-                        | Type::Texture { writable, .. } => {
-                            Some(if *writable { "read_write" } else { "read" }.into())
+                        Type::ConstantBuffer {
+                            ..
+                        } => Some("read".into()),
+                        Type::ByteBuffer {
+                            writable,
                         }
+                        | Type::Buffer {
+                            writable,
+                            ..
+                        }
+                        | Type::Texture {
+                            writable,
+                            ..
+                        } => Some(
+                            if *writable {
+                                "read_write"
+                            } else {
+                                "read"
+                            }
+                            .into(),
+                        ),
+
                         _ => None,
                     },
                     module: checked

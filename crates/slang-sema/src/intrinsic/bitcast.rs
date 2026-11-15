@@ -10,9 +10,7 @@ pub(crate) fn signature(
     if name == "asuint"
         && let [input, low, high] = types
         && matches!(input, Type::Scalar(_) | Type::Vector(_, 1))
-        && [low, high]
-            .iter()
-            .all(|ty| matches!(ty, Type::Scalar(Scalar::Int | Scalar::Uint)))
+        && [low, high].iter().all(|ty| matches!(ty, Type::Scalar(Scalar::Int | Scalar::Uint)))
     {
         return Some(Signature {
             parameters: vec![Type::Scalar(Scalar::Double), low.clone(), high.clone()],
@@ -20,12 +18,17 @@ pub(crate) fn signature(
             outputs_start: Some(1),
         });
     }
+
     if name == "asdouble" {
-        let [low, high] = types else { return None };
+        let [low, high] = types else {
+            return None;
+        };
         let width = low.width()?.max(high.width()?);
+
         if width > 2 {
             return None;
         }
+
         let shape = Type::numeric_shape(Scalar::Uint, width);
         return Some(Signature {
             parameters: vec![shape.clone(), shape.clone()],
@@ -33,13 +36,17 @@ pub(crate) fn signature(
             outputs_start: None,
         });
     }
+
     let scalar = match name {
         "asint" => Scalar::Int,
         "asuint" => Scalar::Uint,
         "asfloat" => Scalar::Float,
         _ => return None,
     };
-    let [input] = types else { return None };
+
+    let [input] = types else {
+        return None;
+    };
     let parameter = match input.scalar()? {
         Scalar::Bool => input.with_scalar(Scalar::Int),
         Scalar::Half => input.with_scalar(Scalar::Float),
@@ -56,12 +63,15 @@ pub(crate) fn signature(
                 (input.literal_conversion_cost(&target, literal), target)
             });
             candidates.sort_by_key(|(cost, _)| *cost);
+
             if candidates[0].0 == candidates[1].0 {
                 return None;
             }
+
             candidates[0].1.clone()
         }
     };
+
     Some(Signature {
         parameters: vec![parameter],
         result: input.with_scalar(scalar),

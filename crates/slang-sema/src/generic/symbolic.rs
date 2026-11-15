@@ -6,22 +6,18 @@ use crate::{Type, checker::Checker};
 impl Specializer {
     pub(super) fn symbolic_instance(&mut self, name: &str) -> Result<(), Diagnostic> {
         let template = self.templates[name].clone();
-        let module = self
-            .symbols
-            .get(&template.name)
-            .map_or(Default::default(), |o| o.module);
+        let module = self.symbols.get(&template.name).map_or(Default::default(), |o| o.module);
         let mut arguments = vec![];
         let mut declarations = vec![];
+
         for parameter in &template.parameters {
             let context = self.next_context;
             self.next_context += 1;
             let name = format!("{}parameter_{context}", self.prefix);
             let span = parameter.span.with_context(context);
             self.symbolic_types.insert(name.clone());
-            self.symbolic_parameters.insert(
-                name.clone(),
-                witness::reference(&parameter.name, parameter.span),
-            );
+            self.symbolic_parameters
+                .insert(name.clone(), witness::reference(&parameter.name, parameter.span));
             self.symbols.insert(
                 name.clone(),
                 SymbolOrigin {
@@ -49,6 +45,7 @@ impl Specializer {
                 span,
             }));
         }
+
         let substitutions = template
             .parameters
             .iter()
@@ -57,20 +54,17 @@ impl Specializer {
                 let TypeArgument::Type(ty) = a else {
                     unreachable!()
                 };
+
                 (p.name.clone(), ty.clone())
             })
             .collect::<BTreeMap<_, _>>();
         for declaration in &mut declarations {
             constraint::ConstraintSubstitution(&substitutions).declaration(declaration)?;
         }
+
         self.register(declarations, vec![], vec![], None)?;
         let target = self.instantiate(name, &arguments, template.parameters[0].span)?;
-        let context = self
-            .instance_output
-            .iter()
-            .find(|i| i.type_name == target)
-            .unwrap()
-            .context;
+        let context = self.instance_output.iter().find(|i| i.type_name == target).unwrap().context;
         self.validation_contexts.insert(context);
         Ok(())
     }
@@ -91,6 +85,7 @@ impl Checker {
         {
             return Type::Struct(name.clone());
         }
+
         let fields: BTreeMap<String, Type> = if dimensions.len() == 1 {
             ["x", "y", "z", "w"]
                 .iter()
@@ -99,14 +94,15 @@ impl Checker {
                 .collect()
         } else {
             let row = self.symbolic_shape(component.clone(), vec![dimensions[1]], span);
-            (0..dimensions[0])
-                .map(|i| (format!("_row_{i}"), row.clone()))
-                .collect()
+            (0..dimensions[0]).map(|i| (format!("_row_{i}"), row.clone())).collect()
         };
+
         let mut name = format!("_slang_symbolic_shape_{}", self.symbolic_shapes.len());
+
         while self.structures.contains_key(&name) {
             name.push('_');
         }
+
         let variables = fields
             .iter()
             .map(|(name, ty)| Variable {
@@ -143,8 +139,7 @@ impl Checker {
             },
         );
         self.public_types.insert(name.clone());
-        self.symbolic_shapes
-            .insert(name.clone(), (component, dimensions));
+        self.symbolic_shapes.insert(name.clone(), (component, dimensions));
         Type::Struct(name)
     }
 
@@ -155,6 +150,7 @@ impl Checker {
         } else {
             crate::swizzle::matrix(member, dimensions[0], dimensions[1])
         };
+
         match indices {
             Some(indices) if indices.len() == 1 => component,
             Some(indices) => self.symbolic_shape(component, vec![indices.len() as u8], span),
@@ -167,6 +163,7 @@ impl Checker {
 
     pub(crate) fn symbolic_index(&mut self, owner: &str, span: Span) -> (Type, Option<u32>) {
         let (component, dimensions) = self.symbolic_shapes[owner].clone();
+
         if dimensions.len() == 1 {
             (component, Some(u32::from(dimensions[0])))
         } else {

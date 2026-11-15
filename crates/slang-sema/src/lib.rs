@@ -35,6 +35,7 @@ pub use checker::{
     CheckedModule, EntryPoint, ShaderStage, check, check_program, check_program_with_matrix_major,
     span_key,
 };
+
 pub use initialization::{ConstraintSite, Initialization, InitializationKind};
 pub use intrinsic::is_intrinsic_name;
 pub use method::MethodReceiver;

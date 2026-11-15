@@ -25,28 +25,24 @@ impl Checker {
         if !self.generic_constructors.contains_key(owner) {
             return Ok(None);
         }
-        let key = (
-            owner.to_owned(),
-            types.iter().map(ToString::to_string).collect(),
-        );
+
+        let key = (owner.to_owned(), types.iter().map(ToString::to_string).collect());
+
         if let Some(name) = self.constructor_applications.get(&key) {
             return Ok(Some(self.functions.get(name).map_or(&[], Vec::as_slice)));
         }
+
         if self.infer_generic_constructors {
-            self.generic_constructor_requests
-                .borrow_mut()
-                .entry(key)
-                .or_insert_with(|| ConstructorRequest {
+            self.generic_constructor_requests.borrow_mut().entry(key).or_insert_with(|| {
+                ConstructorRequest {
                     types: types.to_vec(),
                     span,
                     module: self.current_module,
-                });
+                }
+            });
         }
-        Err(Diagnostic::error(
-            "T002",
-            span,
-            "cannot infer generic constructor arguments",
-        ))
+
+        Err(Diagnostic::error("T002", span, "cannot infer generic constructor arguments"))
     }
 
     pub(crate) fn memberwise_constructor_score(
@@ -58,6 +54,7 @@ impl Checker {
         if !self.generic_constructors.get(owner)?.synthesize_members {
             return None;
         }
+
         let structure = &self.struct_definitions[owner];
         let public = self.public_types.contains(owner);
         let fields = structure
@@ -68,17 +65,22 @@ impl Checker {
         if arguments.len() > fields.len() {
             return None;
         }
+
         let mut cost = 0;
+
         for ((argument, actual), field) in arguments.iter().zip(types).zip(fields) {
             let target = &self.structures[owner][&field.name];
+
             if !self.can_initialize(argument, target) {
                 return None;
             }
+
             cost += actual.literal_conversion_cost(
                 target,
                 slang_syntax::integer_literal(argument).ok().flatten(),
             );
         }
+
         Some(cost)
     }
 }

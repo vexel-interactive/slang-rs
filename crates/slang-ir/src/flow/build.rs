@@ -33,20 +33,21 @@ struct Builder {
 pub(super) fn build(module: &Module, function: &Function) -> Option<Analysis> {
     let body = function.body.as_ref()?;
     let mut local_types = vec![];
+
     for parameter in &function.parameters {
         collect_variable(parameter, &mut local_types);
     }
+
     let mut nodes = 1;
     collect(body, &mut local_types, &mut nodes);
     // Each structured node needs at most five blocks; each expression node is
     // included separately for short-circuit branches and temporary values.
-    if nodes
-        .saturating_mul(local_types.len().saturating_add(4))
-        .saturating_mul(5)
+    if nodes.saturating_mul(local_types.len().saturating_add(4)).saturating_mul(5)
         > MAX_ANALYSIS_VALUES
     {
         return None;
     }
+
     let mut builder = Builder {
         graph: Graph {
             blocks: vec![],
@@ -67,11 +68,7 @@ pub(super) fn build(module: &Module, function: &Function) -> Option<Analysis> {
                     f.name.clone(),
                     f.parameters
                         .iter()
-                        .map(|p| {
-                            p.modifiers
-                                .iter()
-                                .any(|m| matches!(m.as_str(), "out" | "inout"))
-                        })
+                        .map(|p| p.modifiers.iter().any(|m| matches!(m.as_str(), "out" | "inout")))
                         .collect(),
                 )
             })
@@ -81,30 +78,33 @@ pub(super) fn build(module: &Module, function: &Function) -> Option<Analysis> {
             .iter()
             .filter_map(|v| {
                 let s = constant::scalar(&v.ty)?;
+
                 if !v.modifiers.iter().any(|m| m == "const") {
                     return None;
                 }
+
                 let value = literal_expression(v.initializer.as_ref()?)?;
-                Some((
-                    v.name.clone(),
-                    (v.ty.clone(), constant::normalize(value, s)),
-                ))
+                Some((v.name.clone(), (v.ty.clone(), constant::normalize(value, s))))
             })
             .collect(),
         sites: BTreeMap::new(),
     };
+
     builder.graph.blocks.push(Block {
         parameters: vec![],
         instructions: vec![],
         terminator: Terminator::Unreachable,
     });
+
     for ty in builder.local_types.clone() {
         let value = builder.emit(ty, Operation::Unknown(vec![]));
         builder.state.push(value);
     }
+
     for parameter in &function.parameters {
         builder.bind(parameter);
     }
+
     builder.statement(body);
     debug_assert_eq!(builder.next_local, builder.local_types.len());
     Some(Analysis {
@@ -138,42 +138,68 @@ fn promotable(variable: &Variable) -> bool {
 
 fn collect_expression(expression: &Expr, nodes: &mut usize) {
     *nodes += 1;
+
     match &expression.kind {
         ExprKind::Construct(values)
         | ExprKind::Call {
-            arguments: values, ..
+            arguments: values,
+            ..
         }
         | ExprKind::IntrinsicCall {
-            arguments: values, ..
+            arguments: values,
+            ..
         } => {
             for value in values {
                 collect_expression(value, nodes);
             }
         }
+
         ExprKind::MethodCall {
             receiver,
             arguments,
             ..
         } => {
             collect_expression(receiver, nodes);
+
             for value in arguments {
                 collect_expression(value, nodes);
             }
         }
+
         ExprKind::ConstantBufferLoad(value)
         | ExprKind::DeclarationDefault(value)
-        | ExprKind::Unary { value, .. }
-        | ExprKind::Cast { value }
-        | ExprKind::Postfix { value, .. } => collect_expression(value, nodes),
-        ExprKind::Binary { left, right, .. } => {
+        | ExprKind::Unary {
+            value,
+            ..
+        }
+        | ExprKind::Cast {
+            value,
+        }
+        | ExprKind::Postfix {
+            value,
+            ..
+        } => collect_expression(value, nodes),
+        ExprKind::Binary {
+            left,
+            right,
+            ..
+        } => {
             collect_expression(left, nodes);
             collect_expression(right, nodes);
         }
-        ExprKind::Member { base, .. } => collect_expression(base, nodes),
-        ExprKind::Index { base, index } => {
+
+        ExprKind::Member {
+            base,
+            ..
+        } => collect_expression(base, nodes),
+        ExprKind::Index {
+            base,
+            index,
+        } => {
             collect_expression(base, nodes);
             collect_expression(index, nodes);
         }
+
         ExprKind::Conditional {
             condition,
             then_value,
@@ -183,35 +209,43 @@ fn collect_expression(expression: &Expr, nodes: &mut usize) {
             collect_expression(then_value, nodes);
             collect_expression(else_value, nodes);
         }
+
         _ => {}
     }
 }
 
 fn collect(statement: &Stmt, locals: &mut Vec<Type>, nodes: &mut usize) {
     *nodes += 1;
+
     match &statement.kind {
         StmtKind::Block(values) | StmtKind::Sequence(values) => {
             for value in values {
                 collect(value, locals, nodes);
             }
         }
+
         StmtKind::Variable(variable) => {
             collect_variable(variable, locals);
+
             if let Some(value) = &variable.initializer {
                 collect_expression(value, nodes);
             }
         }
+
         StmtKind::Variables(values) => {
             for variable in values {
                 collect_variable(variable, locals);
+
                 if let Some(value) = &variable.initializer {
                     collect_expression(value, nodes);
                 }
             }
         }
+
         StmtKind::Expression(value) | StmtKind::Return(Some(value)) => {
             collect_expression(value, nodes)
         }
+
         StmtKind::If {
             condition,
             then_branch,
@@ -219,14 +253,24 @@ fn collect(statement: &Stmt, locals: &mut Vec<Type>, nodes: &mut usize) {
         } => {
             collect_expression(condition, nodes);
             collect(then_branch, locals, nodes);
+
             if let Some(value) = else_branch {
                 collect(value, locals, nodes);
             }
         }
-        StmtKind::While { condition, body } | StmtKind::DoWhile { body, condition } => {
+
+        StmtKind::While {
+            condition,
+            body,
+        }
+        | StmtKind::DoWhile {
+            body,
+            condition,
+        } => {
             collect_expression(condition, nodes);
             collect(body, locals, nodes);
         }
+
         StmtKind::For {
             initializer,
             condition,
@@ -234,25 +278,35 @@ fn collect(statement: &Stmt, locals: &mut Vec<Type>, nodes: &mut usize) {
             body,
         } => {
             collect(initializer, locals, nodes);
+
             if let Some(value) = condition {
                 collect_expression(value, nodes);
             }
+
             collect(body, locals, nodes);
+
             if let Some(value) = increment {
                 collect_expression(value, nodes);
             }
         }
-        StmtKind::Switch { selector, cases } => {
+
+        StmtKind::Switch {
+            selector,
+            cases,
+        } => {
             collect_expression(selector, nodes);
+
             for case in cases {
                 if let Some(value) = &case.value {
                     collect_expression(value, nodes);
                 }
+
                 for value in &case.statements {
                     collect(value, locals, nodes);
                 }
             }
         }
+
         _ => {}
     }
 }
@@ -278,6 +332,7 @@ impl Builder {
     fn block(&mut self, result: Option<&Type>) -> BlockId {
         let id = BlockId(self.graph.blocks.len());
         let mut parameters = vec![];
+
         for ty in self.local_types.iter().chain(result) {
             let value = ValueId(self.graph.values.len());
             self.graph.values.push(Value {
@@ -289,6 +344,7 @@ impl Builder {
             });
             parameters.push(value);
         }
+
         self.graph.blocks.push(Block {
             parameters,
             instructions: vec![],
@@ -305,7 +361,10 @@ impl Builder {
     fn edge(&self, target: BlockId, result: Option<ValueId>) -> Edge {
         let mut arguments = self.state.clone();
         arguments.extend(result);
-        Edge { target, arguments }
+        Edge {
+            target,
+            arguments,
+        }
     }
 
     fn jump(&mut self, target: BlockId, result: Option<ValueId>) {
@@ -335,25 +394,20 @@ impl Builder {
             self.next_local += 1;
             local
         });
-        self.scopes
-            .last_mut()
-            .unwrap()
-            .insert(variable.name.clone(), local);
+        self.scopes.last_mut().unwrap().insert(variable.name.clone(), local);
         local
     }
 
     fn lookup(&self, name: &str) -> Option<usize> {
-        self.scopes
-            .iter()
-            .rev()
-            .find_map(|scope| scope.get(name).copied())
-            .flatten()
+        self.scopes.iter().rev().find_map(|scope| scope.get(name).copied()).flatten()
     }
 
     fn variable(&mut self, variable: &Variable) {
         let local = self.bind(variable);
+
         if let Some(expression) = &variable.initializer {
             let value = self.expression(expression).value;
+
             if let Some(local) = local {
                 self.state[local] = self.convert(value, &variable.ty);
             }
@@ -364,35 +418,39 @@ impl Builder {
     }
 
     fn invalidate(&mut self, local: usize, dependencies: Vec<ValueId>) {
-        self.state[local] = self.emit(
-            self.local_types[local].clone(),
-            Operation::Unknown(dependencies),
-        );
+        self.state[local] =
+            self.emit(self.local_types[local].clone(), Operation::Unknown(dependencies));
     }
 
     fn statement(&mut self, statement: &Stmt) {
         match &statement.kind {
             StmtKind::Block(values) => {
                 self.scopes.push(BTreeMap::new());
+
                 for value in values {
                     self.statement(value);
                 }
+
                 self.scopes.pop();
             }
+
             StmtKind::Sequence(values) => {
                 for value in values {
                     self.statement(value);
                 }
             }
+
             StmtKind::Variable(variable) => self.variable(variable),
             StmtKind::Variables(values) => {
                 for variable in values {
                     self.variable(variable);
                 }
             }
+
             StmtKind::Expression(value) => {
                 self.expression(value);
             }
+
             StmtKind::Return(value) => {
                 let value = value.as_ref().map(|e| {
                     let value = self.expression(e).value;
@@ -402,6 +460,7 @@ impl Builder {
                 let dead = self.block(None);
                 self.enter(dead);
             }
+
             StmtKind::If {
                 condition,
                 then_branch,
@@ -416,13 +475,19 @@ impl Builder {
                 self.statement(then_branch);
                 self.jump(after, None);
                 self.enter(no);
+
                 if let Some(branch) = else_branch {
                     self.statement(branch);
                 }
+
                 self.jump(after, None);
                 self.enter(after);
             }
-            StmtKind::While { condition, body } => {
+
+            StmtKind::While {
+                condition,
+                body,
+            } => {
                 let head = self.block(None);
                 let inside = self.block(None);
                 let after = self.block(None);
@@ -437,7 +502,11 @@ impl Builder {
                 self.controls.pop();
                 self.enter(after);
             }
-            StmtKind::DoWhile { body, condition } => {
+
+            StmtKind::DoWhile {
+                body,
+                condition,
+            } => {
                 let inside = self.block(None);
                 let test = self.block(None);
                 let after = self.block(None);
@@ -452,6 +521,7 @@ impl Builder {
                 self.controls.pop();
                 self.enter(after);
             }
+
             StmtKind::For {
                 initializer,
                 condition,
@@ -466,31 +536,40 @@ impl Builder {
                 let after = self.block(None);
                 self.jump(head, None);
                 self.enter(head);
+
                 if let Some(condition) = condition {
                     let value = self.expression(condition).value;
                     self.branch(value, inside, after);
                 } else {
                     self.jump(inside, None);
                 }
+
                 self.controls.push((after, Some(step)));
                 self.enter(inside);
                 self.statement(body);
                 self.jump(step, None);
                 self.enter(step);
+
                 if let Some(value) = increment {
                     self.expression(value);
                 }
+
                 self.jump(head, None);
                 self.controls.pop();
                 self.scopes.pop();
                 self.enter(after);
             }
-            StmtKind::Switch { selector, cases } => {
+
+            StmtKind::Switch {
+                selector,
+                cases,
+            } => {
                 let value = self.expression(selector).value;
                 let after = self.block(None);
                 let blocks: Vec<_> = cases.iter().map(|_| self.block(None)).collect();
                 let mut default = after;
                 let mut choices = vec![];
+
                 for (case, &block) in cases.iter().zip(&blocks) {
                     if let Some(label) = &case.value {
                         if let Some(bits) = literal_expression(label) {
@@ -500,41 +579,52 @@ impl Builder {
                         default = block;
                     }
                 }
+
                 self.graph.blocks[self.current.0].terminator = Terminator::Switch {
                     selector: value,
                     cases: choices,
                     default: self.edge(default, None),
                 };
+
                 self.controls.push((after, None));
                 self.scopes.push(BTreeMap::new());
+
                 for (index, case) in cases.iter().enumerate() {
                     self.enter(blocks[index]);
+
                     for value in &case.statements {
                         self.statement(value);
                     }
+
                     self.jump(blocks.get(index + 1).copied().unwrap_or(after), None);
                 }
+
                 self.scopes.pop();
                 self.controls.pop();
                 self.enter(after);
             }
+
             StmtKind::Break | StmtKind::Continue => {
                 let target = if matches!(statement.kind, StmtKind::Break) {
                     self.controls.last().map(|c| c.0)
                 } else {
                     self.controls.iter().rev().find_map(|c| c.1)
                 };
+
                 if let Some(target) = target {
                     self.jump(target, None);
                 }
+
                 let dead = self.block(None);
                 self.enter(dead);
             }
+
             StmtKind::Discard => {
                 self.graph.blocks[self.current.0].terminator = Terminator::Unreachable;
                 let dead = self.block(None);
                 self.enter(dead);
             }
+
             StmtKind::Empty => {}
         }
     }
@@ -545,20 +635,31 @@ impl Builder {
         match &expression.kind {
             ExprKind::Name(name) => self.lookup(name),
             ExprKind::GlobalName(_) => None,
-            ExprKind::Member { base, .. } => {
+            ExprKind::Member {
+                base,
+                ..
+            } => {
                 if let Some(local) = self.location(base) {
                     self.invalidate(local, vec![self.state[local]]);
                 }
+
                 None
             }
-            ExprKind::Index { base, index } => {
+
+            ExprKind::Index {
+                base,
+                index,
+            } => {
                 let root = self.location(base);
                 self.expression(index);
+
                 if let Some(local) = root {
                     self.invalidate(local, vec![self.state[local]]);
                 }
+
                 None
             }
+
             _ => {
                 self.expression(expression);
                 None
@@ -582,12 +683,15 @@ impl Builder {
         } else {
             Type::common(&left_ty, &right_ty)
         };
+
         if let Some(common) = common {
             left = self.convert(left, &common);
+
             if !matches!(op, "<<" | ">>") {
                 right = self.convert(right, &common);
             }
         }
+
         self.emit(
             ty.clone(),
             Operation::Binary {
@@ -609,23 +713,22 @@ impl Builder {
                 ..source
             };
         }
+
         let outputs = match kind {
             CallKind::Intrinsic if name == "asuint" && arguments.len() == 3 => {
                 Some(vec![false, true, true])
             }
+
             CallKind::Intrinsic if readonly_intrinsic(name) => Some(vec![false; arguments.len()]),
             CallKind::User => self.signatures.get(name).cloned(),
             _ => None,
         };
+
         let mut operands = vec![];
         let mut writes = vec![];
+
         for (index, argument) in arguments.iter().enumerate() {
-            if outputs
-                .as_ref()
-                .and_then(|v| v.get(index))
-                .copied()
-                .unwrap_or(true)
-            {
+            if outputs.as_ref().and_then(|v| v.get(index)).copied().unwrap_or(true) {
                 if let Some(local) = self.location(argument) {
                     writes.push(local);
                     operands.push(self.state[local]);
@@ -634,10 +737,13 @@ impl Builder {
                 operands.push(self.expression(argument).value);
             }
         }
+
         let result = self.emit(ty.clone(), Operation::Unknown(operands));
+
         for local in writes {
             self.invalidate(local, vec![result]);
         }
+
         Evaluation {
             value: result,
             pure: false,
@@ -659,6 +765,7 @@ impl Builder {
                     propagated: false,
                 }
             }
+
             ExprKind::Name(name) if self.lookup(name).is_some() => {
                 let local = self.lookup(name).unwrap();
                 Evaluation {
@@ -667,6 +774,7 @@ impl Builder {
                     propagated: true,
                 }
             }
+
             ExprKind::GlobalName(name) if self.globals.contains_key(name) => {
                 let bits = self.globals[name].1;
                 Evaluation {
@@ -675,32 +783,49 @@ impl Builder {
                     propagated: false,
                 }
             }
-            ExprKind::Cast { value } | ExprKind::DeclarationDefault(value) => {
+
+            ExprKind::Cast {
+                value,
+            }
+            | ExprKind::DeclarationDefault(value) => {
                 let source = self.expression(value);
                 Evaluation {
                     value: self.convert(source.value, &expression.ty),
                     ..source
                 }
             }
-            ExprKind::Unary { op, value } | ExprKind::Postfix { op, value }
-                if matches!(op.as_str(), "++" | "--") =>
-            {
+
+            ExprKind::Unary {
+                op,
+                value,
+            }
+            | ExprKind::Postfix {
+                op,
+                value,
+            } if matches!(op.as_str(), "++" | "--") => {
                 let local = self.location(value);
                 let old = match local {
                     Some(local) => self.state[local],
                     None => self.emit(value.ty.clone(), Operation::Unknown(vec![])),
                 };
+
                 let one = self.emit(value.ty.clone(), Operation::Constant(1));
                 let new = self.binary(
-                    if op == "++" { "+" } else { "-" },
+                    if op == "++" {
+                        "+"
+                    } else {
+                        "-"
+                    },
                     old,
                     one,
                     &value.ty,
                     true,
                 );
+
                 if let Some(local) = local {
                     self.state[local] = new;
                 }
+
                 Evaluation {
                     value: if matches!(expression.kind, ExprKind::Postfix { .. }) {
                         old
@@ -711,7 +836,11 @@ impl Builder {
                     propagated: true,
                 }
             }
-            ExprKind::Unary { op, value } => {
+
+            ExprKind::Unary {
+                op,
+                value,
+            } => {
                 let source = self.expression(value);
                 Evaluation {
                     value: self.emit(
@@ -724,7 +853,12 @@ impl Builder {
                     ..source
                 }
             }
-            ExprKind::Binary { op, left, right } if assignment(op) => {
+
+            ExprKind::Binary {
+                op,
+                left,
+                right,
+            } if assignment(op) => {
                 let local = self.location(left);
                 let right = self.expression(right);
                 preserve_right = !right.pure;
@@ -738,24 +872,35 @@ impl Builder {
                         Some(local) => self.state[local],
                         None => self.emit(left.ty.clone(), Operation::Unknown(vec![])),
                     };
+
                     self.binary(op.strip_suffix('=').unwrap(), old, right, &left.ty, true)
                 };
+
                 if let Some(local) = local {
                     self.state[local] = result;
                     compound = op != "=";
                 }
+
                 Evaluation {
                     value: result,
                     pure: false,
                     propagated: true,
                 }
             }
-            ExprKind::Binary { op, left, right }
-                if matches!(op.as_str(), "&&" | "||") && matches!(left.ty, Type::Scalar(_)) =>
-            {
+
+            ExprKind::Binary {
+                op,
+                left,
+                right,
+            } if matches!(op.as_str(), "&&" | "||") && matches!(left.ty, Type::Scalar(_)) => {
                 self.logical(op, left, right, &expression.ty)
             }
-            ExprKind::Binary { op, left, right } if op == "," => {
+
+            ExprKind::Binary {
+                op,
+                left,
+                right,
+            } if op == "," => {
                 let left = self.expression(left);
                 let right = self.expression(right);
                 Evaluation {
@@ -764,7 +909,12 @@ impl Builder {
                     ..right
                 }
             }
-            ExprKind::Binary { op, left, right } => {
+
+            ExprKind::Binary {
+                op,
+                left,
+                right,
+            } => {
                 let a = self.expression(left);
                 let b = self.expression(right);
                 Evaluation {
@@ -773,6 +923,7 @@ impl Builder {
                     propagated: a.propagated || b.propagated,
                 }
             }
+
             ExprKind::Conditional {
                 condition,
                 then_value,
@@ -780,6 +931,7 @@ impl Builder {
             } if matches!(condition.ty, Type::Scalar(_)) => {
                 self.conditional(condition, then_value, else_value, &expression.ty)
             }
+
             ExprKind::Conditional {
                 condition,
                 then_value,
@@ -794,12 +946,17 @@ impl Builder {
                     propagated: false,
                 }
             }
-            ExprKind::Call { name, arguments } => {
-                self.call(name, arguments, &expression.ty, CallKind::User)
-            }
-            ExprKind::IntrinsicCall { name, arguments } => {
-                self.call(name, arguments, &expression.ty, CallKind::Intrinsic)
-            }
+
+            ExprKind::Call {
+                name,
+                arguments,
+            } => self.call(name, arguments, &expression.ty, CallKind::User),
+
+            ExprKind::IntrinsicCall {
+                name,
+                arguments,
+            } => self.call(name, arguments, &expression.ty, CallKind::Intrinsic),
+
             ExprKind::MethodCall {
                 receiver,
                 name,
@@ -808,6 +965,7 @@ impl Builder {
                 self.expression(receiver);
                 self.call(name, arguments, &expression.ty, CallKind::Method)
             }
+
             ExprKind::Construct(values)
                 if values.len() == 1 && constant::scalar(&expression.ty).is_some() =>
             {
@@ -817,6 +975,7 @@ impl Builder {
                     ..source
                 }
             }
+
             ExprKind::Construct(values) => {
                 let values = values.iter().map(|v| self.expression(v).value).collect();
                 Evaluation {
@@ -825,7 +984,12 @@ impl Builder {
                     propagated: false,
                 }
             }
-            ExprKind::ConstantBufferLoad(value) | ExprKind::Member { base: value, .. } => {
+
+            ExprKind::ConstantBufferLoad(value)
+            | ExprKind::Member {
+                base: value,
+                ..
+            } => {
                 let source = self.expression(value).value;
                 Evaluation {
                     value: self.emit(expression.ty.clone(), Operation::Unknown(vec![source])),
@@ -833,7 +997,11 @@ impl Builder {
                     propagated: false,
                 }
             }
-            ExprKind::Index { base, index } => {
+
+            ExprKind::Index {
+                base,
+                index,
+            } => {
                 let base = self.expression(base);
                 let index = self.expression(index);
                 Evaluation {
@@ -845,13 +1013,16 @@ impl Builder {
                     propagated: false,
                 }
             }
+
             _ => Evaluation {
                 value: self.emit(expression.ty.clone(), Operation::Unknown(vec![])),
                 pure: true,
                 propagated: false,
             },
         };
+
         let shift = matches!(&expression.kind, ExprKind::Binary { op, .. } if matches!(op.as_str(), "<<" | ">>"));
+
         if constant::scalar(&expression.ty).is_some()
             && (compound || result.pure && (result.propagated || shift))
         {
@@ -860,13 +1031,16 @@ impl Builder {
                 Site {
                     value: result.value,
                     rewrite: if compound {
-                        Rewrite::Compound { preserve_right }
+                        Rewrite::Compound {
+                            preserve_right,
+                        }
                     } else {
                         Rewrite::Value
                     },
                 },
             );
         }
+
         result
     }
 
@@ -897,11 +1071,13 @@ impl Builder {
         let rhs = self.block(None);
         let short = self.block(None);
         let after = self.block(Some(ty));
+
         if op == "&&" {
             self.branch(left.value, rhs, short);
         } else {
             self.branch(left.value, short, rhs);
         }
+
         self.enter(rhs);
         let right = self.expression(right);
         let value = self.convert(right.value, ty);
@@ -919,10 +1095,7 @@ impl Builder {
 }
 
 fn assignment(op: &str) -> bool {
-    matches!(
-        op,
-        "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^=" | "<<=" | ">>="
-    )
+    matches!(op, "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^=" | "<<=" | ">>=")
 }
 
 fn readonly_intrinsic(name: &str) -> bool {

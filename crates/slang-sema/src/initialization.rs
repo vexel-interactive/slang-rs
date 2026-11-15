@@ -41,6 +41,7 @@ impl Checker {
         span: Span,
     ) -> Type {
         let target = Type::Struct(name.into());
+
         if types == [target.clone()] {
             self.initializations.insert(
                 callee,
@@ -51,6 +52,7 @@ impl Checker {
             );
             return target;
         }
+
         if !self.constant_buffer_data(&target, &mut std::collections::BTreeSet::new()) {
             self.error(
                 "T020",
@@ -59,12 +61,15 @@ impl Checker {
             );
             return Type::Error;
         }
+
         let structure = self.struct_definitions[name].clone();
         let public = self.public_types.contains(name);
         let eligible = |field: &slang_syntax::Variable| {
             !public || field.modifiers.iter().any(|m| m == "public")
         };
+
         let count = structure.fields.iter().filter(|f| eligible(f)).count();
+
         if arguments.len() > count {
             self.error(
                 "T014",
@@ -76,9 +81,11 @@ impl Checker {
             );
             return Type::Error;
         }
+
         let mut budget = 65536;
         let mut supplied = 0;
         let mut fields = vec![];
+
         for field in &structure.fields {
             let ty = self.structures[name][&field.name].clone();
             let value = if eligible(field) && supplied < arguments.len() {
@@ -92,12 +99,11 @@ impl Checker {
             } else {
                 self.field_default(field, &ty, 0, &mut budget)
             };
+
             fields.push(value);
         }
-        if fields
-            .iter()
-            .any(|f| f.ty.is_resource() && !self.is_empty_type(&f.ty))
-        {
+
+        if fields.iter().any(|f| f.ty.is_resource() && !self.is_empty_type(&f.ty)) {
             self.error(
                 "T020",
                 span,
@@ -105,6 +111,7 @@ impl Checker {
             );
             return Type::Error;
         }
+
         self.initializations.insert(
             callee,
             Initialization {
@@ -161,11 +168,13 @@ impl Checker {
                 kind: InitializationKind::Zero,
             };
         }
+
         *budget -= 1;
         let kind = match ty {
             Type::Struct(name) => {
                 let fields = self.struct_definitions[name].fields.clone();
                 let mut values = vec![];
+
                 for field in fields {
                     let element = self.structures[name][&field.name].clone();
                     values.push(if defaults {
@@ -174,8 +183,10 @@ impl Checker {
                         self.aggregate_initialization(&element, span, depth + 1, budget, false)
                     });
                 }
+
                 InitializationKind::Aggregate(values)
             }
+
             Type::Array(element, length) => {
                 if usize::try_from(*length).unwrap_or(usize::MAX) > *budget {
                     self.error("T020", span, "aggregate initialization size limit exceeded");
@@ -184,7 +195,9 @@ impl Checker {
                         kind: InitializationKind::Zero,
                     };
                 }
+
                 let mut values = vec![];
+
                 for _ in 0..*length {
                     values.push(self.aggregate_initialization(
                         element,
@@ -194,11 +207,14 @@ impl Checker {
                         defaults,
                     ));
                 }
+
                 InitializationKind::Aggregate(values)
             }
+
             Type::Scalar(_) | Type::Vector(..) | Type::Matrix(..) | Type::Error => {
                 InitializationKind::Zero
             }
+
             _ => {
                 self.error(
                     "T020",
@@ -208,6 +224,7 @@ impl Checker {
                 InitializationKind::Zero
             }
         };
+
         Initialization {
             ty: ty.clone(),
             kind,

@@ -10,10 +10,16 @@ impl Checker {
             .iter()
             .filter_map(|(span, ty)| {
                 let mut ty = ty;
+
                 while let Type::Array(element, _) = ty {
                     ty = element;
                 }
-                if let Type::ConstantBuffer { element, .. } = ty {
+
+                if let Type::ConstantBuffer {
+                    element,
+                    ..
+                } = ty
+                {
                     Some((*span, *element.clone()))
                 } else {
                     None
@@ -45,25 +51,27 @@ impl Checker {
             Type::Void | Type::Scalar(_) | Type::Vector(..) | Type::Matrix(..) | Type::Error => {
                 true
             }
+
             Type::Array(_, 0) => true,
             Type::Array(element, _) => self.data_type(element, path, cache),
             Type::Struct(name) => {
                 if path.len() >= 128 || !path.insert(name.clone()) {
                     return false;
                 }
+
                 if let Some(valid) = cache.get(name) {
                     path.remove(name);
                     return *valid;
                 }
+
                 let valid = self.structures.get(name).is_some_and(|fields| {
-                    fields
-                        .values()
-                        .all(|field| self.data_type(field, path, cache))
+                    fields.values().all(|field| self.data_type(field, path, cache))
                 });
                 path.remove(name);
                 cache.insert(name.clone(), valid);
                 valid
             }
+
             _ => false,
         }
     }

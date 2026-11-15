@@ -26,15 +26,22 @@ def main():
             lines = len(data.splitlines())
             if path.suffix in (".c", ".cpp", ".h", ".slang"):
                 code_lines += lines
-            records.append({
-                "path": path.relative_to(args.source).as_posix(),
-                "area": area,
-                "sha256": hashlib.sha256(data).hexdigest(),
-                "lines": lines,
-                "parity_status": "unverified",
-            })
+            records.append(
+                {
+                    "path": path.relative_to(args.source).as_posix(),
+                    "area": area,
+                    "sha256": hashlib.sha256(data).hexdigest(),
+                    "lines": lines,
+                    "parity_status": "unverified",
+                }
+            )
         summary[area] = {"files": len(files), "code_lines": code_lines}
-    result = {"revision": args.revision, "meaning": "inventory, not test coverage", "summary": summary, "files": records}
+    result = {
+        "revision": args.revision,
+        "meaning": "inventory, not test coverage",
+        "summary": summary,
+        "files": records,
+    }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8", newline="\n")
     print(json.dumps(summary, indent=2))

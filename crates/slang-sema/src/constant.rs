@@ -12,6 +12,7 @@ impl Checker {
                 let Declaration::Global(variable) = declaration else {
                     return None;
                 };
+
                 (variable.modifiers.iter().any(|m| m == "const")
                     && variable.initializer.is_some()
                     && matches!(
@@ -36,8 +37,10 @@ impl Checker {
                 binding.constant = None;
             }
         }
+
         let mut dependents: BTreeMap<_, Vec<_>> = BTreeMap::new();
         let mut dependencies = BTreeMap::new();
+
         for (&key, variable) in &globals {
             let references = global_dependencies(
                 variable.initializer.as_ref().unwrap(),
@@ -49,11 +52,14 @@ impl Checker {
             .into_iter()
             .filter(|dependency| globals.contains_key(dependency))
             .collect::<BTreeSet<_>>();
+
             for &dependency in &references {
                 dependents.entry(dependency).or_default().push(key);
             }
+
             dependencies.insert(key, references);
         }
+
         for key in constant_cycles(&dependencies) {
             let variable = globals[&key];
             self.error(
@@ -65,16 +71,17 @@ impl Checker {
                 ),
             );
         }
+
         let previous_module = self.current_module;
         let mut pending: Vec<_> = globals.keys().copied().collect();
+
         while let Some(key) = pending.pop() {
             let variable = globals[&key];
-            if self.scopes[0]
-                .get(&variable.name)
-                .is_some_and(|b| b.constant.is_some())
-            {
+
+            if self.scopes[0].get(&variable.name).is_some_and(|b| b.constant.is_some()) {
                 continue;
             }
+
             self.current_module = self
                 .symbols
                 .get(&variable.name)
@@ -83,9 +90,11 @@ impl Checker {
                 if let Some(binding) = self.scopes[0].get_mut(&variable.name) {
                     binding.constant = Some(normalize(value, &binding.ty));
                 }
+
                 pending.extend(dependents.get(&key).into_iter().flatten().copied());
             }
         }
+
         self.current_module = previous_module;
     }
 
@@ -103,42 +112,50 @@ impl Checker {
                 binding.constant
             };
         }
+
         if let Ok(Some(literal)) = slang_syntax::integer_literal(expr) {
             let value = literal.bits as i64;
             return Some(if shape {
                 value
             } else {
-                self.expression_types
-                    .get(&expr.id)
-                    .map_or(value, |ty| normalize(value, ty))
+                self.expression_types.get(&expr.id).map_or(value, |ty| normalize(value, ty))
             });
         }
+
         if matches!(
             self.expression_types.get(&expr.id),
             Some(Type::Scalar(Scalar::Half | Scalar::Float | Scalar::Double))
         ) {
             return None;
         }
+
         let value = match &expr.kind {
             ExprKind::Integer(_) => return None,
             ExprKind::InitializerList(values) if values.len() == 1 => {
                 self.integer_constant_mode(&values[0], shape)?
             }
+
             ExprKind::Bool(value) => i64::from(*value),
             ExprKind::Name(name) => {
                 let binding = self.lookup(name)?;
+
                 if shape {
                     binding.shape_constant.or(binding.constant)?
                 } else {
                     binding.constant?
                 }
             }
-            ExprKind::Unary { op, value } => {
+
+            ExprKind::Unary {
+                op,
+                value,
+            } => {
                 let value = if op == "!" {
                     self.constant_conversion_mode(value, shape)?
                 } else {
                     self.integer_constant_mode(value, shape)?
                 };
+
                 match op.as_str() {
                     "+" => value,
                     "-" => value.wrapping_neg(),
@@ -147,14 +164,22 @@ impl Checker {
                     _ => return None,
                 }
             }
-            ExprKind::Binary { op, left, right } => {
+
+            ExprKind::Binary {
+                op,
+                left,
+                right,
+            } => {
                 let mut a = self.integer_constant_mode(left, shape)?;
+
                 if op == "&&" && a == 0 {
                     return Some(0);
                 }
+
                 if op == "||" && a != 0 {
                     return Some(1);
                 }
+
                 let mut b = self.integer_constant_mode(right, shape)?;
                 let common = self
                     .expression_types
@@ -168,14 +193,17 @@ impl Checker {
                     a = normalize(a, common);
                     b = normalize(b, common);
                 }
+
                 let operation_type = if matches!(op.as_str(), "<<" | ">>") {
                     self.expression_types.get(&left.id)
                 } else {
                     common.as_ref()
                 };
+
                 let unsigned64 = operation_type.is_some_and(|ty| {
                     matches!(ty.scalar(), Some(Scalar::Uint64 | Scalar::UintPtr))
                 });
+
                 if !shape
                     && matches!(op.as_str(), "<<" | ">>")
                     && operation_type.is_some_and(|ty| {
@@ -185,6 +213,7 @@ impl Checker {
                 {
                     return Some(i64::from(op == ">>" && a < 0).wrapping_neg());
                 }
+
                 let shift_bits = if shape
                     || operation_type.is_some_and(|ty| {
                         matches!(
@@ -196,6 +225,7 @@ impl Checker {
                 } else {
                     32
                 };
+
                 match op.as_str() {
                     "+" => a.wrapping_add(b),
                     "-" => a.wrapping_sub(b),
@@ -225,6 +255,7 @@ impl Checker {
                     _ => return None,
                 }
             }
+
             ExprKind::Conditional {
                 condition,
                 then_value,
@@ -237,12 +268,27 @@ impl Checker {
                 },
                 shape,
             )?,
-            ExprKind::Cast { value, .. } => {
-                self.convert_constant_to(value, self.expression_types.get(&expr.id)?, shape)?
-            }
-            ExprKind::Call { callee, arguments }
-                if arguments.len() == 1
-                    && matches!(self.expression_types.get(&callee.id), Some(Type::Meta(target)) if matches!(target.as_ref(), Type::Scalar(Scalar::Int16 | Scalar::Uint16 | Scalar::Int | Scalar::Uint | Scalar::Int64 | Scalar::Uint64 | Scalar::IntPtr | Scalar::UintPtr | Scalar::Bool))) =>
+            ExprKind::Cast {
+                value,
+                ..
+            } => self.convert_constant_to(value, self.expression_types.get(&expr.id)?, shape)?,
+
+            ExprKind::Call {
+                callee,
+                arguments,
+            } if arguments.len() == 1
+                && matches!(
+                    self.expression_types.get(&callee.id),
+                    Some(Type::Meta(target))
+                        if matches!(
+                            target.as_ref(),
+                            Type::Scalar(
+                                Scalar::Int16 | Scalar::Uint16 | Scalar::Int | Scalar::Uint
+                                    | Scalar::Int64 | Scalar::Uint64 | Scalar::IntPtr
+                                    | Scalar::UintPtr | Scalar::Bool
+                            )
+                        )
+                ) =>
             {
                 self.convert_constant_to(
                     &arguments[0],
@@ -250,17 +296,15 @@ impl Checker {
                     shape,
                 )?
             }
+
             _ => return None,
         };
-        Some(
-            if shape && self.expression_types.get(&expr.id) != Some(&Type::Scalar(Scalar::Bool)) {
-                value
-            } else {
-                self.expression_types
-                    .get(&expr.id)
-                    .map_or(value, |ty| normalize(value, ty))
-            },
-        )
+
+        Some(if shape && self.expression_types.get(&expr.id) != Some(&Type::Scalar(Scalar::Bool)) {
+            value
+        } else {
+            self.expression_types.get(&expr.id).map_or(value, |ty| normalize(value, ty))
+        })
     }
 
     pub(crate) fn constant_conversion(&self, expr: &Expr) -> Option<i64> {
@@ -281,13 +325,11 @@ impl Checker {
 
     fn convert_constant_to(&self, expr: &Expr, target: &Type, shape: bool) -> Option<i64> {
         let value = self.constant_conversion_mode(expr, shape)?;
-        Some(
-            if !shape || self.expression_types.get(&expr.id) != Some(target) {
-                normalize(value, target)
-            } else {
-                value
-            },
-        )
+        Some(if !shape || self.expression_types.get(&expr.id) != Some(target) {
+            normalize(value, target)
+        } else {
+            value
+        })
     }
 
     fn constant_conversion_mode(&self, expr: &Expr, shape: bool) -> Option<i64> {
@@ -310,20 +352,29 @@ impl Checker {
         if expr.parenthesized {
             return None;
         }
+
         match &expr.kind {
-            ExprKind::Float(_) | ExprKind::Unary { .. } => parser_floating_literal(expr),
-            ExprKind::Cast { value, .. }
-                if self.expression_types.get(&expr.id) == self.expression_types.get(&value.id) =>
-            {
+            ExprKind::Float(_)
+            | ExprKind::Unary {
+                ..
+            } => parser_floating_literal(expr),
+            ExprKind::Cast {
+                value,
+                ..
+            } if self.expression_types.get(&expr.id) == self.expression_types.get(&value.id) => {
                 self.floating_literal(value)
             }
-            ExprKind::Call { callee, arguments }
-                if arguments.len() == 1
-                    && matches!(self.expression_types.get(&callee.id), Some(Type::Meta(target))
+
+            ExprKind::Call {
+                callee,
+                arguments,
+            } if arguments.len() == 1
+                && matches!(self.expression_types.get(&callee.id), Some(Type::Meta(target))
                     if Some(target.as_ref()) == self.expression_types.get(&arguments[0].id)) =>
             {
                 self.floating_literal(&arguments[0])
             }
+
             _ => None,
         }
     }
@@ -335,12 +386,21 @@ fn parser_floating_literal(expr: &Expr) -> Option<f64> {
     if expr.parenthesized {
         return None;
     }
+
     match &expr.kind {
         ExprKind::Float(text) => slang_lexer::parse_float_literal(text).ok().map(|v| v.value),
-        ExprKind::Unary { op, value } if matches!(op.as_str(), "+" | "-") => {
+        ExprKind::Unary {
+            op,
+            value,
+        } if matches!(op.as_str(), "+" | "-") => {
             let value = parser_floating_literal(value)?;
-            Some(if op == "-" { -value } else { value })
+            Some(if op == "-" {
+                -value
+            } else {
+                value
+            })
         }
+
         _ => None,
     }
 }
@@ -350,29 +410,36 @@ fn constant_cycles(
 ) -> BTreeSet<crate::checker::SpanKey> {
     let mut states = BTreeMap::new();
     let mut cycles = BTreeSet::new();
+
     for &root in dependencies.keys() {
         let mut pending = vec![(root, false)];
+
         while let Some((key, exiting)) = pending.pop() {
             if exiting {
                 states.insert(key, 2);
                 continue;
             }
+
             if states.get(&key).is_some_and(|state| *state != 0) {
                 continue;
             }
+
             states.insert(key, 1);
             pending.push((key, true));
+
             for &dependency in dependencies[&key].iter().rev() {
                 match states.get(&dependency).copied().unwrap_or(0) {
                     1 => {
                         cycles.insert(key);
                     }
+
                     0 => pending.push((dependency, false)),
                     _ => {}
                 }
             }
         }
     }
+
     cycles
 }
 
@@ -385,30 +452,54 @@ fn global_dependencies(
 ) -> BTreeSet<crate::checker::SpanKey> {
     let mut pending = vec![expression];
     let mut dependencies = BTreeSet::new();
+
     while let Some(expression) = pending.pop() {
         if let Some(&reference) = references.get(&expression.id) {
             dependencies.insert(reference);
         }
+
         if statics.contains_key(&expression.id) || types.contains(&expression.id) {
             continue;
         }
+
         match &expression.kind {
             ExprKind::InitializerList(values) => pending.extend(values),
-            ExprKind::Unary { value, .. }
-            | ExprKind::Postfix { value, .. }
-            | ExprKind::Cast { value, .. } => pending.push(value),
-            ExprKind::Binary { left, right, .. } => pending.extend([left.as_ref(), right.as_ref()]),
-            ExprKind::Call { callee, arguments } => {
-                if !matches!(
-                    receivers.get(&callee.id),
-                    Some(crate::MethodReceiver::Static)
-                ) {
+            ExprKind::Unary {
+                value,
+                ..
+            }
+            | ExprKind::Postfix {
+                value,
+                ..
+            }
+            | ExprKind::Cast {
+                value,
+                ..
+            } => pending.push(value),
+            ExprKind::Binary {
+                left,
+                right,
+                ..
+            } => pending.extend([left.as_ref(), right.as_ref()]),
+            ExprKind::Call {
+                callee,
+                arguments,
+            } => {
+                if !matches!(receivers.get(&callee.id), Some(crate::MethodReceiver::Static)) {
                     pending.push(callee);
                 }
+
                 pending.extend(arguments);
             }
-            ExprKind::Member { base, .. } => pending.push(base),
-            ExprKind::Index { base, index } => pending.extend([base.as_ref(), index.as_ref()]),
+
+            ExprKind::Member {
+                base,
+                ..
+            } => pending.push(base),
+            ExprKind::Index {
+                base,
+                index,
+            } => pending.extend([base.as_ref(), index.as_ref()]),
             ExprKind::Conditional {
                 condition,
                 then_value,
@@ -417,6 +508,7 @@ fn global_dependencies(
             _ => {}
         }
     }
+
     dependencies
 }
 

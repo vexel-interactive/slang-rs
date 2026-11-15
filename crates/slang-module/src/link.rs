@@ -32,23 +32,18 @@ impl Names {
         } else {
             &mut self.values
         };
+
         map.entry(source).or_default().insert(target);
     }
 
     pub fn extend(&mut self, names: &Self) {
-        self.generic_functions
-            .extend(names.generic_functions.iter().cloned());
+        self.generic_functions.extend(names.generic_functions.iter().cloned());
         for (source, targets) in &names.types {
-            self.types
-                .entry(source.clone())
-                .or_default()
-                .extend(targets.iter().cloned());
+            self.types.entry(source.clone()).or_default().extend(targets.iter().cloned());
         }
+
         for (source, targets) in &names.values {
-            self.values
-                .entry(source.clone())
-                .or_default()
-                .extend(targets.iter().cloned());
+            self.values.entry(source.clone()).or_default().extend(targets.iter().cloned());
         }
     }
 
@@ -58,10 +53,15 @@ impl Names {
         is_type: bool,
         span: Span,
     ) -> Result<Option<String>, Diagnostic> {
-        let map = if is_type { &self.types } else { &self.values };
+        let map = if is_type {
+            &self.types
+        } else {
+            &self.values
+        };
         let Some(targets) = map.get(name) else {
             return Ok(None);
         };
+
         if targets.len() > 1 {
             return Err(Diagnostic::error(
                 "M004",
@@ -69,6 +69,7 @@ impl Names {
                 format!("ambiguous imported name '{name}'"),
             ));
         }
+
         Ok(targets.first().cloned())
     }
 }
@@ -79,19 +80,18 @@ pub(crate) fn link(
     identifiers: &BTreeSet<String>,
 ) -> Result<Program, Vec<Diagnostic>> {
     let mut prefix = "_slang_module_".to_owned();
+
     while identifiers.iter().any(|name| name.starts_with(&prefix)) {
         prefix.push('_');
     }
+
     let mut own = vec![Names::default(); nodes.len()];
     let mut exports = vec![Names::default(); nodes.len()];
     let mut origins = BTreeMap::new();
+
     for node in &nodes {
-        let nested_names: BTreeSet<_> = node
-            .syntax
-            .nested_types
-            .iter()
-            .map(|m| &m.type_name)
-            .collect();
+        let nested_names: BTreeSet<_> =
+            node.syntax.nested_types.iter().map(|m| &m.type_name).collect();
         for declaration in &node.syntax.declarations {
             let (name, modifiers, is_type) = match declaration {
                 Declaration::Struct(s) => (&s.name, &s.modifiers, true),
@@ -100,24 +100,28 @@ pub(crate) fn link(
                 Declaration::TypeAlias(a) => (&a.name, &a.modifiers, true),
                 Declaration::Interface(i) => (&i.name, &i.modifiers, true),
             };
+
             let target = if node.info.id.0 == 0 {
                 name.clone()
             } else {
                 format!("{prefix}{}_{}", node.info.id.0, name)
             };
+
             own[node.info.id.0].add(name.clone(), target.clone(), is_type);
+
             if matches!(declaration, Declaration::Function(f) if !f.generic_parameters.is_empty()) {
                 own[node.info.id.0].generic_functions.insert(name.clone());
             }
+
             if modifiers.iter().any(|m| m == "public") && !nested_names.contains(name) {
                 exports[node.info.id.0].add(name.clone(), target.clone(), is_type);
+
                 if matches!(declaration, Declaration::Function(f) if !f.generic_parameters.is_empty())
                 {
-                    exports[node.info.id.0]
-                        .generic_functions
-                        .insert(name.clone());
+                    exports[node.info.id.0].generic_functions.insert(name.clone());
                 }
             }
+
             origins.insert(
                 target,
                 SymbolOrigin {
@@ -125,6 +129,7 @@ pub(crate) fn link(
                     name: name.clone(),
                 },
             );
+
             if let Declaration::Interface(interface) = declaration {
                 for requirement in &interface.requirements {
                     let target = if node.info.id.0 == 0 {
@@ -132,6 +137,7 @@ pub(crate) fn link(
                     } else {
                         format!("{prefix}{}_{}", node.info.id.0, requirement.name)
                     };
+
                     own[node.info.id.0].add(requirement.name.clone(), target.clone(), false);
                     origins.insert(
                         target,
@@ -144,20 +150,26 @@ pub(crate) fn link(
             }
         }
     }
+
     let mut syntax = Module {
         name: nodes[0].syntax.name.clone(),
         ..Module::default()
     };
+
     let mut next_expression = 0;
+
     for id in order {
         let mut imported = Names::default();
+
         for (dependency, reexport) in &nodes[id.0].dependencies {
             let names = exports[dependency.0].clone();
             imported.extend(&names);
+
             if *reexport {
                 exports[id.0].extend(&names);
             }
         }
+
         let mut members = Members {
             all: nodes[id.0]
                 .syntax
@@ -165,10 +177,7 @@ pub(crate) fn link(
                 .iter()
                 .filter_map(|d| {
                     if let Declaration::Struct(s) = d {
-                        Some((
-                            s.name.clone(),
-                            s.fields.iter().map(|f| f.name.clone()).collect(),
-                        ))
+                        Some((s.name.clone(), s.fields.iter().map(|f| f.name.clone()).collect()))
                     } else {
                         None
                     }
@@ -176,6 +185,7 @@ pub(crate) fn link(
                 .collect(),
             ..Members::default()
         };
+
         for declaration in &nodes[id.0].syntax.declarations {
             let generic = match declaration {
                 Declaration::Struct(s) => Some((&s.name, &s.generic_parameters)),
@@ -183,12 +193,13 @@ pub(crate) fn link(
                 Declaration::Interface(i) => Some((&i.name, &i.generic_parameters)),
                 _ => None,
             };
+
             if let Some((name, parameters)) = generic {
-                members.generic_parameters.insert(
-                    name.clone(),
-                    parameters.iter().map(|p| p.name.clone()).collect(),
-                );
+                members
+                    .generic_parameters
+                    .insert(name.clone(), parameters.iter().map(|p| p.name.clone()).collect());
             }
+
             if let Declaration::Interface(interface) = declaration {
                 for function in &interface.requirements {
                     if let Some(method) = &function.method {
@@ -207,14 +218,11 @@ pub(crate) fn link(
                     }
                 }
             }
+
             if let Declaration::Function(function) = declaration
                 && let Some(method) = &function.method
             {
-                members
-                    .all
-                    .entry(method.owner.clone())
-                    .or_default()
-                    .insert(method.name.clone());
+                members.all.entry(method.owner.clone()).or_default().insert(method.name.clone());
                 if method.is_static {
                     members
                         .static_names
@@ -224,44 +232,33 @@ pub(crate) fn link(
                 }
             }
         }
+
         for member in &nodes[id.0].syntax.static_members {
-            members
-                .all
-                .entry(member.owner.clone())
-                .or_default()
-                .insert(member.name.clone());
+            members.all.entry(member.owner.clone()).or_default().insert(member.name.clone());
             members
                 .static_names
                 .entry(member.owner.clone())
                 .or_default()
                 .insert(member.name.clone());
-            members.fields.insert(
-                (member.owner.clone(), member.name.clone()),
-                member.variable_name.clone(),
-            );
             members
-                .owners
-                .insert(member.variable_name.clone(), member.owner.clone());
+                .fields
+                .insert((member.owner.clone(), member.name.clone()), member.variable_name.clone());
+            members.owners.insert(member.variable_name.clone(), member.owner.clone());
         }
+
         for member in &nodes[id.0].syntax.nested_types {
-            members
-                .all
-                .entry(member.owner.clone())
-                .or_default()
-                .insert(member.name.clone());
+            members.all.entry(member.owner.clone()).or_default().insert(member.name.clone());
             members
                 .static_names
                 .entry(member.owner.clone())
                 .or_default()
                 .insert(member.name.clone());
-            members.types.insert(
-                (member.owner.clone(), member.name.clone()),
-                member.type_name.clone(),
-            );
             members
-                .type_owners
-                .insert(member.type_name.clone(), member.owner.clone());
+                .types
+                .insert((member.owner.clone(), member.name.clone()), member.type_name.clone());
+            members.type_owners.insert(member.type_name.clone(), member.owner.clone());
         }
+
         let mut resolver = Resolver::new(
             &own[id.0],
             &imported,
@@ -271,43 +268,49 @@ pub(crate) fn link(
             &mut origins,
             &members,
         );
+
         for declaration in &mut nodes[id.0].syntax.declarations {
             if id.0 != 0
-                && matches!(declaration, Declaration::Function(f) if f.attributes.iter().any(|a| a.name == "shader" || a.name == "numthreads"))
+                && matches!(
+                    declaration,
+                    Declaration::Function(f)
+                        if f.attributes.iter().any(|a|
+                            a.name == "shader" || a.name == "numthreads"
+                        )
+                )
             {
                 let Declaration::Function(f) = declaration else {
                     unreachable!()
                 };
+
                 return Err(vec![Diagnostic::error(
                     "M003",
                     f.span,
                     "imported shader entry points are not implemented",
                 )]);
             }
+
             resolver.declaration(declaration).map_err(|d| vec![d])?;
         }
+
         for buffer in &mut nodes[id.0].syntax.constant_buffers {
             resolver.constant_buffer(buffer).map_err(|d| vec![d])?;
         }
+
         for member in &mut nodes[id.0].syntax.nested_types {
             resolver.nested_type(member).map_err(|d| vec![d])?;
         }
+
         for member in &mut nodes[id.0].syntax.static_members {
             resolver.static_member(member).map_err(|d| vec![d])?;
         }
-        syntax
-            .declarations
-            .append(&mut nodes[id.0].syntax.declarations);
-        syntax
-            .constant_buffers
-            .append(&mut nodes[id.0].syntax.constant_buffers);
-        syntax
-            .static_members
-            .append(&mut nodes[id.0].syntax.static_members);
-        syntax
-            .nested_types
-            .append(&mut nodes[id.0].syntax.nested_types);
+
+        syntax.declarations.append(&mut nodes[id.0].syntax.declarations);
+        syntax.constant_buffers.append(&mut nodes[id.0].syntax.constant_buffers);
+        syntax.static_members.append(&mut nodes[id.0].syntax.static_members);
+        syntax.nested_types.append(&mut nodes[id.0].syntax.nested_types);
     }
+
     Ok(Program {
         syntax,
         modules: nodes.into_iter().map(|node| node.info).collect(),

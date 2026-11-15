@@ -68,6 +68,7 @@ pub struct CheckedModule {
 
 /// Declaration location and instantiation context within a compilation.
 pub type SpanKey = (usize, usize, usize, usize);
+
 pub fn span_key(span: Span) -> SpanKey {
     (span.source.0, span.start, span.end, span.context)
 }
@@ -184,12 +185,7 @@ pub(crate) struct Checker {
 
 pub fn check(mut module: Module) -> Result<CheckedModule, Vec<Diagnostic>> {
     module.apply_legacy_visibility();
-    check_with_metadata(
-        module,
-        vec![],
-        BTreeMap::new(),
-        slang_layout::MatrixMajor::Column,
-    )
+    check_with_metadata(module, vec![], BTreeMap::new(), slang_layout::MatrixMajor::Column)
 }
 
 /// Check a program after imports and lexical module names have been resolved.
@@ -215,13 +211,7 @@ fn check_with_metadata(
     module.constraint_calls = bindings.calls;
     module.constraint_variables = bindings.variables;
     let (module, symbols) = crate::generic::specialize(module, symbols, default_matrix_major)?;
-    check_concrete(
-        module,
-        modules,
-        symbols,
-        default_matrix_major,
-        BTreeSet::new(),
-    )
+    check_concrete(module, modules, symbols, default_matrix_major, BTreeSet::new())
 }
 
 pub(crate) fn check_concrete(
@@ -231,14 +221,7 @@ pub(crate) fn check_concrete(
     default_matrix_major: slang_layout::MatrixMajor,
     symbolic_types: BTreeSet<String>,
 ) -> Result<CheckedModule, Vec<Diagnostic>> {
-    check_concrete_inner(
-        module,
-        modules,
-        symbols,
-        default_matrix_major,
-        symbolic_types,
-        None,
-    )
+    check_concrete_inner(module, modules, symbols, default_matrix_major, symbolic_types, None)
 }
 
 pub(crate) fn probe_generic_calls(
@@ -266,6 +249,7 @@ fn check_concrete_inner(
             "imports must be resolved before semantic checking",
         )]);
     }
+
     if let Some(include) = module.file_includes.first() {
         return Err(vec![Diagnostic::error(
             "T001",
@@ -273,14 +257,17 @@ fn check_concrete_inner(
             "module members must be loaded before semantic checking",
         )]);
     }
+
     let mut checker = Checker::new(&module, symbols, default_matrix_major);
     let probing = probe.is_some();
     checker.symbolic_types = symbolic_types;
+
     if let Some(probe) = &probe {
         checker.infer_generic_constructors = true;
         checker.pending_generic_calls = probe.pending.clone();
         checker.generic_methods = probe.methods.clone();
     }
+
     checker.declare(&module);
     checker.declare_conformances(&module);
     checker.declare_function_applications(&module);
@@ -293,21 +280,18 @@ fn check_concrete_inner(
         })
         .collect();
     let mut buffer_names = BTreeSet::new();
+
     for buffer in &module.constant_buffers {
-        let owner = checker
-            .symbols
-            .get(&buffer.variable_name)
-            .map_or(ModuleId(0), |origin| origin.module);
+        let owner =
+            checker.symbols.get(&buffer.variable_name).map_or(ModuleId(0), |origin| origin.module);
         if !buffer_names.insert((owner, buffer.name.as_str())) {
-            checker.error(
-                "T003",
-                buffer.span,
-                format!("duplicate cbuffer '{}'", buffer.name),
-            );
+            checker.error("T003", buffer.span, format!("duplicate cbuffer '{}'", buffer.name));
         }
+
         let Some(handle) = global_declarations.get(buffer.variable_name.as_str()) else {
             continue;
         };
+
         if !handle.modifiers.iter().any(|m| m == "public") {
             for member in buffer.members.iter().filter(|m| m.static_storage) {
                 if global_declarations
@@ -323,18 +307,15 @@ fn check_concrete_inner(
             }
         }
     }
+
     for declaration in &module.declarations {
         if let Declaration::Global(variable) = declaration {
-            if probe
-                .as_ref()
-                .is_some_and(|p| p.deferred.contains(&span_key(variable.span)))
-            {
+            if probe.as_ref().is_some_and(|p| p.deferred.contains(&span_key(variable.span))) {
                 continue;
             }
-            checker.current_module = checker
-                .symbols
-                .get(&variable.name)
-                .map_or(ModuleId(0), |origin| origin.module);
+
+            checker.current_module =
+                checker.symbols.get(&variable.name).map_or(ModuleId(0), |origin| origin.module);
             checker.current_static_type = checker.static_owners.get(&variable.name).cloned();
             checker.current_type = checker.current_static_type.clone();
             checker.initialize_global(variable);
@@ -342,8 +323,10 @@ fn check_concrete_inner(
             checker.current_static_type = None;
         }
     }
+
     checker.resolve_global_constants(&module);
     let mut entry_points = vec![];
+
     for declaration in &module.declarations {
         let name = match declaration {
             Declaration::Struct(s) => &s.name,
@@ -352,19 +335,16 @@ fn check_concrete_inner(
             Declaration::Global(v) => &v.name,
             Declaration::TypeAlias(a) => &a.name,
         };
-        checker.current_module = checker
-            .symbols
-            .get(name)
-            .map_or(ModuleId(0), |origin| origin.module);
+
+        checker.current_module =
+            checker.symbols.get(name).map_or(ModuleId(0), |origin| origin.module);
         match declaration {
             Declaration::TypeAlias(_) => {}
             Declaration::Interface(interface) => {
-                if probe
-                    .as_ref()
-                    .is_some_and(|p| p.deferred.contains(&span_key(interface.span)))
-                {
+                if probe.as_ref().is_some_and(|p| p.deferred.contains(&span_key(interface.span))) {
                     continue;
                 }
+
                 for requirement in &interface.requirements {
                     checker.check_constraint_defaults(&ConstraintCallInfo {
                         owner: crate::conformance::witness::reference(
@@ -380,27 +360,27 @@ fn check_concrete_inner(
                     });
                 }
             }
+
             Declaration::Global(_) => {}
             Declaration::Function(function) => {
-                if probe
-                    .as_ref()
-                    .is_some_and(|p| p.deferred.contains(&span_key(function.span)))
-                {
+                if probe.as_ref().is_some_and(|p| p.deferred.contains(&span_key(function.span))) {
                     continue;
                 }
+
                 if let Some(entry) = checker.entry_point(function, &module) {
                     entry_points.push(entry);
                 }
+
                 checker.function(function);
             }
+
             Declaration::Struct(structure) => {
-                if probe
-                    .as_ref()
-                    .is_some_and(|p| p.deferred.contains(&span_key(structure.span)))
-                {
+                if probe.as_ref().is_some_and(|p| p.deferred.contains(&span_key(structure.span))) {
                     continue;
                 }
+
                 checker.current_static_type = Some(structure.name.clone());
+
                 for field in &structure.fields {
                     if field.modifiers.iter().any(|m| {
                         !matches!(
@@ -418,32 +398,34 @@ fn check_concrete_inner(
                             "unsupported struct field initializer or modifier",
                         );
                     }
+
                     checker.check_interpolation(&field.modifiers, field.span);
                     let ty = checker.declaration_types[&span_key(field.span)].clone();
                     checker.check_matrix_layout(&ty, &field.ty, &field.modifiers, field.span);
                     checker.check_visibility_modifiers(&field.modifiers, field.span);
+
                     if field.initializer.is_some() {
                         checker.initializer(field);
                     }
                 }
+
                 checker.current_static_type = None;
             }
         }
     }
+
     checker.validate_constant_buffers();
     checker.validate_static_initializers(&module);
     checker.check_binding_overlaps(&module);
     checker.allocate_resource_bindings(&module);
+
     if let Some(probe) = probe {
         probe.types = std::mem::take(&mut checker.generic_call_types);
         probe.shapes = checker.symbolic_shapes.clone();
         probe.record_selections(&checker);
     }
-    if !checker
-        .diagnostics
-        .iter()
-        .any(|d| d.severity == Severity::Error)
-    {
+
+    if !checker.diagnostics.iter().any(|d| d.severity == Severity::Error) {
         let global_constants = checker.scopes[0]
             .values()
             .filter_map(|binding| {
@@ -473,17 +455,15 @@ fn check_concrete_inner(
         module.constraint_variables = checker
             .constraint_variables
             .into_iter()
-            .map(
-                |((source, start, end, context), call)| ConstraintVariableInfo {
-                    span: Span {
-                        source: slang_source::SourceId(source),
-                        start,
-                        end,
-                        context,
-                    },
-                    call,
+            .map(|((source, start, end, context), call)| ConstraintVariableInfo {
+                span: Span {
+                    source: slang_source::SourceId(source),
+                    start,
+                    end,
+                    context,
                 },
-            )
+                call,
+            })
             .collect();
         let mut checked = CheckedModule {
             matrix_major: checker.default_matrix_major,
@@ -515,9 +495,11 @@ fn check_concrete_inner(
             global_uniform_binding: checker.global_uniform_binding,
             diagnostics: checker.diagnostics,
         };
+
         if !probing {
             checked.entry_point_requirements = crate::capability::validate(&checked)?;
         }
+
         Ok(checked)
     } else {
         Err(checker.diagnostics)
@@ -564,21 +546,13 @@ impl Checker {
             constructor_applications: module
                 .constructor_applications
                 .iter()
-                .map(|c| {
-                    (
-                        (c.owner.clone(), c.argument_types.clone()),
-                        c.function.clone(),
-                    )
-                })
+                .map(|c| ((c.owner.clone(), c.argument_types.clone()), c.function.clone()))
                 .collect(),
             generic_constructor_functions: module
                 .generic_instances
                 .iter()
                 .filter(|i| {
-                    module
-                        .generic_constructors
-                        .iter()
-                        .any(|c| c.function == i.template_name)
+                    module.generic_constructors.iter().any(|c| c.function == i.template_name)
                 })
                 .map(|i| i.type_name.clone())
                 .collect(),
@@ -696,7 +670,9 @@ impl Checker {
         while let Type::Array(element, _) = ty {
             ty = element;
         }
+
         let symbolic_matrix = matches!(ty, Type::Struct(name) if self.symbolic_shapes.get(name).is_some_and(|(_, d)| d.len() == 2));
+
         if !symbolic_matrix && !matches!(ty, Type::Matrix(..) | Type::Error) {
             self.error(
                 "T001",
@@ -707,39 +683,31 @@ impl Checker {
     }
 
     pub fn error(&mut self, code: &str, span: Span, message: impl Into<String>) {
-        self.diagnostics
-            .push(Diagnostic::error(code, span, message));
+        self.diagnostics.push(Diagnostic::error(code, span, message));
     }
 
     pub fn require_conversion(&mut self, actual: &Type, expected: &Type, span: Span) {
         if !actual.convertible_to(expected) {
-            self.error(
-                "T008",
-                span,
-                format!("cannot convert {actual} to {expected}"),
-            );
+            self.error("T008", span, format!("cannot convert {actual} to {expected}"));
         }
     }
 
     pub fn condition(&mut self, expression: &Expr) {
         let ty = self.value_expression(expression);
+
         if !matches!(ty, Type::Scalar(_) | Type::Vector(_, 1) | Type::Error) {
             self.error("T009", expression.span, "condition must have a scalar type");
         }
     }
 
     pub fn lookup(&self, name: &str) -> Option<&Binding> {
-        self.scopes
-            .iter()
-            .enumerate()
-            .rev()
-            .find_map(|(index, scope)| {
-                if index == 0 && !self.module_symbol_visible(name) {
-                    None
-                } else {
-                    scope.get(name)
-                }
-            })
+        self.scopes.iter().enumerate().rev().find_map(|(index, scope)| {
+            if index == 0 && !self.module_symbol_visible(name) {
+                None
+            } else {
+                scope.get(name)
+            }
+        })
     }
 }
 
@@ -747,6 +715,7 @@ impl Checker {
 mod tests {
     use super::*;
     use slang_source::SourceId;
+
     fn run(text: &str) -> Result<CheckedModule, Vec<Diagnostic>> {
         check(slang_syntax::parse(&slang_lexer::lex(SourceId(0), text).tokens).unwrap())
     }
@@ -799,6 +768,7 @@ mod tests {
             let checked = run(text).unwrap();
             assert!(checked.global_references.is_empty());
         }
+
         let checked = run("groupshared int value;[shader(\"compute\")][numthreads(1,1,1)]void main(){int copy=value;}").unwrap();
         assert_eq!(checked.global_references.len(), 1);
         assert!(run("groupshared int value;[shader(\"fragment\")]float4 main():SV_Target{return float4(value);}").is_err());

@@ -17,6 +17,7 @@ impl Checker {
         }
         .constructor(target, values, span, 0, site)
     }
+
     pub(crate) fn array_constructor(
         &mut self,
         target: &Type,
@@ -25,11 +26,7 @@ impl Checker {
         span: Span,
     ) -> Type {
         let plan = if arguments.len() == 1
-            && self
-                .expression_types
-                .get(&arguments[0].id)
-                .map(Type::value_type)
-                == Some(target)
+            && self.expression_types.get(&arguments[0].id).map(Type::value_type) == Some(target)
         {
             Ok(Initialization {
                 ty: target.clone(),
@@ -40,20 +37,19 @@ impl Checker {
                 checker: self,
                 remaining: 65536,
             };
+
             let mut index = 0;
-            planner
-                .aggregate(arguments, &mut index, target, span, 0)
-                .and_then(|plan| {
-                    if index == arguments.len() {
-                        Ok(plan)
-                    } else {
-                        Err(Diagnostic::error(
-                            "T021",
-                            span,
-                            format!("too many initializers for {target}"),
-                        ))
-                    }
-                })
+            planner.aggregate(arguments, &mut index, target, span, 0).and_then(|plan| {
+                if index == arguments.len() {
+                    Ok(plan)
+                } else {
+                    Err(Diagnostic::error(
+                        "T021",
+                        span,
+                        format!("too many initializers for {target}"),
+                    ))
+                }
+            })
         } else {
             Err(Diagnostic::error(
                 "T020",
@@ -61,11 +57,13 @@ impl Checker {
                 "resource-valued array construction is not implemented",
             ))
         };
+
         match plan {
             Ok(plan) => {
                 self.initializations.insert(callee, plan);
                 target.clone()
             }
+
             Err(error) => {
                 self.diagnostics.push(error);
                 Type::Error
@@ -87,17 +85,15 @@ impl Checker {
                     self.initializations.insert(value.id, plan);
                     self.expression_types.insert(value.id, target.clone());
                 }
+
                 Err(error) => self.diagnostics.push(error),
             }
         } else {
-            let actual = self
-                .expression_types
-                .get(&value.id)
-                .cloned()
-                .unwrap_or(Type::Error);
+            let actual = self.expression_types.get(&value.id).cloned().unwrap_or(Type::Error);
             if matches!(actual, Type::ConstantBuffer { .. }) && !target.is_resource() {
                 self.constant_buffer_loads.insert(value.id);
             }
+
             self.require_conversion(&actual, target, value.span);
         }
     }
@@ -106,9 +102,7 @@ impl Checker {
         if matches!(value.kind, ExprKind::InitializerList(_)) {
             self.list_plan(value, target).is_ok()
         } else {
-            self.expression_types
-                .get(&value.id)
-                .is_some_and(|t| t.convertible_to(target))
+            self.expression_types.get(&value.id).is_some_and(|t| t.convertible_to(target))
         }
     }
 
@@ -139,16 +133,20 @@ impl Planner<'_> {
         let Type::Struct(owner) = target else {
             return Ok(None);
         };
+
         let selected = site.and_then(|site| self.checker.bound_constraint_signature(site, owner));
         let selected = match selected {
             Some(signature) => Some(signature?),
             None => self.checker.select_constructor(owner, values, span)?,
         };
+
         let Some(signature) = selected else {
             return Ok(None);
         };
+
         self.charge(depth, span)?;
         let mut arguments = vec![];
+
         for (index, parameter) in signature.parameters.iter().enumerate() {
             if let Some(value) = values.get(index) {
                 if signature.output_parameters[index] {
@@ -165,6 +163,7 @@ impl Planner<'_> {
                             "constructor output argument requires compatible writable storage",
                         ));
                     }
+
                     arguments.push(Initialization {
                         ty: actual,
                         kind: InitializationKind::Value(Box::new(value.clone())),
@@ -181,6 +180,7 @@ impl Planner<'_> {
                 });
             }
         }
+
         Ok(Some(Initialization {
             ty: target.clone(),
             kind: InitializationKind::ConstructorCall {
@@ -192,32 +192,22 @@ impl Planner<'_> {
             },
         }))
     }
+
     fn charge(&mut self, depth: usize, span: Span) -> Result<(), Diagnostic> {
         if depth >= 32 || self.remaining == 0 {
-            return Err(Diagnostic::error(
-                "T020",
-                span,
-                "aggregate initialization limit exceeded",
-            ));
+            return Err(Diagnostic::error("T020", span, "aggregate initialization limit exceeded"));
         }
+
         self.remaining -= 1;
         Ok(())
     }
 
     fn invalid(&self, span: Span, target: &Type) -> Diagnostic {
-        Diagnostic::error(
-            "T021",
-            span,
-            format!("invalid initializer list for {target}"),
-        )
+        Diagnostic::error("T021", span, format!("invalid initializer list for {target}"))
     }
 
     fn value(&self, value: &Expr, target: &Type) -> Result<Initialization, Diagnostic> {
-        let actual = self
-            .checker
-            .expression_types
-            .get(&value.id)
-            .unwrap_or(&Type::Error);
+        let actual = self.checker.expression_types.get(&value.id).unwrap_or(&Type::Error);
         if !actual.convertible_to(target) {
             return Err(Diagnostic::error(
                 "T008",
@@ -225,6 +215,7 @@ impl Planner<'_> {
                 format!("cannot convert {actual} to {target}"),
             ));
         }
+
         Ok(Initialization {
             ty: target.clone(),
             kind: InitializationKind::Value(Box::new(value.clone())),
@@ -241,6 +232,7 @@ impl Planner<'_> {
         let ExprKind::InitializerList(values) = &value.kind else {
             return self.value(value, target);
         };
+
         if let Some(constructor) = self.constructor(
             target,
             values,
@@ -250,18 +242,16 @@ impl Planner<'_> {
         )? {
             return Ok(constructor);
         }
+
         if values.is_empty() {
             return self.default(target, value.span, depth + 1);
         }
+
         if let Type::Struct(name) = target {
             // Synthesized memberwise construction takes precedence over flat lists.
             let structure = &self.checker.struct_definitions[name];
             let public = self.checker.public_types.contains(name);
-            let fields: Vec<_> = structure
-                .fields
-                .iter()
-                .filter(|f| eligible(f, public))
-                .collect();
+            let fields: Vec<_> = structure.fields.iter().filter(|f| eligible(f, public)).collect();
             if values.len() <= fields.len()
                 && values.iter().zip(&fields).all(|(v, f)| {
                     let ty = &self.checker.structures[name][&f.name];
@@ -270,6 +260,7 @@ impl Planner<'_> {
             {
                 let mut supplied = 0;
                 let mut result = vec![];
+
                 for field in &structure.fields {
                     let ty = &self.checker.structures[name][&field.name];
                     result.push(if eligible(field, public) && supplied < values.len() {
@@ -280,36 +271,38 @@ impl Planner<'_> {
                         self.field_default(field, ty, depth + 1)?
                     });
                 }
+
                 return Ok(Initialization {
                     ty: target.clone(),
                     kind: InitializationKind::Aggregate(result),
                 });
             }
         }
+
         if target.is_resource()
             && values.len() == 1
             && self.checker.can_initialize(&values[0], target)
         {
             return self.value(&values[0], target);
         }
-        if !self
-            .checker
-            .constant_buffer_data(target, &mut Default::default())
-        {
+
+        if !self.checker.constant_buffer_data(target, &mut Default::default()) {
             return Err(self.invalid(value.span, target));
         }
-        if matches!(
-            target,
-            Type::Scalar(_) | Type::Vector(..) | Type::Matrix(..)
-        ) && values.len() == 1
+
+        if matches!(target, Type::Scalar(_) | Type::Vector(..) | Type::Matrix(..))
+            && values.len() == 1
         {
             let actual = self.checker.expression_types.get(&values[0].id);
+
             if actual.is_some_and(|t| t.convertible_to(target)) {
                 return self.value(&values[0], target);
             }
         }
+
         if let Type::Matrix(scalar, rows, columns) = target {
             let row = Type::Vector(*scalar, *columns);
+
             if values.len() == usize::from(*rows)
                 && values.iter().all(|v| self.checker.can_initialize(v, &row))
             {
@@ -324,11 +317,10 @@ impl Planner<'_> {
                 });
             }
         }
+
         if matches!(target, Type::Vector(..))
             && values.len() > 1
-            && values
-                .iter()
-                .any(|v| matches!(v.kind, ExprKind::InitializerList(_)))
+            && values.iter().any(|v| matches!(v.kind, ExprKind::InitializerList(_)))
         {
             let types: Vec<_> = values
                 .iter()
@@ -354,8 +346,10 @@ impl Planner<'_> {
                 });
             }
         }
+
         let mut index = 0;
         let result = self.aggregate(values, &mut index, target, value.span, depth + 1)?;
+
         if index != values.len() {
             return Err(Diagnostic::error(
                 "T021",
@@ -363,6 +357,7 @@ impl Planner<'_> {
                 format!("too many initializers for {target}"),
             ));
         }
+
         Ok(result)
     }
 
@@ -377,15 +372,13 @@ impl Planner<'_> {
         let Some(value) = values.get(*index) else {
             return self.default(target, span, depth);
         };
+
         if matches!(value.kind, ExprKind::InitializerList(_)) {
             *index += 1;
             return self.list(value, target, depth);
         }
-        let actual = self
-            .checker
-            .expression_types
-            .get(&value.id)
-            .unwrap_or(&Type::Error);
+
+        let actual = self.checker.expression_types.get(&value.id).unwrap_or(&Type::Error);
         if matches!(target, Type::Scalar(_))
             || !matches!(actual, Type::Scalar(_)) && actual.convertible_to(target)
         {
@@ -407,27 +400,27 @@ impl Planner<'_> {
     ) -> Result<Initialization, Diagnostic> {
         self.charge(depth, span)?;
         let mut result = vec![];
+
         match target {
             Type::Scalar(_) => return self.read(values, index, target, span, depth + 1),
             Type::Vector(scalar, width) => {
                 // Keep vector operands intact so calls are evaluated once.
                 let mut components = 0;
+
                 while components < *width {
-                    let actual = values
-                        .get(*index)
-                        .and_then(|v| self.checker.expression_types.get(&v.id));
-                    let count = actual
-                        .map(Type::value_type)
-                        .and_then(Type::width)
-                        .unwrap_or(1);
+                    let actual =
+                        values.get(*index).and_then(|v| self.checker.expression_types.get(&v.id));
+                    let count = actual.map(Type::value_type).and_then(Type::width).unwrap_or(1);
                     if components + count > *width {
                         return Err(self.invalid(span, target));
                     }
+
                     let ty = Type::numeric_shape(*scalar, count);
                     result.push(self.read(values, index, &ty, span, depth + 1)?);
                     components += count;
                 }
             }
+
             Type::Matrix(scalar, rows, columns) => {
                 for _ in 0..*rows {
                     result.push(self.read(
@@ -439,6 +432,7 @@ impl Planner<'_> {
                     )?);
                 }
             }
+
             Type::Array(element, length) => {
                 if *length as usize > self.remaining {
                     return Err(Diagnostic::error(
@@ -447,13 +441,16 @@ impl Planner<'_> {
                         "aggregate initialization size limit exceeded",
                     ));
                 }
+
                 for _ in 0..*length {
                     result.push(self.read(values, index, element, span, depth + 1)?);
                 }
             }
+
             Type::Struct(name) => {
                 let structure = &self.checker.struct_definitions[name];
                 let public = self.checker.public_types.contains(name);
+
                 for field in &structure.fields {
                     let ty = &self.checker.structures[name][&field.name];
                     result.push(if eligible(field, public) && *index < values.len() {
@@ -463,14 +460,17 @@ impl Planner<'_> {
                     });
                 }
             }
+
             Type::Error => {
                 return Ok(Initialization {
                     ty: Type::Error,
                     kind: InitializationKind::Zero,
                 });
             }
+
             _ => return Err(self.invalid(span, target)),
         }
+
         Ok(Initialization {
             ty: target.clone(),
             kind: InitializationKind::Aggregate(result),
@@ -500,10 +500,7 @@ impl Planner<'_> {
         span: Span,
         depth: usize,
     ) -> Result<Initialization, Diagnostic> {
-        if matches!(
-            target,
-            Type::Scalar(_) | Type::Vector(..) | Type::Matrix(..) | Type::Error
-        ) {
+        if matches!(target, Type::Scalar(_) | Type::Vector(..) | Type::Matrix(..) | Type::Error) {
             self.charge(depth, span)?;
             Ok(Initialization {
                 ty: target.clone(),

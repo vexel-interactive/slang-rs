@@ -10,14 +10,17 @@ use std::collections::BTreeMap;
 pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
     let names = crate::visit::names(module);
     let mut prefix = "_slang_derivative_".to_owned();
+
     while names.iter().any(|name| name.starts_with(&prefix)) {
         prefix.push('_');
     }
+
     let mut lowerer = Lowerer {
         prefix,
         helpers: BTreeMap::new(),
         functions: vec![],
     };
+
     lowerer.module(module)?;
     module.functions.extend(lowerer.functions);
     Ok(())
@@ -32,20 +35,25 @@ struct Lowerer {
 impl Visitor for Lowerer {
     fn expression(&mut self, expression: &mut Expr) -> Result<(), Diagnostic> {
         walk_expression(self, expression)?;
-        let ExprKind::IntrinsicCall { name, arguments } = &expression.kind else {
+        let ExprKind::IntrinsicCall {
+            name,
+            arguments,
+        } = &expression.kind
+        else {
             return Ok(());
         };
+
         if matches!(name.as_str(), "fwidth_coarse" | "fwidth_fine") {
             let key = (name.clone(), expression.ty.to_string());
             let helper = if let Some(helper) = self.helpers.get(&key) {
                 helper.clone()
             } else {
                 let helper = format!("{}{name}_{}", self.prefix, self.functions.len());
-                self.functions
-                    .push(width_helper(&helper, name, &expression.ty, expression.span));
+                self.functions.push(width_helper(&helper, name, &expression.ty, expression.span));
                 self.helpers.insert(key, helper.clone());
                 helper
             };
+
             expression.kind = ExprKind::Call {
                 name: helper,
                 arguments: arguments.clone(),
@@ -57,6 +65,7 @@ impl Visitor for Lowerer {
         {
             *expression = derivative_value(name, arguments[0].clone(), expression.span);
         }
+
         Ok(())
     }
 }
@@ -74,6 +83,7 @@ fn derivative_value(name: &str, input: Expr, span: Span) -> Expr {
     } else {
         input
     };
+
     let call = Expr {
         ty: input.ty.clone(),
         span,
@@ -82,6 +92,7 @@ fn derivative_value(name: &str, input: Expr, span: Span) -> Expr {
             arguments: vec![input],
         },
     };
+
     if call.ty == ty {
         call
     } else {
@@ -102,6 +113,7 @@ fn width_helper(name: &str, intrinsic: &str, ty: &Type, span: Span) -> Function 
         span,
         kind: ExprKind::Name("_input".into()),
     };
+
     let magnitudes: Vec<_> = ["ddx", "ddy"]
         .into_iter()
         .map(|axis| Expr {
@@ -109,11 +121,7 @@ fn width_helper(name: &str, intrinsic: &str, ty: &Type, span: Span) -> Function 
             span,
             kind: ExprKind::IntrinsicCall {
                 name: "abs".into(),
-                arguments: vec![derivative_value(
-                    &format!("{axis}{suffix}"),
-                    input.clone(),
-                    span,
-                )],
+                arguments: vec![derivative_value(&format!("{axis}{suffix}"), input.clone(), span)],
             },
         })
         .collect();
@@ -127,6 +135,7 @@ fn width_helper(name: &str, intrinsic: &str, ty: &Type, span: Span) -> Function 
             right: Box::new(magnitudes.next().unwrap()),
         },
     };
+
     Function {
         name: name.into(),
         return_type: ty.clone(),

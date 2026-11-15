@@ -18,7 +18,9 @@ pub(crate) fn name(value: &str) -> Option<&'static str> {
 /// Integer operands select the corresponding float shape, as in the core module.
 pub(crate) fn signature(value: &str, types: &[Type]) -> Option<Type> {
     name(value)?;
-    let [ty] = types else { return None };
+    let [ty] = types else {
+        return None;
+    };
     Some(match ty.scalar()? {
         Scalar::Int16
         | Scalar::Uint16

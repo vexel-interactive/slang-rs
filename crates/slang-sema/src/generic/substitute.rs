@@ -1,14 +1,13 @@
 use super::*;
 
 pub(super) fn replace_type(ty: &mut TypeRef, types: &BTreeMap<String, TypeRef>) {
-    let (first, member) = ty
-        .name
-        .split_once("::")
-        .map_or((ty.name.as_str(), None), |(a, b)| (a, Some(b)));
+    let (first, member) =
+        ty.name.split_once("::").map_or((ty.name.as_str(), None), |(a, b)| (a, Some(b)));
     if ty.base.is_none()
         && let Some(argument) = types.get(first)
     {
         let mut replacement = argument.clone();
+
         if let Some(member) = member {
             replacement = TypeRef {
                 name: member.into(),
@@ -22,6 +21,7 @@ pub(super) fn replace_type(ty: &mut TypeRef, types: &BTreeMap<String, TypeRef>) 
                 span: ty.span,
             };
         }
+
         replacement.arrays.splice(0..0, ty.arrays.clone());
         replacement.matrix_major = ty.matrix_major.or(replacement.matrix_major);
         replacement.parameter_ref |= ty.parameter_ref;
@@ -50,6 +50,7 @@ impl Substitute<'_> {
             .ok_or_else(|| error(span, "generic syntax expansion budget exceeded"))?;
         Ok(())
     }
+
     fn name(&self, name: &mut String) {
         if let Some(target) = self.names.get(name) {
             *name = target.clone();
@@ -59,41 +60,46 @@ impl Substitute<'_> {
 
 impl VisitorMut for Substitute<'_> {
     fn variable(&mut self, variable: &mut Variable) -> Result<(), Diagnostic> {
-        let binding = self
-            .constraint_variables
-            .get(&crate::span_key(variable.span))
-            .cloned();
+        let binding = self.constraint_variables.get(&crate::span_key(variable.span)).cloned();
         visit::walk_variable(self, variable)?;
+
         if let Some(mut binding) = binding {
             self.ty(&mut binding.owner)?;
             self.ty(&mut binding.interface)?;
             visit::walk_function(self, &mut binding.requirement)?;
             super::witness::set_owner(&mut binding);
-            self.constraint_variables
-                .insert(crate::span_key(variable.span), binding);
+            self.constraint_variables.insert(crate::span_key(variable.span), binding);
         }
+
         Ok(())
     }
+
     fn span(&mut self, span: &mut Span) {
         *span = span.with_context(self.context);
     }
+
     fn expression_id(&mut self, id: &mut ExprId) {
         let original = self.expression_origins.get(id).copied().unwrap_or(*id);
         *id = ExprId(*self.next_expression);
         *self.next_expression += 1;
         self.expression_origins.insert(*id, original);
     }
+
     fn ty(&mut self, ty: &mut TypeRef) -> Result<(), Diagnostic> {
         self.node(ty.span)?;
         replace_type(ty, self.types);
+
         if ty.owner_ref || ty.name != self.root {
             self.name(&mut ty.name);
         }
+
         visit::walk_type(self, ty)
     }
+
     fn expression(&mut self, expression: &mut Expr) -> Result<(), Diagnostic> {
         self.node(expression.span)?;
         let binding = self.constraint_calls.get(&expression.id).cloned();
+
         if let ExprKind::Name(name) = &mut expression.kind {
             if let Some(argument) = self.types.get(name) {
                 let mut argument = argument.clone();
@@ -103,7 +109,9 @@ impl VisitorMut for Substitute<'_> {
                 self.name(name);
             }
         }
+
         visit::walk_expression(self, expression)?;
+
         if let Some(mut binding) = binding {
             self.ty(&mut binding.owner)?;
             self.ty(&mut binding.interface)?;
@@ -111,36 +119,46 @@ impl VisitorMut for Substitute<'_> {
             super::witness::set_owner(&mut binding);
             self.constraint_calls.insert(expression.id, binding);
         }
+
         Ok(())
     }
+
     fn declaration(&mut self, declaration: &mut Declaration) -> Result<(), Diagnostic> {
         self.node(declaration_span(declaration))?;
+
         match declaration {
             Declaration::Struct(s) => self.name(&mut s.name),
             Declaration::Interface(i) => {
                 self.name(&mut i.name);
+
                 for requirement in &mut i.requirements {
                     self.name(&mut requirement.name);
+
                     if let Some(owner) = &mut requirement.constructor {
                         self.name(owner);
                     }
+
                     if let Some(method) = &mut requirement.method {
                         self.name(&mut method.owner);
                     }
                 }
             }
+
             Declaration::TypeAlias(a) => self.name(&mut a.name),
             Declaration::Global(v) => self.name(&mut v.name),
             Declaration::Function(f) => {
                 self.name(&mut f.name);
+
                 if let Some(owner) = &mut f.constructor {
                     self.name(owner);
                 }
+
                 if let Some(method) = &mut f.method {
                     self.name(&mut method.owner);
                 }
             }
         }
+
         visit::walk_declaration(self, declaration)
     }
 }

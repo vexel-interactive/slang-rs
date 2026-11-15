@@ -6,6 +6,7 @@ fn character_values_are_uint_in_overloads_and_constructors() {
         r"float choose(int value){return 1;}float choose(uint value){return 2;}float f(){uint2 values=uint2('A','\u{ffffffff}');return choose('A')+values.x;}",
         &CompileOptions::default(), &MemoryIncludes::default()).unwrap();
     let code = compiled.artifact.unwrap();
+
     assert!(code.contains("choose(65u)"), "{code}");
     assert!(code.contains("uint2(65u, 4294967295u)"), "{code}");
     assert!(compiled.diagnostics.is_empty());
@@ -18,6 +19,7 @@ fn characters_fold_in_macros_dimensions_forward_constants_and_switches() {
         &CompileOptions::default(), &MemoryIncludes::default()).unwrap();
     assert_eq!(compiled.reflection.globals[2].type_name, "float[2]");
     let code = compiled.artifact.unwrap();
+
     assert!(code.contains("case 65u:"), "{code}");
     assert!(code.contains("return 511u;"), "{code}");
     assert!(code.contains("return 4294967295u;"), "{code}");
@@ -30,6 +32,7 @@ fn imported_character_alias_dimensions_and_defaults_keep_values() {
         &CompileOptions::default(),
         &MemoryIncludes { files: [("chars.slang".into(), "module chars;public typedef uint Code['C'-'A'];public uint pick(uint value='A'){return value;}".into())].into() }).unwrap();
     let code = compiled.artifact.unwrap();
+
     assert!(code.contains("values[2]"), "{code}");
     assert!(code.contains("return 65u;"), "{code}");
 }

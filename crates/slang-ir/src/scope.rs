@@ -14,10 +14,12 @@ pub(crate) fn lower(module: &mut Module) {
 
 fn sequence(statements: &mut Vec<Stmt>) {
     let mut result = vec![];
+
     for mut value in std::mem::take(statements) {
         statement(&mut value, false, &mut result);
         result.push(value);
     }
+
     *statements = result;
 }
 
@@ -33,9 +35,11 @@ fn statement(value: &mut Stmt, controlled: bool, declarations: &mut Vec<Stmt>) {
                 sequence(body);
             }
         }
+
         StmtKind::Variable(variable) if controlled => {
             value.kind = initialize(variable, declarations);
         }
+
         StmtKind::Variables(variables) if controlled => {
             value.kind = StmtKind::Sequence(
                 variables
@@ -47,32 +51,52 @@ fn statement(value: &mut Stmt, controlled: bool, declarations: &mut Vec<Stmt>) {
                     .collect(),
             );
         }
+
         StmtKind::If {
             then_branch,
             else_branch,
             ..
         } => {
             statement(then_branch, true, declarations);
+
             if let Some(branch) = else_branch {
                 statement(branch, true, declarations);
             }
         }
-        StmtKind::While { body, .. } | StmtKind::DoWhile { body, .. } => {
+
+        StmtKind::While {
+            body,
+            ..
+        }
+        | StmtKind::DoWhile {
+            body,
+            ..
+        } => {
             statement(body, true, declarations);
         }
-        StmtKind::For { body, .. } => {
+
+        StmtKind::For {
+            body,
+            ..
+        } => {
             let mut locals = vec![];
             statement(body, true, &mut locals);
+
             if !locals.is_empty() {
                 locals.push(value.clone());
                 value.kind = StmtKind::Block(locals);
             }
         }
-        StmtKind::Switch { cases, .. } => {
+
+        StmtKind::Switch {
+            cases,
+            ..
+        } => {
             for case in cases {
                 sequence(&mut case.statements);
             }
         }
+
         _ => {}
     }
 }
@@ -87,6 +111,7 @@ fn initialize(variable: &mut Variable, declarations: &mut Vec<Stmt>) -> StmtKind
         });
         return StmtKind::Empty;
     }
+
     let initializer = variable.initializer.take();
     variable.modifiers.retain(|m| m != "const");
     declarations.push(Stmt {
@@ -115,19 +140,32 @@ fn literal_constant(value: &Expr) -> bool {
     match &value.kind {
         ExprKind::Integer(_) | ExprKind::Float(_) | ExprKind::Bool(_) | ExprKind::Zero => true,
         ExprKind::Construct(values) => values.iter().all(literal_constant),
-        ExprKind::Call { name, arguments }
-            if slang_sema::Type::builtin(name).as_ref() == Some(&value.ty) =>
-        {
+        ExprKind::Call {
+            name,
+            arguments,
+        } if slang_sema::Type::builtin(name).as_ref() == Some(&value.ty) => {
             arguments.iter().all(literal_constant)
         }
-        ExprKind::Cast { value } | ExprKind::Unary { value, .. } => literal_constant(value),
-        ExprKind::Binary { op, left, right } => {
+
+        ExprKind::Cast {
+            value,
+        }
+        | ExprKind::Unary {
+            value,
+            ..
+        } => literal_constant(value),
+        ExprKind::Binary {
+            op,
+            left,
+            right,
+        } => {
             !matches!(
                 op.as_str(),
                 "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^=" | "<<=" | ">>="
             ) && literal_constant(left)
                 && literal_constant(right)
         }
+
         ExprKind::Conditional {
             condition,
             then_value,
@@ -137,6 +175,7 @@ fn literal_constant(value: &Expr) -> bool {
                 && literal_constant(then_value)
                 && literal_constant(else_value)
         }
+
         _ => false,
     }
 }

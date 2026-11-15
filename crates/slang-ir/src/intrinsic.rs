@@ -10,14 +10,17 @@ use std::collections::BTreeMap;
 pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
     let names = crate::visit::names(module);
     let mut prefix = "_slang_math_".to_owned();
+
     while names.iter().any(|n| n.starts_with(&prefix)) {
         prefix.push('_');
     }
+
     let mut lowerer = Lowerer {
         prefix,
         functions: vec![],
         helpers: BTreeMap::new(),
     };
+
     lowerer.module(module)?;
     module.functions.extend(lowerer.functions);
     Ok(())
@@ -32,9 +35,14 @@ struct Lowerer {
 impl Visitor for Lowerer {
     fn expression(&mut self, expression: &mut Expr) -> Result<(), Diagnostic> {
         walk_expression(self, expression)?;
-        let ExprKind::IntrinsicCall { name, arguments } = &expression.kind else {
+        let ExprKind::IntrinsicCall {
+            name,
+            arguments,
+        } = &expression.kind
+        else {
             return Ok(());
         };
+
         if matches!(name.as_str(), "asint" | "asuint" | "asfloat")
             && let [argument] = arguments.as_slice()
             && argument.ty == expression.ty
@@ -42,9 +50,11 @@ impl Visitor for Lowerer {
             *expression = argument.clone();
             return Ok(());
         }
+
         if !matches!(name.as_str(), "sincos" | "modf" | "frexp") {
             return Ok(());
         }
+
         let Some(Expr {
             ty: Type::Matrix(scalar, rows, columns),
             ..
@@ -52,6 +62,7 @@ impl Visitor for Lowerer {
         else {
             return Ok(());
         };
+
         let key = (name.clone(), *scalar, *rows, *columns);
         let helper = if let Some(helper) = self.helpers.get(&key) {
             helper.clone()
@@ -68,10 +79,12 @@ impl Visitor for Lowerer {
             self.helpers.insert(key, helper.clone());
             helper
         };
+
         expression.kind = ExprKind::Call {
             name: helper,
             arguments: arguments.clone(),
         };
+
         Ok(())
     }
 }
@@ -90,11 +103,13 @@ fn matrix_helper(
     } else {
         matrix.clone()
     };
+
     let output_type = if intrinsic == "frexp" {
         Type::Matrix(Scalar::Int, rows, columns)
     } else {
         matrix.clone()
     };
+
     let mut parameters = vec![Variable {
         name: "_input".into(),
         ty: matrix.clone(),
@@ -106,7 +121,12 @@ fn matrix_helper(
         initializer: None,
         span,
     }];
-    let outputs = if intrinsic == "sincos" { 2 } else { 1 };
+    let outputs = if intrinsic == "sincos" {
+        2
+    } else {
+        1
+    };
+
     for i in 0..outputs {
         parameters.push(Variable {
             name: format!("_out_{i}"),
@@ -120,7 +140,9 @@ fn matrix_helper(
             span,
         });
     }
+
     let mut body = vec![];
+
     if result_type != Type::Void {
         body.push(Stmt {
             span,
@@ -137,11 +159,14 @@ fn matrix_helper(
             }),
         });
     }
+
     for row in 0..rows {
         let mut arguments = vec![matrix_row("_input", &matrix, row, span)];
+
         for i in 0..outputs {
             arguments.push(matrix_row(&format!("_out_{i}"), &output_type, row, span));
         }
+
         let call = Expr {
             ty: if intrinsic == "sincos" {
                 Type::Void
@@ -154,6 +179,7 @@ fn matrix_helper(
                 arguments,
             },
         };
+
         let expression = if intrinsic == "sincos" {
             call
         } else {
@@ -167,11 +193,13 @@ fn matrix_helper(
                 },
             }
         };
+
         body.push(Stmt {
             span,
             kind: StmtKind::Expression(expression),
         });
     }
+
     if result_type != Type::Void {
         body.push(Stmt {
             span,
@@ -182,6 +210,7 @@ fn matrix_helper(
             })),
         });
     }
+
     Function {
         name: name.into(),
         return_type: result_type,
@@ -200,6 +229,7 @@ fn matrix_row(name: &str, matrix: &Type, row: u8, span: Span) -> Expr {
     let Type::Matrix(scalar, _, columns) = matrix else {
         unreachable!()
     };
+
     Expr {
         ty: Type::Vector(*scalar, *columns),
         span,

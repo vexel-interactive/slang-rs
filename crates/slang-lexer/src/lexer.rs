@@ -16,9 +16,11 @@ pub fn lex(source: SourceId, text: &str) -> Lexed {
         tokens: vec![],
         diagnostics: vec![],
     };
+
     while lexer.offset < text.len() {
         lexer.next();
     }
+
     lexer.push(TokenKind::Eof, text.len());
     Lexed {
         tokens: lexer.tokens,
@@ -57,12 +59,14 @@ impl Lexer<'_> {
         let ch = self.current();
         let kind = if ch == '\n' || ch == '\r' {
             self.bump();
+
             if ch == '\r' && self.current() == '\n' {
                 self.bump();
             }
             TokenKind::Newline
         } else if ch.is_whitespace() || (start == 0 && ch == '\u{feff}') {
             self.bump();
+
             while self.offset < self.text.len()
                 && matches!(self.current(), ' ' | '\t' | '\u{b}' | '\u{c}')
             {
@@ -76,9 +80,11 @@ impl Lexer<'_> {
             TokenKind::Comment
         } else if remaining.starts_with("/*") {
             self.offset += 2;
+
             while self.offset < self.text.len() && !self.text[self.offset..].starts_with("*/") {
                 self.bump();
             }
+
             if self.offset == self.text.len() {
                 self.diagnostics.push(Diagnostic::error(
                     "L001",
@@ -91,6 +97,7 @@ impl Lexer<'_> {
             TokenKind::Comment
         } else if ch == '_' || ch.is_ascii_alphabetic() {
             self.bump();
+
             while self.offset < self.text.len()
                 && (self.current().is_ascii_alphanumeric() || self.current() == '_')
             {
@@ -104,17 +111,21 @@ impl Lexer<'_> {
         } else if ch == '"' || ch == '\'' {
             self.bump();
             let mut terminated = false;
+
             while self.offset < self.text.len() && !matches!(self.current(), '\r' | '\n') {
                 let c = self.current();
                 self.bump();
+
                 if c == ch {
                     terminated = true;
                     break;
                 }
+
                 if c == '\\' && self.offset < self.text.len() {
                     self.bump();
                 }
             }
+
             if !terminated {
                 self.diagnostics.push(Diagnostic::error(
                     "L002",
@@ -122,6 +133,7 @@ impl Lexer<'_> {
                     "unterminated literal",
                 ));
             }
+
             if ch == '"' {
                 TokenKind::String
             } else {
@@ -132,10 +144,12 @@ impl Lexer<'_> {
                 ">>=", "<<=", "...", "##", "::", "->", "++", "--", "&&", "||", "==", "!=", "<=",
                 ">=", "<<", ">>", "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^=",
             ];
+
             if let Some(op) = OPERATORS.iter().find(|op| remaining.starts_with(**op)) {
                 self.offset += op.len();
             } else {
                 self.bump();
+
                 if !"{}[]();,:.?~!+-*/%<>=&|^#\\".contains(ch) {
                     self.diagnostics.push(Diagnostic::error(
                         "L003",
@@ -146,6 +160,7 @@ impl Lexer<'_> {
             }
             TokenKind::Punctuation
         };
+
         self.push(kind, start);
     }
 
@@ -156,11 +171,7 @@ impl Lexer<'_> {
         let octal = !hex
             && !binary
             && self.text.as_bytes()[start] == b'0'
-            && self
-                .text
-                .as_bytes()
-                .get(start + 1)
-                .is_some_and(u8::is_ascii_digit);
+            && self.text.as_bytes().get(start + 1).is_some_and(u8::is_ascii_digit);
         if octal {
             self.diagnostics.push(Diagnostic::warning(
                 "L005",
@@ -168,11 +179,14 @@ impl Lexer<'_> {
                 "'0' prefix indicates an octal literal",
             ));
         }
+
         if hex || binary {
             self.offset += 2;
         }
+
         let digit_start = self.offset;
         self.number_digits(start, hex, binary, octal);
+
         if (hex || binary) && self.offset == digit_start {
             self.diagnostics.push(Diagnostic::error(
                 "L004",
@@ -180,6 +194,7 @@ impl Lexer<'_> {
                 "expected digits after numeric base prefix",
             ));
         }
+
         if self.current() == '.'
             && !matches!(self.text.as_bytes().get(self.offset + 1), Some(b'x' | b'r'))
         {
@@ -187,6 +202,7 @@ impl Lexer<'_> {
             self.bump();
             self.number_digits(start, hex, binary, octal);
         }
+
         if self.text[self.offset..].starts_with("#INF") {
             float = true;
             self.offset += 4;
@@ -195,13 +211,17 @@ impl Lexer<'_> {
         {
             float = true;
             self.bump();
+
             if matches!(self.current(), '+' | '-') {
                 self.bump();
             }
+
             let exponent = self.offset;
+
             while self.offset < self.text.len() && self.current().is_ascii_digit() {
                 self.bump();
             }
+
             if self.offset == exponent {
                 self.diagnostics.push(Diagnostic::error(
                     "L004",
@@ -210,12 +230,15 @@ impl Lexer<'_> {
                 ));
             }
         }
+
         let suffix_start = self.offset;
+
         while self.offset < self.text.len()
             && (self.current().is_ascii_alphanumeric() || self.current() == '_')
         {
             self.bump();
         }
+
         let suffix = &self.text[suffix_start..self.offset];
         let valid_suffix = if float {
             matches!(
@@ -238,6 +261,7 @@ impl Lexer<'_> {
         } else {
             crate::parse_integer_suffix(suffix).is_some()
         };
+
         if !valid_suffix {
             self.diagnostics.push(Diagnostic::error(
                 "L004",
@@ -245,6 +269,7 @@ impl Lexer<'_> {
                 "invalid numeric suffix",
             ));
         }
+
         if float {
             TokenKind::Float
         } else {
@@ -269,6 +294,7 @@ impl Lexer<'_> {
                     "invalid digit for numeric base",
                 ));
             }
+
             self.bump();
         }
     }
@@ -282,15 +308,10 @@ mod tests {
     fn longest_match_and_round_trip() {
         let text = "// test\r\nuint x = 0xffu; x >>= 2; float f=.5e+2f; /*α*/";
         let result = lex(SourceId(0), text);
+
         assert!(result.diagnostics.is_empty());
-        assert_eq!(
-            result
-                .tokens
-                .iter()
-                .map(|t| t.text.as_str())
-                .collect::<String>(),
-            text
-        );
+        assert_eq!(result.tokens.iter().map(|t| t.text.as_str()).collect::<String>(), text);
+
         assert!(result.tokens.iter().any(|t| t.is(">>=")));
     }
 
@@ -299,6 +320,7 @@ mod tests {
         for text in ["1uu", "1.0u"] {
             assert!(!lex(SourceId(0), text).diagnostics.is_empty());
         }
+
         for text in ["/*", "\"unterminated", "α", "1e+", "0x", "0b2", "12wat"] {
             assert!(!lex(SourceId(0), text).diagnostics.is_empty(), "{text}");
         }
@@ -308,6 +330,7 @@ mod tests {
     fn floating_grammar_and_integer_members_keep_token_boundaries() {
         let text = "0e10 0E-3 .5 0x1.8p+2HF 0x1.8 1.0lf 1.0FL 0#INFh 123.x 0.r 0xff.x";
         let result = lex(SourceId(0), text);
+
         assert!(result.diagnostics.is_empty(), "{:?}", result.diagnostics);
         let tokens: Vec<_> = result
             .tokens
@@ -323,11 +346,13 @@ mod tests {
             })
             .collect();
         assert!(tokens[..8].iter().all(|t| t.kind == TokenKind::Float));
+
         for group in tokens[8..].chunks(3) {
             assert_eq!(group[0].kind, TokenKind::Integer);
             assert!(group[1].is("."));
             assert_eq!(group[2].kind, TokenKind::Identifier);
         }
+
         for text in ["2f", "2h", "1.0hF", "1.0lF", "0x1p+", "0b12", "09"] {
             assert!(
                 lex(SourceId(0), text)

@@ -31,22 +31,24 @@ impl FromStr for ShaderProfile {
                 "unsupported shader profile '{value}'; use cs_6_N, vs_6_N, or ps_6_N"
             ));
         };
+
         let stage = match *stage {
             "cs" => ShaderStage::Compute,
             "vs" => ShaderStage::Vertex,
             "ps" => ShaderStage::Fragment,
             _ => return Err(format!("unsupported shader profile stage '{stage}'")),
         };
-        let minor = minor
-            .parse::<u8>()
-            .ok()
-            .filter(|n| *n <= 9 && minor.len() == 1)
-            .ok_or_else(|| {
+
+        let minor =
+            minor.parse::<u8>().ok().filter(|n| *n <= 9 && minor.len() == 1).ok_or_else(|| {
                 format!(
                     "unsupported shader model in '{value}'; supported profiles are 6.0 through 6.9"
                 )
             })?;
-        Ok(Self { stage, minor })
+        Ok(Self {
+            stage,
+            minor,
+        })
     }
 }
 
@@ -83,6 +85,7 @@ pub(crate) fn resolve(
                 .chain(checked.expression_types.values())
                 .any(slang_sema::Type::requires_native_16bit),
     };
+
     if options.target != Target::Hlsl {
         return if options.profile.is_some() || options.native_16bit_types {
             Err(vec![Diagnostic::error(
@@ -94,7 +97,9 @@ pub(crate) fn resolve(
             Ok(profiles)
         };
     }
+
     let mut errors = vec![];
+
     for entry in &checked.entry_points {
         let entry_span = checked
             .module
@@ -110,12 +115,10 @@ pub(crate) fn resolve(
                 }
             })
             .unwrap_or_default();
-        let requested = options.profile.filter(|_| {
-            options
-                .entry_point
-                .as_ref()
-                .is_none_or(|name| name == &entry.name)
-        });
+        let requested = options
+            .profile
+            .filter(|_| options.entry_point.as_ref().is_none_or(|name| name == &entry.name));
+
         if let Some(requested) = requested
             && requested.stage != entry.stage
         {
@@ -129,40 +132,46 @@ pub(crate) fn resolve(
             ));
             continue;
         }
+
         let mut selected = requested.unwrap_or(ShaderProfile {
             stage: entry.stage,
             minor: 0,
         });
+
         if profiles.native_16bit_types && selected.minor < 2 {
             selected.minor = 2;
+
             if let Some(requested) = requested {
                 profiles.diagnostics.push(Diagnostic::warning("C003", entry_span,
                     format!("profile '{requested}' upgraded to '{selected}' because native 16-bit types are enabled")));
             }
         }
-        if let Some(operation) = checked
-            .entry_point_requirements
-            .get(&entry.name)
-            .and_then(|r| r.derivatives)
+
+        if let Some(operation) =
+            checked.entry_point_requirements.get(&entry.name).and_then(|r| r.derivatives)
             && entry.stage == ShaderStage::Compute
             && selected.minor < 6
         {
             selected.minor = 6;
+
             if let Some(requested) = requested {
                 profiles.diagnostics.push(Diagnostic::warning("C003", operation.span,
                     format!("profile '{requested}' upgraded to '{selected}' because entry point '{}' uses compute derivatives", entry.name)));
             }
         }
+
         profiles.entries.insert(entry.name.clone(), selected);
     }
     // One emitted module has one physical type mode, including helpers and
     // globals shared by entries with different feature requirements.
     profiles.native_16bit_types |= profiles.entries.values().any(|profile| profile.minor >= 2);
+
     if profiles.native_16bit_types {
         for profile in profiles.entries.values_mut() {
             profile.minor = profile.minor.max(2);
         }
     }
+
     if errors.is_empty() {
         Ok(profiles)
     } else {

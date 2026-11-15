@@ -4,10 +4,8 @@ use super::*;
 
 pub(super) fn validate_parameters(parameters: &[GenericParameter]) -> Result<(), Diagnostic> {
     for (index, parameter) in parameters.iter().enumerate() {
-        let forward = parameters[index + 1..]
-            .iter()
-            .map(|p| p.name.clone())
-            .collect::<BTreeSet<_>>();
+        let forward =
+            parameters[index + 1..].iter().map(|p| p.name.clone()).collect::<BTreeSet<_>>();
         for constraint in &parameter.constraints {
             if !argument_names(std::slice::from_ref(constraint)).is_disjoint(&forward) {
                 return Err(Diagnostic::error(
@@ -18,6 +16,7 @@ pub(super) fn validate_parameters(parameters: &[GenericParameter]) -> Result<(),
             }
         }
     }
+
     Ok(())
 }
 
@@ -32,11 +31,9 @@ impl Specializer {
                 let mut constraint = constraint.clone();
                 ConstraintSubstitution(substitutions).ty(&mut constraint)?;
                 self.canonical(&mut constraint, 0)?;
+
                 if !constraint.arrays.is_empty()
-                    || !self
-                        .shapes
-                        .interface_definitions
-                        .contains_key(&constraint.name)
+                    || !self.shapes.interface_definitions.contains_key(&constraint.name)
                 {
                     return Err(Diagnostic::error(
                         "T032",
@@ -44,7 +41,9 @@ impl Specializer {
                         "generic constraints require an interface type",
                     ));
                 }
+
                 let argument = &substitutions[&parameter.name];
+
                 if !argument.arrays.is_empty()
                     || !self.conforms_to(
                         &argument.name,
@@ -57,6 +56,7 @@ impl Specializer {
                 }
             }
         }
+
         Ok(true)
     }
 
@@ -70,6 +70,7 @@ impl Specializer {
         if name == interface {
             return Ok(true);
         }
+
         if active.len() >= 32 || !active.insert(name.into()) {
             return Err(Diagnostic::error(
                 "T032",
@@ -77,6 +78,7 @@ impl Specializer {
                 "cyclic or excessively nested interface inheritance",
             ));
         }
+
         let bases = if let Some(structure) = self.shapes.struct_definitions.get(name) {
             structure.bases.clone()
         } else if let Some(interface) = self.shapes.interface_definitions.get(name) {
@@ -84,14 +86,18 @@ impl Specializer {
         } else {
             vec![]
         };
+
         let mut result = false;
+
         for mut base in bases {
             self.canonical(&mut base, 0)?;
+
             if self.conforms_to(&base.name, interface, active, span)? {
                 result = true;
                 break;
             }
         }
+
         active.remove(name);
         Ok(result)
     }

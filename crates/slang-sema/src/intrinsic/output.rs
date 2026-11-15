@@ -12,10 +12,13 @@ pub(crate) fn signature(name: &str, types: &[Type]) -> Option<Signature> {
         "modf" | "frexp" => 2,
         _ => return None,
     };
+
     if types.len() != count {
         return None;
     }
+
     let mut target = types[0].clone();
+
     if name == "frexp" {
         let shape = types[1].with_scalar(target.scalar()?);
         target = Type::inferred_common(&target, &shape)?;
@@ -28,10 +31,13 @@ pub(crate) fn signature(name: &str, types: &[Type]) -> Option<Signature> {
             };
         }
     }
+
     if !target.numeric() {
         return None;
     }
+
     let scalar = target.scalar()?;
+
     if matches!(
         scalar,
         Scalar::Int16
@@ -45,17 +51,23 @@ pub(crate) fn signature(name: &str, types: &[Type]) -> Option<Signature> {
     ) {
         target = target.with_scalar(Scalar::Float);
     }
+
     let output = if name == "frexp" {
         target.with_scalar(Scalar::Int)
     } else {
         target.clone()
     };
+
     let result = if name == "sincos" {
         Type::Void
     } else {
         target.clone()
     };
+
     let mut parameters = vec![target];
     parameters.extend(std::iter::repeat_n(output, count - 1));
-    Some(Signature { parameters, result })
+    Some(Signature {
+        parameters,
+        result,
+    })
 }

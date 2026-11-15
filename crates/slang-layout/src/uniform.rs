@@ -72,10 +72,8 @@ impl UniformTypeLayout {
         if !matches!(component_bytes, 2 | 4 | 8) || !(1..=4).contains(&width) {
             return Err(UniformLayoutError::InvalidShape);
         }
-        Ok(Self::value(
-            u64::from(component_bytes) * u64::from(width),
-            component_bytes,
-        ))
+
+        Ok(Self::value(u64::from(component_bytes) * u64::from(width), component_bytes))
     }
 
     /// Column-major matrices; a single column packs as a vector in legacy DXC.
@@ -92,11 +90,13 @@ impl UniformTypeLayout {
         if !(1..=4).contains(&columns) || !(1..=4).contains(&rows) {
             return Err(UniformLayoutError::InvalidShape);
         }
+
         let (width, count) = if major == MatrixMajor::Row {
             (columns, rows)
         } else {
             (rows, columns)
         };
+
         let vector = Self::numeric(component_bytes, width)?;
         let stride = align(vector.size, 16)?;
         let size = stride * u64::from(count - 1) + vector.size;
@@ -107,9 +107,11 @@ impl UniformTypeLayout {
         } else {
             16
         };
+
         let mut layout = Self::value(size, alignment);
         layout.matrix_stride = Some(stride);
         layout.matrix_major = Some(major);
+
         Ok(layout)
     }
 
@@ -125,9 +127,11 @@ impl UniformTypeLayout {
                 .and_then(|size| size.checked_add(self.size))
                 .ok_or(UniformLayoutError::Overflow)?
         };
+
         let mut layout = Self::value(size, alignment);
         layout.array_stride = Some(stride);
         layout.element_type = Some(element_type);
+
         Ok(layout)
     }
 
@@ -161,12 +165,11 @@ impl UniformPacker {
         if layout.size == 0 {
             return Ok(());
         }
-        self.size = self.size.max(
-            offset
-                .checked_add(layout.size)
-                .ok_or(UniformLayoutError::Overflow)?,
-        );
+
+        self.size =
+            self.size.max(offset.checked_add(layout.size).ok_or(UniformLayoutError::Overflow)?);
         self.alignment = self.alignment.max(layout.alignment);
+
         Ok(())
     }
 
@@ -174,17 +177,15 @@ impl UniformPacker {
         if layout.size == 0 {
             return Ok(self.size);
         }
+
         let mut offset = align(self.size, layout.alignment)?;
         self.alignment = self.alignment.max(layout.alignment);
-        let last = offset
-            .checked_add(layout.size - 1)
-            .ok_or(UniformLayoutError::Overflow)?;
+        let last = offset.checked_add(layout.size - 1).ok_or(UniformLayoutError::Overflow)?;
         if offset / 16 != last / 16 {
             offset = align(offset, 16)?;
         }
-        self.size = offset
-            .checked_add(layout.size)
-            .ok_or(UniformLayoutError::Overflow)?;
+
+        self.size = offset.checked_add(layout.size).ok_or(UniformLayoutError::Overflow)?;
         Ok(offset)
     }
 
@@ -199,8 +200,7 @@ fn align(size: u64, alignment: u32) -> Result<u64, UniformLayoutError> {
     if alignment == 0 || !alignment.is_power_of_two() {
         return Err(UniformLayoutError::InvalidShape);
     }
+
     let mask = u64::from(alignment - 1);
-    size.checked_add(mask)
-        .map(|size| size & !mask)
-        .ok_or(UniformLayoutError::Overflow)
+    size.checked_add(mask).map(|size| size & !mask).ok_or(UniformLayoutError::Overflow)
 }

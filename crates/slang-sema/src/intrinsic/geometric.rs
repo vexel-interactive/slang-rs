@@ -9,40 +9,45 @@ pub(crate) fn signature(name: &str, types: &[Type]) -> Option<Signature> {
         "refract" | "faceforward" => 3,
         _ => return None,
     };
+
     if types.len() != arity || types.iter().any(|ty| ty.width().is_none()) {
         return None;
     }
+
     if name == "cross" {
         return cross(types);
     }
+
     if name != "dot" && types.iter().any(|ty| ty.scalar() == Some(Scalar::Bool)) {
         return None;
     }
+
     if name == "refract" && types[2].width() != Some(1) {
         return None;
     }
+
     let inputs = if name == "refract" {
         &types[..2]
     } else {
         types
     };
+
     let mut width = None;
+
     for ty in inputs {
         if let Type::Vector(_, n) = ty {
             if width.is_some_and(|w| w != *n) {
                 return None;
             }
+
             width = Some(*n);
         }
     }
+
     let scalar = if name == "dot" {
         arithmetic_component(types)?
     } else {
-        match types
-            .iter()
-            .filter_map(Type::scalar)
-            .reduce(Scalar::inferred_common)?
-        {
+        match types.iter().filter_map(Type::scalar).reduce(Scalar::inferred_common)? {
             Scalar::Int16
             | Scalar::Uint16
             | Scalar::Int
@@ -54,20 +59,25 @@ pub(crate) fn signature(name: &str, types: &[Type]) -> Option<Signature> {
             scalar => scalar,
         }
     };
+
     let parameter = match width {
         Some(n) => Type::Vector(scalar, n),
         None => Type::Scalar(scalar),
     };
+
     let mut parameters = vec![parameter.clone(); arity];
+
     if name == "refract" {
         parameters[2] = Type::Scalar(scalar);
     }
+
     let result = match name {
         "length" | "distance" | "dot" => Type::Scalar(scalar),
         // The core faceforward signature is always a vector, even for scalar inputs.
         "faceforward" => Type::Vector(scalar, width.unwrap_or(1)),
         _ => parameter,
     };
+
     Some(Signature {
         parameters,
         result,
@@ -82,6 +92,7 @@ fn cross(types: &[Type]) -> Option<Signature> {
     {
         return None;
     }
+
     let result = Type::Vector(arithmetic_component(types)?, 3);
     Some(Signature {
         parameters: vec![result.clone(); 2],
@@ -99,10 +110,8 @@ fn arithmetic_component(types: &[Type]) -> Option<Scalar> {
             Scalar::Int
         }
     } else {
-        types
-            .iter()
-            .filter_map(Type::scalar)
-            .reduce(Scalar::inferred_common)?
+        types.iter().filter_map(Type::scalar).reduce(Scalar::inferred_common)?
     };
+
     Some(scalar)
 }

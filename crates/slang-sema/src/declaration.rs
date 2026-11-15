@@ -17,6 +17,7 @@ impl Checker {
         let Some(name) = self.type_name(&reference.name, reference.span) else {
             return Type::Error;
         };
+
         let mut qualified;
         let reference = if name != reference.name {
             qualified = reference.clone();
@@ -25,6 +26,7 @@ impl Checker {
         } else {
             reference
         };
+
         let mut ty = if matches!(reference.name.as_str(), "vector" | "matrix") {
             self.numeric_type_application(reference)
         } else if reference.name == "ConstantBuffer" {
@@ -34,7 +36,9 @@ impl Checker {
                         TypeArgument::Type(element) => Some(element),
                         _ => None,
                     };
+
                     let element = self.type_argument(element);
+
                     if element.is_resource() && !self.is_empty_type(&element) {
                         self.error(
                             "T002",
@@ -42,6 +46,7 @@ impl Checker {
                             "constant buffers require a data element type",
                         );
                     }
+
                     Type::ConstantBuffer {
                         element: Box::new(element),
                         matrix_major: matrix_major
@@ -49,34 +54,26 @@ impl Checker {
                             .filter(|m| *m != self.default_matrix_major),
                     }
                 }
+
                 _ => {
-                    self.error(
-                        "T002",
-                        reference.span,
-                        "constant buffers require one element type",
-                    );
+                    self.error("T002", reference.span, "constant buffers require one element type");
                     Type::Error
                 }
             }
-        } else if matches!(
-            reference.name.as_str(),
-            "StructuredBuffer" | "RWStructuredBuffer"
-        ) {
+        } else if matches!(reference.name.as_str(), "StructuredBuffer" | "RWStructuredBuffer") {
             if reference.arguments.len() != 1 {
-                self.error(
-                    "T002",
-                    reference.span,
-                    "structured buffers require one element type",
-                );
+                self.error("T002", reference.span, "structured buffers require one element type");
                 Type::Error
             } else {
                 let element = self.type_argument(&reference.arguments[0]);
+
                 if element == Type::Void
                     || element.is_resource()
                     || matches!(element, Type::Array(..))
                 {
                     self.error("T002", reference.span, "invalid buffer element type");
                 }
+
                 Type::Buffer {
                     element: Box::new(element),
                     writable: reference.name.starts_with("RW"),
@@ -93,14 +90,11 @@ impl Checker {
                 [] => Type::Vector(crate::Scalar::Float, 4),
                 [element] => self.type_argument(element),
                 _ => {
-                    self.error(
-                        "T002",
-                        reference.span,
-                        "textures accept at most one element type",
-                    );
+                    self.error("T002", reference.span, "textures accept at most one element type");
                     Type::Error
                 }
             };
+
             if element != Type::Error
                 && !matches!(
                     element,
@@ -124,13 +118,10 @@ impl Checker {
                     "texture elements require half, float, int, or uint scalar/vector types",
                 );
             }
+
             Type::texture(&reference.name, element).unwrap()
         } else if !reference.arguments.is_empty() {
-            self.error(
-                "T002",
-                reference.span,
-                "user-defined generic types are not implemented",
-            );
+            self.error("T002", reference.span, "user-defined generic types are not implemented");
             Type::Error
         } else if let Some(ty) = Type::builtin(&reference.name) {
             ty
@@ -154,59 +145,67 @@ impl Checker {
             );
             Type::Error
         };
+
         for size in reference.arrays.iter().rev() {
             if ty == Type::Void {
                 self.error("T002", reference.span, "invalid array element type");
             }
+
             let mut element = &ty;
             let mut depth = 0;
+
             while let Type::Array(inner, _) = element {
                 depth += 1;
                 element = inner;
             }
+
             if depth >= 32 {
                 self.error("T002", reference.span, "array type nesting limit exceeded");
                 return Type::Error;
             }
-            let Some(size) = self
-                .numeric_shape_value(size)
-                .and_then(|value| u32::try_from(value).ok())
+
+            let Some(size) =
+                self.numeric_shape_value(size).and_then(|value| u32::try_from(value).ok())
             else {
-                self.error(
-                    "T002",
-                    size.span,
-                    "array size must be a nonnegative constant integer",
-                );
+                self.error("T002", size.span, "array size must be a nonnegative constant integer");
                 return Type::Error;
             };
+
             ty = Type::Array(Box::new(ty), size);
         }
+
         if reference.matrix_major.is_some() {
             self.check_matrix_type(&ty, reference.span);
         }
+
         ty
     }
 
     fn type_argument(&mut self, argument: &TypeArgument) -> Type {
         match argument {
             TypeArgument::Type(reference) => self.resolve_type(reference),
-            TypeArgument::Integer { span, .. } => {
+            TypeArgument::Integer {
+                span,
+                ..
+            } => {
                 self.error("T002", *span, "expected a type argument, found an integer");
                 Type::Error
             }
+
             TypeArgument::Expression(expression) => {
-                self.error(
-                    "T002",
-                    expression.span,
-                    "expected a type argument, found a value",
-                );
+                self.error("T002", expression.span, "expected a type argument, found a value");
                 Type::Error
             }
         }
     }
 
     fn numeric_type_application(&mut self, reference: &TypeRef) -> Type {
-        let expected = if reference.name == "vector" { 2 } else { 3 };
+        let expected = if reference.name == "vector" {
+            2
+        } else {
+            3
+        };
+
         if reference.arguments.len() > expected {
             self.error(
                 "T002",
@@ -215,12 +214,11 @@ impl Checker {
             );
             return Type::Error;
         }
+
         let component = reference
             .arguments
             .first()
-            .map_or(Type::Scalar(crate::Scalar::Float), |argument| {
-                self.type_argument(argument)
-            });
+            .map_or(Type::Scalar(crate::Scalar::Float), |argument| self.type_argument(argument));
         let symbolic =
             matches!(&component, Type::Struct(name) if self.symbolic_types.contains(name));
         if !symbolic && !matches!(component, Type::Scalar(_)) {
@@ -231,12 +229,18 @@ impl Checker {
                     "vector and matrix components require a scalar type",
                 );
             }
+
             return Type::Error;
         }
+
         let mut dimensions = vec![];
+
         for argument in reference.arguments.iter().skip(1) {
             let (value, span) = match argument {
-                TypeArgument::Integer { value, span } => (i64::from(*value), *span),
+                TypeArgument::Integer {
+                    value,
+                    span,
+                } => (i64::from(*value), *span),
                 TypeArgument::Expression(expression) => {
                     let Some(value) = self.numeric_shape_value(expression) else {
                         self.error(
@@ -246,8 +250,10 @@ impl Checker {
                         );
                         return Type::Error;
                     };
+
                     (value, expression.span)
                 }
+
                 TypeArgument::Type(_) => {
                     self.error(
                         "T002",
@@ -257,6 +263,7 @@ impl Checker {
                     return Type::Error;
                 }
             };
+
             if !(1..=4).contains(&value) {
                 self.error(
                     "T002",
@@ -265,15 +272,20 @@ impl Checker {
                 );
                 return Type::Error;
             }
+
             dimensions.push(value as u8);
         }
+
         dimensions.resize(expected - 1, 4);
+
         if symbolic {
             return self.symbolic_shape(component, dimensions, reference.span);
         }
+
         let Type::Scalar(scalar) = component else {
             unreachable!()
         };
+
         if reference.name == "vector" {
             Type::Vector(scalar, dimensions[0])
         } else {
@@ -283,6 +295,7 @@ impl Checker {
 
     pub(crate) fn declare(&mut self, module: &Module) {
         let names = self.declare_types(module);
+
         for declaration in &module.declarations {
             self.declaration_static_owner(declaration);
             let name = match declaration {
@@ -292,22 +305,22 @@ impl Checker {
                 Declaration::Global(v) => &v.name,
                 Declaration::Function(f) => &f.name,
             };
-            self.current_module = self
-                .symbols
-                .get(name)
-                .map_or(slang_module::ModuleId(0), |o| o.module);
+
+            self.current_module =
+                self.symbols.get(name).map_or(slang_module::ModuleId(0), |o| o.module);
             match declaration {
                 Declaration::TypeAlias(_) => {}
                 Declaration::Interface(_) => {}
                 Declaration::Struct(structure) => {
                     self.check_visibility_modifiers(&structure.modifiers, structure.span);
                     let mut fields = BTreeMap::new();
+
                     for field in &structure.fields {
                         let ty = self.resolve_type(&field.ty);
                         self.require_value_type(&ty, field.span);
+
                         if field.modifiers.iter().any(|m| m == "public") {
-                            self.public_fields
-                                .insert((structure.name.clone(), field.name.clone()));
+                            self.public_fields.insert((structure.name.clone(), field.name.clone()));
                             if !self.public_types.contains(&structure.name) {
                                 self.error(
                                     "T018",
@@ -323,36 +336,45 @@ impl Checker {
                                     },
                                 );
                             }
+
                             self.require_public_type(&ty, field.span);
                         }
+
                         if ty == Type::Void {
                             self.error("T002", field.span, "a field cannot have type void");
                         }
+
                         if fields.insert(field.name.clone(), ty.clone()).is_some() {
                             self.error("T003", field.span, "duplicate struct field");
                         }
+
                         self.declaration_types.insert(span_key(field.span), ty);
                     }
+
                     self.structures.insert(structure.name.clone(), fields);
                 }
+
                 Declaration::Global(variable) => {
                     if names.contains(&variable.name) {
                         self.error("T003", variable.span, "value name conflicts with a type");
                     }
+
                     self.bind(variable, VariableScope::Global);
                 }
+
                 Declaration::Function(function) => {
                     if let Some(owner) = &function.constructor
                         && !self.generic_constructor_functions.contains(&function.name)
                     {
-                        self.constructors
-                            .insert(owner.clone(), function.name.clone());
+                        self.constructors.insert(owner.clone(), function.name.clone());
                     }
+
                     if let Some(method) = &function.method {
                         self.methods.insert(
                             (method.owner.clone(), method.name.clone()),
                             function.name.clone(),
                         );
+
                         if self
                             .structures
                             .get(&method.owner)
@@ -361,6 +383,7 @@ impl Checker {
                             self.error("T003", function.span, "method name conflicts with a field");
                         }
                     }
+
                     if self.scopes[0].contains_key(&function.name)
                         || names.contains(&function.name)
                         || Type::builtin(self.source_name(&function.name)).is_some()
@@ -371,27 +394,27 @@ impl Checker {
                             "function name conflicts with another declaration",
                         );
                     }
+
                     let result = self.resolve_type(&function.return_type);
                     self.require_value_type(&result, function.span);
-                    self.declaration_types
-                        .insert(span_key(function.span), result.clone());
-                    let parameters: Vec<Type> = function
-                        .parameters
-                        .iter()
-                        .map(|p| self.resolve_type(&p.ty))
-                        .collect();
+                    self.declaration_types.insert(span_key(function.span), result.clone());
+                    let parameters: Vec<Type> =
+                        function.parameters.iter().map(|p| self.resolve_type(&p.ty)).collect();
                     if function.modifiers.iter().any(|m| m == "public") {
                         self.require_public_type(&result, function.span);
+
                         for (ty, parameter) in parameters.iter().zip(&function.parameters) {
                             self.require_public_type(ty, parameter.span);
                         }
                     }
+
                     let output_parameters = function
                         .parameters
                         .iter()
                         .map(|p| p.modifiers.iter().any(|m| m == "out" || m == "inout"))
                         .collect();
                     let overloads = self.functions.entry(function.name.clone()).or_default();
+
                     if (function.constructor.is_none()
                         || self.generic_constructor_functions.contains(&function.name))
                         && let Some(existing) = overloads.iter_mut().find(|s| {
@@ -405,6 +428,7 @@ impl Checker {
                             || existing.public != function.modifiers.iter().any(|m| m == "public")
                             || existing.defined && function.body.is_some();
                         existing.defined |= function.body.is_some();
+
                         if duplicate {
                             self.error(
                                 "T003",
@@ -462,13 +486,16 @@ impl Checker {
             {
                 for (index, signature) in overloads.iter_mut().enumerate() {
                     let mut target = format!("{name}__overload_{index}");
+
                     while !target_names.insert(target.clone()) {
                         target.push('_');
                     }
+
                     signature.target_name = target;
                 }
             }
         }
+
         for declaration in &module.declarations {
             if let Declaration::Function(function) = declaration {
                 self.current_static_type = function.owner_type().map(str::to_owned);
@@ -476,11 +503,8 @@ impl Checker {
                     .symbols
                     .get(&function.name)
                     .map_or(slang_module::ModuleId(0), |o| o.module);
-                let parameters: Vec<_> = function
-                    .parameters
-                    .iter()
-                    .map(|p| self.resolve_type(&p.ty))
-                    .collect();
+                let parameters: Vec<_> =
+                    function.parameters.iter().map(|p| self.resolve_type(&p.ty)).collect();
                 if let Some(signature) = self.functions.get(&function.name).and_then(|overloads| {
                     overloads.iter().find(|s| {
                         s.parameters == parameters
@@ -496,18 +520,17 @@ impl Checker {
                 }
             }
         }
+
         self.current_static_type = None;
+
         for declaration in &module.declarations {
             if let Declaration::Global(variable) = declaration
                 && self.functions.contains_key(&variable.name)
             {
-                self.error(
-                    "T003",
-                    variable.span,
-                    "global name conflicts with a function",
-                );
+                self.error("T003", variable.span, "global name conflicts with a function");
             }
         }
+
         self.validate_value_types();
     }
 
@@ -517,42 +540,40 @@ impl Checker {
             && variable.modifiers.iter().any(|m| m == "const")
             && !variable.modifiers.iter().any(|m| m == "static")
         {
-            self.error(
-                "T004",
-                variable.span,
-                "global const with an initializer requires static",
-            );
+            self.error("T004", variable.span, "global const with an initializer requires static");
         }
+
         let source_name = self.source_name(&variable.name);
+
         if Type::builtin(source_name).is_some()
-            || self
-                .source_types
-                .contains(&(self.current_module, source_name.to_owned()))
+            || self.source_types.contains(&(self.current_module, source_name.to_owned()))
         {
             self.error("T003", variable.span, "variable name conflicts with a type");
         }
+
         let ty = self.resolve_type(&variable.ty);
         self.require_value_type(&ty, variable.span);
         self.check_matrix_layout(&ty, &variable.ty, &variable.modifiers, variable.span);
+
         if let Some(pack) = variable.pack_offset
             && (!matches!(context, VariableScope::Global)
                 || !variable.modifiers.iter().any(|m| m == "static"))
         {
-            self.error(
-                "T022",
-                pack.span,
-                "packoffset currently requires a direct cbuffer field",
-            );
+            self.error("T022", pack.span, "packoffset currently requires a direct cbuffer field");
         }
+
         self.check_register(variable, &ty, context);
+
         if matches!(context, VariableScope::Global)
             && variable.modifiers.iter().any(|m| m == "public")
         {
             self.require_public_type(&ty, variable.span);
         }
+
         if ty == Type::Void {
             self.error("T002", variable.span, "a variable cannot have type void");
         }
+
         for modifier in &variable.modifiers {
             let valid = match context {
                 VariableScope::Global => matches!(
@@ -566,10 +587,9 @@ impl Checker {
                         | "row_major"
                         | "column_major"
                 ),
-                VariableScope::Local => matches!(
-                    modifier.as_str(),
-                    "const" | "static" | "row_major" | "column_major"
-                ),
+                VariableScope::Local => {
+                    matches!(modifier.as_str(), "const" | "static" | "row_major" | "column_major")
+                }
                 VariableScope::Parameter => {
                     matches!(
                         modifier.as_str(),
@@ -583,6 +603,7 @@ impl Checker {
                     )
                 }
             };
+
             if !valid {
                 self.error(
                     "T001",
@@ -591,6 +612,7 @@ impl Checker {
                 );
             }
         }
+
         self.check_interpolation(&variable.modifiers, variable.span);
         self.check_visibility_modifiers(&variable.modifiers, variable.span);
         let directions = variable
@@ -600,23 +622,15 @@ impl Checker {
             .count();
         if directions > 1
             || variable.modifiers.iter().any(|m| m == "const")
-                && variable
-                    .modifiers
-                    .iter()
-                    .any(|m| m == "out" || m == "inout")
+                && variable.modifiers.iter().any(|m| m == "out" || m == "inout")
         {
             self.error("T001", variable.span, "conflicting parameter modifiers");
         }
+
         let global_mutable = !matches!(context, VariableScope::Global)
-            || variable
-                .modifiers
-                .iter()
-                .any(|m| m == "static" || m == "groupshared");
-        let writable = global_mutable
-            && !variable
-                .modifiers
-                .iter()
-                .any(|m| m == "const" || m == "uniform");
+            || variable.modifiers.iter().any(|m| m == "static" || m == "groupshared");
+        let writable =
+            global_mutable && !variable.modifiers.iter().any(|m| m == "const" || m == "uniform");
         let constant = variable
             .initializer
             .as_ref()
@@ -655,29 +669,26 @@ impl Checker {
                         | crate::Scalar::Bool
                 )
             ) {
-            variable
-                .initializer
-                .as_ref()
-                .and_then(|expr| self.numeric_shape_value(expr))
-                .map(|v| {
-                    if variable
-                        .initializer
-                        .as_ref()
-                        .and_then(|expr| self.expression_types.get(&expr.id))
-                        != Some(&ty)
-                        || ty == Type::Scalar(crate::Scalar::Bool)
-                    {
-                        crate::constant::normalize(v, &ty)
-                    } else {
-                        v
-                    }
-                })
+            variable.initializer.as_ref().and_then(|expr| self.numeric_shape_value(expr)).map(|v| {
+                if variable
+                    .initializer
+                    .as_ref()
+                    .and_then(|expr| self.expression_types.get(&expr.id))
+                    != Some(&ty)
+                    || ty == Type::Scalar(crate::Scalar::Bool)
+                {
+                    crate::constant::normalize(v, &ty)
+                } else {
+                    v
+                }
+            })
         } else {
             None
         };
-        self.declaration_types
-            .insert(span_key(variable.span), ty.clone());
+
+        self.declaration_types.insert(span_key(variable.span), ty.clone());
         let scope = self.scopes.last_mut().unwrap();
+
         if scope
             .insert(
                 variable.name.clone(),
@@ -692,6 +703,7 @@ impl Checker {
                         {
                             Storage::GroupShared(span_key(variable.span))
                         }
+
                         VariableScope::Global => Storage::Global(span_key(variable.span)),
                         VariableScope::Local | VariableScope::Parameter => Storage::Local,
                     },
@@ -742,9 +754,18 @@ fn collapsed_hlsl_type(ty: &Type) -> bool {
         ) => true,
         Type::Vector(_, 1) | Type::Matrix(_, 1, _) | Type::Matrix(_, _, 1) => true,
         Type::Array(element, _)
-        | Type::Buffer { element, .. }
-        | Type::Texture { element, .. }
-        | Type::ConstantBuffer { element, .. } => collapsed_hlsl_type(element),
+        | Type::Buffer {
+            element,
+            ..
+        }
+        | Type::Texture {
+            element,
+            ..
+        }
+        | Type::ConstantBuffer {
+            element,
+            ..
+        } => collapsed_hlsl_type(element),
         _ => false,
     }
 }
@@ -754,6 +775,7 @@ fn declaration_names(module: &Module) -> BTreeSet<String> {
     use slang_syntax::StmtKind;
     let mut names = BTreeSet::new();
     let mut pending = vec![];
+
     for declaration in &module.declarations {
         match declaration {
             Declaration::Function(function) => {
@@ -761,30 +783,37 @@ fn declaration_names(module: &Module) -> BTreeSet<String> {
                 names.extend(function.parameters.iter().map(|p| p.name.clone()));
                 pending.extend(function.body.as_ref());
             }
+
             Declaration::Global(variable) => {
                 names.insert(variable.name.clone());
             }
+
             Declaration::Struct(structure) => {
                 names.insert(structure.name.clone());
             }
+
             Declaration::Interface(interface) => {
                 names.insert(interface.name.clone());
                 names.extend(interface.requirements.iter().map(|f| f.name.clone()));
             }
+
             Declaration::TypeAlias(alias) => {
                 names.insert(alias.name.clone());
             }
         }
     }
+
     while let Some(statement) = pending.pop() {
         match &statement.kind {
             StmtKind::Block(statements) => pending.extend(statements),
             StmtKind::Variable(variable) => {
                 names.insert(variable.name.clone());
             }
+
             StmtKind::Variables(variables) => {
                 names.extend(variables.iter().map(|v| v.name.clone()))
             }
+
             StmtKind::If {
                 then_branch,
                 else_branch,
@@ -793,19 +822,33 @@ fn declaration_names(module: &Module) -> BTreeSet<String> {
                 pending.push(then_branch.as_ref());
                 pending.extend(else_branch.as_deref());
             }
-            StmtKind::While { body, .. } | StmtKind::DoWhile { body, .. } => {
-                pending.push(body.as_ref())
+
+            StmtKind::While {
+                body,
+                ..
             }
+            | StmtKind::DoWhile {
+                body,
+                ..
+            } => pending.push(body.as_ref()),
+
             StmtKind::For {
-                initializer, body, ..
+                initializer,
+                body,
+                ..
             } => pending.extend([initializer.as_ref(), body.as_ref()]),
-            StmtKind::Switch { cases, .. } => {
+            StmtKind::Switch {
+                cases,
+                ..
+            } => {
                 for case in cases {
                     pending.extend(&case.statements);
                 }
             }
+
             _ => {}
         }
     }
+
     names
 }

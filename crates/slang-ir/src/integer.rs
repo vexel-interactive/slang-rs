@@ -11,6 +11,7 @@ pub(crate) fn literal_text(bits: i64, ty: &Type) -> String {
         Some(Scalar::Int64 | Scalar::IntPtr) if bits == i64::MIN => {
             "(-9223372036854775807ll - 1ll)".into()
         }
+
         Some(Scalar::Int64 | Scalar::IntPtr) => format!("{bits}ll"),
         Some(Scalar::Int) if bits as i32 == i32::MIN => "(-2147483647 - 1)".into(),
         Some(Scalar::Int) => (bits as i32).to_string(),

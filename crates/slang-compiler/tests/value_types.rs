@@ -2,11 +2,9 @@ use slang_compiler::{CompileOptions, MemoryIncludes, compile_source};
 
 fn graph(levels: usize) -> String {
     let mut source = String::from("struct S0{float value;};");
+
     for index in 1..levels {
-        source.push_str(&format!(
-            "struct S{index}{{S{0} first;S{0} second[2];}};",
-            index - 1
-        ));
+        source.push_str(&format!("struct S{index}{{S{0} first;S{0} second[2];}};", index - 1));
     }
     source
 }
@@ -20,6 +18,7 @@ fn shared_type_graphs_are_checked_without_expanding_all_paths() {
         &MemoryIncludes::default(),
     )
     .unwrap();
+
     assert_eq!(compiled.ir.structures.len(), 128);
 }
 
@@ -37,6 +36,7 @@ fn cycles_and_excessive_cached_depth_report_the_struct_source() {
             &MemoryIncludes::default(),
         )
         .unwrap_err();
+
         assert!(error.diagnostics.iter().any(|d| d.code == "T002"));
         assert!(
             error

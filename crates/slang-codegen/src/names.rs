@@ -141,6 +141,7 @@ pub(crate) fn type_name(ty: &Type) -> String {
         ) => {
             format!("vector<{}, {n}>", type_name(&Type::Scalar(*s)))
         }
+
         Type::Matrix(
             s @ (Scalar::Int16
             | Scalar::Uint16
@@ -151,21 +152,29 @@ pub(crate) fn type_name(ty: &Type) -> String {
             rows,
             columns,
         ) => {
-            format!(
-                "matrix<{}, {rows}, {columns}>",
-                type_name(&Type::Scalar(*s))
-            )
+            format!("matrix<{}, {rows}, {columns}>", type_name(&Type::Scalar(*s)))
         }
+
         Type::Struct(name) => identifier(name),
-        Type::ConstantBuffer { element, .. } => {
+        Type::ConstantBuffer {
+            element,
+            ..
+        } => {
             format!("ConstantBuffer<{}>", template_element(element))
         }
+
         Type::Array(element, length) => format!("{}[{length}]", type_name(element)),
         Type::Buffer {
-            element, writable, ..
+            element,
+            writable,
+            ..
         } => format!(
             "{}StructuredBuffer<{}>",
-            if *writable { "RW" } else { "" },
+            if *writable {
+                "RW"
+            } else {
+                ""
+            },
             template_element(element)
         ),
         _ => ty.to_string(),
@@ -175,6 +184,7 @@ pub(crate) fn type_name(ty: &Type) -> String {
 // HLSL's parser treats adjacent template closers as a shift token.
 fn template_element(ty: &Type) -> String {
     let mut text = type_name(ty);
+
     if text.ends_with('>') {
         text.push(' ');
     }

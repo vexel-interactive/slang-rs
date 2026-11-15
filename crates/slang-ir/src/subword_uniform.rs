@@ -12,11 +12,14 @@ pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
     if !module.native_16bit_types {
         return Ok(());
     }
+
     let names = crate::visit::names(module);
     let mut prefix = "_slang_subword_uniform_".to_owned();
+
     while names.iter().any(|name| name.starts_with(&prefix)) {
         prefix.push('_');
     }
+
     let mut structures = vec![];
     let mut replacements = BTreeMap::new();
     let fields = module
@@ -28,16 +31,13 @@ pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
         let Some(offset) = field.pack_offset.filter(|offset| offset % 4 == 2) else {
             continue;
         };
+
         let scalar = field
             .ty
             .scalar()
             .filter(|s| matches!(s, Scalar::Half | Scalar::Int16 | Scalar::Uint16))
             .ok_or_else(|| {
-                Diagnostic::error(
-                    "I002",
-                    field.span,
-                    "unsupported subcomponent uniform offset",
-                )
+                Diagnostic::error("I002", field.span, "unsupported subcomponent uniform offset")
             })?;
         let name = format!("{prefix}{}", structures.len());
         let value_name = format!("_value_{}", structures.len());
@@ -46,6 +46,7 @@ pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
         value.pack_offset = None;
         let mut fields = vec![];
         let mut remaining = (offset % 16 / 2) as u8;
+
         while remaining != 0 {
             let width = remaining.min(4);
             let mut padding = value.clone();
@@ -55,6 +56,7 @@ pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
             fields.push(padding);
             remaining -= width;
         }
+
         fields.push(value);
         structures.push(Struct {
             name: name.clone(),
@@ -64,8 +66,12 @@ pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
         field.pack_offset = Some(offset / 16 * 16);
         replacements.insert(field.name.clone(), (field.ty.clone(), value_name));
     }
+
     module.structures.extend(structures);
-    Lowerer { replacements }.module(module)
+    Lowerer {
+        replacements,
+    }
+    .module(module)
 }
 
 struct Lowerer {
@@ -78,6 +84,7 @@ impl Visitor for Lowerer {
         let (ExprKind::Name(name) | ExprKind::GlobalName(name)) = &expression.kind else {
             return Ok(());
         };
+
         if let Some((ty, value_name)) = self.replacements.get(name) {
             let mut base = expression.clone();
             base.ty = ty.clone();
@@ -86,6 +93,7 @@ impl Visitor for Lowerer {
                 name: value_name.clone(),
             };
         }
+
         Ok(())
     }
 }

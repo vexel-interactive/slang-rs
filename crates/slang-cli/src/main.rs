@@ -15,6 +15,7 @@ fn main() -> ExitCode {
             print!("{}", arguments::HELP);
             return ExitCode::SUCCESS;
         }
+
         Ok(Action::Version) => {
             println!(
                 "slangc-rs {} (native Rust; partial Slang compatibility)",
@@ -22,12 +23,14 @@ fn main() -> ExitCode {
             );
             return ExitCode::SUCCESS;
         }
+
         Ok(Action::Compile(arguments)) => arguments,
         Err(message) => {
             eprintln!("{message}\nRun slangc-rs --help for usage.");
             return ExitCode::from(2);
         }
     };
+
     match run(*arguments) {
         Ok(()) => ExitCode::SUCCESS,
         Err(error) if error.kind() == io::ErrorKind::BrokenPipe => ExitCode::SUCCESS,
@@ -47,18 +50,19 @@ fn run(arguments: Arguments) -> io::Result<()> {
                     serde_json::to_string_pretty(&error.diagnostics).map_err(io::Error::other)?;
                 return Err(io::Error::other(json));
             }
+
             return Err(io::Error::other(error.to_string()));
         }
     };
+
     for diagnostic in &compilation.diagnostics {
         eprintln!("{}", diagnostic.render(&compilation.sources));
     }
-    for path in [&arguments.output, &arguments.reflection]
-        .into_iter()
-        .flatten()
-    {
+
+    for path in [&arguments.output, &arguments.reflection].into_iter().flatten() {
         output::validate_destination(path, &compilation.sources)?;
     }
+
     if let (Some(code), Some(reflection)) = (&arguments.output, &arguments.reflection)
         && output::resolved_path(code)? == output::resolved_path(reflection)?
     {
@@ -67,11 +71,13 @@ fn run(arguments: Arguments) -> io::Result<()> {
             "code and reflection output paths must differ",
         ));
     }
+
     let content = if arguments.dump_ir {
         Some(serde_json::to_string_pretty(&compilation.ir).map_err(io::Error::other)?)
     } else {
         compilation.artifact
     };
+
     let reflection = arguments
         .reflection
         .as_ref()
@@ -85,8 +91,10 @@ fn run(arguments: Arguments) -> io::Result<()> {
             io::stdout().lock().write_all(content.as_bytes())?;
         }
     }
+
     if let (Some(path), Some(bytes)) = (&arguments.reflection, reflection) {
         output::atomic_write(path, &bytes)?;
     }
+
     Ok(())
 }

@@ -10,14 +10,17 @@ use std::collections::BTreeMap;
 pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
     let names = crate::visit::names(module);
     let mut prefix = "_slang_geometric_".to_owned();
+
     while names.iter().any(|name| name.starts_with(&prefix)) {
         prefix.push('_');
     }
+
     let mut lowerer = Lowerer {
         prefix,
         helpers: BTreeMap::new(),
         functions: vec![],
     };
+
     lowerer.module(module)?;
     module.functions.extend(lowerer.functions);
     Ok(())
@@ -32,9 +35,14 @@ struct Lowerer {
 impl Visitor for Lowerer {
     fn expression(&mut self, expression: &mut Expr) -> Result<(), Diagnostic> {
         walk_expression(self, expression)?;
-        let ExprKind::IntrinsicCall { name, arguments } = &expression.kind else {
+        let ExprKind::IntrinsicCall {
+            name,
+            arguments,
+        } = &expression.kind
+        else {
             return Ok(());
         };
+
         if name == "cross" && expression.ty.integral()
             || name == "dot"
                 && matches!(
@@ -63,10 +71,12 @@ impl Visitor for Lowerer {
                 } else {
                     dot(&helper, parameter, expression.span)
                 };
+
                 self.functions.push(function);
                 self.helpers.insert(key, helper.clone());
                 helper
             };
+
             expression.kind = ExprKind::Call {
                 name: helper,
                 arguments: arguments.clone(),
@@ -97,6 +107,7 @@ impl Visitor for Lowerer {
                 }),
             };
         }
+
         Ok(())
     }
 }
@@ -133,6 +144,7 @@ fn integer_cross(name: &str, ty: &Type, span: Span) -> Function {
             }),
         },
     };
+
     let result = Expr {
         ty: ty.clone(),
         span,
@@ -142,6 +154,7 @@ fn integer_cross(name: &str, ty: &Type, span: Span) -> Function {
             right: Box::new(component_product("zxy", "yzx")),
         },
     };
+
     Function {
         name: name.into(),
         return_type: ty.clone(),
@@ -181,6 +194,7 @@ fn dot(name: &str, parameter: &Type, span: Span) -> Function {
             span,
             kind: ExprKind::Name(binding.into()),
         };
+
         if matches!(parameter, Type::Vector(..)) {
             Expr {
                 ty: result_type.clone(),
@@ -194,6 +208,7 @@ fn dot(name: &str, parameter: &Type, span: Span) -> Function {
             value
         }
     };
+
     let mut products = (0..usize::from(parameter.width().unwrap())).map(|index| Expr {
         ty: result_type.clone(),
         span,
@@ -204,6 +219,7 @@ fn dot(name: &str, parameter: &Type, span: Span) -> Function {
         },
     });
     let mut result = products.next().unwrap();
+
     for product in products {
         result = Expr {
             ty: result_type.clone(),
@@ -215,6 +231,7 @@ fn dot(name: &str, parameter: &Type, span: Span) -> Function {
             },
         };
     }
+
     Function {
         name: name.into(),
         return_type: result_type,

@@ -8,13 +8,16 @@ use slang_source::Diagnostic;
 pub(crate) fn lower(module: &mut Module) -> Result<(), Diagnostic> {
     let names = crate::visit::names(module);
     let mut prefix = "_slang_atomic_ignored_".to_owned();
+
     while names.iter().any(|name| name.starts_with(&prefix)) {
         prefix.push('_');
     }
+
     let mut lowerer = Lowerer {
         prefix,
         outputs: vec![],
     };
+
     lowerer.module(module)?;
     // Private scalar storage is per invocation, including calls in global
     // initializers. Declare it first and keep it out of source reflection.
@@ -30,7 +33,11 @@ struct Lowerer {
 impl Visitor for Lowerer {
     fn expression(&mut self, expression: &mut Expr) -> Result<(), Diagnostic> {
         walk_expression(self, expression)?;
-        if let ExprKind::IntrinsicCall { name, arguments } = &mut expression.kind
+
+        if let ExprKind::IntrinsicCall {
+            name,
+            arguments,
+        } = &mut expression.kind
             && name == "InterlockedExchange"
             && arguments.len() == 2
         {
@@ -53,6 +60,7 @@ impl Visitor for Lowerer {
                 span: expression.span,
             });
         }
+
         Ok(())
     }
 }

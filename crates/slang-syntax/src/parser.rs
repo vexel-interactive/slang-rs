@@ -6,28 +6,35 @@ use slang_source::{Diagnostic, Span};
 pub fn parse(tokens: &[Token]) -> Result<Module, Vec<Diagnostic>> {
     let tokens: Vec<Token> = tokens.iter().filter(|t| !t.is_trivia()).cloned().collect();
     let mut buffer_prefix = "_slang_cbuffer_".to_owned();
+
     while tokens.iter().any(|t| t.text.starts_with(&buffer_prefix)) {
         buffer_prefix.push('_');
     }
+
     let mut constructor_prefix = "_slang_constructor_".to_owned();
-    while tokens
-        .iter()
-        .any(|t| t.text.starts_with(&constructor_prefix))
-    {
+
+    while tokens.iter().any(|t| t.text.starts_with(&constructor_prefix)) {
         constructor_prefix.push('_');
     }
+
     let mut method_prefix = "_slang_method_".to_owned();
+
     while tokens.iter().any(|t| t.text.starts_with(&method_prefix)) {
         method_prefix.push('_');
     }
+
     let mut member_prefix = "_slang_member_".to_owned();
+
     while tokens.iter().any(|t| t.text.starts_with(&member_prefix)) {
         member_prefix.push('_');
     }
+
     let mut type_prefix = "_slang_nested_type_".to_owned();
+
     while tokens.iter().any(|t| t.text.starts_with(&type_prefix)) {
         type_prefix.push('_');
     }
+
     let mut parser = Parser {
         tokens,
         offset: 0,
@@ -45,8 +52,10 @@ pub fn parse(tokens: &[Token]) -> Result<Module, Vec<Diagnostic>> {
         type_parameters: vec![],
         nested_types: vec![],
     };
+
     let mut module = Module::default();
     let mut diagnostics = vec![];
+
     while !parser.at_end() {
         let start = parser.offset;
         let parsed = if parser.at("import")
@@ -59,19 +68,23 @@ pub fn parse(tokens: &[Token]) -> Result<Module, Vec<Diagnostic>> {
         } else {
             parser.declaration().map(Some)
         };
+
         match parsed {
             Ok(None) => {}
             Ok(Some(declarations)) => module.declarations.extend(declarations),
             Err(error) => {
                 diagnostics.push(error);
+
                 if diagnostics.len() >= 32 {
                     break;
                 }
+
                 parser.offset = start;
                 parser.synchronize();
             }
         }
     }
+
     if diagnostics.is_empty() {
         module.constant_buffers = parser.constant_buffers;
         module.static_members = parser.static_members;
@@ -104,17 +117,19 @@ impl Parser {
     pub fn current(&self) -> Option<&Token> {
         self.tokens.get(self.offset)
     }
+
     pub fn span(&self) -> Span {
-        self.current()
-            .or_else(|| self.tokens.last())
-            .map_or(Span::default(), |t| t.span)
+        self.current().or_else(|| self.tokens.last()).map_or(Span::default(), |t| t.span)
     }
+
     pub fn at_end(&self) -> bool {
         self.current().is_none_or(|t| t.kind == TokenKind::Eof)
     }
+
     pub fn at(&self, text: &str) -> bool {
         self.current().is_some_and(|t| t.is(text))
     }
+
     pub fn eat(&mut self, text: &str) -> bool {
         if self.at(text) {
             self.offset += 1;
@@ -123,17 +138,21 @@ impl Parser {
             false
         }
     }
+
     pub fn error(&self, message: impl Into<String>) -> Diagnostic {
         Diagnostic::error("S001", self.span(), message)
     }
+
     pub fn expect(&mut self, text: &str) -> Result<Span, Diagnostic> {
         let span = self.span();
+
         if self.eat(text) {
             Ok(span)
         } else {
             Err(self.error(format!("expected '{text}'")))
         }
     }
+
     pub fn identifier(&mut self) -> Result<Token, Diagnostic> {
         let token = self
             .current()
@@ -168,24 +187,29 @@ impl Parser {
         ) {
             return Err(self.error("reserved keyword cannot be used as an identifier"));
         }
+
         self.offset += 1;
         Ok(token)
     }
+
     pub fn enter(&mut self) -> Result<(), Diagnostic> {
         if self.depth >= 32 {
             return Err(self.error("syntax nesting limit exceeded"));
         }
+
         self.depth += 1;
         Ok(())
     }
 
     fn synchronize(&mut self) {
         let mut braces = 0usize;
+
         while !self.at_end() {
             if self.eat("{") {
                 braces += 1;
             } else if self.eat("}") {
                 braces = braces.saturating_sub(1);
+
                 if braces == 0 {
                     self.eat(";");
                     break;
@@ -196,6 +220,7 @@ impl Parser {
                 self.offset += 1;
             }
         }
+
         self.depth = 0;
     }
 }
@@ -212,25 +237,59 @@ mod tests {
 
     #[test]
     fn compute_shader_with_control_flow() {
-        let text = "RWStructuredBuffer<float> output; [shader(\"compute\")] [numthreads(64,1,1)] void main(uint3 id : SV_DispatchThreadID) { for (uint i=0; i<4; i++) { if (i==2) continue; output[id.x] += float(i); } }";
+        let text = r#"
+            RWStructuredBuffer<float> output;
+
+            [shader("compute")]
+            [numthreads(64, 1, 1)]
+            void main(uint3 id : SV_DispatchThreadID) {
+                for (uint i = 0; i < 4; i++) {
+                    if (i == 2) continue;
+
+                    output[id.x] += float(i);
+                }
+            }
+        "#;
+
         assert!(module(text).is_ok());
     }
 
     #[test]
     fn precedence_and_right_associative_assignment() {
-        let module = module("int f() { int a; int b; a=b=1+2*3; return a; }").unwrap();
+        let module = module(
+            r#"
+                int f() {
+                    int a;
+                    int b;
+                    a = b = 1 + 2 * 3;
+
+                    return a;
+                }
+            "#,
+        )
+        .unwrap();
+
         let Declaration::Function(function) = &module.declarations[0] else {
             panic!()
         };
+
         let StmtKind::Block(statements) = &function.body.as_ref().unwrap().kind else {
             panic!()
         };
+
         let StmtKind::Expression(expr) = &statements[2].kind else {
             panic!()
         };
-        let ExprKind::Binary { op, right, .. } = &expr.kind else {
+
+        let ExprKind::Binary {
+            op,
+            right,
+            ..
+        } = &expr.kind
+        else {
             panic!()
         };
+
         assert_eq!(op, "=");
         assert!(matches!(&right.kind, ExprKind::Binary { op, .. } if op == "="));
     }
@@ -244,10 +303,8 @@ mod tests {
         ] {
             assert!(module(&format!("int f() {{return {expression};}}")).is_err());
         }
-        for body in [
-            "if(true)".repeat(1000) + ";",
-            "{".repeat(1000) + &"}".repeat(1000),
-        ] {
+
+        for body in ["if(true)".repeat(1000) + ";", "{".repeat(1000) + &"}".repeat(1000)] {
             assert!(module(&format!("void f() {{{body}}}")).is_err());
         }
     }

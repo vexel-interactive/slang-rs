@@ -18,12 +18,7 @@ fn run(text: &str) -> (SourceMap, Preprocessed) {
 }
 
 fn values(result: &Preprocessed) -> Vec<&str> {
-    result
-        .tokens
-        .iter()
-        .filter(|t| t.kind != TokenKind::Eof)
-        .map(|t| t.text.as_str())
-        .collect()
+    result.tokens.iter().filter(|t| t.kind != TokenKind::Eof).map(|t| t.text.as_str()).collect()
 }
 
 #[test]
@@ -34,6 +29,7 @@ fn remapped_arguments_retained_filenames_and_resets_follow_source_order() {
         "#line default\n__LINE__ __FILE__\n#line 20 2\n__LINE__ __FILE__\n",
         "#line\n__LINE__ __FILE__\n"
     ));
+
     assert!(result.diagnostics.is_empty(), "{:?}", result.diagnostics);
     assert_eq!(
         values(&result),
@@ -60,11 +56,9 @@ fn nested_and_multiline_macros_use_the_remapped_initiating_call() {
             "#line 80 \"virtual.slang\"\nHERE ID(\n__LINE__\n) __LINE__ EXPAND(__LINE__) STR(__LINE__)\n"
         ).replace('\n', newline);
         let (_, result) = run(&text);
+
         assert!(result.diagnostics.is_empty(), "{:?}", result.diagnostics);
-        assert_eq!(
-            values(&result),
-            ["80", "80", "82", "\"82\"", "\"__LINE__\""]
-        );
+        assert_eq!(values(&result), ["80", "80", "82", "\"82\"", "\"__LINE__\""]);
     }
 }
 
@@ -82,16 +76,16 @@ fn signed_and_wrapped_line_numbers_match_upstream_conversion() {
         ("10ul", "10"),
     ] {
         let (_, result) = run(&format!("#line {number}\n__LINE__"));
+
         assert!(
-            result
-                .diagnostics
-                .iter()
-                .all(|d| d.code == "L005" && number == "077"),
+            result.diagnostics.iter().all(|d| d.code == "L005" && number == "077"),
             "{number}: {:?}",
             result.diagnostics
         );
+
         assert_eq!(values(&result), [expected], "{number}");
     }
+
     let (_, result) =
         run("#line 4294967295\n#line __LINE__\n__LINE__\n#if __LINE__ != 0\n#error wrong\n#endif");
     assert!(result.diagnostics.is_empty(), "{:?}", result.diagnostics);
@@ -106,12 +100,15 @@ fn escaped_filenames_round_trip_through_file_macros_and_stringification() {
         "__FILE__ EXPAND(__FILE__)\n#line 10 __FILE__\n__FILE__"
     );
     let (sources, result) = run(text);
+
     assert!(result.diagnostics.is_empty(), "{:?}", result.diagnostics);
     let expected = r#""C:\\shader\\\"quoted\"\n\000fαβ😀""#;
+
     assert_eq!(values(&result)[0], expected);
     assert_eq!(values(&result)[2], expected);
     assert!(values(&result)[1].starts_with(r#""\"C:"#));
     let file = sources.get(result.tokens[0].span.source).unwrap();
+
     assert_eq!(
         file.presumed_location(result.tokens[0].span.start).name,
         "C:\\shader\\\"quoted\"\n\0fαβ😀"
@@ -140,6 +137,7 @@ fn invalid_directives_fail_without_panicking() {
         r#"10 "\u{110000}""#,
     ] {
         let (_, result) = run(&format!("#line {args}\n__LINE__"));
+
         assert!(
             result.diagnostics.iter().any(|d| d.code == "P002"),
             "{args}: {:?}",
@@ -151,18 +149,17 @@ fn invalid_directives_fail_without_panicking() {
 #[test]
 fn continuations_and_trailing_tokens_use_keyword_line_adjustment() {
     let (sources, result) = run("#line 50 \\\n\"virtual.slang\"\n#error failure\n");
+
     assert_eq!(result.diagnostics.len(), 1);
     let rendered = result.diagnostics[0].render(&sources);
+
     assert!(rendered.contains("virtual.slang:51:2"), "{rendered}");
     assert!(rendered.contains("51 | #error failure"), "{rendered}");
     let (sources, result) = run("#line 30 \"virtual.slang\" 1\n__LINE__");
+
     assert_eq!(values(&result), ["30"]);
     assert_eq!(result.diagnostics.len(), 1);
-    assert!(
-        result.diagnostics[0]
-            .render(&sources)
-            .contains("virtual.slang:29:")
-    );
+    assert!(result.diagnostics[0].render(&sources).contains("virtual.slang:29:"));
 }
 
 #[test]
@@ -174,22 +171,22 @@ fn repeated_preprocessing_clears_mappings_from_previously_active_branches() {
         defines: [("REMAP".into(), "1".into())].into(),
         ..Options::default()
     };
+
     let first = preprocess(&mut sources, root, &NoIncludes, &options);
+
     assert!(first.diagnostics.is_empty());
     assert_eq!(values(&first), ["71", "\"virtual\""]);
     let second = preprocess(&mut sources, root, &NoIncludes, &Options::default());
+
     assert!(second.diagnostics.is_empty());
     assert_eq!(values(&second), ["4", "\"physical.slang\""]);
     let third = preprocess(&mut sources, root, &NoIncludes, &options);
+
     assert!(third.diagnostics.is_empty());
     assert_eq!(values(&third), values(&first));
     assert_eq!(
         third.tokens[0].span,
-        Span::new(
-            root,
-            text.find("__LINE__").unwrap(),
-            text.find("__LINE__").unwrap() + 8
-        )
+        Span::new(root, text.find("__LINE__").unwrap(), text.find("__LINE__").unwrap() + 8)
     );
 }
 
@@ -206,6 +203,7 @@ fn includes_receive_physical_origins_and_do_not_leak_logical_mappings() {
             match requested {
                 "header" => {
                     assert_eq!(from, "physical/root");
+
                     Ok((
                         "physical/header".into(),
                         "#line 20 \"virtual/header\"\n#include \"nested\"\n__FILE__ __LINE__"
@@ -214,28 +212,23 @@ fn includes_receive_physical_origins_and_do_not_leak_logical_mappings() {
                 }
                 "nested" => {
                     assert_eq!(from, "physical/header");
+
                     Ok(("physical/nested".into(), "__FILE__ __LINE__".into()))
                 }
+
                 _ => Err("missing include".into()),
             }
         }
     }
+
     let mut sources = SourceMap::default();
-    let root = sources.add(
-        "physical/root",
-        "#line 10 \"virtual/root\"\n#include \"header\"\n__FILE__ __LINE__",
-    );
+    let root = sources
+        .add("physical/root", "#line 10 \"virtual/root\"\n#include \"header\"\n__FILE__ __LINE__");
     let result = preprocess(&mut sources, root, &PhysicalIncludes, &Options::default());
+
     assert!(result.diagnostics.is_empty(), "{:?}", result.diagnostics);
     assert_eq!(
         values(&result),
-        [
-            "\"physical/nested\"",
-            "1",
-            "\"virtual/header\"",
-            "21",
-            "\"virtual/root\"",
-            "11"
-        ]
+        ["\"physical/nested\"", "1", "\"virtual/header\"", "21", "\"virtual/root\"", "11"]
     );
 }

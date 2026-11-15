@@ -4,27 +4,16 @@ const COMPUTE: &str = "[shader(\"compute\")][numthreads(1,1,1)]void main()";
 const FRAGMENT: &str = "[shader(\"fragment\")]float4 main():SV_Target";
 
 fn compile(source: &str) -> slang_compiler::Compilation {
-    compile_source(
-        "stages.slang",
-        source,
-        &CompileOptions::default(),
-        &MemoryIncludes::default(),
-    )
-    .unwrap()
+    compile_source("stages.slang", source, &CompileOptions::default(), &MemoryIncludes::default())
+        .unwrap()
 }
 
 fn fails(source: &str) -> slang_compiler::CompileError {
-    let error = compile_source(
-        "bad.slang",
-        source,
-        &CompileOptions::default(),
-        &MemoryIncludes::default(),
-    )
-    .unwrap_err();
-    assert!(
-        error.diagnostics.iter().any(|d| d.code == "T023"),
-        "{source}: {error}"
-    );
+    let error =
+        compile_source("bad.slang", source, &CompileOptions::default(), &MemoryIncludes::default())
+            .unwrap_err();
+
+    assert!(error.diagnostics.iter().any(|d| d.code == "T023"), "{source}: {error}");
     error
 }
 
@@ -40,12 +29,12 @@ fn compute_accepts_all_memory_barriers_with_direct_hlsl_calls() {
     ];
     let calls = names.map(|name| format!("{name}();")).join("");
     let code = compile(&format!("{COMPUTE}{{{calls}}}")).artifact.unwrap();
+
     for name in names {
         assert!(code.contains(&format!("{name}();")));
     }
-    compile(&format!(
-        "{FRAGMENT}{{DeviceMemoryBarrier();return float4(1);}}"
-    ));
+
+    compile(&format!("{FRAGMENT}{{DeviceMemoryBarrier();return float4(1);}}"));
     compile(
         "[shader(\"vertex\")]float4 main():SV_Position{DeviceMemoryBarrier();return float4(1);}",
     );
@@ -62,6 +51,7 @@ fn group_barriers_require_compute_in_fragment_and_vertex_entries() {
     ] {
         for entry in [FRAGMENT, "[shader(\"vertex\")]float4 main():SV_Position"] {
             let error = fails(&format!("{entry}{{{name}();return float4(1);}}"));
+
             assert!(
                 error
                     .diagnostics
@@ -122,23 +112,12 @@ fn cyclic_graphs_merge_independent_fragment_and_compute_requirements() {
     let error = fails(
         "void a(){b();discard;}void b(){a();GroupMemoryBarrier();}[shader(\"vertex\")]float4 main():SV_Position{a();return float4(1);}",
     );
-    let messages: Vec<_> = error
-        .diagnostics
-        .iter()
-        .filter(|d| d.code == "T023")
-        .map(|d| &d.message)
-        .collect();
+    let messages: Vec<_> =
+        error.diagnostics.iter().filter(|d| d.code == "T023").map(|d| &d.message).collect();
     assert_eq!(messages.len(), 2);
-    assert!(
-        messages
-            .iter()
-            .any(|m| m.contains("requires compute stage"))
-    );
-    assert!(
-        messages
-            .iter()
-            .any(|m| m.contains("requires fragment stage"))
-    );
+    assert!(messages.iter().any(|m| m.contains("requires compute stage")));
+
+    assert!(messages.iter().any(|m| m.contains("requires fragment stage")));
     fails(&format!(
         "void a(){{b();discard;}}void b(){{a();GroupMemoryBarrier();}}{COMPUTE}{{a();}}"
     ));
@@ -156,6 +135,7 @@ fn imported_requirements_keep_original_source_locations() {
         )]
         .into(),
     };
+
     let error = compile_source(
         "main.slang",
         &format!("import shared;{FRAGMENT}{{return float4(read());}}"),
@@ -164,13 +144,8 @@ fn imported_requirements_keep_original_source_locations() {
     )
     .unwrap_err();
     let diagnostic = error.diagnostics.iter().find(|d| d.code == "T023").unwrap();
-    assert!(
-        error
-            .sources
-            .get(diagnostic.span.source)
-            .unwrap()
-            .name
-            .ends_with("shared.slang")
-    );
+
+    assert!(error.sources.get(diagnostic.span.source).unwrap().name.ends_with("shared.slang"));
+
     assert!(diagnostic.message.contains("groupshared"));
 }
