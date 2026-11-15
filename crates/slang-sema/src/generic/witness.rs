@@ -47,8 +47,19 @@ pub(super) fn template_calls(
         depth: 0,
     };
 
+    let mut opaque_origins = BTreeSet::new();
     for (id, binding) in &module.constraint_calls {
         if ignored.0.contains(id) {
+            continue;
+        }
+
+        let original = origins.get(id).copied().unwrap_or(*id);
+        let opaque = parameters.contains_key(&binding.owner.name);
+        if !opaque && !origins.contains_key(id) {
+            calls.insert(*id, binding.clone());
+            continue;
+        }
+        if !opaque && opaque_origins.contains(&original) {
             continue;
         }
 
@@ -57,7 +68,10 @@ pub(super) fn template_calls(
         visitor.ty(&mut binding.interface)?;
         visit::walk_function(&mut visitor, &mut binding.requirement)?;
         set_owner(&mut binding);
-        calls.insert(origins.get(id).copied().unwrap_or(*id), binding);
+        calls.insert(original, binding);
+        if opaque {
+            opaque_origins.insert(original);
+        }
     }
 
     let mut variables = vec![];
@@ -197,6 +211,92 @@ impl VisitorMut for Reify<'_> {
 }
 
 impl Specializer {
+    /// Publish opaque requirement selections before inference clones concrete
+    /// bodies, and seed explicit instances that were cloned before this probe.
+    pub(super) fn capture_template_selections(
+        &mut self,
+        module: &Module,
+        probe: &InferenceProbe,
+    ) -> Result<bool, Diagnostic> {
+        if !self.symbolic {
+            return Ok(false);
+        }
+
+        let mut selections = BTreeMap::new();
+        let mut reify = Reify {
+            module,
+            parameters: &self.symbolic_parameters,
+            depth: 0,
+        };
+
+        for (id, binding) in &probe.constraint_calls {
+            let Some(parameter) = self.symbolic_parameters.get(&binding.owner.name) else {
+                continue;
+            };
+
+            if parameter.name == "This" {
+                continue;
+            }
+
+            let original = self.expression_origins.get(id).copied().unwrap_or(*id);
+            let mut binding = binding.clone();
+            reify.ty(&mut binding.owner)?;
+            reify.ty(&mut binding.interface)?;
+            visit::walk_function(&mut reify, &mut binding.requirement)?;
+            set_owner(&mut binding);
+            selections.insert(original, binding);
+        }
+
+        let mut changed = false;
+        for (original, binding) in &selections {
+            if !self.constraint_calls.contains_key(original) {
+                self.constraint_calls.insert(*original, binding.clone());
+                changed = true;
+            }
+        }
+
+        let mut contexts = ExpressionContexts::default();
+        for declaration in &module.declarations {
+            contexts.declaration(&mut declaration.clone())?;
+        }
+
+        for (id, context) in contexts.0 {
+            if self.constraint_calls.contains_key(&id) {
+                continue;
+            }
+
+            let original = self.expression_origins.get(&id).copied().unwrap_or(id);
+            let Some(binding) = selections.get(&original) else {
+                continue;
+            };
+            let Some(instance) = self.instance_output.iter().find(|i| i.context == context) else {
+                continue;
+            };
+            let Some((key, _)) =
+                self.instances.iter().find(|(_, name)| *name == &instance.type_name)
+            else {
+                continue;
+            };
+
+            let substitutions = self.templates[&key.0]
+                .parameters
+                .iter()
+                .zip(&instance.arguments)
+                .map(|(parameter, argument)| (parameter.name.clone(), argument.clone()))
+                .collect::<BTreeMap<_, _>>();
+            let mut binding = binding.clone();
+            let mut substitute = constraint::ConstraintSubstitution(&substitutions);
+            substitute.ty(&mut binding.owner)?;
+            substitute.ty(&mut binding.interface)?;
+            visit::walk_function(&mut substitute, &mut binding.requirement)?;
+            self.specialize_constraint_binding(&mut binding)?;
+            self.constraint_calls.insert(id, binding);
+            changed = true;
+        }
+
+        Ok(changed)
+    }
+
     pub(super) fn specialize_constraint_variable(&mut self, span: Span) -> Result<(), Diagnostic> {
         let site = crate::span_key(span);
 
@@ -242,5 +342,15 @@ impl Specializer {
         self.shapes.current_static_type = owner;
         set_owner(binding);
         Ok(())
+    }
+}
+
+#[derive(Default)]
+struct ExpressionContexts(BTreeMap<ExprId, usize>);
+
+impl VisitorMut for ExpressionContexts {
+    fn expression(&mut self, expression: &mut Expr) -> Result<(), Diagnostic> {
+        self.0.insert(expression.id, expression.span.context);
+        visit::walk_expression(self, expression)
     }
 }

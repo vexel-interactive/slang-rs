@@ -166,7 +166,7 @@ impl Specializer {
             vec![],
             None,
         )?;
-        let names = self.default_names(&owner, interface, &BTreeMap::new());
+        let names = self.default_names(&owner, interface);
 
         for requirement in &interface.requirements {
             if requirement.body.is_some()
@@ -185,20 +185,21 @@ impl Specializer {
         Ok(())
     }
 
-    fn default_names(
-        &self,
-        owner: &str,
-        interface: &Interface,
-        methods: &BTreeMap<(String, String), String>,
-    ) -> BTreeMap<String, String> {
+    fn default_names(&self, owner: &str, interface: &Interface) -> BTreeMap<String, String> {
         let mut names = BTreeMap::from([(interface.name.clone(), owner.into())]);
 
         for requirement in &interface.requirements {
             if let Some(method) = &requirement.method {
-                let target = methods
-                    .get(&(owner.into(), method.name.clone()))
-                    .cloned()
-                    .unwrap_or_else(|| format!("{}default_{owner}_{}", self.prefix, method.name));
+                let target = format!(
+                    "{}default_{}_{}_{}_{}_{}_{}",
+                    self.prefix,
+                    owner.len(),
+                    owner,
+                    interface.name.len(),
+                    interface.name,
+                    method.name.len(),
+                    method.name,
+                );
                 names.insert(requirement.name.clone(), target);
             }
         }
@@ -247,7 +248,9 @@ impl Specializer {
         .declaration(&mut declaration)?;
         let name = declaration_name(&declaration).to_owned();
 
-        if let Declaration::Function(function) = &mut declaration {
+        if validation_context.is_none()
+            && let Declaration::Function(function) = &mut declaration
+        {
             function.modifiers.push("override".into());
         }
 
@@ -274,7 +277,10 @@ impl Specializer {
             type_name: name,
             template_name: requirement.name.clone(),
             parameter_count: 0,
-            arguments: vec![witness::reference(owner, requirement.span)],
+            arguments: vec![
+                witness::reference(owner, requirement.span),
+                witness::reference(&interface.name, requirement.span),
+            ],
         });
         Ok(declaration)
     }
@@ -316,6 +322,9 @@ impl Specializer {
                             &name,
                             requirement.span,
                         ))
+                        || checker
+                            .default_signature(module, &structure.name, &name, requirement)
+                            .is_some()
                     {
                         continue;
                     }
@@ -336,32 +345,14 @@ impl Specializer {
 
         let changed = !candidates.is_empty();
 
-        for ((owner, method, _, _), requirements) in candidates {
-            let selected = requirements
-                .iter()
-                .filter(|(name, _)| {
-                    !requirements.iter().any(|(other, _)| {
-                        other != name
-                            && checker
-                                .conformances
-                                .get(other)
-                                .is_some_and(|bases| bases.contains(name))
-                    })
-                })
-                .collect::<Vec<_>>();
-            if selected.len() != 1 {
-                return Err(Diagnostic::error(
-                    "T032",
-                    checker.struct_definitions[&owner].span,
-                    format!("ambiguous default interface method '{method}'"),
-                ));
+        for ((owner, _, _, _), requirements) in candidates {
+            for (name, requirement) in requirements {
+                let interface = &checker.interface_definitions[&name];
+                let names = self.default_names(&owner, interface);
+                let declaration =
+                    self.clone_default(&owner, interface, &requirement, &names, None)?;
+                self.pending.push_back(declaration);
             }
-
-            let (name, requirement) = selected[0];
-            let interface = &checker.interface_definitions[name];
-            let names = self.default_names(&owner, interface, &checker.methods);
-            let declaration = self.clone_default(&owner, interface, requirement, &names, None)?;
-            self.pending.push_back(declaration);
         }
 
         Ok(changed)

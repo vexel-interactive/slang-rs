@@ -94,6 +94,7 @@ pub(crate) enum Storage {
 #[derive(Clone)]
 pub(crate) struct Signature {
     pub declaration: SpanKey,
+    pub module: ModuleId,
     pub parameters: Vec<Type>,
     pub output_parameters: Vec<bool>,
     pub result: Type,
@@ -722,7 +723,23 @@ mod tests {
 
     #[test]
     fn compute_resource_access_and_overloads() {
-        let text = "float twice(float x){return x*2.0;} int twice(int x){return x*2;} RWStructuredBuffer<float> output; [shader(\"compute\")][numthreads(64,1,1)] void main(uint3 id:SV_DispatchThreadID){output[id.x]=twice(float(id.x));}";
+        let text = r#"
+            float twice(float x) {
+                return x * 2.0;
+            }
+
+            int twice(int x) {
+                return x * 2;
+            }
+
+            RWStructuredBuffer<float> output;
+
+            [shader("compute")]
+            [numthreads(64, 1, 1)]
+            void main(uint3 id : SV_DispatchThreadID) {
+                output[id.x] = twice(float(id.x));
+            }
+        "#;
         let module = run(text).unwrap();
         assert_eq!(module.entry_points[0].thread_group_size, Some([64, 1, 1]));
     }
@@ -763,7 +780,22 @@ mod tests {
     fn resolved_global_references_preserve_shadowing_without_module_linking() {
         for text in [
             "groupshared int value;[shader(\"fragment\")]float4 main():SV_Target{int value=1;return float4(value);}",
-            "float read(){discard;return 1;}static float value=read();[shader(\"compute\")][numthreads(1,1,1)]void main(){float value=2;float copy=value;}",
+            r#"
+                float read() {
+                    discard;
+
+                    return 1;
+                }
+
+                static float value = read();
+
+                [shader("compute")]
+                [numthreads(1, 1, 1)]
+                void main() {
+                    float value = 2;
+                    float copy = value;
+                }
+            "#,
         ] {
             let checked = run(text).unwrap();
             assert!(checked.global_references.is_empty());

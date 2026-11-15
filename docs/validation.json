@@ -1,26 +1,27 @@
 {
-  "date": "2026-11-10",
+  "date": "2026-11-15",
   "platform": "windows-x86_64-msvc",
   "rust_toolchain": "1.99.1",
   "checks": {
     "rustfmt": "passed",
     "clippy_all_targets_warnings_denied": "passed",
     "unit_tests": 42,
-    "integration_tests": 484,
+    "integration_tests": 494,
     "doc_tests": 1,
     "conformance_comparison_tests": 27,
     "rustdoc": "passed",
     "release_build": "passed",
     "english_documentation_and_links": "passed",
-    "dxil_integer_interpreter_tests": 7
+    "dxil_integer_interpreter_tests": 7,
+    "python_black": "passed"
   },
   "differential_validation": {
     "oracle": "Slang 2026.21",
-    "cases_passed": 730,
-    "cases_total": 730,
-    "matching_acceptance_cases": 718,
-    "documented_oracle_differences": 12,
-    "dxc_hlsl_artifacts_validated": 730,
+    "cases_passed": 751,
+    "cases_total": 751,
+    "matching_acceptance_cases": 738,
+    "documented_oracle_differences": 13,
+    "dxc_hlsl_artifacts_validated": 759,
     "dxc_invalid_hlsl_artifacts_rejected": 22,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
@@ -37,9 +38,9 @@
     "uniform_byte_layout_cases_compared": 61,
     "documented_oracle_physical_layout_differences": 12,
     "physical_buffer_layout_cases_compared": 43,
-    "compiled_constant_cases_compared": 86,
-    "compiled_constant_words_compared": 1453,
-    "compiled_constant_words_matching": 1439,
+    "compiled_constant_cases_compared": 100,
+    "compiled_constant_words_compared": 1500,
+    "compiled_constant_words_matching": 1486,
     "documented_oracle_constant_words_differing": 14,
     "documented_oracle_constant_cases_differing": 6,
     "documented_oracle_uniform_reflection_differences": 1,
@@ -53,8 +54,8 @@
   "remote_ci_executed": false,
   "remote_ci": null,
   "previous_remote_ci": {
-    "run_id": 42707959910,
-    "head_sha": "d432dc7a7da5e048bc545b9c63d0824692170ceb",
+    "run_id": 43664291359,
+    "head_sha": "dca27476a0020d407d14b73f76a6bef16674304f",
     "conclusion": "success",
     "platforms": [
       "ubuntu-latest",
@@ -63,6 +64,26 @@
     ]
   },
   "earlier_remote_ci": [
+    {
+      "run_id": 42712606434,
+      "head_sha": "522074377f550ca70774359f89f02aba3c54efdc",
+      "conclusion": "success",
+      "platforms": [
+        "ubuntu-latest",
+        "windows-latest",
+        "macos-latest"
+      ]
+    },
+    {
+      "run_id": 42707959910,
+      "head_sha": "d432dc7a7da5e048bc545b9c63d0824692170ceb",
+      "conclusion": "success",
+      "platforms": [
+        "ubuntu-latest",
+        "windows-latest",
+        "macos-latest"
+      ]
+    },
     {
       "run_id": 42706463878,
       "head_sha": "e99355ab0461720b7948abd77c8a8fa30cdfba57",
@@ -678,7 +699,7 @@
   },
   "native_hlsl_suite": {
     "manifest": "tests/native/manifest.json",
-    "artifacts_validated": 172,
+    "artifacts_validated": 186,
     "profiles": [
       "cs_6_0",
       "cs_6_2",
@@ -858,13 +879,27 @@
       "../conformance/positive/interface-witness-plan-module/main.slang",
       "../conformance/positive/interface-default-methods.slang",
       "../conformance/positive/interface-default-inherited.slang",
-      "../conformance/positive/interface-default-module/main.slang"
+      "../conformance/positive/interface-default-module/main.slang",
+      "../conformance/positive/interface-default-dispatch.slang",
+      "../conformance/positive/interface-default-dispatch-arguments.slang",
+      "../conformance/positive/interface-default-dispatch-static.slang",
+      "../conformance/positive/interface-default-diamonds.slang",
+      "../conformance/positive/interface-default-overloads.slang",
+      "../conformance/positive/interface-default-return-dispatch.slang",
+      "../conformance/positive/interface-default-direction-dispatch.slang",
+      "../conformance/positive/interface-default-generic-dispatch.slang",
+      "../conformance/positive/interface-default-generic-origins.slang",
+      "../conformance/positive/interface-default-unrelated-dispatch.slang",
+      "../conformance/positive/interface-default-concrete-override.slang",
+      "../conformance/positive/interface-default-abstract-override.slang",
+      "../conformance/positive/interface-default-name-collision.slang",
+      "../conformance/positive/interface-default-dispatch-module/main.slang"
     ],
     "uniform_byte_layout_cases": 61,
     "matrix_layout_shapes": 96,
     "constant_buffer_numeric_layouts": 252,
-    "compiled_constant_cases": 53,
-    "compiled_constant_words": 1230
+    "compiled_constant_cases": 87,
+    "compiled_constant_words": 1334
   },
   "pointer_integer_validation": {
     "target_pointer_bits": 64,
@@ -1426,6 +1461,14 @@
       "regression": "Deep for-statement parser stack overflow",
       "fixed_head_sha": "e99355ab0461720b7948abd77c8a8fa30cdfba57",
       "successful_run_id": 42706463878
+    },
+    {
+      "failed_run_id": 43663890456,
+      "failed_head_sha": "a7d73a600b71dbd0d4e2b427f4712d1bc7a77f81",
+      "platform": "ubuntu-latest",
+      "regression": "Escaped Rust format braces were separated while expanding shader test strings",
+      "fixed_head_sha": "dca27476a0020d407d14b73f76a6bef16674304f",
+      "successful_run_id": 43664291359
     }
   ],
   "interface_constructor_plan_validation": {
@@ -1477,6 +1520,35 @@
     "generic_method_requirements": false,
     "value_generics": false,
     "default_interface_constructors": false,
+    "adapted_witnesses": false,
+    "gpu_execution_compared": false,
+    "complete_upstream_parity": false,
+    "production_binary_validated": "release"
+  },
+  "inherited_interface_default_validation": {
+    "integration_tests": 10,
+    "differential_cases": 21,
+    "matching_acceptance_cases": 20,
+    "documented_native_acceptance_limitations": 1,
+    "compiled_constant_cases": 14,
+    "compiled_constant_words": 47,
+    "matching_words": 47,
+    "dxc_hlsl_artifacts_validated": 29,
+    "per_interface_witness_identity": true,
+    "generic_interface_origins": true,
+    "base_derived_and_diamond_dispatch": true,
+    "inherited_body_requirement_identity": true,
+    "overload_default_static_and_output_directions": true,
+    "abstract_redeclarations": true,
+    "unrelated_constraint_and_direct_ambiguity": true,
+    "failed_opaque_selections_do_not_seed_witnesses": true,
+    "concrete_member_name_hiding": true,
+    "same_name_witness_adaptation_diagnosed": true,
+    "internal_overloaded_default_module_visibility": true,
+    "generated_name_collision_regression": true,
+    "checked_module_serialization_and_rechecking": true,
+    "dormant_helper_pruning": true,
+    "interface_constructor_bodies_rejected_as_upstream": true,
     "adapted_witnesses": false,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,

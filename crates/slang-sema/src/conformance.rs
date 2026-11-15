@@ -13,6 +13,36 @@ use slang_syntax::{
 };
 use std::collections::{BTreeMap, BTreeSet};
 
+/// Recover the interface origin of a specialized default body from its metadata.
+pub(crate) fn default_requirement<'a>(
+    module: &'a Module,
+    function: &Function,
+) -> Option<(&'a str, &'a Function)> {
+    let instance = module.generic_instances.iter().find(|instance| {
+        instance.type_name == function.name && instance.context == function.span.context
+    })?;
+    let origin = instance.arguments.get(1)?;
+
+    module.declarations.iter().find_map(|declaration| {
+        let Declaration::Interface(interface) = declaration else {
+            return None;
+        };
+
+        if interface.name != origin.name {
+            return None;
+        }
+
+        interface.requirements.iter().find_map(|requirement| {
+            (requirement.body.is_some()
+                && requirement.name == instance.template_name
+                && requirement.span.source == function.span.source
+                && requirement.span.start == function.span.start
+                && requirement.span.end == function.span.end)
+                .then_some((interface.name.as_str(), requirement))
+        })
+    })
+}
+
 impl Checker {
     pub(crate) fn declare_conformances(&mut self, module: &Module) {
         let mut inheritance = BTreeMap::new();
@@ -62,13 +92,19 @@ impl Checker {
                     }
                 }
 
-                if !requirement.generic_parameters.is_empty()
-                    || requirement.constructor.is_some() && requirement.body.is_some()
-                {
+                if !requirement.generic_parameters.is_empty() {
                     self.error(
                         "T001",
                         requirement.span,
-                        "generic requirements and default interface constructors are not implemented",
+                        "generic interface requirements are not implemented",
+                    );
+                }
+
+                if requirement.constructor.is_some() && requirement.body.is_some() {
+                    self.error(
+                        "T001",
+                        requirement.span,
+                        "interface constructor requirements cannot have a body",
                     );
                 }
 
@@ -130,6 +166,8 @@ impl Checker {
             if self.symbolic_types.contains(&structure.name) {
                 self.declare_symbolic_requirements(&structure.name, &requirements);
             } else {
+                self.declare_default_methods(module, &structure.name, &requirements);
+
                 for (interface, requirement) in &requirements {
                     self.check_requirement(
                         module,
@@ -202,6 +240,10 @@ impl Checker {
 
             let signature = Signature {
                 declaration: span_key(function.span),
+                module: self
+                    .symbols
+                    .get(interface)
+                    .map_or(self.current_module, |origin| origin.module),
                 parameters,
                 output_parameters: function
                     .parameters
@@ -210,7 +252,7 @@ impl Checker {
                     .collect(),
                 result,
                 defined: true,
-                public: true,
+                public: function.modifiers.iter().any(|modifier| modifier == "public"),
                 target_name: name.clone(),
                 defaults: function.parameters.iter().map(|p| p.initializer.clone()).collect(),
                 method: function.method.clone(),
@@ -232,31 +274,103 @@ impl Checker {
             );
             self.direct_witnesses
                 .insert(witness::key(owner, interface, requirement.span), signature.clone());
-            let overloads = self.functions.entry(name).or_default();
 
-            if let Some(existing) = overloads.iter().find(|s| {
-                s.parameters == signature.parameters
-                    && s.result == signature.result
-                    && s.output_parameters == signature.output_parameters
-                    && s.method.as_ref().map(|m| m.is_static)
-                        == signature.method.as_ref().map(|m| m.is_static)
-            }) {
-                let binding =
-                    self.symbolic_requirements[&(signature.declaration, owner.into())].clone();
-                self.symbolic_requirements.insert((existing.declaration, owner.into()), binding);
-                self.direct_witnesses
-                    .insert(witness::key(owner, interface, requirement.span), existing.clone());
+            if !self.requirement_shadowed(owner, interface, requirement, requirements) {
+                self.functions.entry(name).or_default().push(signature);
+            }
+        }
+    }
+
+    /// A derived interface can replace one inherited overload without changing
+    /// the witnesses retained for calls constrained to the base interface.
+    fn requirement_shadowed(
+        &mut self,
+        owner: &str,
+        interface: &str,
+        requirement: &Function,
+        requirements: &[(String, Function)],
+    ) -> bool {
+        let (_, parameters, _) = self.requirement_signature(owner, requirement);
+
+        requirements.iter().any(|(other, candidate)| {
+            if other == interface
+                || !self.conformances.get(other).is_some_and(|bases| bases.contains(interface))
+                || candidate.method.as_ref().map(|m| (&m.name, m.is_static))
+                    != requirement.method.as_ref().map(|m| (&m.name, m.is_static))
+                || candidate.constructor.is_some() != requirement.constructor.is_some()
+            {
+                return false;
             }
 
-            if !overloads.iter().any(|s| {
-                s.parameters == signature.parameters
-                    && s.result == signature.result
-                    && s.output_parameters == signature.output_parameters
-                    && s.method.as_ref().map(|m| m.is_static)
-                        == signature.method.as_ref().map(|m| m.is_static)
-            }) {
-                overloads.push(signature);
+            self.requirement_signature(owner, candidate).1 == parameters
+        })
+    }
+
+    pub(crate) fn default_signature(
+        &self,
+        module: &Module,
+        owner: &str,
+        interface: &str,
+        requirement: &Function,
+    ) -> Option<Signature> {
+        module.declarations.iter().find_map(|declaration| {
+            let Declaration::Function(function) = declaration else {
+                return None;
+            };
+
+            if function.method.as_ref()?.owner != owner {
+                return None;
             }
+
+            let (origin, original) = default_requirement(module, function)?;
+
+            if origin != interface || original.span != requirement.span {
+                return None;
+            }
+
+            self.functions
+                .get(&function.name)?
+                .iter()
+                .find(|signature| signature.declaration == span_key(function.span))
+                .cloned()
+        })
+    }
+
+    fn declare_default_methods(
+        &mut self,
+        module: &Module,
+        owner: &str,
+        requirements: &[(String, Function)],
+    ) {
+        let mut groups = BTreeMap::<String, Vec<Signature>>::new();
+
+        for (interface, requirement) in requirements {
+            let Some(method) = &requirement.method else {
+                continue;
+            };
+
+            // Concrete methods hide inherited defaults by name. Constrained
+            // calls still retain their separately recorded requirement witness.
+            if self.methods.contains_key(&(owner.into(), method.name.clone()))
+                || self.requirement_shadowed(owner, interface, requirement, requirements)
+            {
+                continue;
+            }
+
+            if let Some(signature) = self.default_signature(module, owner, interface, requirement) {
+                groups.entry(method.name.clone()).or_default().push(signature);
+            }
+        }
+
+        for (method, signatures) in groups {
+            let mut name = format!("{owner}_default_lookup_{method}");
+
+            while self.functions.contains_key(&name) {
+                name.push('_');
+            }
+
+            self.methods.insert((owner.into(), method), name.clone());
+            self.functions.insert(name, signatures);
         }
     }
 
@@ -276,11 +390,49 @@ impl Checker {
             self.methods.get(&(owner.into(), name.into()))
         };
 
-        let witness = target.and_then(|t| self.functions.get(t)).and_then(|overloads| overloads.iter().find(|signature| {
-            signature.defined && signature.parameters == parameters && signature.result == result
-                && signature.method.as_ref().map(|m| m.is_static) == required.method.as_ref().map(|m| m.is_static)
-                && module.declarations.iter().any(|d| matches!(d, Declaration::Function(f) if span_key(f.span) == signature.declaration && parameter_modes(f) == parameter_modes(&required)))
-        })).cloned();
+        let overloads = target.and_then(|target| self.functions.get(target));
+        let concrete_declaration = |signature: &Signature| {
+            module.declarations.iter().find_map(|declaration| match declaration {
+                Declaration::Function(function)
+                    if span_key(function.span) == signature.declaration
+                        && default_requirement(module, function).is_none() =>
+                {
+                    Some(function)
+                }
+                _ => None,
+            })
+        };
+        let witness = overloads
+            .and_then(|overloads| {
+                overloads.iter().find(|signature| {
+                    signature.defined
+                        && signature.parameters == parameters
+                        && signature.result == result
+                        && signature.method.as_ref().map(|method| method.is_static)
+                            == required.method.as_ref().map(|method| method.is_static)
+                        && concrete_declaration(signature).is_some_and(|function| {
+                            parameter_modes(function) == parameter_modes(&required)
+                        })
+                })
+            })
+            .cloned();
+
+        if witness.is_none()
+            && requirement.body.is_some()
+            && overloads.is_some_and(|overloads| {
+                overloads.iter().any(|signature| concrete_declaration(signature).is_some())
+            })
+        {
+            self.error(
+                "T032",
+                span,
+                "interface witness adaptation for a concrete same-name method is not implemented",
+            );
+            return;
+        }
+
+        let witness =
+            witness.or_else(|| self.default_signature(module, owner, interface, requirement));
 
         if let Some(witness) = &witness {
             if requirement.body.is_some()
@@ -305,7 +457,14 @@ impl Checker {
         if witness.is_none()
             && !parameters.iter().chain(std::iter::once(&result)).any(|t| *t == Type::Error)
         {
-            self.error("T032", span, format!("type '{}' does not implement interface requirement '{name}' with the required signature", self.source_name(owner)));
+            self.error(
+                "T032",
+                span,
+                format!(
+                    "type '{}' does not implement interface requirement '{name}' with the required signature",
+                    self.source_name(owner),
+                ),
+            );
         }
     }
 

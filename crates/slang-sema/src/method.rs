@@ -40,7 +40,6 @@ impl Checker {
                     ..
                 }
             );
-        let module = self.symbols.get(&function).map_or(slang_module::ModuleId(0), |o| o.module);
         let constrained = self.constraint_call_signature(callee.id, &owner);
         let mut matches: Vec<_> = if let Some(signature) = constrained {
             match signature {
@@ -56,7 +55,7 @@ impl Checker {
                     let parameters = &signature.parameters[offset..];
                     (!type_receiver || method.is_static)
                         && (signature.public
-                            || module == self.current_module
+                            || signature.module == self.current_module
                             || self.constraint_witness_access(signature, &owner, span))
                         && types.len() <= parameters.len()
                         && signature.defaults[offset + types.len()..].iter().all(Option::is_some)
@@ -98,6 +97,7 @@ impl Checker {
                 span,
                 format!("ambiguous method '{}.{name}'", self.source_name(&owner)),
             );
+            return Some(Type::Error);
         }
 
         if !best.defined {

@@ -1036,8 +1036,30 @@ must use `override` and match a default requirement's direct signature. Unrelate
 or mismatched overrides are rejected. See [default methods](../tests/conformance/positive/interface-default-methods.slang)
 and [inherited mutating defaults](../tests/conformance/positive/interface-default-inherited.slang).
 
-This implementation covers direct signatures. Default interface constructors,
-generic method requirements, associated types, extensions, adapted witnesses (including
+Default witnesses retain both their declaring interface and its type arguments.
+For `Derived : Base` with separate bodies for `read()`, a call constrained to
+`Base` uses the base body, while a call constrained to `Derived` or an ordinary
+concrete member call uses the derived body. An inherited helper keeps the
+requirements selected in its own interface body. A derived abstract redeclaration
+requires a concrete implementation. Different parameter signatures remain
+overloads; a matching derived signature shadows the inherited signature for
+derived lookup, including when its result type or output direction differs.
+See [inherited dispatch](../tests/conformance/positive/interface-default-dispatch.slang),
+[diamonds](../tests/conformance/positive/interface-default-diamonds.slang), and
+[generic origins](../tests/conformance/positive/interface-default-generic-origins.slang).
+
+Unrelated interfaces can supply separate default witnesses for the same method.
+Calls under each individual constraint select its own witness; an ordinary call
+or a call under their combined constraints is ambiguous. Concrete methods hide
+inherited default members by name. A concrete same-name overload requiring
+witness adaptation reports `T032` instead of silently selecting a default body.
+Internal defaults retain declaration-module access for both ordinary and opaque
+calls, including overloaded emitted functions. Interface constructor requirements
+may declare signatures, but constructor bodies in interfaces are rejected by
+both upstream Slang and this compiler.
+
+This implementation covers direct signatures. Generic method requirements,
+associated types, extensions, adapted witnesses (including
 numeric conversions, default-argument adaptation and static/instance adaptation),
 `where` constraints, operator/conversion constraints, complete constrained
 ranking and runtime dispatch remain unsupported. Interface existential variables,

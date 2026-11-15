@@ -833,8 +833,21 @@ The unchanged pinned `language-feature/interfaces/default-method.slang` and
 `default-method-inherited-static.slang` sources also compile to HLSL in both
 frontends; DXC verifies their three matching constant words and four artifacts.
 Their original CPU, SPIR-V and GPU test directives were not executed. Generic
-method requirements, value generics, default constructors and adapted witnesses
-remain unsupported.
+method requirements, value generics and adapted witnesses remain unsupported.
+Constructor requirements cannot have bodies in upstream Slang.
+
+Inherited default dispatch regressions compare the base and derived witnesses
+independently. In [interface-default-dispatch.slang](../tests/conformance/positive/interface-default-dispatch.slang),
+a base-constrained call returns `3`, a derived-constrained or direct call returns
+`7`, and a base helper that calls its own requirement returns `6`. The corpus
+also checks diamond inheritance, reversed declaration names, retained overloads,
+separate generic interface specializations, static and mutating calls, parameter
+defaults, module scope, and exact compiled DXIL words from both compilers.
+Unrelated defaults remain usable through their separate constraints; ambiguous
+direct calls and combined constraints must fail before recording a witness.
+An abstract redeclaration requires a concrete implementation. Integration tests
+serialize witness metadata, recheck the checked module, and preserve dormant
+helper pruning.
 
 [validation.json](validation.json) records the Windows validation run for this
 checkpoint. It includes the pinned compiler version, workspace checks, and

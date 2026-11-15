@@ -62,6 +62,7 @@ impl Specializer {
                 &mut probe,
             );
             changed |= self.capture_default_selections(&probe);
+            changed |= self.capture_template_selections(module, &probe)?;
             let mut targets = BTreeMap::new();
             let mut failures = vec![];
 

@@ -321,6 +321,7 @@ impl Checker {
 
                         if field.modifiers.iter().any(|m| m == "public") {
                             self.public_fields.insert((structure.name.clone(), field.name.clone()));
+
                             if !self.public_types.contains(&structure.name) {
                                 self.error(
                                     "T018",
@@ -369,7 +370,9 @@ impl Checker {
                         self.constructors.insert(owner.clone(), function.name.clone());
                     }
 
-                    if let Some(method) = &function.method {
+                    if let Some(method) = &function.method
+                        && crate::conformance::default_requirement(module, function).is_none()
+                    {
                         self.methods.insert(
                             (method.owner.clone(), method.name.clone()),
                             function.name.clone(),
@@ -439,6 +442,7 @@ impl Checker {
                     } else {
                         overloads.push(Signature {
                             declaration: span_key(function.span),
+                            module: self.current_module,
                             parameters,
                             output_parameters,
                             result,
@@ -590,6 +594,7 @@ impl Checker {
                 VariableScope::Local => {
                     matches!(modifier.as_str(), "const" | "static" | "row_major" | "column_major")
                 }
+
                 VariableScope::Parameter => {
                     matches!(
                         modifier.as_str(),
