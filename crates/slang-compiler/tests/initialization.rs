@@ -216,8 +216,8 @@ fn field_defaults_use_declaration_scope_but_supplied_values_use_caller_scope() {
         };
 
         let ExprKind::Call {
+            name,
             arguments,
-            ..
         } = &pair.initializer.as_ref().unwrap().kind
         else {
             panic!()
@@ -228,22 +228,21 @@ fn field_defaults_use_declaration_scope_but_supplied_values_use_caller_scope() {
         };
 
         assert!(matches!(&arguments[0].kind, ExprKind::Name(n) if n == &local.name));
-        let ExprKind::Call {
-            name,
-            arguments,
-        } = &arguments[1].kind
-        else {
-            panic!("an omitted field must evaluate outside the caller's bindings")
-        };
-
-        assert!(arguments.is_empty());
+        assert_eq!(arguments.len(), 1, "only supplied fields are evaluated by the caller");
         let default = compiled.ir.functions.iter().find(|f| &f.name == name).unwrap();
-        assert!(default.parameters.is_empty());
+        assert_eq!(default.parameters.len(), 1);
         let StmtKind::Block(body) = &default.body.as_ref().unwrap().kind else {
             panic!()
         };
 
-        let StmtKind::Return(Some(value)) = &body[0].kind else {
+        let StmtKind::Expression(assignment) = &body[2].kind else {
+            panic!()
+        };
+        let ExprKind::Binary {
+            right: value,
+            ..
+        } = &assignment.kind
+        else {
             panic!()
         };
 
@@ -287,7 +286,7 @@ fn nested_struct_and_array_field_defaults_preserve_declaration_scope() {
     assert!(!run.contains("helper()"));
     assert!(!run.contains("(value + 1)"));
     assert!(code.contains("return value;"));
-    assert!(code.contains("default_result"));
+    assert!(code.contains(").y ="));
 }
 
 #[test]

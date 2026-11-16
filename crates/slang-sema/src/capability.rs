@@ -271,7 +271,10 @@ impl<'a> Scanner<'a> {
                         self.work.extend(values.iter().map(Work::Initialization))
                     }
 
-                    InitializationKind::Zero => {}
+                    InitializationKind::Zero
+                    | InitializationKind::Uninitialized {
+                        ..
+                    } => {}
                 },
             }
         }

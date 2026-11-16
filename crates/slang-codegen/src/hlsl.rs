@@ -472,6 +472,26 @@ fn expression(expr: &Expr) -> String {
             receiver,
             name,
             arguments,
+        } if name == "@slang.byte.scalar.load" => format!(
+            "({}).Load<{}>({})",
+            expression(receiver),
+            type_name(&expr.ty),
+            arguments.iter().map(expression).collect::<Vec<_>>().join(", ")
+        ),
+        ExprKind::MethodCall {
+            receiver,
+            name,
+            arguments,
+        } if name == "@slang.byte.scalar.store" => format!(
+            "({}).Store<{}>({})",
+            expression(receiver),
+            type_name(&arguments[1].ty),
+            arguments.iter().map(expression).collect::<Vec<_>>().join(", ")
+        ),
+        ExprKind::MethodCall {
+            receiver,
+            name,
+            arguments,
         } => format!(
             "({}).{name}({})",
             expression(receiver),

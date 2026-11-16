@@ -14,6 +14,9 @@ pub(crate) enum VariableScope {
 
 impl Checker {
     pub fn resolve_type(&mut self, reference: &TypeRef) -> Type {
+        if reference.is_inferred() {
+            return Type::Error;
+        }
         let Some(name) = self.type_name(&reference.name, reference.span) else {
             return Type::Error;
         };
@@ -341,7 +344,7 @@ impl Checker {
                             self.require_public_type(&ty, field.span);
                         }
 
-                        if ty == Type::Void {
+                        if ty == Type::Void && !field.ty.parameter_ref {
                             self.error("T002", field.span, "a field cannot have type void");
                         }
 
@@ -400,6 +403,12 @@ impl Checker {
 
                     let result = self.resolve_type(&function.return_type);
                     self.require_value_type(&result, function.span);
+                    self.check_matrix_layout(
+                        &result,
+                        &function.return_type,
+                        &function.modifiers,
+                        function.span,
+                    );
                     self.declaration_types.insert(span_key(function.span), result.clone());
                     let parameters: Vec<Type> =
                         function.parameters.iter().map(|p| self.resolve_type(&p.ty)).collect();
@@ -535,6 +544,7 @@ impl Checker {
             }
         }
 
+        self.infer_module_variables(module);
         self.validate_value_types();
     }
 
@@ -555,7 +565,14 @@ impl Checker {
             self.error("T003", variable.span, "variable name conflicts with a type");
         }
 
-        let ty = self.resolve_type(&variable.ty);
+        let ty = if matches!(context, VariableScope::Parameter) && variable.ty.is_inferred() {
+            self.error("T034", variable.span, "a parameter requires an explicit type");
+            Type::Error
+        } else if matches!(context, VariableScope::Global) && variable.ty.is_inferred() {
+            Type::Error
+        } else {
+            self.variable_type(variable)
+        };
         self.require_value_type(&ty, variable.span);
         self.check_matrix_layout(&ty, &variable.ty, &variable.modifiers, variable.span);
 
@@ -574,7 +591,7 @@ impl Checker {
             self.require_public_type(&ty, variable.span);
         }
 
-        if ty == Type::Void {
+        if ty == Type::Void && !variable.ty.is_inferred() && !variable.ty.parameter_ref {
             self.error("T002", variable.span, "a variable cannot have type void");
         }
 
@@ -583,6 +600,7 @@ impl Checker {
                 VariableScope::Global => matches!(
                     modifier.as_str(),
                     "const"
+                        | "let"
                         | "static"
                         | "uniform"
                         | "groupshared"
@@ -592,7 +610,10 @@ impl Checker {
                         | "column_major"
                 ),
                 VariableScope::Local => {
-                    matches!(modifier.as_str(), "const" | "static" | "row_major" | "column_major")
+                    matches!(
+                        modifier.as_str(),
+                        "const" | "let" | "static" | "row_major" | "column_major"
+                    )
                 }
 
                 VariableScope::Parameter => {
@@ -634,8 +655,8 @@ impl Checker {
 
         let global_mutable = !matches!(context, VariableScope::Global)
             || variable.modifiers.iter().any(|m| m == "static" || m == "groupshared");
-        let writable =
-            global_mutable && !variable.modifiers.iter().any(|m| m == "const" || m == "uniform");
+        let writable = global_mutable
+            && !variable.modifiers.iter().any(|m| m == "const" || m == "let" || m == "uniform");
         let constant = variable
             .initializer
             .as_ref()
@@ -699,6 +720,7 @@ impl Checker {
                 variable.name.clone(),
                 Binding {
                     ty,
+                    matrix_major: self.matrix_layouts.get(&span_key(variable.span)).copied(),
                     writable,
                     constant,
                     shape_constant,

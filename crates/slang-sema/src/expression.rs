@@ -579,8 +579,9 @@ impl Checker {
 
         match &expr.kind {
             ExprKind::Name(name) => {
-                if self.implicit_members.contains_key(&expr.id) {
-                    self.lookup("this").is_some_and(|b| b.writable)
+                if let Some(Type::Struct(owner)) = self.implicit_members.get(&expr.id) {
+                    !self.immutable_field(owner, name)
+                        && self.lookup("this").is_some_and(|b| b.writable)
                 } else {
                     self.lookup(name).is_some_and(|b| b.writable)
                 }
@@ -591,6 +592,11 @@ impl Checker {
                 name,
                 ..
             } => {
+                if let Some(Type::Struct(owner)) = self.expression_types.get(&base.id)
+                    && self.immutable_field(owner, name)
+                {
+                    return false;
+                }
                 if matches!(self.expression_types.get(&base.id), Some(Type::ConstantBuffer { .. }))
                 {
                     return false;
@@ -662,5 +668,17 @@ impl Checker {
         } else {
             false
         }
+    }
+
+    fn immutable_field(&self, owner: &str, name: &str) -> bool {
+        self.struct_definitions.get(owner).is_some_and(|structure| {
+            structure.fields.iter().any(|field| {
+                field.name == name
+                    && field
+                        .modifiers
+                        .iter()
+                        .any(|modifier| modifier == "let" || modifier == "const")
+            })
+        })
     }
 }

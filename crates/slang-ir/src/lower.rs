@@ -140,6 +140,7 @@ pub fn lower_with_native_16bit(
         });
     }
 
+    crate::typed_byte::lower(&mut module)?;
     crate::initialization::lower(&mut module)?;
     crate::array_result::lower(&mut module)?;
     crate::intrinsic::lower(&mut module)?;
@@ -147,6 +148,7 @@ pub fn lower_with_native_16bit(
     crate::derivative::lower(&mut module)?;
     crate::atomic::lower(&mut module)?;
     crate::static_local::lower(&mut module)?;
+    crate::unit::lower(&mut module)?;
     crate::scope::lower(&mut module);
     crate::inline::lower(&mut module, checked)?;
     crate::effects::lower(&mut module, checked)?;
@@ -159,6 +161,7 @@ pub fn lower_with_native_16bit(
     crate::matrix_storage::lower(&mut module)?;
     crate::matrix_resource::lower(&mut module)?;
     crate::constant_buffer_value::lower(&mut module)?;
+    crate::global_order::lower(&mut module)?;
     Ok(module)
 }
 
@@ -179,7 +182,7 @@ impl Lowerer<'_> {
             .filter(|m| {
                 !matches!(
                     m.as_str(),
-                    "public" | "internal" | "row_major" | "column_major" | "override"
+                    "public" | "internal" | "row_major" | "column_major" | "override" | "let"
                 )
             })
             .cloned()
@@ -451,6 +454,28 @@ impl Lowerer<'_> {
                     arguments.extend(result?);
                 }
 
+                if self
+                    .checked
+                    .call_names
+                    .get(&callee.id)
+                    .is_some_and(|name| name.starts_with("@slang.byte."))
+                    && let Some(Type::Callable {
+                        parameters,
+                        ..
+                    }) = self.checked.expression_types.get(&callee.id)
+                {
+                    for (argument, target) in arguments.iter_mut().zip(parameters) {
+                        if &argument.ty != target {
+                            *argument = Expr {
+                                ty: target.clone(),
+                                span: argument.span,
+                                kind: ExprKind::Cast {
+                                    value: Box::new(argument.clone()),
+                                },
+                            };
+                        }
+                    }
+                }
                 if let Some(receiver) = self.checked.method_receivers.get(&callee.id) {
                     match receiver {
                         slang_sema::MethodReceiver::Static => {}
@@ -674,6 +699,12 @@ impl Lowerer<'_> {
                     .collect::<Result<_, _>>()?,
             },
             slang_sema::InitializationKind::Zero => ExprKind::Zero,
+            slang_sema::InitializationKind::Uninitialized {
+                ..
+            } => ExprKind::Call {
+                name: "@slang.uninitialized".into(),
+                arguments: vec![],
+            },
             slang_sema::InitializationKind::Aggregate(values) => ExprKind::Construct(
                 values.iter().map(|v| self.initialization(v, span)).collect::<Result<_, _>>()?,
             ),

@@ -75,7 +75,10 @@ impl Checker {
                         ..
                     } => work.extend(arguments.iter().map(Work::Initialization)),
 
-                    InitializationKind::Zero => {}
+                    InitializationKind::Zero
+                    | InitializationKind::Uninitialized {
+                        ..
+                    } => {}
                 },
                 Work::Expression(e) => {
                     if !seen.insert(e.id) || self.expression_types.get(&e.id) == Some(&Type::Error)

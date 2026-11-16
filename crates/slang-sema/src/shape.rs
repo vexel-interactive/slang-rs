@@ -80,7 +80,16 @@ impl Checker {
             self.symbols.get(name).map_or(slang_module::ModuleId(0), |o| o.module);
         let mut scopes = std::mem::take(&mut self.scopes);
         self.scopes = vec![std::mem::take(&mut scopes[0])];
-        let ty = self.resolve_type(&variable.ty);
+        let saved = if variable.ty.is_inferred()
+            && let Some(initializer) = &variable.initializer
+        {
+            self.prepare_shape_names(initializer);
+            self.install_shape_bindings(initializer)
+        } else {
+            vec![]
+        };
+        let ty = self.variable_type(&variable);
+        self.restore_shape_bindings(saved);
         let constant = if variable.modifiers.iter().any(|m| m == "const")
             && matches!(
                 ty,
@@ -124,6 +133,7 @@ impl Checker {
             name.into(),
             Binding {
                 ty,
+                matrix_major: None,
                 constant,
                 shape_constant: constant,
                 writable: false,

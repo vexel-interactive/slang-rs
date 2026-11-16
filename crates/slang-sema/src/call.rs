@@ -10,6 +10,10 @@ impl Checker {
     pub(crate) fn call(&mut self, callee: &Expr, arguments: &[Expr], span: Span) -> Type {
         let mut types: Vec<Type> = arguments.iter().map(|a| self.expression(a)).collect();
 
+        if let Some(result) = self.typed_byte_call(callee, arguments, &types, span) {
+            return result;
+        }
+
         if self.pending_generic_calls.contains(&callee.id) {
             let source = self.generic_method_source(callee);
 

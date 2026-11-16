@@ -93,6 +93,16 @@ impl Specializer {
             changed |= self.activate_selected(module, &probe)?;
 
             for (id, types) in &probe.types {
+                if probe
+                    .targets
+                    .get(id)
+                    .is_some_and(|name| crate::resource::typed_byte_marker(name))
+                {
+                    self.inference_calls.remove(id);
+                    changed = true;
+                    continue;
+                }
+
                 if types.iter().any(contains_error) {
                     continue;
                 }

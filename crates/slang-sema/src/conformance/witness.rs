@@ -144,6 +144,21 @@ impl Checker {
                 }
 
                 InitializationKind::Aggregate(values) => plans.extend(values),
+                InitializationKind::Uninitialized {
+                    field,
+                    span,
+                } => {
+                    let message = format!(
+                        "memberwise initializer leaves immutable field '{field}' uninitialized"
+                    );
+                    if !self.diagnostics.iter().any(|diagnostic| {
+                        diagnostic.code == "T035"
+                            && diagnostic.span == *span
+                            && diagnostic.message == message
+                    }) {
+                        self.diagnostics.push(Diagnostic::warning("T035", *span, message));
+                    }
+                }
                 _ => {}
             }
         }
@@ -172,6 +187,7 @@ impl Checker {
                 parameter.name.clone(),
                 Binding {
                     ty,
+                    matrix_major: None,
                     writable: !parameter.modifiers.iter().any(|m| m == "const"),
                     constant: None,
                     shape_constant: None,

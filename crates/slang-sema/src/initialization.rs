@@ -28,6 +28,11 @@ pub enum InitializationKind {
     /// Evaluate a default in its declaration scope, outside caller bindings.
     DeclarationDefault(Box<Expr>),
     Zero,
+    /// A member excluded from synthesized initialization retains its storage.
+    Uninitialized {
+        field: String,
+        span: Span,
+    },
     Aggregate(Vec<Initialization>),
 }
 
@@ -63,12 +68,8 @@ impl Checker {
         }
 
         let structure = self.struct_definitions[name].clone();
-        let public = self.public_types.contains(name);
-        let eligible = |field: &slang_syntax::Variable| {
-            !public || field.modifiers.iter().any(|m| m == "public")
-        };
-
-        let count = structure.fields.iter().filter(|f| eligible(f)).count();
+        let count =
+            structure.fields.iter().filter(|field| self.memberwise_field(name, field)).count();
 
         if arguments.len() > count {
             self.error(
@@ -88,7 +89,7 @@ impl Checker {
 
         for field in &structure.fields {
             let ty = self.structures[name][&field.name].clone();
-            let value = if eligible(field) && supplied < arguments.len() {
+            let value = if self.memberwise_field(name, field) && supplied < arguments.len() {
                 self.coerce_value(&arguments[supplied], &ty);
                 let expr = arguments[supplied].clone();
                 supplied += 1;
@@ -96,6 +97,8 @@ impl Checker {
                     ty,
                     kind: InitializationKind::Value(Box::new(expr)),
                 }
+            } else if self.omit_immutable_field(name, field) {
+                self.uninitialized_field(field, &ty)
             } else {
                 self.field_default(field, &ty, 0, &mut budget)
             };
@@ -112,13 +115,12 @@ impl Checker {
             return Type::Error;
         }
 
-        self.initializations.insert(
-            callee,
-            Initialization {
-                ty: target.clone(),
-                kind: InitializationKind::Aggregate(fields),
-            },
-        );
+        let plan = Initialization {
+            ty: target.clone(),
+            kind: InitializationKind::Aggregate(fields),
+        };
+        self.record_plan_constraints(&plan);
+        self.initializations.insert(callee, plan);
         target
     }
 
@@ -177,7 +179,9 @@ impl Checker {
 
                 for field in fields {
                     let element = self.structures[name][&field.name].clone();
-                    values.push(if defaults {
+                    values.push(if defaults && self.omit_immutable_field(name, &field) {
+                        self.uninitialized_field(&field, &element)
+                    } else if defaults {
                         self.field_default(&field, &element, depth + 1, budget)
                     } else {
                         self.aggregate_initialization(&element, span, depth + 1, budget, false)
@@ -211,7 +215,7 @@ impl Checker {
                 InitializationKind::Aggregate(values)
             }
 
-            Type::Scalar(_) | Type::Vector(..) | Type::Matrix(..) | Type::Error => {
+            Type::Void | Type::Scalar(_) | Type::Vector(..) | Type::Matrix(..) | Type::Error => {
                 InitializationKind::Zero
             }
 
@@ -228,6 +232,41 @@ impl Checker {
         Initialization {
             ty: ty.clone(),
             kind,
+        }
+    }
+
+    pub(crate) fn memberwise_field(&self, owner: &str, field: &slang_syntax::Variable) -> bool {
+        (!self.public_types.contains(owner) || field.modifiers.iter().any(|m| m == "public"))
+            && !self.omit_immutable_field(owner, field)
+    }
+
+    pub(crate) fn omit_immutable_field(&self, owner: &str, field: &slang_syntax::Variable) -> bool {
+        let immutable = |field: &slang_syntax::Variable| {
+            field.modifiers.iter().any(|m| m == "let" || m == "const")
+        };
+        immutable(field)
+            && self.struct_definitions[owner].fields.iter().any(|candidate| {
+                !immutable(candidate)
+                    && (!self.public_types.contains(owner)
+                        || candidate.modifiers.iter().any(|m| m == "public"))
+            })
+    }
+
+    pub(crate) fn uninitialized_field(
+        &self,
+        field: &slang_syntax::Variable,
+        ty: &Type,
+    ) -> Initialization {
+        Initialization {
+            ty: ty.clone(),
+            kind: if *ty == Type::Void {
+                InitializationKind::Zero
+            } else {
+                InitializationKind::Uninitialized {
+                    field: field.name.clone(),
+                    span: field.span,
+                }
+            },
         }
     }
 }

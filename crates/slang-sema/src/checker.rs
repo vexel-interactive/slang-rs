@@ -76,6 +76,7 @@ pub fn span_key(span: Span) -> SpanKey {
 #[derive(Clone)]
 pub(crate) struct Binding {
     pub ty: Type,
+    pub matrix_major: Option<slang_layout::MatrixMajor>,
     pub writable: bool,
     /// Integer values use signed storage; the binding type determines the sign.
     pub constant: Option<i64>,
@@ -384,12 +385,26 @@ fn check_concrete_inner(
                 }
 
                 checker.current_static_type = Some(structure.name.clone());
+                checker.current_type = Some(structure.name.clone());
+                checker.scopes.push(BTreeMap::from([(
+                    "this".into(),
+                    Binding {
+                        ty: Type::Struct(structure.name.clone()),
+                        matrix_major: None,
+                        writable: true,
+                        constant: None,
+                        shape_constant: None,
+                        storage: Storage::Local,
+                    },
+                )]));
 
                 for field in &structure.fields {
                     if field.modifiers.iter().any(|m| {
                         !matches!(
                             m.as_str(),
                             "nointerpolation"
+                                | "let"
+                                | "const"
                                 | "public"
                                 | "internal"
                                 | "row_major"
@@ -414,6 +429,8 @@ fn check_concrete_inner(
                 }
 
                 checker.current_static_type = None;
+                checker.current_type = None;
+                checker.scopes.pop();
             }
         }
     }

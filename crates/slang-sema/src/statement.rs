@@ -92,7 +92,7 @@ impl Checker {
 
     pub(crate) fn initializer(&mut self, variable: &Variable) {
         if let Some(value) = &variable.initializer {
-            let expected = self.resolve_type(&variable.ty);
+            let expected = self.variable_type(variable);
             self.check_value(value, &expected);
         } else if variable.modifiers.iter().any(|m| m == "const")
             && !self.variable_initializations.contains_key(&crate::span_key(variable.span))
@@ -157,6 +157,7 @@ impl Checker {
                 "this".into(),
                 crate::checker::Binding {
                     ty: Type::Struct(owner.clone()),
+                    matrix_major: None,
                     writable: true,
                     constant: None,
                     shape_constant: None,

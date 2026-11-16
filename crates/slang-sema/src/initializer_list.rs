@@ -250,8 +250,11 @@ impl Planner<'_> {
         if let Type::Struct(name) = target {
             // Synthesized memberwise construction takes precedence over flat lists.
             let structure = &self.checker.struct_definitions[name];
-            let public = self.checker.public_types.contains(name);
-            let fields: Vec<_> = structure.fields.iter().filter(|f| eligible(f, public)).collect();
+            let fields: Vec<_> = structure
+                .fields
+                .iter()
+                .filter(|f| self.checker.memberwise_field(name, f))
+                .collect();
             if values.len() <= fields.len()
                 && values.iter().zip(&fields).all(|(v, f)| {
                     let ty = &self.checker.structures[name][&f.name];
@@ -263,19 +266,26 @@ impl Planner<'_> {
 
                 for field in &structure.fields {
                     let ty = &self.checker.structures[name][&field.name];
-                    result.push(if eligible(field, public) && supplied < values.len() {
-                        let value = self.list(&values[supplied], ty, depth + 1)?;
-                        supplied += 1;
-                        value
-                    } else {
-                        self.field_default(field, ty, depth + 1)?
-                    });
+                    result.push(
+                        if self.checker.memberwise_field(name, field) && supplied < values.len() {
+                            let value = self.list(&values[supplied], ty, depth + 1)?;
+                            supplied += 1;
+                            value
+                        } else if self.checker.omit_immutable_field(name, field) {
+                            self.checker.uninitialized_field(field, ty)
+                        } else {
+                            self.field_default(field, ty, depth + 1)?
+                        },
+                    );
                 }
 
                 return Ok(Initialization {
                     ty: target.clone(),
                     kind: InitializationKind::Aggregate(result),
                 });
+            }
+            if structure.fields.iter().any(|field| self.checker.omit_immutable_field(name, field)) {
+                return Err(self.invalid(value.span, target));
             }
         }
 
@@ -449,15 +459,18 @@ impl Planner<'_> {
 
             Type::Struct(name) => {
                 let structure = &self.checker.struct_definitions[name];
-                let public = self.checker.public_types.contains(name);
 
                 for field in &structure.fields {
                     let ty = &self.checker.structures[name][&field.name];
-                    result.push(if eligible(field, public) && *index < values.len() {
-                        self.read(values, index, ty, span, depth + 1)?
-                    } else {
-                        self.field_default(field, ty, depth + 1)?
-                    });
+                    result.push(
+                        if self.checker.memberwise_field(name, field) && *index < values.len() {
+                            self.read(values, index, ty, span, depth + 1)?
+                        } else if self.checker.omit_immutable_field(name, field) {
+                            self.checker.uninitialized_field(field, ty)
+                        } else {
+                            self.field_default(field, ty, depth + 1)?
+                        },
+                    );
                 }
             }
 
@@ -510,8 +523,4 @@ impl Planner<'_> {
             self.aggregate(&[], &mut 0, target, span, depth)
         }
     }
-}
-
-fn eligible(field: &Variable, public: bool) -> bool {
-    !public || field.modifiers.iter().any(|m| m == "public")
 }

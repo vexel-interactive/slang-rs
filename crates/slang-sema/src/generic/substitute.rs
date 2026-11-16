@@ -24,7 +24,7 @@ pub(super) fn replace_type(ty: &mut TypeRef, types: &BTreeMap<String, TypeRef>) 
 
         replacement.arrays.splice(0..0, ty.arrays.clone());
         replacement.matrix_major = ty.matrix_major.or(replacement.matrix_major);
-        replacement.parameter_ref |= ty.parameter_ref;
+        replacement.parameter_ref = true;
         replacement.span = ty.span;
         *ty = replacement;
     }

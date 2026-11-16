@@ -47,6 +47,9 @@ pub(crate) fn lower(module: &mut Module, checked: &CheckedModule) -> Result<(), 
     }
     // Captures can include aggregate constructors in surrounding expressions.
     crate::initialization::lower(module)?;
+    for function in &mut module.functions {
+        function.parameters.retain(|parameter| parameter.ty != Type::Void);
+    }
     crate::scope::lower(module);
     Ok(())
 }
@@ -75,6 +78,14 @@ impl Lowerer<'_> {
     }
 
     fn save(&mut self, value: &mut Expr, prefix: &mut Vec<Stmt>) {
+        if value.ty == Type::Void {
+            if !no_value(value) {
+                prefix.push(expression(value.clone()));
+            }
+            value.kind = ExprKind::Zero;
+            return;
+        }
+
         // Literal values cannot change across a later statement region.
         if matches!(
             value.kind,
@@ -112,7 +123,7 @@ impl Lowerer<'_> {
 
     fn arguments(
         &mut self,
-        values: &mut [Expr],
+        values: &mut Vec<Expr>,
         outputs: &[bool],
         freeze_outputs: bool,
     ) -> Result<Vec<Stmt>, Diagnostic> {
@@ -121,17 +132,25 @@ impl Lowerer<'_> {
         let mut prefixes = vec![];
 
         for (i, value) in values.iter_mut().enumerate() {
-            prefixes.push(if outputs.get(i).copied().unwrap_or(false) {
+            let mut prefix = if outputs.get(i).copied().unwrap_or(false) {
                 self.location(value, freeze_outputs)?
             } else {
                 self.value(value)?
-            });
+            };
+            if value.ty == Type::Void {
+                self.save(value, &mut prefix);
+            }
+            prefixes.push(prefix);
         }
 
         let mut prefix = vec![];
 
         for (i, value) in values.iter_mut().enumerate() {
             prefix.append(&mut prefixes[i]);
+
+            if value.ty == Type::Void {
+                continue;
+            }
 
             if prefixes[i + 1..].iter().any(|p| !p.is_empty()) {
                 if outputs.get(i).copied().unwrap_or(false) {
@@ -144,6 +163,7 @@ impl Lowerer<'_> {
             }
         }
 
+        values.retain(|value| value.ty != Type::Void);
         Ok(prefix)
     }
 
@@ -467,7 +487,7 @@ impl Lowerer<'_> {
                 let mut then_prefix = self.value(then_value)?;
                 let mut else_prefix = self.value(else_value)?;
 
-                if then_prefix.is_empty() && else_prefix.is_empty() {
+                if then_prefix.is_empty() && else_prefix.is_empty() && ty != Type::Void {
                     return Ok(prefix);
                 }
 
@@ -480,8 +500,12 @@ impl Lowerer<'_> {
                 }
 
                 let result = if ty == Type::Void {
-                    then_prefix.push(expression(*then_value.clone()));
-                    else_prefix.push(expression(*else_value.clone()));
+                    if !no_value(then_value) {
+                        then_prefix.push(expression(*then_value.clone()));
+                    }
+                    if !no_value(else_value) {
+                        else_prefix.push(expression(*else_value.clone()));
+                    }
                     Expr {
                         kind: ExprKind::Zero,
                         ty,

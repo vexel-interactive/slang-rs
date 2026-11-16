@@ -56,12 +56,8 @@ impl Checker {
         }
 
         let structure = &self.struct_definitions[owner];
-        let public = self.public_types.contains(owner);
-        let fields = structure
-            .fields
-            .iter()
-            .filter(|f| !public || f.modifiers.iter().any(|m| m == "public"))
-            .collect::<Vec<_>>();
+        let fields =
+            structure.fields.iter().filter(|f| self.memberwise_field(owner, f)).collect::<Vec<_>>();
         if arguments.len() > fields.len() {
             return None;
         }

@@ -57,7 +57,9 @@ fn local_statics_have_separate_storage_and_initialize_at_the_declaration() {
         panic!()
     };
 
-    assert!(matches!((&result.kind, &left.kind), (ExprKind::Name(a), ExprKind::Name(b)) if a == b));
+    assert!(
+        matches!((&result.kind, &left.kind), (ExprKind::GlobalName(a), ExprKind::GlobalName(b)) if a == b)
+    );
     assert!(compiled.artifact.unwrap().contains("= initialize(10));"));
 }
 

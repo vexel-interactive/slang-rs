@@ -125,7 +125,7 @@ impl Checker {
             return;
         }
 
-        let ty = self.resolve_type(&variable.ty);
+        let ty = self.variable_type(variable);
 
         match self.automatic_initialization(&ty, variable.span) {
             Ok(Some(plan)) => {

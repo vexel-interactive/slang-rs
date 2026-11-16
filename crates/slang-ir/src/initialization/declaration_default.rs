@@ -6,6 +6,12 @@ impl Lowerer {
             return false;
         };
 
+        // Instance-dependent defaults execute inside aggregate construction,
+        // after earlier members have acquired their initialized values.
+        if receiver_default(value) {
+            return false;
+        }
+
         let name = format!("{}default_{}", self.prefix, self.functions.len());
         let array = matches!(value.ty, Type::Array(..));
         let mut statements = vec![];
@@ -116,4 +122,36 @@ impl Lowerer {
 
         true
     }
+}
+
+pub(super) fn receiver_default(value: &Expr) -> bool {
+    use crate::visit::Visitor;
+
+    struct Receiver(bool);
+    impl Visitor for Receiver {
+        fn expression(&mut self, value: &mut Expr) -> Result<(), Diagnostic> {
+            self.0 |= matches!(&value.kind, ExprKind::Name(name) if name == "this");
+            crate::visit::walk_expression(self, value)
+        }
+    }
+    let mut receiver = Receiver(false);
+    receiver.expression(&mut value.clone()).unwrap();
+    receiver.0
+}
+
+pub(super) fn bind_receiver(value: &mut Expr, receiver: &Expr) {
+    use crate::visit::Visitor;
+
+    struct Bind<'a>(&'a Expr);
+    impl Visitor for Bind<'_> {
+        fn expression(&mut self, value: &mut Expr) -> Result<(), Diagnostic> {
+            if matches!(&value.kind, ExprKind::Name(name) if name == "this") {
+                *value = self.0.clone();
+                Ok(())
+            } else {
+                crate::visit::walk_expression(self, value)
+            }
+        }
+    }
+    Bind(receiver).expression(value).unwrap();
 }

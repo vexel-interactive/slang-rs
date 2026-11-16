@@ -53,11 +53,13 @@ impl Lowerer {
         }
 
         let name = format!("{}value_{}", self.prefix, self.globals.len());
-        let mut storage = variable.clone();
-        storage.name = name.clone();
-        storage.modifiers = vec!["static".into()];
-        storage.initializer = None;
-        self.globals.push(storage);
+        if variable.ty != Type::Void {
+            let mut storage = variable.clone();
+            storage.name = name.clone();
+            storage.modifiers = vec!["static".into()];
+            storage.initializer = None;
+            self.globals.push(storage);
+        }
         self.scopes.last_mut().unwrap().insert(variable.name.clone(), Some(name.clone()));
         let Some(initializer) = variable.initializer.take() else {
             return Ok(Some(Stmt {
@@ -97,7 +99,14 @@ impl Lowerer {
                 then_branch: Box::new(Stmt {
                     span: variable.span,
                     kind: StmtKind::Block(vec![
-                        assignment(binding(&name, &variable.ty, variable.span), initializer),
+                        if variable.ty == Type::Void {
+                            Stmt {
+                                span: initializer.span,
+                                kind: StmtKind::Expression(initializer),
+                            }
+                        } else {
+                            assignment(binding(&name, &variable.ty, variable.span), initializer)
+                        },
                         assignment(
                             guard_value,
                             Expr {
@@ -118,7 +127,7 @@ impl Visitor for Lowerer {
     fn expression(&mut self, expression: &mut Expr) -> Result<(), Diagnostic> {
         if let ExprKind::Name(name) = &mut expression.kind {
             if let Some(Some(target)) = self.scopes.iter().rev().find_map(|scope| scope.get(name)) {
-                *name = target.clone();
+                expression.kind = ExprKind::GlobalName(target.clone());
             }
         } else {
             walk_expression(self, expression)?;
@@ -196,7 +205,7 @@ impl Visitor for Lowerer {
 
 fn binding(name: &str, ty: &Type, span: Span) -> Expr {
     Expr {
-        kind: ExprKind::Name(name.into()),
+        kind: ExprKind::GlobalName(name.into()),
         ty: ty.clone(),
         span,
     }

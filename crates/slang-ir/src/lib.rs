@@ -9,6 +9,7 @@ mod effects;
 mod empty_array;
 pub mod flow;
 mod geometric;
+mod global_order;
 mod initialization;
 mod inline;
 mod integer;
@@ -21,7 +22,9 @@ mod packed_uniform;
 mod scope;
 mod static_local;
 mod subword_uniform;
+mod typed_byte;
 mod uniform;
+mod unit;
 mod visit;
 mod wide_arithmetic;
 

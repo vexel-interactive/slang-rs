@@ -289,7 +289,10 @@ fn specialize_inner(
         active: BTreeSet::new(),
         validation_contexts: BTreeSet::new(),
         method_templates: BTreeMap::new(),
-        method_names: BTreeSet::new(),
+        method_names: ["Load", "Store", "LoadAligned", "StoreAligned"]
+            .into_iter()
+            .map(str::to_owned)
+            .collect(),
         constructor_templates: BTreeMap::new(),
         constructor_applications: BTreeMap::new(),
         constraint_calls: std::mem::take(&mut module.constraint_calls),
@@ -1012,17 +1015,25 @@ impl VisitorMut for Specializer {
         visit::walk_variable(self, variable)?;
 
         if self.shapes.scopes.len() > 1 {
-            let ty = crate::Type::builtin(&variable.ty.name).unwrap_or(crate::Type::Error);
-            let constant = if variable.modifiers.iter().any(|m| m == "const") {
-                variable.initializer.as_ref().and_then(|e| self.shape_value(e))
+            let ty = if variable.ty.is_inferred() {
+                variable.initializer.as_ref().map_or(crate::Type::Error, |initializer| {
+                    inferred_shape_type(&self.shapes, initializer)
+                })
             } else {
-                None
+                crate::Type::builtin(&variable.ty.name).unwrap_or(crate::Type::Error)
             };
+            let constant =
+                if variable.modifiers.iter().any(|m| m == "const") && ty.scalar().is_some() {
+                    variable.initializer.as_ref().and_then(|e| self.shape_value(e))
+                } else {
+                    None
+                };
 
             self.shapes.scopes.last_mut().unwrap().insert(
                 variable.name.clone(),
                 crate::checker::Binding {
                     ty,
+                    matrix_major: None,
                     writable: false,
                     constant,
                     shape_constant: constant,
@@ -1051,6 +1062,78 @@ impl VisitorMut for Specializer {
         }
 
         Ok(())
+    }
+}
+
+/// Before semantic probing, the shape checker only has scalar declarations.
+/// User constructors and methods require the complete declaration headers.
+fn inferred_shape_type(checker: &crate::checker::Checker, expression: &Expr) -> crate::Type {
+    use crate::{Scalar, Type};
+    if let Ok(Some(literal)) = slang_syntax::integer_literal(expression) {
+        return Type::Scalar(match literal.kind {
+            slang_lexer::IntegerKind::Int => Scalar::Int,
+            slang_lexer::IntegerKind::Uint => Scalar::Uint,
+            slang_lexer::IntegerKind::Int64 => Scalar::Int64,
+            slang_lexer::IntegerKind::Uint64 => Scalar::Uint64,
+            slang_lexer::IntegerKind::IntPtr => Scalar::IntPtr,
+            slang_lexer::IntegerKind::UintPtr => Scalar::UintPtr,
+        });
+    }
+    match &expression.kind {
+        ExprKind::Bool(_) => Type::Scalar(Scalar::Bool),
+        ExprKind::Float(text) => {
+            slang_lexer::parse_float_literal(text).map_or(Type::Error, |literal| {
+                Type::Scalar(match literal.kind {
+                    slang_lexer::FloatKind::Half => Scalar::Half,
+                    slang_lexer::FloatKind::Float => Scalar::Float,
+                    slang_lexer::FloatKind::Double => Scalar::Double,
+                })
+            })
+        }
+        ExprKind::Name(name) => {
+            checker.lookup(name).map_or(Type::Error, |binding| binding.ty.clone())
+        }
+        ExprKind::Unary {
+            op,
+            value,
+        } => {
+            let ty = inferred_shape_type(checker, value);
+            if op == "!" {
+                ty.boolean_shape()
+            } else {
+                ty
+            }
+        }
+        ExprKind::Binary {
+            op,
+            left,
+            right,
+        } => {
+            let common = Type::common(
+                &inferred_shape_type(checker, left),
+                &inferred_shape_type(checker, right),
+            )
+            .unwrap_or(Type::Error);
+            if matches!(op.as_str(), "==" | "!=" | "<" | "<=" | ">" | ">=" | "&&" | "||") {
+                common.boolean_shape()
+            } else {
+                common
+            }
+        }
+        ExprKind::Call {
+            callee,
+            arguments,
+        } if arguments
+            .iter()
+            .all(|argument| inferred_shape_type(checker, argument) != Type::Error) =>
+        {
+            if let ExprKind::Name(name) = &callee.kind {
+                Type::builtin(name).unwrap_or(Type::Error)
+            } else {
+                Type::Error
+            }
+        }
+        _ => Type::Error,
     }
 }
 
@@ -1099,6 +1182,7 @@ impl VisitorMut for Validator<'_> {
 
     fn ty(&mut self, ty: &mut TypeRef) -> Result<(), Diagnostic> {
         if ty.base.is_none()
+            && !ty.is_inferred()
             && ty.name != "This"
             && !ty.name.contains("::")
             && !canonical::core_type(&ty.name)

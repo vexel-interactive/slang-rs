@@ -45,6 +45,15 @@ struct Lowerer {
     generated_structures: Vec<Struct>,
 }
 
+fn uninitialized(value: &Expr) -> bool {
+    matches!(&value.kind, ExprKind::Call { name, arguments } if name == "@slang.uninitialized" && arguments.is_empty())
+}
+
+fn contains_uninitialized(value: &Expr) -> bool {
+    uninitialized(value)
+        || matches!(&value.kind, ExprKind::Construct(values) if values.iter().any(contains_uninitialized))
+}
+
 impl Lowerer {
     fn statement(&mut self, statement: &mut Stmt) -> Result<(), Diagnostic> {
         match &mut statement.kind {
@@ -141,8 +150,16 @@ impl Lowerer {
 
     fn expression(&mut self, expression: &mut Expr) -> Result<(), Diagnostic> {
         match &mut expression.kind {
-            ExprKind::Construct(values)
-            | ExprKind::Call {
+            ExprKind::Construct(values) => {
+                for value in values {
+                    match &mut value.kind {
+                        ExprKind::DeclarationDefault(default) => self.expression(default)?,
+                        _ => self.expression(value)?,
+                    }
+                }
+            }
+
+            ExprKind::Call {
                 arguments: values,
                 ..
             }
@@ -268,6 +285,8 @@ impl Lowerer {
 
             let mut parameters = vec![];
             let mut arguments = vec![];
+            let initialize_zero =
+                self.can_zero(&structure) && !values.iter().any(contains_uninitialized);
             let mut statements = vec![Stmt {
                 span: expression.span,
                 kind: StmtKind::Variable(Variable {
@@ -278,7 +297,7 @@ impl Lowerer {
                     binding: None,
                     uniform_layout: None,
                     pack_offset: None,
-                    initializer: self.can_zero(&structure).then(|| Expr {
+                    initializer: initialize_zero.then(|| Expr {
                         ty: result.ty.clone(),
                         kind: ExprKind::Zero,
                         span: expression.span,
@@ -297,7 +316,14 @@ impl Lowerer {
                     span: expression.span,
                 };
 
-                Self::field(path, value, &mut parameters, &mut arguments, &mut statements)?;
+                Self::field(
+                    path,
+                    value,
+                    initialize_zero,
+                    &mut parameters,
+                    &mut arguments,
+                    &mut statements,
+                )?;
             }
 
             let return_type = result.ty.clone();
@@ -366,11 +392,12 @@ impl Lowerer {
     fn field(
         path: Expr,
         value: &Expr,
+        initialize_zero: bool,
         parameters: &mut Vec<Variable>,
         arguments: &mut Vec<Expr>,
         statements: &mut Vec<Stmt>,
     ) -> Result<(), Diagnostic> {
-        if matches!(value.kind, ExprKind::Zero) {
+        if uninitialized(value) || initialize_zero && matches!(value.kind, ExprKind::Zero) {
             return Ok(());
         }
 
@@ -398,9 +425,38 @@ impl Lowerer {
                     span: value.span,
                 };
 
-                Self::field(child, value, parameters, arguments, statements)?;
+                Self::field(child, value, initialize_zero, parameters, arguments, statements)?;
             }
 
+            return Ok(());
+        }
+
+        if let ExprKind::DeclarationDefault(value) = &value.kind {
+            let ExprKind::Member {
+                base,
+                ..
+            } = &path.kind
+            else {
+                return Err(Diagnostic::error(
+                    "I003",
+                    value.span,
+                    "instance default requires a field receiver",
+                ));
+            };
+            let mut value = *value.clone();
+            declaration_default::bind_receiver(&mut value, base);
+            statements.push(Stmt {
+                span: value.span,
+                kind: StmtKind::Expression(Expr {
+                    ty: path.ty.clone(),
+                    span: value.span,
+                    kind: ExprKind::Binary {
+                        op: "=".into(),
+                        left: Box::new(path),
+                        right: Box::new(value),
+                    },
+                }),
+            });
             return Ok(());
         }
 
