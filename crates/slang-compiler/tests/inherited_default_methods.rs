@@ -110,17 +110,16 @@ fn interface_constructor_bodies_are_rejected() {
 }
 
 #[test]
-fn adapted_same_name_overrides_are_diagnosed_instead_of_using_the_default() {
-    for source in [
-        include_str!(
-            "../../../tests/conformance/negative/interface-default-adapted-override.slang"
-        ),
+fn adapted_same_name_overrides_keep_the_concrete_implementation() {
+    compile(include_str!(
+        "../../../tests/conformance/positive/interface-default-adapted-override.slang"
+    ));
+    assert_rejected(
         include_str!(
             "../../../tests/conformance/negative/interface-default-adapted-missing-override.slang"
         ),
-    ] {
-        assert_rejected(source, "T032");
-    }
+        "T032",
+    );
 }
 
 #[test]

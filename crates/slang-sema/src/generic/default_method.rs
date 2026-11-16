@@ -10,11 +10,114 @@ pub(super) struct Context {
     members: BTreeSet<String>,
 }
 
-pub(super) fn has_bodies(declaration: &Declaration) -> bool {
-    matches!(declaration, Declaration::Interface(i) if i.requirements.iter().any(|f| f.body.is_some()))
-}
-
 impl Specializer {
+    fn adapter_expression(&mut self, kind: ExprKind, span: Span) -> Expr {
+        let mut expression = Expr::integer(ExprId(self.next_expression), 0, span);
+        self.next_expression += 1;
+        expression.kind = kind;
+        expression
+    }
+
+    fn clone_adapter(
+        &mut self,
+        owner: &str,
+        interface: &Interface,
+        requirement: &Function,
+        adaptation: &crate::conformance::MethodAdaptation,
+        names: &BTreeMap<String, String>,
+    ) -> Result<Declaration, Diagnostic> {
+        let mut adapted = requirement.clone();
+        let target = &adaptation.target;
+        let method = requirement.method.as_ref().unwrap();
+        let target_method = target.method.as_ref().unwrap();
+        let span = requirement.span;
+        // Abstract requirement spans can equal the synthetic receiver span.
+        // Keep the generated function and parameter declaration keys distinct.
+        for parameter in &mut adapted.parameters {
+            if parameter.span == span {
+                parameter.span.end = parameter.span.start;
+            }
+        }
+        let receiver = self.adapter_expression(
+            ExprKind::Name(if !target_method.is_static && method.is_static {
+                requirement.parameters[0].name.clone()
+            } else if method.is_static {
+                owner.into()
+            } else {
+                "this".into()
+            }),
+            span,
+        );
+        let callee = self.adapter_expression(
+            ExprKind::Member {
+                base: Box::new(receiver),
+                name: method.name.clone(),
+                static_lookup: target_method.is_static,
+            },
+            span,
+        );
+        let mut arguments = vec![];
+        let mut statements = vec![];
+        for (index, ((parameter, target), convert)) in requirement
+            .parameters
+            .iter()
+            .zip(&target.parameters)
+            .zip(&adaptation.input_conversions)
+            .enumerate()
+            .skip(usize::from(!target_method.is_static))
+        {
+            let value = self.adapter_expression(ExprKind::Name(parameter.name.clone()), span);
+            let value = if target.modifiers.iter().any(|m| m == "out" || m == "inout") || !convert {
+                value
+            } else {
+                // Typed input copies freeze overload selection and use ordinary
+                // initialization for numeric conversions and buffer value loads.
+                let mut name = format!("{}adapter_argument_{index}", self.prefix);
+                while requirement.parameters.iter().any(|p| p.name == name) {
+                    name.push('_');
+                }
+                statements.push(Stmt {
+                    kind: StmtKind::Variable(Box::new(Variable {
+                        name: name.clone(),
+                        ty: target.ty.clone(),
+                        modifiers: vec![],
+                        semantic: None,
+                        register: None,
+                        pack_offset: None,
+                        initializer: Some(value),
+                        span: target.span,
+                    })),
+                    span: target.span,
+                });
+                self.adapter_expression(ExprKind::Name(name), span)
+            };
+            arguments.push(value);
+        }
+        let call = self.adapter_expression(
+            ExprKind::Call {
+                callee: Box::new(callee),
+                arguments,
+            },
+            span,
+        );
+        statements.push(Stmt {
+            kind: StmtKind::Return(Some(call)),
+            span,
+        });
+        adapted.body = Some(Stmt {
+            kind: StmtKind::Block(statements),
+            span,
+        });
+        let mut declaration = self.clone_default(owner, interface, &adapted, names, None)?;
+        self.instance_output.last_mut().unwrap().witness_target = Some(target.span);
+        if requirement.body.is_none()
+            && let Declaration::Function(function) = &mut declaration
+        {
+            function.modifiers.retain(|m| m != "override");
+        }
+        Ok(declaration)
+    }
+
     pub(super) fn capture_default_selections(&mut self, probe: &InferenceProbe) -> bool {
         if !self.symbolic {
             return false;
@@ -273,6 +376,7 @@ impl Specializer {
             },
         );
         self.instance_output.push(GenericInstanceInfo {
+            witness_target: None,
             context,
             type_name: name,
             template_name: requirement.name.clone(),
@@ -290,7 +394,7 @@ impl Specializer {
         module: &Module,
         major: slang_layout::MatrixMajor,
     ) -> Result<bool, Diagnostic> {
-        if !module.declarations.iter().any(has_bodies) {
+        if !module.declarations.iter().any(|d| matches!(d, Declaration::Interface(_))) {
             return Ok(false);
         }
 
@@ -309,23 +413,39 @@ impl Specializer {
             for name in interfaces {
                 let interface = checker.interface_definitions[&name].clone();
 
-                if self.symbolic && !self.checked_default_interfaces.contains(&name) {
-                    continue;
-                }
-
                 for requirement in &interface.requirements {
-                    if requirement.body.is_none()
-                        || !requirement.generic_parameters.is_empty()
+                    if !requirement.generic_parameters.is_empty()
                         || requirement.method.is_none()
+                        || (self.symbolic
+                            && requirement.body.is_some()
+                            && !self.checked_default_interfaces.contains(&name))
                         || checker.direct_witnesses.contains_key(&crate::conformance::witness::key(
                             &structure.name,
                             &name,
                             requirement.span,
                         ))
                         || checker
-                            .default_signature(module, &structure.name, &name, requirement)
+                            .specialized_signature(module, &structure.name, &name, requirement)
                             .is_some()
                     {
+                        continue;
+                    }
+
+                    if let Some(adaptation) =
+                        checker.method_adaptation(module, &structure.name, requirement)?
+                    {
+                        let names = self.default_names(&structure.name, &interface);
+                        let declaration = self.clone_adapter(
+                            &structure.name,
+                            &interface,
+                            requirement,
+                            &adaptation,
+                            &names,
+                        )?;
+                        self.pending.push_back(declaration);
+                        continue;
+                    }
+                    if requirement.body.is_none() {
                         continue;
                     }
 
@@ -343,7 +463,7 @@ impl Specializer {
             }
         }
 
-        let changed = !candidates.is_empty();
+        let changed = !candidates.is_empty() || !self.pending.is_empty();
 
         for ((owner, _, _, _), requirements) in candidates {
             for (name, requirement) in requirements {

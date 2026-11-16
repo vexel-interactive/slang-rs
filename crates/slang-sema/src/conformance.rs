@@ -2,6 +2,11 @@
 
 pub(crate) mod witness;
 
+pub(crate) struct MethodAdaptation {
+    pub target: Function,
+    pub input_conversions: Vec<bool>,
+}
+
 use crate::{
     Type,
     checker::{Checker, Signature, span_key},
@@ -13,8 +18,8 @@ use slang_syntax::{
 };
 use std::collections::{BTreeMap, BTreeSet};
 
-/// Recover the interface origin of a specialized default body from its metadata.
-pub(crate) fn default_requirement<'a>(
+/// Recover the interface origin of a default body or signature adapter.
+pub(crate) fn specialized_requirement<'a>(
     module: &'a Module,
     function: &Function,
 ) -> Option<(&'a str, &'a Function)> {
@@ -33,8 +38,7 @@ pub(crate) fn default_requirement<'a>(
         }
 
         interface.requirements.iter().find_map(|requirement| {
-            (requirement.body.is_some()
-                && requirement.name == instance.template_name
+            (requirement.name == instance.template_name
                 && requirement.span.source == function.span.source
                 && requirement.span.start == function.span.start
                 && requirement.span.end == function.span.end)
@@ -44,6 +48,109 @@ pub(crate) fn default_requirement<'a>(
 }
 
 impl Checker {
+    /// Find an ordinary concrete method callable with the requirement's input
+    /// types. Validate the selected result and parameter directions only after
+    /// ranking, so an incompatible exact overload cannot expose a worse one.
+    pub(crate) fn method_adaptation(
+        &mut self,
+        module: &Module,
+        owner: &str,
+        requirement: &Function,
+    ) -> Result<Option<MethodAdaptation>, Diagnostic> {
+        let Some(method) = &requirement.method else {
+            return Ok(None);
+        };
+        let (required, parameters, result) = self.requirement_signature(owner, requirement);
+        let modes = parameter_modes(&required);
+        let Some(overloads) = self
+            .methods
+            .get(&(owner.into(), method.name.clone()))
+            .and_then(|name| self.functions.get(name))
+        else {
+            return Ok(None);
+        };
+        let has_static = method.is_static
+            && overloads
+                .iter()
+                .any(|signature| signature.method.as_ref().is_some_and(|m| m.is_static));
+        let mut candidates = vec![];
+        for signature in overloads {
+            let function = module.declarations.iter().find_map(|declaration| match declaration {
+                Declaration::Function(function)
+                    if span_key(function.span) == signature.declaration
+                        && specialized_requirement(module, function).is_none() =>
+                {
+                    Some(function)
+                }
+                _ => None,
+            });
+            let Some(function) = function else {
+                continue;
+            };
+            let target_static = signature.method.as_ref().unwrap().is_static;
+            let receiver_adaptation = method.is_static
+                && !target_static
+                && !has_static
+                && parameters.first() == Some(&Type::Struct(owner.into()));
+            if !signature.defined
+                || signature.generic
+                || (target_static != method.is_static && !receiver_adaptation)
+                || parameters.len() != signature.parameters.len()
+                || !parameters.iter().zip(&signature.parameters).all(|(a, b)| a.convertible_to(b))
+            {
+                continue;
+            }
+            let score = parameters
+                .iter()
+                .zip(&signature.parameters)
+                .map(|(a, b)| a.conversion_cost(b))
+                .sum::<usize>();
+            candidates.push((score, *function.clone(), signature.clone()));
+        }
+        candidates.sort_by_key(|(score, ..)| *score);
+        if candidates.len() > 1 && candidates[0].0 == candidates[1].0 {
+            return Err(Diagnostic::error(
+                "T032",
+                requirement.span,
+                "ambiguous concrete method for interface witness adaptation",
+            ));
+        }
+        if let Some((_, target, signature)) = candidates.first() {
+            if !signature.result.convertible_to(&result) {
+                return Err(Diagnostic::error(
+                    "T032",
+                    target.span,
+                    "selected interface witness has an incompatible result type",
+                ));
+            }
+            let target_modes = parameter_modes(target);
+            if !modes
+                .iter()
+                .zip(&target_modes)
+                .all(|(required, actual)| required == actual || *required == "inout")
+                || !parameters
+                    .iter()
+                    .zip(&signature.parameters)
+                    .zip(&target_modes)
+                    .all(|((a, b), mode)| *mode == "in" || a.output_convertible_to(b))
+            {
+                return Err(Diagnostic::error(
+                    "T032",
+                    target.span,
+                    "selected interface witness has incompatible output types or parameter directions",
+                ));
+            }
+        }
+        Ok(candidates.into_iter().next().map(|(_, target, signature)| MethodAdaptation {
+            target,
+            input_conversions: parameters
+                .iter()
+                .zip(&signature.parameters)
+                .map(|(a, b)| a != b)
+                .collect(),
+        }))
+    }
+
     pub(crate) fn declare_conformances(&mut self, module: &Module) {
         let mut inheritance = BTreeMap::new();
 
@@ -306,7 +413,7 @@ impl Checker {
         })
     }
 
-    pub(crate) fn default_signature(
+    pub(crate) fn specialized_signature(
         &self,
         module: &Module,
         owner: &str,
@@ -322,7 +429,7 @@ impl Checker {
                 return None;
             }
 
-            let (origin, original) = default_requirement(module, function)?;
+            let (origin, original) = specialized_requirement(module, function)?;
 
             if origin != interface || original.span != requirement.span {
                 return None;
@@ -357,7 +464,9 @@ impl Checker {
                 continue;
             }
 
-            if let Some(signature) = self.default_signature(module, owner, interface, requirement) {
+            if let Some(signature) =
+                self.specialized_signature(module, owner, interface, requirement)
+            {
                 groups.entry(method.name.clone()).or_default().push(signature);
             }
         }
@@ -395,7 +504,7 @@ impl Checker {
             module.declarations.iter().find_map(|declaration| match declaration {
                 Declaration::Function(function)
                     if span_key(function.span) == signature.declaration
-                        && default_requirement(module, function).is_none() =>
+                        && specialized_requirement(module, function).is_none() =>
                 {
                     Some(function)
                 }
@@ -418,6 +527,7 @@ impl Checker {
             .cloned();
 
         if witness.is_none()
+            && self.specialized_signature(module, owner, interface, requirement).is_none()
             && requirement.body.is_some()
             && overloads.is_some_and(|overloads| {
                 overloads.iter().any(|signature| concrete_declaration(signature).is_some())
@@ -432,12 +542,26 @@ impl Checker {
         }
 
         let witness =
-            witness.or_else(|| self.default_signature(module, owner, interface, requirement));
+            witness.or_else(|| self.specialized_signature(module, owner, interface, requirement));
 
         if let Some(witness) = &witness {
+            let function = module.declarations.iter().find_map(|d| match d {
+                Declaration::Function(f) if span_key(f.span) == witness.declaration => Some(f),
+                _ => None,
+            });
+            let target = function
+                .and_then(|function| {
+                    module.generic_instances.iter().find(|instance| {
+                        instance.type_name == function.name
+                            && instance.context == function.span.context
+                    })
+                })
+                .and_then(|instance| instance.witness_target)
+                .map(span_key)
+                .unwrap_or(witness.declaration);
             if requirement.body.is_some()
                 && let Some(function) = module.declarations.iter().find_map(|d| match d {
-                    Declaration::Function(f) if span_key(f.span) == witness.declaration => Some(f),
+                    Declaration::Function(f) if span_key(f.span) == target => Some(f),
                     _ => None,
                 })
                 && !function.modifiers.iter().any(|m| m == "override")
@@ -449,7 +573,13 @@ impl Checker {
                 );
             }
 
+            if requirement.body.is_some() {
+                self.interface_default_overrides.insert(witness.declaration);
+                self.interface_default_overrides.insert(target);
+            }
+
             self.interface_witnesses.insert(witness.declaration);
+            self.interface_witnesses.insert(target);
             self.direct_witnesses
                 .insert(witness::key(owner, interface, requirement.span), witness.clone());
         }

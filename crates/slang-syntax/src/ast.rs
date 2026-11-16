@@ -80,6 +80,9 @@ pub struct GenericInstanceInfo {
     pub template_name: String,
     pub parameter_count: usize,
     pub arguments: Vec<TypeRef>,
+    /// Concrete method declaration selected by an interface signature adapter.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub witness_target: Option<Span>,
 }
 
 #[derive(Clone, Debug, Serialize)]

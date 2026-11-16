@@ -371,7 +371,7 @@ impl Checker {
                     }
 
                     if let Some(method) = &function.method
-                        && crate::conformance::default_requirement(module, function).is_none()
+                        && crate::conformance::specialized_requirement(module, function).is_none()
                     {
                         self.methods.insert(
                             (method.owner.clone(), method.name.clone()),

@@ -128,7 +128,8 @@ pub(super) fn validate_templates(
     if !module
         .declarations
         .iter()
-        .any(|d| !parameters(d).is_empty() || default_method::has_bodies(d))
+        .any(|d| !parameters(d).is_empty()
+            || matches!(d, Declaration::Interface(i) if i.requirements.iter().any(|f| f.body.is_some())))
     {
         return Ok(TemplateBindings {
             calls: module.constraint_calls.clone(),
@@ -169,7 +170,7 @@ fn specialize_inner(
     if !module
         .declarations
         .iter()
-        .any(|d| !parameters(d).is_empty() || default_method::has_bodies(d))
+        .any(|d| !parameters(d).is_empty() || matches!(d, Declaration::Interface(_)))
     {
         return Ok(SpecializedModule {
             module,
@@ -709,6 +710,7 @@ impl Specializer {
         }
 
         self.instance_output.push(GenericInstanceInfo {
+            witness_target: None,
             context,
             type_name: target.clone(),
             template_name: template.name.clone(),

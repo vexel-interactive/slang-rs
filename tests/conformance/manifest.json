@@ -9786,12 +9786,14 @@
       "rust_code": "T032"
     },
     {
-      "file": "negative/interface-default-adapted-override.slang",
-      "accept": false,
+      "file": "positive/interface-default-adapted-override.slang",
+      "accept": true,
       "entry": "main",
-      "rust_code": "T032",
-      "oracle_accept": true,
-      "reason": "The native compiler diagnoses concrete same-name overloads requiring an adapted witness; Slang adapts the concrete int method to the float requirement. General adapted witnesses remain unported."
+      "dxc_constant_stores": {
+        "0": 11,
+        "1": 11,
+        "2": 11
+      }
     },
     {
       "file": "positive/interface-default-dispatch-module/main.slang",
@@ -9815,6 +9817,169 @@
       "accept": false,
       "entry": "main",
       "rust_code": "T014"
+    },
+    {
+      "file": "positive/interface-method-adapters.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 3,
+        "1": 5,
+        "2": 5,
+        "3": 5,
+        "4": 4,
+        "5": 5,
+        "6": 4,
+        "7": 7,
+        "8": 9,
+        "9": 13
+      }
+    },
+    {
+      "file": "positive/interface-adapter-overload-ranking.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 11,
+        "1": 22,
+        "2": 22
+      }
+    },
+    {
+      "file": "positive/interface-adapter-direction-lattice.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 7,
+        "1": 5,
+        "2": 9,
+        "3": 13,
+        "4": 10,
+        "5": 21
+      }
+    },
+    {
+      "file": "positive/interface-adapter-output-views.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 4294967294,
+        "1": 4294967295,
+        "2": 3221225472,
+        "3": 3221225472,
+        "4": 1,
+        "5": 7,
+        "6": 2147483647,
+        "7": 2147483647
+      }
+    },
+    {
+      "file": "positive/interface-adapter-alias-input.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 3
+      }
+    },
+    {
+      "file": "positive/interface-adapter-module/main.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 7,
+        "1": 7,
+        "2": 5
+      }
+    },
+    {
+      "file": "positive/interface-adapter-cbuffer-input.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "negative/interface-adapter-ambiguous.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T032"
+    },
+    {
+      "file": "negative/interface-adapter-output-direction.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T032"
+    },
+    {
+      "file": "negative/interface-adapter-output-type.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T032"
+    },
+    {
+      "file": "negative/interface-adapter-overloaded-missing-override.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T032"
+    },
+    {
+      "file": "negative/interface-adapter-ranked-direction-mismatch.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T032"
+    },
+    {
+      "file": "negative/interface-adapter-ranked-result-mismatch.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T032"
+    },
+    {
+      "file": "negative/interface-adapter-receiver-direction.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T032"
+    },
+    {
+      "file": "negative/interface-adapter-return-type.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T032"
+    },
+    {
+      "file": "negative/interface-adapter-static-priority.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T032"
+    },
+    {
+      "file": "negative/interface-adapter-private-member/main.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/interface-adapter-public-projection/main.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014",
+      "oracle_accept": true,
+      "reason": "Slang exposes the public interface operation for an ordinary cross-module call to an internal adapted override. Native constrained witnesses can access the override, but ordinary public interface projection is not implemented."
+    },
+    {
+      "file": "../../.upstream/slang/tests/language-feature/interfaces/static-default-adapted-instance-override.slang",
+      "accept": true,
+      "entry": "computeMain",
+      "dxc_constant_stores": {
+        "0": 2
+      }
+    },
+    {
+      "file": "positive/interface-adapter-result-only.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 3,
+        "1": 1084227584
+      }
     }
   ]
 }

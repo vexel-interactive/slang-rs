@@ -124,17 +124,7 @@ impl Checker {
         }
 
         if function.modifiers.iter().any(|m| m == "override")
-            && !self.direct_witnesses.iter().any(
-                |((_, interface, source, start, end), signature)| {
-                    signature.declaration == crate::span_key(function.span)
-                        && self.interface_definitions[interface].requirements.iter().any(|r| {
-                            r.body.is_some()
-                                && r.span.source.0 == *source
-                                && r.span.start == *start
-                                && r.span.end == *end
-                        })
-                },
-            )
+            && !self.interface_default_overrides.contains(&crate::span_key(function.span))
         {
             self.error(
                 "T032",

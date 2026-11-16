@@ -791,8 +791,9 @@ Negative fixtures reject missing/static/result/direction/mutability mismatches,
 undeclared nominal conformance, opaque body errors, nonconforming type arguments,
 forward constraint references and a used inheritance cycle. Frontend tests also
 reject unsupported existential storage and malformed requirement types/modes.
-These results cover direct signatures; adapted/generic witnesses,
-associated types, existential dispatch and GPU execution are not established.
+That corpus covers direct signatures; it does not establish general witness
+adaptation, generic requirements, associated types, existential dispatch or GPU
+execution.
 The unchanged pinned `language-feature/interfaces/static-method-not-implemented.slang`
 and `diagnostics/interfaces/mutating-impl-of-non-mutating-req.slang` sources also
 produce conformance diagnostics in both frontends with HLSL target options.
@@ -833,7 +834,7 @@ The unchanged pinned `language-feature/interfaces/default-method.slang` and
 `default-method-inherited-static.slang` sources also compile to HLSL in both
 frontends; DXC verifies their three matching constant words and four artifacts.
 Their original CPU, SPIR-V and GPU test directives were not executed. Generic
-method requirements, value generics and adapted witnesses remain unsupported.
+method requirements, value generics and general witness adaptation remain unsupported.
 Constructor requirements cannot have bodies in upstream Slang.
 
 Inherited default dispatch regressions compare the base and derived witnesses
@@ -849,7 +850,40 @@ An abstract redeclaration requires a concrete implementation. Integration tests
 serialize witness metadata, recheck the checked module, and preserve dormant
 helper pruning.
 
+The [method adapter fixture](../tests/conformance/positive/interface-method-adapters.slang)
+and `interface-adapter-*` regressions cover implicit numeric inputs and results,
+generic interface argument identity, direct/default requirements, static
+receivers, mutating requirements implemented by nonmutating methods, and the
+`inout` direction lattice. Separate fixtures exercise aggregate alias identity,
+constant-buffer value loads, same-width signed/unsigned output views, indexed
+copy-back, and private concrete methods called through declaration-module
+requirement defaults. Overload tests select implementations from requirement
+types before the concrete caller's literal conversions. Negative tests reject
+ambiguous candidates, an incompatible result or direction on the best input
+overload, forbidden output types and receiver mutation, missing `override` on
+overloaded adapters, and instance fallback when a static declaration exists.
+Integration tests serialize the selected concrete target metadata and compare
+the lowered IR after rechecking. This corpus covers methods without type
+parameters and compatible parameter counts; general witness adaptation and GPU
+execution remain outside its scope.
+
+A separate direct-call fixture records a native acceptance limitation: upstream
+projects a public interface requirement onto an imported struct's internal
+adapted implementation for a direct call, while native ordinary member lookup
+reports `T014`. The corresponding constrained calls are covered by the module
+fixture.
+
 [validation.json](validation.json) records the Windows validation run for this
 checkpoint. It includes the pinned compiler version, workspace checks, and
 differential corpus counts. It is a snapshot of that run, not a promise of
 complete Slang compatibility or validation on other operating systems.
+
+The method adapter validation adds fourteen integration tests and checks twenty-one
+native/oracle cases: twenty share acceptance and one records the public-projection
+limitation above. Nine constant fixtures compare thirty-seven matching compiled
+words; DXC validates twenty-one artifacts. This includes the unchanged pinned
+`language-feature/interfaces/static-default-adapted-instance-override.slang`,
+retargeted to HLSL for its `computeMain` entry. Its original CPU, SPIR-V and GPU
+directives were not executed. The full release corpus passes 771 expected cases,
+and the native HLSL suite validates 196 artifacts. Rust workspace tests pass
+551 cases, and the Python comparison and interpreter tests pass 34 cases.

@@ -991,9 +991,9 @@ A constraint can refer to earlier parameters: `read<U, T : Read<U>>`. Forward
 references in inline constraints report `T032`. `This` in a requirement denotes
 the conforming owner; it works in parameters and results.
 
-Direct conformance checks require matching parameter and result types, static
-status, receiver mutability, and input/output parameter modes. Missing or
-incompatible requirements report `T032`. Type specialization fails with `T033`
+Direct constructor witnesses require matching parameter and result types.
+Method witnesses can match directly or use the signature adaptations below.
+Missing or incompatible requirements report `T032`. Type specialization fails with `T033`
 when arguments do not satisfy their declared nominal constraints. Nonconforming
 function and constructor candidates are removed before selection; remaining
 ordinary/generic conversion and default ranking still applies.
@@ -1005,9 +1005,39 @@ cached specialization and bind its verified direct implementation. A concrete
 overload unavailable on the opaque owner cannot replace that selection. This
 applies to free functions, struct owners, generic methods and
 generic constructors, including imported interfaces and private caller types.
-Validated direct witnesses permit calls across module boundaries without
+Validated witnesses permit calls across module boundaries without
 exposing the concrete method or constructor to ordinary callers. Interfaces do
 not become HLSL data structs.
+
+Methods without type parameters can satisfy a requirement using implicit input
+and result conversions. For example, a concrete `float read(int input)` can
+implement `int read(float input)`: a constrained call converts its argument to
+`int`, invokes the selected concrete method, and converts its result to `int`.
+Selection uses the requirement's parameter types rather than the concrete
+caller's literals. The best input overload is selected before checking its
+result and parameter directions; an incompatible exact overload reports `T032`
+instead of exposing a worse overload or a default body. Equal conversion ranks
+are ambiguous. Typed input copies also preserve aggregate alias identity and
+support loading a `ConstantBuffer<A>` argument into an `A` implementation
+parameter. See [method adapters](../tests/conformance/positive/interface-method-adapters.slang)
+and [overload ranking](../tests/conformance/positive/interface-adapter-overload-ranking.slang).
+
+An `in` requirement needs an `in` implementation, and an `out` requirement needs
+an `out` implementation. An `inout` requirement can use `in`, `out`, or `inout`;
+this also allows a mutating receiver requirement to use a nonmutating method.
+Output conversions retain identity or the existing same-shape, same-width
+integer views, including `int`/`uint` copy-back. Floating/integer output
+conversions and changes in width or shape cannot create a compatible output
+address. A static requirement whose first parameter is `This` can use that
+parameter as an instance receiver when no concrete same-name static declaration
+exists. A static declaration prevents that fallback even if its parameters do
+not match. See [parameter directions](../tests/conformance/positive/interface-adapter-direction-lattice.slang)
+and [output views](../tests/conformance/positive/interface-adapter-output-views.slang).
+
+Public interface requirements do not yet project an imported public struct's
+internal adapted implementation into ordinary concrete member lookup. Such
+direct calls report `T014` even though upstream accepts them; calls through a
+generic interface constraint work.
 
 Trailing input defaults on requirements belong to the interface declaration.
 For example, `int read(int input = 3)` passes `3` through a constrained call
@@ -1032,7 +1062,8 @@ and unrelated methods remain unavailable. Missing implementations are specialize
 for each conforming owner; their calls retain the selected requirements and
 interface argument defaults. Instance/static receivers, mutating `This`, inherited
 diamonds and declaration-module globals are preserved. A concrete replacement
-must use `override` and match a default requirement's direct signature. Unrelated
+must use `override` and satisfy the default requirement directly or through a
+supported signature adaptation. Unrelated
 or mismatched overrides are rejected. See [default methods](../tests/conformance/positive/interface-default-methods.slang)
 and [inherited mutating defaults](../tests/conformance/positive/interface-default-inherited.slang).
 
@@ -1051,18 +1082,20 @@ See [inherited dispatch](../tests/conformance/positive/interface-default-dispatc
 Unrelated interfaces can supply separate default witnesses for the same method.
 Calls under each individual constraint select its own witness; an ordinary call
 or a call under their combined constraints is ambiguous. Concrete methods hide
-inherited default members by name. A concrete same-name overload requiring
-witness adaptation reports `T032` instead of silently selecting a default body.
+inherited default members by name. A compatible same-name concrete method is
+selected ahead of the default body, including when it needs a signature adapter.
+The concrete method must declare `override`; this is checked independently for
+each adapted requirement, including overloaded generated functions.
 Internal defaults retain declaration-module access for both ordinary and opaque
 calls, including overloaded emitted functions. Interface constructor requirements
 may declare signatures, but constructor bodies in interfaces are rejected by
 both upstream Slang and this compiler.
 
-This implementation covers direct signatures. Generic method requirements,
-associated types, extensions, adapted witnesses (including
-numeric conversions, default-argument adaptation and static/instance adaptation),
-`where` constraints, operator/conversion constraints, complete constrained
-ranking and runtime dispatch remain unsupported. Interface existential variables,
+This implementation covers direct signatures and the method adaptations above.
+Generic method requirements, associated types, extensions, constructor witness
+adaptation, adding or dropping parameters through implementation defaults,
+other static/instance adaptations, `where` constraints, operator/conversion
+constraints, complete constrained ranking and runtime dispatch remain unsupported. Interface existential variables,
 parameters, results and aggregate/resource storage report `T001`. Inheritance is
 checked eagerly with a 32-level limit; the oracle can defer errors in unused
 cyclic interfaces. See the [interface fixtures](../tests/conformance/positive/interface-methods.slang)
