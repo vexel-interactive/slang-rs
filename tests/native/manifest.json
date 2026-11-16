@@ -7677,6 +7677,291 @@
         "2": 5,
         "3": 7
       }
+    },
+    {
+      "file": "../conformance/positive/modern-binding-values.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 1,
+        "1": 2,
+        "2": 3,
+        "3": 4,
+        "4": 5,
+        "5": 1,
+        "6": 9,
+        "7": 3,
+        "8": 7,
+        "9": 10,
+        "10": 4,
+        "11": 3,
+        "12": 0,
+        "13": 1,
+        "14": 6
+      }
+    },
+    {
+      "file": "../conformance/positive/modern-binding-generics.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 5,
+        "1": 7,
+        "2": 7,
+        "3": 3,
+        "4": 2
+      }
+    },
+    {
+      "file": "../conformance/positive/modern-binding-globals.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 5,
+        "1": 4,
+        "2": 7,
+        "3": 5,
+        "4": 6,
+        "5": 4
+      }
+    },
+    {
+      "file": "../conformance/positive/modern-binding-module/main.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 11,
+        "1": 10
+      }
+    },
+    {
+      "file": "../conformance/positive/modern-binding-partial-initialization.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 3,
+        "1": 0,
+        "2": 5,
+        "3": 0,
+        "4": 7,
+        "5": 0,
+        "6": 10,
+        "7": 1
+      }
+    },
+    {
+      "file": "../conformance/positive/modern-binding-effects.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 1,
+        "1": 9,
+        "2": 4,
+        "3": 10,
+        "4": 11,
+        "5": 5
+      }
+    },
+    {
+      "file": "../conformance/positive/modern-binding-unit.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 2,
+        "1": 3,
+        "2": 4
+      }
+    },
+    {
+      "file": "../conformance/positive/modern-binding-generic-unit-order.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 124,
+        "1": 123
+      }
+    },
+    {
+      "file": "../conformance/positive/modern-binding-resources.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "../conformance/positive/modern-binding-cbuffer.slang",
+      "accept": true,
+      "entry": "main",
+      "uniform_layouts": {
+        "Parameters": {
+          "offset": 0,
+          "size": 40
+        },
+        "Parameters.scalar": {
+          "offset": 0,
+          "size": 4
+        },
+        "Parameters.vector": {
+          "offset": 4,
+          "size": 8
+        },
+        "Parameters.matrix": {
+          "offset": 16,
+          "size": 24
+        }
+      },
+      "bindings": {
+        "Parameters": {
+          "class": "b",
+          "index": 3,
+          "space": 0,
+          "count": 1
+        },
+        "output": {
+          "class": "u",
+          "index": 0,
+          "space": 0,
+          "count": 1
+        }
+      }
+    },
+    {
+      "file": "../conformance/positive/modern-function-basics.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 7,
+        "1": 5,
+        "2": 6,
+        "3": 17
+      }
+    },
+    {
+      "file": "../conformance/positive/modern-function-methods.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 5,
+        "1": 8,
+        "2": 4,
+        "3": 6
+      }
+    },
+    {
+      "file": "../conformance/positive/modern-function-constraints.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 8,
+        "1": 8,
+        "2": 8
+      }
+    },
+    {
+      "file": "../conformance/positive/modern-function-default-interface.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 5
+      }
+    },
+    {
+      "file": "../conformance/positive/modern-function-module/main.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 10,
+        "1": 4
+      }
+    },
+    {
+      "file": "../conformance/positive/typed-byte-buffer.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "../conformance/positive/typed-byte-half-legacy.slang",
+      "accept": true,
+      "entry": "main",
+      "reason": "Native typed raw half access uses two-byte binary16 storage and atomic masked writes. Slang 2026.21 widens legacy half access to four-byte float storage; both HLSL artifacts are validated without claiming layout or execution parity."
+    },
+    {
+      "file": "../conformance/positive/typed-byte-native16.slang",
+      "accept": true,
+      "entry": "main",
+      "compile_profile": "cs_6_2",
+      "native_16bit_types": true
+    },
+    {
+      "file": "modern-binding-static-unit.slang",
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 2,
+        "1": 3,
+        "2": 3
+      },
+      "reason": "Slang 2026.21 HLSL lowering fails with E99999 for a static unit binding; native storage-free initialization is checked separately."
+    },
+    {
+      "file": "modern-binding-global-unit.slang",
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 1
+      },
+      "reason": "Native selected entries retain effectful unit startup once. The oracle erases unit reads and drops this initializer through global liveness; this is native behavior, not upstream execution parity."
+    },
+    {
+      "file": "modern-binding-dependent-default.slang",
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 5,
+        "1": 10,
+        "2": 14
+      },
+      "reason": "Slang 2026.21 crashes while inferring a member initializer that reads a prior member; native receiver-aware defaults are checked separately."
+    },
+    {
+      "file": "../conformance/positive/modern-binding-unit-control-flow.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 2,
+        "1": 3,
+        "2": 5
+      }
+    },
+    {
+      "file": "../conformance/positive/modern-binding-global-order.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 12,
+        "1": 5,
+        "2": 4
+      }
+    },
+    {
+      "file": "../conformance/positive/modern-binding-global-effects.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 213,
+        "1": 5,
+        "2": 213,
+        "3": 4
+      }
+    },
+    {
+      "file": "../conformance/positive/modern-binding-matrix-major.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "../conformance/positive/modern-binding-global-static-helper.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 5,
+        "1": 6
+      }
     }
   ]
 }

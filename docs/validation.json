@@ -6,7 +6,7 @@
     "rustfmt": "passed",
     "clippy_all_targets_warnings_denied": "passed",
     "unit_tests": 45,
-    "integration_tests": 552,
+    "integration_tests": 601,
     "doc_tests": 1,
     "conformance_comparison_tests": 27,
     "rustdoc": "passed",
@@ -17,11 +17,11 @@
   },
   "differential_validation": {
     "oracle": "Slang 2026.21",
-    "cases_passed": 818,
-    "cases_total": 818,
-    "matching_acceptance_cases": 806,
+    "cases_passed": 856,
+    "cases_total": 856,
+    "matching_acceptance_cases": 844,
     "documented_oracle_differences": 12,
-    "dxc_hlsl_artifacts_validated": 826,
+    "dxc_hlsl_artifacts_validated": 872,
     "dxc_invalid_hlsl_artifacts_rejected": 22,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
@@ -33,14 +33,14 @@
       "vs_6_0"
     ],
     "documented_oracle_artifact_differences": 4,
-    "resource_binding_cases_compared": 40,
+    "resource_binding_cases_compared": 41,
     "global_uniform_binding_cases_compared": 17,
-    "uniform_byte_layout_cases_compared": 61,
+    "uniform_byte_layout_cases_compared": 62,
     "documented_oracle_physical_layout_differences": 12,
     "physical_buffer_layout_cases_compared": 43,
-    "compiled_constant_cases_compared": 131,
-    "compiled_constant_words_compared": 1656,
-    "compiled_constant_words_matching": 1642,
+    "compiled_constant_cases_compared": 148,
+    "compiled_constant_words_compared": 1729,
+    "compiled_constant_words_matching": 1715,
     "documented_oracle_constant_words_differing": 14,
     "documented_oracle_constant_cases_differing": 6,
     "documented_oracle_uniform_reflection_differences": 1,
@@ -54,8 +54,8 @@
   "remote_ci_executed": false,
   "remote_ci": null,
   "previous_remote_ci": {
-    "run_id": 43794065840,
-    "head_sha": "3b0bf6263f80321eb9b88e63bc2adb9b377ddafa",
+    "run_id": 43918542434,
+    "head_sha": "863abd4b17eec5573041b0e702d5d47ef902e24f",
     "conclusion": "success",
     "platforms": [
       "ubuntu-latest",
@@ -675,6 +675,16 @@
         "windows-latest",
         "macos-latest"
       ]
+    },
+    {
+      "run_id": 43794065840,
+      "head_sha": "3b0bf6263f80321eb9b88e63bc2adb9b377ddafa",
+      "conclusion": "success",
+      "platforms": [
+        "ubuntu-latest",
+        "windows-latest",
+        "macos-latest"
+      ]
     }
   ],
   "additional_dxc_checks": [
@@ -699,7 +709,7 @@
   },
   "native_hlsl_suite": {
     "manifest": "tests/native/manifest.json",
-    "artifacts_validated": 209,
+    "artifacts_validated": 235,
     "profiles": [
       "cs_6_0",
       "cs_6_2",
@@ -916,7 +926,33 @@
       "../conformance/positive/interface-adapter-default-dormant.slang",
       "../conformance/positive/interface-projection-defaults/main.slang",
       "../conformance/positive/interface-projection-default-tails/main.slang",
-      "../conformance/positive/interface-projection-private-owner/main.slang"
+      "../conformance/positive/interface-projection-private-owner/main.slang",
+      "../conformance/positive/modern-binding-values.slang",
+      "../conformance/positive/modern-binding-generics.slang",
+      "../conformance/positive/modern-binding-globals.slang",
+      "../conformance/positive/modern-binding-module/main.slang",
+      "../conformance/positive/modern-binding-partial-initialization.slang",
+      "../conformance/positive/modern-binding-effects.slang",
+      "../conformance/positive/modern-binding-unit.slang",
+      "../conformance/positive/modern-binding-generic-unit-order.slang",
+      "../conformance/positive/modern-binding-resources.slang",
+      "../conformance/positive/modern-binding-cbuffer.slang",
+      "../conformance/positive/modern-function-basics.slang",
+      "../conformance/positive/modern-function-methods.slang",
+      "../conformance/positive/modern-function-constraints.slang",
+      "../conformance/positive/modern-function-default-interface.slang",
+      "../conformance/positive/modern-function-module/main.slang",
+      "../conformance/positive/typed-byte-buffer.slang",
+      "../conformance/positive/typed-byte-half-legacy.slang",
+      "../conformance/positive/typed-byte-native16.slang",
+      "modern-binding-static-unit.slang",
+      "modern-binding-global-unit.slang",
+      "modern-binding-dependent-default.slang",
+      "../conformance/positive/modern-binding-unit-control-flow.slang",
+      "../conformance/positive/modern-binding-global-order.slang",
+      "../conformance/positive/modern-binding-global-effects.slang",
+      "../conformance/positive/modern-binding-matrix-major.slang",
+      "../conformance/positive/modern-binding-global-static-helper.slang"
     ],
     "uniform_byte_layout_cases": 61,
     "matrix_layout_shapes": 96,
@@ -1743,5 +1779,47 @@
     "nested_struct_and_alias_members_preserved": true,
     "production_binary_validated": "release",
     "production_binary_sha256": "22a1fd82f17176dc7b8dff842b0743f6be8eba553b9eb62bf345d1e347abadaa"
+  },
+  "modern_declaration_validation": {
+    "differential_cases": 29,
+    "matching_acceptance_cases": 29,
+    "compiled_constant_cases": 17,
+    "compiled_constant_words": 73,
+    "matching_words": 73,
+    "dxc_hlsl_artifacts_validated": 40,
+    "gpu_execution_compared": false,
+    "complete_upstream_parity": false,
+    "production_binary_validated": "release",
+    "production_binary_sha256": "61847e89e140632ca5c2eea96e1829181da01f67d095fe15a7179e60797fa1d0",
+    "mutable_var_and_runtime_immutable_let": true,
+    "forward_inference_and_global_initializer_dependencies": true,
+    "mixed_immutable_field_defaults_skipped": true,
+    "storage_free_unit_and_source_argument_effect_order": true,
+    "matrix_qualifier_inference_and_reflection": true,
+    "modern_func_and_direct_where_bounds": true,
+    "global_static_unit_and_dependent_field_defaults_native_only": true,
+    "native_only_cases": [
+      "modern-binding-static-unit.slang",
+      "modern-binding-global-unit.slang",
+      "modern-binding-dependent-default.slang"
+    ]
+  },
+  "typed_byte_buffer_validation": {
+    "differential_cases": 9,
+    "matching_acceptance_cases": 9,
+    "compiled_constant_cases": 0,
+    "compiled_constant_words": 0,
+    "matching_words": 0,
+    "dxc_hlsl_artifacts_validated": 6,
+    "gpu_execution_compared": false,
+    "complete_upstream_parity": false,
+    "production_binary_validated": "release",
+    "production_binary_sha256": "61847e89e140632ca5c2eea96e1829181da01f67d095fe15a7179e60797fa1d0",
+    "typed_and_inferred_scalar_vector_matrix_array_struct_access": true,
+    "natural_byte_layout_and_alignment_diagnostics": true,
+    "receiver_address_and_stored_value_evaluated_once": true,
+    "legacy_binary16_and_masked_compare_exchange_retry": true,
+    "native_16bit_scalar_access": true,
+    "legacy_half_oracle_physical_layout_parity": false
   }
 }

@@ -917,8 +917,38 @@ The private caller-owned type fixture also checks ordinary, generic-interface
 and first-`This` static projections. Requirement parameter types resolve in the
 caller context before default expressions enter their declaration module. The
 former cross-module projection limitation fixture now succeeds in both compilers.
-The full release corpus passes 818 expected cases, the native HLSL suite validates
-209 artifacts, and workspace and Python tests pass 598 and 34 cases respectively.
+The full release corpus passes 856 expected cases, the native HLSL suite validates
+235 artifacts, and workspace and Python tests pass 647 and 34 cases respectively.
+
+## Modern declarations and typed raw storage
+
+Modern declaration regressions cover mutable `var`, runtime-immutable `let`,
+explicit and inferred types, numeric overloads and shapes, array values,
+resource-handle copies, forward globals, imported defaults, generic owners,
+static initialization, loops, direct constant buffers and storage-free unit
+values. Compiled words check the before/unit/after argument order and confirm
+that mixed memberwise initialization skips immutable defaults and their effects.
+Modern `func` cases cover mixed parameters, defaults, prototypes, methods,
+interface defaults, direct `where` bounds and imports. Invalid writes, missing
+types, cycles, nonconstant dimensions and invalid modern function results have
+independent diagnostic fixtures.
+
+Native-only cases retain explicit reasons for global/static unit behavior and
+receiver-dependent inferred field defaults. The oracle's static unit emission
+fails with `E99999`; its global unit read is erased through liveness. A dependent
+inferred field initializer crashes the released oracle. These cases establish
+native HLSL validity and selected compiled effects without claiming upstream
+execution parity. Shared partial-initialization fixtures never observe
+uninitialized immutable fields.
+
+Typed byte-address regressions exercise scalar, vector, matrix, array and struct
+layout, explicit and inferred stores, row/column order, generic specialization,
+alignment promises and single evaluation of receivers, addresses and values.
+DXC validates legacy binary16 extraction/conversion and atomic compare-exchange
+retry writes, plus native 16-bit raw operations. The legacy half oracle artifact
+widens its physical storage, so that case compares acceptance and HLSL validity.
+Negative fixtures force their loads to remain live and verify upstream alignment
+diagnostics. Compiled instruction and layout checks do not run shaders on a GPU.
 
 
 Constructor signature adapters add fifteen integration tests and fourteen

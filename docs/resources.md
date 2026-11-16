@@ -255,6 +255,42 @@ its reflection retains those offsets. Native HLSL preserves the reflected
 offsets. Tests check both physical buffer definitions against separate expected
 layouts; these cases do not establish shader execution parity with upstream.
 
+## Typed byte-address buffers
+
+`ByteAddressBuffer.Load<T>(address)` and `RWByteAddressBuffer.Store<T>(address, value)`
+support concrete scalars, vectors, matrices, fixed arrays and data-only structs.
+An untyped `Store(address, value)` infers the value's type. The legacy uint
+`Load`, `Load2` through `Load4`, and matching `Store` widths remain available.
+Generic data types specialize before helper generation. A receiver, byte address
+and stored value are each evaluated once at their source argument position.
+
+Typed access uses natural byte layout: bool and 32-bit components align to four
+bytes, 16-bit components to two and 64-bit components to eight. Vectors are tight;
+matrix components follow their row/column storage order without uniform-buffer
+padding. Array strides round element size to its alignment. Struct fields align
+individually, and an enclosing field can reuse the inner struct's final tail.
+See [typed raw storage](../tests/conformance/positive/typed-byte-buffer.slang).
+
+`LoadAligned<T>(address[, alignment])`, `Store<T>(address, value[, alignment])`
+and `StoreAligned<T>(address, value)` support alignment promises. Plain `Load<T>`
+accepts only an address. An explicit promise must be a compile-time power of two
+at least as large as the type's natural alignment. Aligned forms without an
+explicit promise use natural alignment. A constant address must be a multiple
+of the promise.
+An explicit zero disables the promise; ordinary typed access permits unaligned
+addresses. Invalid promises report `T014`. Alignment promises on dynamic addresses remain
+the caller's responsibility.
+
+Legacy half access keeps two-byte binary16 layout through word extraction and
+`f16tof32`/`f32tof16`. Masked writes use an atomic compare-exchange retry loop to
+preserve neighboring narrow components. Native 16-bit mode uses typed scalar
+raw operations. Slang 2026.21 widens legacy typed half access to float storage;
+both artifacts are DXC-validated, but that legacy fixture does not establish
+layout or execution parity. The
+[native 16-bit fixture](../tests/conformance/positive/typed-byte-native16.slang)
+checks the separate native mode. No raw-buffer GPU execution comparison has
+been performed.
+
 ## Current limits
 
 Vulkan binding attributes, packed constant-buffer handle arrays,

@@ -7,7 +7,8 @@ compiler into clearly defined phases.
 
 **The full rewrite is not complete.** The current implementation compiles a
 limited compute, vertex, and fragment shader subset to HLSL. It includes preprocessing, parsing, type
-checking, native module loading, type aliases, aggregate initialization and field defaults,
+checking, native module loading, modern `var`/`let` and `func` declarations,
+type inference, typed byte-address buffers, type aliases, aggregate initialization and field defaults,
 explicit user type specialization, inferred function templates, nominal interfaces,
 adapted method and constructor witnesses, and type constraints,
 typed structured IR, scalar SSA constant propagation, resource register allocation,

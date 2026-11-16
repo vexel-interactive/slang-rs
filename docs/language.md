@@ -133,6 +133,59 @@ The source language uses Slang syntax. Version 0.1.0 implements a small subset
 of upstream features. This document describes its actual boundaries; upstream's
 language reference remains the specification for the complete port.
 
+## Modern declarations
+
+`var name = expression;` infers a mutable binding's type. `let name = expression;`
+infers an immutable binding. Either declaration can supply a colon type, such as
+`var count: int = 3;`. These forms work for globals, struct and static fields,
+locals, loop initializers, unbraced declaration bodies and direct `cbuffer` fields.
+Each modern declaration introduces a single binding.
+Inferred declarations require an initializer; explicit types can omit one.
+Inference preserves the initializer's numeric shape, array, aggregate, generic
+owner or resource handle type, including matrix storage order from aliases,
+fields and function results. In particular, copying a `ConstantBuffer<T>`
+without a type annotation retains the handle; an explicit `T` annotation loads
+its value. Forward global and field dependencies are supported. Inferred type
+cycles and initializers without a concrete value type report `T034`. Cyclic
+explicit global initializer dependencies report `I002`.
+
+`let` is runtime immutability. Compile-time dimensions still require `const`,
+including `const var` and `const let`. An immutable resource binding can write
+through an RW resource, while assignments to the binding and output arguments
+that would replace it report `T015`. Ordinary global bindings retain the existing
+uniform rules; mutable private globals require `static`.
+
+For mixed mutable and immutable struct fields, synthesized memberwise/default
+initialization includes eligible mutable fields. Excluded `let` defaults are
+not evaluated and their storage remains uninitialized. When no field is eligible,
+the aggregate fallback can initialize all immutable fields. Explicit constructor
+bodies cannot assign an immutable field. See
+[partial initialization](../tests/conformance/positive/modern-binding-partial-initialization.slang).
+
+An inferred binding can hold the unit result of a void function. Its initializer,
+assignment and argument effects retain their evaluation order; HLSL omits unit
+storage, fields and generic parameters. Explicit void variables remain invalid.
+Native static unit initialization runs once. Selected native entries also retain
+effectful global unit startup. The released oracle fails to emit static unit
+storage and drops the tested global unit initializer through liveness; these
+cases are recorded separately in the native corpus. Receiver-dependent inferred
+field defaults are also native-only evidence because the oracle crashes during
+type inference. Native defaults read fields initialized earlier in the helper.
+
+Modern functions use `func name(parameter: Type) -> Result { ... }`. Traditional
+typed parameters may be mixed with named parameters, and trailing commas are
+accepted. Parameters require explicit types. Omitting `-> Result` means `void`.
+Prototypes, parameter defaults and semantics, free functions, struct methods,
+interface requirements and default methods use the same semantic pipeline as
+traditional functions. Type parameters and defaults support direct bounds such
+as `func read<T>(value: T) -> int where T: Readable { ... }`; multiple direct
+interfaces can be separated by commas, `&`, or repeated `where` clauses.
+General/equality/associated-type constraints, throwing functions, parameter
+attributes and local functions remain unsupported. Result colon semantics are
+invalid in modern `func` syntax. See
+[modern functions](../tests/conformance/positive/modern-function-basics.slang)
+and [generic unit argument order](../tests/conformance/positive/modern-binding-generic-unit-order.slang).
+
 ## Function inlining
 
 `[ForceInline]` takes no arguments and expands functions with numeric, aggregate,
