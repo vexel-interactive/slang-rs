@@ -4,31 +4,33 @@ use slang_lexer::{Token, TokenKind};
 use slang_source::Diagnostic;
 
 impl Parser {
+    pub(crate) fn is_modifier(text: &str) -> bool {
+        matches!(
+            text,
+            "const"
+                | "static"
+                | "uniform"
+                | "groupshared"
+                | "in"
+                | "out"
+                | "inout"
+                | "public"
+                | "internal"
+                | "export"
+                | "extern"
+                | "inline"
+                | "override"
+                | "precise"
+                | "nointerpolation"
+                | "row_major"
+                | "column_major"
+        )
+    }
+
     pub(crate) fn modifiers(&mut self) -> Vec<String> {
         let mut result = vec![];
 
-        while self.current().is_some_and(|t| {
-            matches!(
-                t.text.as_str(),
-                "const"
-                    | "static"
-                    | "uniform"
-                    | "groupshared"
-                    | "in"
-                    | "out"
-                    | "inout"
-                    | "public"
-                    | "internal"
-                    | "export"
-                    | "extern"
-                    | "inline"
-                    | "override"
-                    | "precise"
-                    | "nointerpolation"
-                    | "row_major"
-                    | "column_major"
-            )
-        }) {
+        while self.current().is_some_and(|token| Self::is_modifier(&token.text)) {
             result.push(self.current().unwrap().text.clone());
             self.offset += 1;
         }
@@ -40,6 +42,11 @@ impl Parser {
         let start = self.span();
         let attributes = self.attributes()?;
         let modifiers = self.modifiers();
+
+        if self.at("func") {
+            let function = self.modern_function(None, attributes, modifiers, start)?;
+            return Ok(vec![Declaration::Function(Box::new(function))]);
+        }
 
         if self.at("interface") {
             if !self.type_owners.is_empty() {
@@ -139,6 +146,28 @@ impl Parser {
                     continue;
                 }
 
+                if self.at("func") {
+                    let function = self.modern_function(
+                        Some(&name),
+                        attributes,
+                        member_modifiers,
+                        member_start,
+                    )?;
+                    members.push(Declaration::Function(Box::new(function)));
+                    continue;
+                }
+
+                if self.at("var") || self.at("let") {
+                    if !attributes.is_empty() {
+                        return Err(self.error("struct field attributes are not implemented"));
+                    }
+
+                    let variable = self.modern_variable(member_modifiers)?;
+                    self.append_struct_variables(&name, vec![variable], &mut fields, &mut members);
+                    self.expect(";")?;
+                    continue;
+                }
+
                 let ty = self.ty()?;
                 let member = self.identifier()?;
                 let method_parameters = self.generic_parameters()?;
@@ -232,31 +261,8 @@ impl Parser {
                     return Err(self.error("struct field attributes are not implemented"));
                 }
 
-                let is_static = member_modifiers.iter().any(|m| m == "static");
                 let variables = self.variables(ty, member, member_modifiers)?;
-
-                if is_static {
-                    for mut variable in variables {
-                        let member_name = variable.name.clone();
-                        variable.name = format!(
-                            "{}{}_{}_{}",
-                            self.member_prefix,
-                            name.len(),
-                            name,
-                            member_name
-                        );
-                        self.static_members.push(StaticMemberInfo {
-                            owner: name.clone(),
-                            name: member_name,
-                            variable_name: variable.name.clone(),
-                            span: variable.span,
-                        });
-                        members.push(Declaration::Global(variable));
-                    }
-                } else {
-                    fields.extend(variables);
-                }
-
+                self.append_struct_variables(&name, variables, &mut fields, &mut members);
                 self.expect(";")?;
             }
 
@@ -276,6 +282,16 @@ impl Parser {
             return Ok(declarations);
         }
 
+        if self.at("var") || self.at("let") {
+            if !attributes.is_empty() {
+                return Err(self.error("global variable attributes are not implemented"));
+            }
+
+            let variable = self.modern_variable(modifiers)?;
+            self.expect(";")?;
+            return Ok(vec![Declaration::Global(variable)]);
+        }
+
         if self.current().is_some_and(|t| {
             matches!(
                 t.text.as_str(),
@@ -287,8 +303,6 @@ impl Parser {
                     | "typealias"
                     | "namespace"
                     | "__generic"
-                    | "let"
-                    | "var"
             )
         }) {
             return Err(self.error(format!(
@@ -351,6 +365,31 @@ impl Parser {
             let variables = self.variables(ty, name, modifiers)?;
             self.expect(";")?;
             Ok(variables.into_iter().map(Declaration::Global).collect())
+        }
+    }
+
+    fn append_struct_variables(
+        &mut self,
+        owner: &str,
+        variables: Vec<Variable>,
+        fields: &mut Vec<Variable>,
+        members: &mut Vec<Declaration>,
+    ) {
+        for mut variable in variables {
+            if variable.modifiers.iter().any(|modifier| modifier == "static") {
+                let member_name = variable.name.clone();
+                variable.name =
+                    format!("{}{}_{}_{}", self.member_prefix, owner.len(), owner, member_name);
+                self.static_members.push(StaticMemberInfo {
+                    owner: owner.into(),
+                    name: member_name,
+                    variable_name: variable.name.clone(),
+                    span: variable.span,
+                });
+                members.push(Declaration::Global(variable));
+            } else {
+                fields.push(variable);
+            }
         }
     }
 

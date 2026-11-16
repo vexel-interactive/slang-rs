@@ -152,9 +152,13 @@ impl Parser {
 
         if self.looks_like_variable() {
             let modifiers = self.modifiers();
-            let ty = self.ty()?;
-            let name = self.identifier()?;
-            let mut variables = self.variables(ty, name, modifiers)?;
+            let mut variables = if self.at("var") || self.at("let") {
+                vec![self.modern_variable(modifiers)?]
+            } else {
+                let ty = self.ty()?;
+                let name = self.identifier()?;
+                self.variables(ty, name, modifiers)?
+            };
             let end = self.expect(";")?;
             return Ok(Stmt {
                 kind: if variables.len() == 1 {
@@ -205,20 +209,12 @@ impl Parser {
     fn looks_like_variable(&self) -> bool {
         let mut i = self.offset;
 
-        while self.tokens.get(i).is_some_and(|t| {
-            matches!(
-                t.text.as_str(),
-                "const"
-                    | "static"
-                    | "uniform"
-                    | "groupshared"
-                    | "precise"
-                    | "nointerpolation"
-                    | "row_major"
-                    | "column_major"
-            )
-        }) {
+        while self.tokens.get(i).is_some_and(|token| Self::is_modifier(&token.text)) {
             i += 1;
+        }
+
+        if self.tokens.get(i).is_some_and(|token| token.is("var") || token.is("let")) {
+            return true;
         }
 
         if !self.tokens.get(i).is_some_and(|t| t.kind == TokenKind::Identifier) {

@@ -23,10 +23,15 @@ impl Parser {
 
         while !self.at("}") && !self.at_end() {
             let field_modifiers = self.modifiers();
-            let ty = self.ty()?;
-            let field_name = self.identifier()?;
+            let variables = if self.at("var") || self.at("let") {
+                vec![self.modern_variable(field_modifiers)?]
+            } else {
+                let ty = self.ty()?;
+                let field_name = self.identifier()?;
+                self.variables(ty, field_name, field_modifiers)?
+            };
 
-            for mut field in self.variables(ty, field_name, field_modifiers)? {
+            for mut field in variables {
                 let static_storage = field.modifiers.iter().any(|m| m == "static");
                 members.push(ConstantBufferMember {
                     name: field.name.clone(),

@@ -175,6 +175,37 @@ pub struct TypeRef {
     pub span: Span,
 }
 
+impl TypeRef {
+    /// An omitted declaration type, resolved from its initializer during checking.
+    /// The empty name cannot occur in a parsed type spelling; inferred references
+    /// carry no owner, arguments, shape, or storage qualifiers.
+    pub fn inferred(span: Span) -> Self {
+        Self {
+            name: String::new(),
+            base: None,
+            application: false,
+            owner_ref: false,
+            parameter_ref: false,
+            arguments: vec![],
+            matrix_major: None,
+            arrays: vec![],
+            span,
+        }
+    }
+
+    /// Recognize the complete invariant of an omitted declaration type.
+    pub fn is_inferred(&self) -> bool {
+        self.name.is_empty()
+            && self.base.is_none()
+            && !self.application
+            && !self.owner_ref
+            && !self.parameter_ref
+            && self.arguments.is_empty()
+            && self.matrix_major.is_none()
+            && self.arrays.is_empty()
+    }
+}
+
 fn is_false(value: &bool) -> bool {
     !value
 }

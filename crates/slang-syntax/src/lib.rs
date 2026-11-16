@@ -7,6 +7,8 @@ mod declaration;
 mod expression;
 mod interface;
 mod literal;
+mod modern_function;
+mod modern_variable;
 mod module;
 mod parser;
 mod statement;

@@ -49,6 +49,16 @@ impl Parser {
                 continue;
             }
 
+            if self.at("func") {
+                requirements.push(self.modern_function(
+                    Some(&name),
+                    attributes,
+                    modifiers,
+                    start,
+                )?);
+                continue;
+            }
+
             let return_type = self.ty()?;
             let member = self.identifier()?;
             let parameters = self.generic_parameters()?;
