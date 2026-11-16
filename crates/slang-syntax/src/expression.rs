@@ -416,30 +416,38 @@ impl Parser {
 }
 
 fn builtin_cast_type(name: &str) -> bool {
-    if matches!(
-        name,
-        "bool"
-            | "int"
-            | "uint"
-            | "half"
-            | "float"
-            | "double"
-            | "int32_t"
-            | "uint32_t"
-            | "int64_t"
-            | "uint64_t"
-            | "float32_t"
-            | "float64_t"
-    ) {
+    if matches!(name, "intptr_t" | "uintptr_t" | "ssize_t" | "size_t" | "usize_t") {
         return true;
     }
 
-    ["bool", "int", "uint", "int64_t", "uint64_t", "half", "float", "double"].iter().any(|prefix| {
+    [
+        "bool",
+        "int",
+        "uint",
+        "int16_t",
+        "uint16_t",
+        "int32_t",
+        "uint32_t",
+        "int64_t",
+        "uint64_t",
+        "half",
+        "float",
+        "double",
+        "float16_t",
+        "float32_t",
+        "float64_t",
+    ]
+    .iter()
+    .any(|prefix| {
+        if name == *prefix {
+            return true;
+        }
+
         let Some(shape) = name.strip_prefix(prefix) else {
             return false;
         };
 
-        let dimension = |text: &str| text.parse::<u8>().is_ok_and(|n| (1..=4).contains(&n));
+        let dimension = |text: &str| matches!(text, "1" | "2" | "3" | "4");
         shape
             .split_once('x')
             .map_or_else(|| dimension(shape), |(r, c)| dimension(r) && dimension(c))

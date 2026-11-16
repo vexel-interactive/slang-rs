@@ -42,6 +42,10 @@ impl Parser {
         let modifiers = self.modifiers();
 
         if self.at("interface") {
+            if !self.type_owners.is_empty() {
+                return Err(self.error("interface declarations are not allowed inside structs"));
+            }
+
             return self.interface_declaration(start, attributes, modifiers);
         }
 
