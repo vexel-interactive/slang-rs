@@ -238,6 +238,12 @@ and aliases. Directives include `#define`, `#undef`, `#include`, `#pragma once`,
 `#if`, `#ifdef`, `#ifndef`, `#elif`, `#else`, `#endif`, `#line`, `#error`, and `#warning`.
 Conditions support `defined`, integer operators, and short-circuit `&&`/`||`.
 
+Unknown `#pragma` names produce warning `P011` and compilation continues. Names
+and ignored payloads use raw tokens, so macros do not rename pragmas or expand
+their arguments. Missing or nonidentifier names and extra tokens after
+`#pragma once` report `P002`. Inactive conditional branches ignore pragmas.
+The recognized `#pragma warning` controls remain unsupported and report an error.
+
 Include guards, line continuations, `#` stringification, `##` token pasting,
 and `__VA_ARGS__` are supported. Arguments for `#` and `##` are used before macro
 expansion. Pasted tokens are lexically validated and rescanned. Unused arguments
@@ -991,8 +997,8 @@ A constraint can refer to earlier parameters: `read<U, T : Read<U>>`. Forward
 references in inline constraints report `T032`. `This` in a requirement denotes
 the conforming owner; it works in parameters and results.
 
-Direct constructor witnesses require matching parameter and result types.
-Method witnesses can match directly or use the signature adaptations below.
+Method and constructor witnesses can match directly or use the signature
+adaptations below.
 Missing or incompatible requirements report `T032`. Type specialization fails with `T033`
 when arguments do not satisfy their declared nominal constraints. Nonconforming
 function and constructor candidates are removed before selection; remaining
@@ -1021,6 +1027,29 @@ are ambiguous. Typed input copies also preserve aggregate alias identity and
 support loading a `ConstantBuffer<A>` argument into an `A` implementation
 parameter. See [method adapters](../tests/conformance/positive/interface-method-adapters.slang)
 and [overload ranking](../tests/conformance/positive/interface-adapter-overload-ranking.slang).
+
+Constructors without type parameters support input conversions and trailing
+implementation defaults. For example,
+`__init(float value, int extra = 3)` can implement `__init(int value = 4)`.
+The generated witness forwards to the selected concrete constructor and returns
+its initialized owner. Explicit calls, contextual lists, array elements,
+automatic initialization and declaration defaults retain that witness through
+specialization. Ordinary constructor calls retain their concrete overload set.
+Inherited generic interfaces and concrete generic owners preserve the interface
+argument identity. Imported implementations can use private constructors and
+default helpers in their declaration module.
+
+Constructor implementations can use `in`, `out` or `inout` independently of the
+requirement's parameter direction. Input requirements, including `const` inputs,
+pass writable local copies, so implementation writes stay local. Output and inout requirements
+retain their caller locations; an implementation taking only an input need not
+initialize a required output. Reading such an unwritten value remains undefined.
+Concrete output parameters require compatible writable types, including
+same-width integer views; a floating output cannot use an integer location.
+See [constructor directions](../tests/conformance/positive/interface-constructor-adapter-directions.slang),
+[constructor inputs](../tests/conformance/positive/interface-constructor-adapter-inputs.slang),
+[output views](../tests/conformance/positive/interface-constructor-adapter-outputs.slang)
+and [module defaults](../tests/conformance/positive/interface-constructor-adapter-module/main.slang).
 
 A concrete implementation can add trailing input parameters with declaration
 defaults. The adapter fills those parameters in the implementation's module,
@@ -1114,9 +1143,9 @@ calls, including overloaded emitted functions. Interface constructor requirement
 may declare signatures, but constructor bodies in interfaces are rejected by
 both upstream Slang and this compiler.
 
-This implementation covers direct signatures and the method adaptations above.
-Generic method requirements, associated types, extensions, constructor witness
-adaptation,
+This implementation covers direct signatures and the method and constructor
+adaptations above. Generic method requirements, generic constructor witness
+adaptation, associated types, extensions,
 other static/instance adaptations, `where` constraints, operator/conversion
 constraints, complete constrained ranking and runtime dispatch remain unsupported. Interface existential variables,
 parameters, results and aggregate/resource storage report `T001`. Inheritance is
@@ -1171,12 +1200,18 @@ function calls, fields, swizzles, indexing, conditionals, and increment/decremen
 Statements include blocks, local declarations, expression statements, `return`,
 `if/else`, `while`, `for`, `do/while`, `switch`, `break`, `continue`, and `discard`.
 C-style numeric casts accept scalar names, scalar-prefixed vector/matrix names,
-and explicit `vector<...>` or `matrix<...>` applications. Scalars can convert to
+the supported fixed-width aliases, scalar pointer-sized aliases, and explicit
+`vector<...>` or `matrix<...>` applications. Fixed-width aliases include
+`int16_t`, `uint16_t`, `int32_t`, `uint32_t`, `int64_t`, `uint64_t`, `float16_t`,
+`float32_t` and `float64_t`, with vector and matrix dimensions from 1 through 4.
+Pointer-sized aliases `intptr_t`, `uintptr_t`, `ssize_t`, `size_t` and `usize_t`
+have scalar cast spellings. Scalars can convert to
 another scalar or splat into a vector or matrix. Vector casts preserve the width.
 Matrix casts preserve or reduce both dimensions, selecting the top-left region.
-Component conversions include boolean and numeric types. Vector truncation,
-vector-to-scalar conversion, matrix expansion, and reshaping are rejected.
-The operand is evaluated once. Standalone alias names and aggregate/resource
+Component conversions include boolean and numeric types. One-component vectors
+can convert to scalars. Vector truncation, wider-vector-to-scalar conversion,
+matrix expansion, and reshaping are rejected.
+The operand is evaluated once. Standalone user alias names and aggregate/resource
 cast targets remain unsupported. See [numeric-casts.slang](../examples/numeric-casts.slang).
 Statement attributes remain to be ported.
 
@@ -1644,8 +1679,12 @@ buffers, and textures, including arrays of those resource handles. Schema
 version 7 reports a `binding` object for global shader resources, with register
 `class`, `index`, `space`, `count`, and an `explicit` origin flag. Numeric uniforms
 and private storage omit that field. Schema version 6 introduced explicit ranges;
-version 7 adds automatic allocation and origin flags. Byte offsets, strides, and
-complete target layout remain unimplemented.
+version 7 adds automatic allocation and origin flags. The current schema is 11.
+Global uniforms and `ConstantBuffer` values report byte offsets and shared
+type layouts, including field offsets, array and matrix strides, alignment,
+occupied size and matrix storage order. Native 16-bit storage and target
+compiler flags are reflected as well. Complete layout for other targets and
+resource aggregates remains unimplemented. See [the reflection API](api.md).
 Applications must not treat this JSON as the upstream compiler's ABI reflection.
 Schema version 5 added `target_profile` for HLSL entries, including any required
 shader model upgrade. Pass `target_name` and `target_profile` to DXC's `-E` and

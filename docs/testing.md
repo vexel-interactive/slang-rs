@@ -917,5 +917,41 @@ The private caller-owned type fixture also checks ordinary, generic-interface
 and first-`This` static projections. Requirement parameter types resolve in the
 caller context before default expressions enter their declaration module. The
 former cross-module projection limitation fixture now succeeds in both compilers.
-The full release corpus passes 794 expected cases, the native HLSL suite validates
-209 artifacts, and workspace and Python tests pass 569 and 34 cases respectively.
+The full release corpus passes 818 expected cases, the native HLSL suite validates
+209 artifacts, and workspace and Python tests pass 598 and 34 cases respectively.
+
+
+Constructor signature adapters add fifteen integration tests and fourteen
+differential cases. Nine positive fixtures compare thirty-nine matching compiled
+words and validate eighteen native/oracle HLSL artifacts. They cover explicit,
+contextual, automatic, array and default initialization, numeric conversions,
+independent constructor parameter directions, const input copies, integer output
+views, single evaluation, exact overload ranking, trailing implementation
+defaults, private aliases and helpers, inherited generic interfaces, nested
+owners, dormant dependencies and reused witnesses during rechecking. Negative
+cases reject incompatible output types, missing or ambiguous default tails and
+dropped requirement parameters. The mode/type probes compare twenty-seven
+acceptance results with upstream; an integration test checks all eighteen
+integer direction combinations. Source const modifiers survive serialization
+and rechecking. Required outputs forwarded to input-only implementations remain
+undefined unless initialized; tests observe only defined results. See
+[constructor directions](../tests/conformance/positive/interface-constructor-adapter-directions.slang)
+and [exact output selection](../tests/conformance/positive/interface-constructor-adapter-exact-output.slang).
+Generic constructor witness adaptation and GPU execution remain unverified.
+
+Numeric alias cast tests check all 315 numeric scalar/vector/matrix spellings
+and five scalar pointer aliases, with spans, semantic shape errors and single
+operand evaluation. Five differential cases validate four native/oracle HLSL
+artifacts and compare twenty-two matching compiled words for truncation,
+negative zero and matrix components. See
+[numeric alias values](../tests/conformance/positive/numeric-alias-cast-values.slang).
+User alias cast targets remain outside the implemented grammar.
+
+Unknown pragma regressions check raw names and payloads, preserved include and
+module warnings, inactive directives and malformed names or `once` tails.
+Four differential cases include two validated HLSL artifacts and one matching
+compiled word. Nested interface declarations add three integration tests and
+one differential rejection case, while preserving nested struct and alias
+members. Warning controls remain unimplemented. See
+[unknown pragmas](../tests/conformance/positive/unknown-pragmas.slang) and
+[nested interfaces](../tests/conformance/negative/nested-interface.slang).
