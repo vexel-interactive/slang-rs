@@ -23,13 +23,13 @@ impl Specializer {
         owner: &str,
         interface: &Interface,
         requirement: &Function,
-        adaptation: &crate::conformance::MethodAdaptation,
+        adaptation: &crate::conformance::SignatureAdaptation,
         names: &BTreeMap<String, String>,
     ) -> Result<Declaration, Diagnostic> {
         let mut adapted = requirement.clone();
         let target = &adaptation.target;
-        let method = requirement.method.as_ref().unwrap();
-        let target_method = target.method.as_ref().unwrap();
+        let method = requirement.method.as_ref();
+        let target_method = target.method.as_ref();
         let span = requirement.span;
         // Abstract requirement spans can equal the synthetic receiver span.
         // Keep the generated function and parameter declaration keys distinct.
@@ -37,25 +37,42 @@ impl Specializer {
             if parameter.span == span {
                 parameter.span.end = parameter.span.start;
             }
+            if requirement.constructor.is_some()
+                && !parameter
+                    .modifiers
+                    .iter()
+                    .any(|modifier| modifier == "out" || modifier == "inout")
+            {
+                // An input witness owns a writable copy even when the source
+                // requirement marks that input const. Constructor writes stay
+                // within the copy and cannot change the caller's input.
+                parameter.modifiers.retain(|modifier| modifier != "const");
+            }
         }
-        let receiver = self.adapter_expression(
-            ExprKind::Name(if !target_method.is_static && method.is_static {
-                requirement.parameters[0].name.clone()
-            } else if method.is_static {
-                owner.into()
-            } else {
-                "this".into()
-            }),
-            span,
-        );
-        let callee = self.adapter_expression(
-            ExprKind::Member {
-                base: Box::new(receiver),
-                name: method.name.clone(),
-                static_lookup: target_method.is_static,
-            },
-            span,
-        );
+        let callee = if let (Some(method), Some(target_method)) = (method, target_method) {
+            let receiver = self.adapter_expression(
+                ExprKind::Name(if !target_method.is_static && method.is_static {
+                    requirement.parameters[0].name.clone()
+                } else if method.is_static {
+                    owner.into()
+                } else {
+                    "this".into()
+                }),
+                span,
+            );
+            self.adapter_expression(
+                ExprKind::Member {
+                    base: Box::new(receiver),
+                    name: method.name.clone(),
+                    static_lookup: target_method.is_static,
+                },
+                span,
+            )
+        } else {
+            // Call the concrete constructor function, keeping the generated
+            // witness outside ordinary type-constructor overload lookup.
+            self.adapter_expression(ExprKind::Name(target.name.clone()), span)
+        };
         let mut arguments = vec![];
         let mut statements = vec![];
         for (index, ((parameter, target), convert)) in requirement
@@ -64,7 +81,7 @@ impl Specializer {
             .zip(&target.parameters)
             .zip(&adaptation.input_conversions)
             .enumerate()
-            .skip(usize::from(!target_method.is_static))
+            .skip(usize::from(target_method.is_some_and(|method| !method.is_static)))
         {
             let value = self.adapter_expression(ExprKind::Name(parameter.name.clone()), span);
             let value = if target.modifiers.iter().any(|m| m == "out" || m == "inout") || !convert {
@@ -79,7 +96,17 @@ impl Specializer {
                 statements.push(Stmt {
                     kind: StmtKind::Variable(Box::new(Variable {
                         name: name.clone(),
-                        ty: target.ty.clone(),
+                        // The adapter belongs to the interface's module. Keep
+                        // the selected concrete type, without moving aliases or
+                        // shape constants out of their declaration scope.
+                        ty: inference::type_reference(
+                            &adaptation.parameter_types[index],
+                            &BTreeMap::new(),
+                            target.ty.span,
+                        )
+                        .ok_or_else(|| {
+                            error(target.ty.span, "invalid interface adapter parameter type")
+                        })?,
                         modifiers: vec![],
                         semantic: None,
                         register: None,
@@ -292,7 +319,8 @@ impl Specializer {
         let mut names = BTreeMap::from([(interface.name.clone(), owner.into())]);
 
         for requirement in &interface.requirements {
-            if let Some(method) = &requirement.method {
+            if requirement.method.is_some() || requirement.constructor.is_some() {
+                let name = requirement.method.as_ref().map_or("__init", |method| &method.name);
                 let target = format!(
                     "{}default_{}_{}_{}_{}_{}_{}",
                     self.prefix,
@@ -300,8 +328,8 @@ impl Specializer {
                     owner,
                     interface.name.len(),
                     interface.name,
-                    method.name.len(),
-                    method.name,
+                    name.len(),
+                    name,
                 );
                 names.insert(requirement.name.clone(), target);
             }
@@ -349,6 +377,13 @@ impl Specializer {
             constraint_variables: &mut self.constraint_variables,
         }
         .declaration(&mut declaration)?;
+        if requirement.constructor.is_some()
+            && let Declaration::Function(function) = &mut declaration
+        {
+            // The concrete constructor returns the initialized owner. A witness
+            // is a forwarding function and must not initialize another receiver.
+            function.constructor = None;
+        }
         let name = declaration_name(&declaration).to_owned();
 
         if validation_context.is_none()
@@ -362,7 +397,10 @@ impl Specializer {
             name.clone(),
             SymbolOrigin {
                 module,
-                name: format!("{owner}.{}", requirement.method.as_ref().unwrap().name),
+                name: format!(
+                    "{owner}.{}",
+                    requirement.method.as_ref().map_or("__init", |method| &method.name)
+                ),
             },
         );
         self.generated.insert(crate::span_key(declaration_span(&declaration)));
@@ -371,7 +409,7 @@ impl Specializer {
             Context {
                 owner: owner.into(),
                 interface: interface.name.clone(),
-                is_static: requirement.method.as_ref().unwrap().is_static,
+                is_static: requirement.method.as_ref().is_none_or(|method| method.is_static),
                 members: self.default_members(interface),
             },
         );
@@ -415,7 +453,7 @@ impl Specializer {
 
                 for requirement in &interface.requirements {
                     if !requirement.generic_parameters.is_empty()
-                        || requirement.method.is_none()
+                        || (requirement.method.is_none() && requirement.constructor.is_none())
                         || (self.symbolic
                             && requirement.body.is_some()
                             && !self.checked_default_interfaces.contains(&name))
@@ -432,7 +470,7 @@ impl Specializer {
                     }
 
                     if let Some(adaptation) =
-                        checker.method_adaptation(module, &structure.name, requirement)?
+                        checker.signature_adaptation(module, &structure.name, requirement)?
                     {
                         let names = self.default_names(&structure.name, &interface);
                         let declaration = self.clone_adapter(

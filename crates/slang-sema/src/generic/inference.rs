@@ -584,7 +584,7 @@ fn named_reference(name: String, span: Span) -> TypeRef {
     }
 }
 
-fn type_reference(
+pub(super) fn type_reference(
     ty: &Type,
     shapes: &BTreeMap<String, (Type, Vec<u8>)>,
     span: Span,

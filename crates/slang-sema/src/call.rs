@@ -300,6 +300,18 @@ impl Checker {
             return Type::Error;
         }
 
+        if let Some(declaration) = self.interface_adapter_targets.get(&span.context)
+            && let Some(signature) = self
+                .functions
+                .get(name)
+                .and_then(|overloads| overloads.iter().find(|s| s.declaration == *declaration))
+                .cloned()
+        {
+            // Constructor witnesses call the concrete function chosen during
+            // conformance checking, including internal implementations.
+            return self.finish_user_call(callee, arguments, &types, &signature, span);
+        }
+
         if let Some(overloads) =
             self.functions.get(name).filter(|_| self.module_symbol_visible(name)).cloned()
         {

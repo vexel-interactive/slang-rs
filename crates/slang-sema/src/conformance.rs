@@ -1,11 +1,12 @@
-//! Nominal interface inheritance and direct method requirement signatures.
+//! Nominal interface inheritance and direct method and constructor witnesses.
 
 mod projection;
 pub(crate) mod witness;
 
-pub(crate) struct MethodAdaptation {
+pub(crate) struct SignatureAdaptation {
     pub target: Function,
     pub input_conversions: Vec<bool>,
+    pub parameter_types: Vec<Type>,
 }
 
 use crate::{
@@ -49,28 +50,31 @@ pub(crate) fn specialized_requirement<'a>(
 }
 
 impl Checker {
-    /// Find an ordinary concrete method callable with the requirement's input
+    /// Find an ordinary concrete method or constructor callable with the requirement's input
     /// types. Validate the selected result and parameter directions only after
     /// ranking, so an incompatible exact overload cannot expose a worse one.
-    pub(crate) fn method_adaptation(
+    pub(crate) fn signature_adaptation(
         &mut self,
         module: &Module,
         owner: &str,
         requirement: &Function,
-    ) -> Result<Option<MethodAdaptation>, Diagnostic> {
-        let Some(method) = &requirement.method else {
+    ) -> Result<Option<SignatureAdaptation>, Diagnostic> {
+        let method = requirement.method.as_ref();
+        if method.is_none() && requirement.constructor.is_none() {
             return Ok(None);
-        };
+        }
         let (required, parameters, result) = self.requirement_signature(owner, requirement);
         let modes = parameter_modes(&required);
-        let Some(overloads) = self
-            .methods
-            .get(&(owner.into(), method.name.clone()))
-            .and_then(|name| self.functions.get(name))
-        else {
+        let target = if let Some(method) = method {
+            self.methods.get(&(owner.into(), method.name.clone()))
+        } else {
+            self.constructors.get(owner)
+        };
+        let Some(overloads) = target.and_then(|name| self.functions.get(name)) else {
             return Ok(None);
         };
-        let has_static = method.is_static
+        let required_static = method.is_none_or(|method| method.is_static);
+        let has_static = required_static
             && overloads
                 .iter()
                 .any(|signature| signature.method.as_ref().is_some_and(|m| m.is_static));
@@ -88,14 +92,15 @@ impl Checker {
             let Some(function) = function else {
                 continue;
             };
-            let target_static = signature.method.as_ref().unwrap().is_static;
-            let receiver_adaptation = method.is_static
+            let target_static = signature.method.as_ref().is_none_or(|method| method.is_static);
+            let receiver_adaptation = method.is_some()
+                && required_static
                 && !target_static
                 && !has_static
                 && parameters.first() == Some(&Type::Struct(owner.into()));
             if !signature.defined
                 || signature.generic
-                || (target_static != method.is_static && !receiver_adaptation)
+                || (target_static != required_static && !receiver_adaptation)
                 || parameters.len() > signature.parameters.len()
                 || signature.defaults[parameters.len()..].iter().any(Option::is_none)
                 || !parameters.iter().zip(&signature.parameters).all(|(a, b)| a.convertible_to(b))
@@ -114,7 +119,7 @@ impl Checker {
             return Err(Diagnostic::error(
                 "T032",
                 requirement.span,
-                "ambiguous concrete method for interface witness adaptation",
+                "ambiguous concrete implementation for interface witness adaptation",
             ));
         }
         if let Some((_, target, signature)) = candidates.first() {
@@ -126,15 +131,15 @@ impl Checker {
                 ));
             }
             let target_modes = parameter_modes(target);
-            if !modes
+            if !modes.iter().zip(&target_modes).all(|(required, actual)| {
+                // Constructor witnesses forward writable parameter copies.
+                // The required mode determines whether writes reach callers.
+                requirement.constructor.is_some() || required == actual || *required == "inout"
+            }) || !parameters
                 .iter()
+                .zip(&signature.parameters)
                 .zip(&target_modes)
-                .all(|(required, actual)| required == actual || *required == "inout")
-                || !parameters
-                    .iter()
-                    .zip(&signature.parameters)
-                    .zip(&target_modes)
-                    .all(|((a, b), mode)| *mode == "in" || a.output_convertible_to(b))
+                .all(|((a, b), mode)| *mode == "in" || a.output_convertible_to(b))
             {
                 return Err(Diagnostic::error(
                     "T032",
@@ -143,13 +148,14 @@ impl Checker {
                 ));
             }
         }
-        Ok(candidates.into_iter().next().map(|(_, target, signature)| MethodAdaptation {
+        Ok(candidates.into_iter().next().map(|(_, target, signature)| SignatureAdaptation {
             target,
             input_conversions: parameters
                 .iter()
                 .zip(&signature.parameters)
                 .map(|(a, b)| a != b)
                 .collect(),
+            parameter_types: signature.parameters,
         }))
     }
 
@@ -427,7 +433,10 @@ impl Checker {
                 return None;
             };
 
-            if function.method.as_ref()?.owner != owner {
+            let instance = module.generic_instances.iter().find(|instance| {
+                instance.type_name == function.name && instance.context == function.span.context
+            })?;
+            if instance.arguments.first()?.name != owner {
                 return None;
             }
 

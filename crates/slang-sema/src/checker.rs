@@ -172,6 +172,7 @@ pub(crate) struct Checker {
     pub interface_witnesses: BTreeSet<SpanKey>,
     pub interface_default_overrides: BTreeSet<SpanKey>,
     pub interface_adapter_contexts: BTreeSet<usize>,
+    pub interface_adapter_targets: BTreeMap<usize, SpanKey>,
     pub direct_witnesses: BTreeMap<crate::conformance::witness::WitnessKey, Signature>,
     pub symbolic_requirements: BTreeMap<(SpanKey, String), ConstraintCallInfo>,
     pub constraint_calls: BTreeMap<ExprId, ConstraintCallInfo>,
@@ -614,6 +615,13 @@ impl Checker {
                 .iter()
                 .filter(|instance| instance.witness_target.is_some())
                 .map(|instance| instance.context)
+                .collect(),
+            interface_adapter_targets: module
+                .generic_instances
+                .iter()
+                .filter_map(|instance| {
+                    instance.witness_target.map(|target| (instance.context, span_key(target)))
+                })
                 .collect(),
             direct_witnesses: BTreeMap::new(),
             symbolic_requirements: BTreeMap::new(),

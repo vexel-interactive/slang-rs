@@ -10249,6 +10249,78 @@
       ]
     },
     {
+      "file": "positive/interface-constructor-adapter-inputs.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 5,
+        "1": 7,
+        "2": 8,
+        "3": 7,
+        "4": 9,
+        "5": 12,
+        "6": 13
+      }
+    },
+    {
+      "file": "positive/interface-constructor-adapter-outputs.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 6,
+        "1": 6,
+        "2": 1,
+        "3": 11,
+        "4": 8,
+        "5": 10,
+        "6": 9
+      }
+    },
+    {
+      "file": "positive/interface-constructor-adapter-owners.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 5,
+        "1": 6,
+        "2": 7
+      }
+    },
+    {
+      "file": "positive/interface-constructor-adapter-module/main.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 5,
+        "1": 7,
+        "2": 8
+      }
+    },
+    {
+      "file": "negative/interface-constructor-adapter-missing-tail.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T032"
+    },
+    {
+      "file": "negative/interface-constructor-adapter-output-type.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T032"
+    },
+    {
+      "file": "negative/interface-constructor-adapter-direction.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T032"
+    },
+    {
+      "file": "negative/interface-constructor-adapter-dropped-input.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T032"
+    },
+    {
       "file": "positive/unknown-pragmas.slang",
       "accept": true,
       "entry": "main",
@@ -10291,6 +10363,69 @@
       "rust_code": "P002",
       "oracle_stderr_contains": [
         "E15103"
+      ]
+    },
+    {
+      "file": "positive/interface-constructor-adapter-directions.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 8,
+        "1": 4,
+        "2": 6,
+        "3": 4,
+        "4": 11,
+        "5": 8,
+        "6": 7,
+        "7": 8,
+        "8": 7
+      }
+    },
+    {
+      "file": "positive/interface-constructor-adapter-dormant.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 0
+      }
+    },
+    {
+      "file": "positive/interface-constructor-adapter-overloads.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 5,
+        "1": 7,
+        "2": 8,
+        "3": 5
+      }
+    },
+    {
+      "file": "positive/interface-constructor-adapter-nested.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 5,
+        "1": 6
+      }
+    },
+    {
+      "file": "positive/interface-constructor-adapter-exact-output.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 5,
+        "1": 3,
+        "2": 23
+      }
+    },
+    {
+      "file": "negative/interface-constructor-adapter-ambiguous-tails.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T032",
+      "oracle_stderr_contains": [
+        "E38100"
       ]
     },
     {
