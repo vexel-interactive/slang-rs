@@ -31,6 +31,7 @@ pub(super) fn template_calls(
     origins: &BTreeMap<ExprId, ExprId>,
     parameters: &BTreeMap<String, TypeRef>,
     default_instance_contexts: &BTreeSet<usize>,
+    input_calls: &BTreeMap<ExprId, ConstraintCallInfo>,
 ) -> Result<TemplateBindings, Diagnostic> {
     let mut calls = BTreeMap::new();
     let mut ignored = IgnoredCalls::default();
@@ -55,7 +56,7 @@ pub(super) fn template_calls(
 
         let original = origins.get(id).copied().unwrap_or(*id);
         let opaque = parameters.contains_key(&binding.owner.name);
-        if !opaque && !origins.contains_key(id) {
+        if !opaque && !origins.contains_key(id) && input_calls.contains_key(id) {
             calls.insert(*id, binding.clone());
             continue;
         }

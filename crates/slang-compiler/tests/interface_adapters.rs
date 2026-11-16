@@ -166,17 +166,16 @@ fn ordinary_callers_cannot_access_unrelated_private_members() {
 }
 
 #[test]
-fn ordinary_public_interface_projection_is_a_documented_native_limit() {
-    let error = compile_source(
+fn ordinary_public_interface_projection_uses_the_internal_witness() {
+    compile_source(
         "main.slang",
         include_str!(
-            "../../../tests/conformance/negative/interface-adapter-public-projection/main.slang"
+            "../../../tests/conformance/positive/interface-adapter-public-projection/main.slang"
         ),
         &CompileOptions::default(),
         &module_includes(),
     )
-    .unwrap_err();
-    assert!(error.diagnostics.iter().any(|diagnostic| diagnostic.code == "T014"), "{error}");
+    .unwrap();
 }
 
 #[test]

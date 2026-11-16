@@ -171,6 +171,7 @@ pub(crate) struct Checker {
     pub conformances: BTreeMap<String, BTreeSet<String>>,
     pub interface_witnesses: BTreeSet<SpanKey>,
     pub interface_default_overrides: BTreeSet<SpanKey>,
+    pub interface_adapter_contexts: BTreeSet<usize>,
     pub direct_witnesses: BTreeMap<crate::conformance::witness::WitnessKey, Signature>,
     pub symbolic_requirements: BTreeMap<(SpanKey, String), ConstraintCallInfo>,
     pub constraint_calls: BTreeMap<ExprId, ConstraintCallInfo>,
@@ -608,6 +609,12 @@ impl Checker {
             conformances: BTreeMap::new(),
             interface_witnesses: BTreeSet::new(),
             interface_default_overrides: BTreeSet::new(),
+            interface_adapter_contexts: module
+                .generic_instances
+                .iter()
+                .filter(|instance| instance.witness_target.is_some())
+                .map(|instance| instance.context)
+                .collect(),
             direct_witnesses: BTreeMap::new(),
             symbolic_requirements: BTreeMap::new(),
             constraint_calls: module.constraint_calls.clone(),

@@ -7530,6 +7530,153 @@
         "0": 3,
         "1": 1084227584
       }
+    },
+    {
+      "file": "../conformance/positive/interface-adapter-public-projection/main.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "../conformance/positive/interface-projection-overloads/main.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 1,
+        "1": 3,
+        "2": 1,
+        "3": 2,
+        "4": 5,
+        "5": 6,
+        "6": 2,
+        "7": 1,
+        "8": 2,
+        "9": 2,
+        "10": 11,
+        "11": 23,
+        "12": 13
+      }
+    },
+    {
+      "file": "../conformance/positive/interface-projection-operations/main.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 3,
+        "1": 5,
+        "2": 7,
+        "3": 9,
+        "4": 3221225472,
+        "5": 5,
+        "6": 1,
+        "7": 3,
+        "8": 3,
+        "9": 7
+      }
+    },
+    {
+      "file": "../conformance/positive/interface-projection-derived-internal/main.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 3,
+        "1": 7
+      }
+    },
+    {
+      "file": "../conformance/positive/interface-projection-unused.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 0
+      }
+    },
+    {
+      "file": "../conformance/positive/interface-adapter-default-inputs.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 12,
+        "1": 14,
+        "2": 14,
+        "3": 18,
+        "4": 31,
+        "5": 40
+      }
+    },
+    {
+      "file": "../conformance/positive/interface-adapter-default-ranking.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 11,
+        "1": 29,
+        "2": 29,
+        "3": 24
+      }
+    },
+    {
+      "file": "../conformance/positive/interface-adapter-default-module/main.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 10,
+        "1": 20,
+        "2": 22
+      }
+    },
+    {
+      "file": "../conformance/positive/interface-adapter-default-generic-dependency.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 26
+      }
+    },
+    {
+      "file": "../conformance/positive/interface-adapter-default-dormant.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 0
+      }
+    },
+    {
+      "file": "../conformance/positive/interface-projection-defaults/main.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 5
+      }
+    },
+    {
+      "file": "../conformance/positive/interface-projection-default-tails/main.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 2,
+        "1": 2,
+        "2": 4,
+        "3": 1,
+        "4": 2,
+        "5": 4,
+        "6": 2,
+        "7": 2,
+        "8": 3,
+        "9": 1,
+        "10": 2,
+        "11": 3
+      }
+    },
+    {
+      "file": "../conformance/positive/interface-projection-private-owner/main.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 3,
+        "1": 5,
+        "2": 5,
+        "3": 7
+      }
     }
   ]
 }

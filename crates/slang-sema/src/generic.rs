@@ -151,6 +151,7 @@ pub(super) fn validate_templates(
         &result.expression_origins,
         &result.symbolic_parameters,
         &result.default_instance_contexts,
+        &module.constraint_calls,
     )
     .map_err(|d| vec![d])
 }

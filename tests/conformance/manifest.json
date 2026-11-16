@@ -9957,12 +9957,9 @@
       "rust_code": "T014"
     },
     {
-      "file": "negative/interface-adapter-public-projection/main.slang",
-      "accept": false,
-      "entry": "main",
-      "rust_code": "T014",
-      "oracle_accept": true,
-      "reason": "Slang exposes the public interface operation for an ordinary cross-module call to an internal adapted override. Native constrained witnesses can access the override, but ordinary public interface projection is not implemented."
+      "file": "positive/interface-adapter-public-projection/main.slang",
+      "accept": true,
+      "entry": "main"
     },
     {
       "file": "../../.upstream/slang/tests/language-feature/interfaces/static-default-adapted-instance-override.slang",
@@ -9979,6 +9976,212 @@
       "dxc_constant_stores": {
         "0": 3,
         "1": 1084227584
+      }
+    },
+    {
+      "file": "positive/interface-projection-overloads/main.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 1,
+        "1": 3,
+        "2": 1,
+        "3": 2,
+        "4": 5,
+        "5": 6,
+        "6": 2,
+        "7": 1,
+        "8": 2,
+        "9": 2,
+        "10": 11,
+        "11": 23,
+        "12": 13
+      }
+    },
+    {
+      "file": "positive/interface-projection-operations/main.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 3,
+        "1": 5,
+        "2": 7,
+        "3": 9,
+        "4": 3221225472,
+        "5": 5,
+        "6": 1,
+        "7": 3,
+        "8": 3,
+        "9": 7
+      }
+    },
+    {
+      "file": "positive/interface-projection-derived-internal/main.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 3,
+        "1": 7
+      }
+    },
+    {
+      "file": "negative/interface-projection-unrelated/main.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/interface-projection-internal-requirement/main.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/interface-projection-private-unrelated/main.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014"
+    },
+    {
+      "file": "negative/interface-projection-internal-interface/main.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014"
+    },
+    {
+      "file": "positive/interface-projection-unused.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 0
+      }
+    },
+    {
+      "file": "positive/interface-adapter-default-inputs.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 12,
+        "1": 14,
+        "2": 14,
+        "3": 18,
+        "4": 31,
+        "5": 40
+      }
+    },
+    {
+      "file": "positive/interface-adapter-default-ranking.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 11,
+        "1": 29,
+        "2": 29,
+        "3": 24
+      }
+    },
+    {
+      "file": "positive/interface-adapter-default-module/main.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 10,
+        "1": 20,
+        "2": 22
+      }
+    },
+    {
+      "file": "positive/interface-adapter-default-generic-dependency.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 26
+      }
+    },
+    {
+      "file": "positive/interface-adapter-default-dormant.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 0
+      }
+    },
+    {
+      "file": "negative/interface-adapter-default-ambiguous-tails.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T032"
+    },
+    {
+      "file": "negative/interface-adapter-default-ambiguous.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T032"
+    },
+    {
+      "file": "negative/interface-adapter-default-drop-required.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T032"
+    },
+    {
+      "file": "negative/interface-adapter-default-invalid-result.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T032"
+    },
+    {
+      "file": "negative/interface-adapter-default-late-prototype.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T032"
+    },
+    {
+      "file": "negative/interface-adapter-default-missing.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T032"
+    },
+    {
+      "file": "negative/interface-adapter-default-output.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T022"
+    },
+    {
+      "file": "negative/interface-adapter-default-missing-override.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T032"
+    },
+    {
+      "file": "positive/interface-projection-default-tails/main.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 2,
+        "1": 2,
+        "2": 4,
+        "3": 1,
+        "4": 2,
+        "5": 4,
+        "6": 2,
+        "7": 2,
+        "8": 3,
+        "9": 1,
+        "10": 2,
+        "11": 3
+      }
+    },
+    {
+      "file": "positive/interface-projection-private-owner/main.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_constant_stores": {
+        "0": 3,
+        "1": 5,
+        "2": 5,
+        "3": 7
       }
     }
   ]

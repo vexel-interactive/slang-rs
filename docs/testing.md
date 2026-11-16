@@ -867,23 +867,55 @@ the lowered IR after rechecking. This corpus covers methods without type
 parameters and compatible parameter counts; general witness adaptation and GPU
 execution remain outside its scope.
 
-A separate direct-call fixture records a native acceptance limitation: upstream
-projects a public interface requirement onto an imported struct's internal
-adapted implementation for a direct call, while native ordinary member lookup
-reports `T014`. The corresponding constrained calls are covered by the module
-fixture.
+Ordinary interface projection adds ten integration tests and ten differential
+cases. Six compute fixtures compare forty-two compiled words and
+validate their native/oracle artifacts with DXC. They distinguish public and
+internal exact implementations from adapted overloads, preserve local/external
+result types, merge unrelated concrete overloads, and exercise generic
+interfaces, static receivers, mutating output calls and single evaluation of an
+indexed argument. Inherited visibility tests select the public base requirement
+outside the module and an internal derived requirement inside it. Unrelated
+projected signatures remain ambiguous; internal interfaces, internal requirements
+and unrelated private members remain inaccessible. Rechecking retains the module
+origins and selected interface signatures, and unused generic owners keep
+projection dependencies dormant. A separate interaction fixture covers public
+and internal implementations with exact requirement prefixes and added defaults,
+including zero-parameter requirements: the concrete result type remains visible
+where that prefix is accessible, while external callers of internal methods use
+the interface result type.
+
+The native-only [projected defaults fixture](../tests/conformance/positive/interface-projection-defaults/main.slang)
+checks declaration-module access to a private default helper and its compiled
+word `5` with DXC. Slang 2026.21 crashes with exit code `3221225477` on ordinary
+projected calls with omitted requirement arguments, including constant defaults.
+These calls are excluded from the shared oracle-valid fixtures; this is an
+oracle comparison boundary rather than a passing upstream shader artifact.
+
+Concrete default tails add eight integration tests and thirteen differential
+fixtures. Five positive fixtures specify fifteen compiled words for input/result
+conversions, static and explicit receivers, requirement versus implementation
+defaults, prototype declarations, module scope and selected generic dependencies.
+Negative fixtures reject missing defaults, dropped requirement parameters, added
+output defaults, invalid selected results, late prototype defaults, missing
+`override` and conversion ties with different default-tail lengths. Serialization
+and rechecking preserve selected tails; dormant owner instances do not activate
+their default helpers. See [input defaults](../tests/conformance/positive/interface-adapter-default-inputs.slang)
+and [ranking](../tests/conformance/positive/interface-adapter-default-ranking.slang).
 
 [validation.json](validation.json) records the Windows validation run for this
 checkpoint. It includes the pinned compiler version, workspace checks, and
 differential corpus counts. It is a snapshot of that run, not a promise of
 complete Slang compatibility or validation on other operating systems.
 
-The method adapter validation adds fourteen integration tests and checks twenty-one
-native/oracle cases: twenty share acceptance and one records the public-projection
-limitation above. Nine constant fixtures compare thirty-seven matching compiled
-words; DXC validates twenty-one artifacts. This includes the unchanged pinned
+The method adapter corpus includes the unchanged pinned
 `language-feature/interfaces/static-default-adapted-instance-override.slang`,
 retargeted to HLSL for its `computeMain` entry. Its original CPU, SPIR-V and GPU
-directives were not executed. The full release corpus passes 771 expected cases,
-and the native HLSL suite validates 196 artifacts. Rust workspace tests pass
-551 cases, and the Python comparison and interpreter tests pass 34 cases.
+directives were not executed. Full workspace, release-corpus and native HLSL
+counts are recorded in the validation snapshot above.
+
+The private caller-owned type fixture also checks ordinary, generic-interface
+and first-`This` static projections. Requirement parameter types resolve in the
+caller context before default expressions enter their declaration module. The
+former cross-module projection limitation fixture now succeeds in both compilers.
+The full release corpus passes 794 expected cases, the native HLSL suite validates
+209 artifacts, and workspace and Python tests pass 569 and 34 cases respectively.

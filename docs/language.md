@@ -1005,8 +1005,8 @@ cached specialization and bind its verified direct implementation. A concrete
 overload unavailable on the opaque owner cannot replace that selection. This
 applies to free functions, struct owners, generic methods and
 generic constructors, including imported interfaces and private caller types.
-Validated witnesses permit calls across module boundaries without
-exposing the concrete method or constructor to ordinary callers. Interfaces do
+Validated witnesses preserve declaration-module access for constrained and
+projected calls; unrelated internal members remain inaccessible. Interfaces do
 not become HLSL data structs.
 
 Methods without type parameters can satisfy a requirement using implicit input
@@ -1022,6 +1022,16 @@ support loading a `ConstantBuffer<A>` argument into an `A` implementation
 parameter. See [method adapters](../tests/conformance/positive/interface-method-adapters.slang)
 and [overload ranking](../tests/conformance/positive/interface-adapter-overload-ranking.slang).
 
+A concrete implementation can add trailing input parameters with declaration
+defaults. The adapter fills those parameters in the implementation's module,
+while omitted requirement parameters still use the interface's own defaults.
+Prototype defaults follow the first-declaration rules for ordinary methods.
+Concrete selection compares conversion costs for the requirement's parameter
+prefix; different numbers of added defaults do not break a conversion tie.
+Implementations cannot drop requirement parameters or default added output
+parameters. See [added input defaults](../tests/conformance/positive/interface-adapter-default-inputs.slang)
+and [declaration scopes](../tests/conformance/positive/interface-adapter-default-module/main.slang).
+
 An `in` requirement needs an `in` implementation, and an `out` requirement needs
 an `out` implementation. An `inout` requirement can use `in`, `out`, or `inout`;
 this also allows a mutating receiver requirement to use a nonmutating method.
@@ -1034,10 +1044,20 @@ exists. A static declaration prevents that fallback even if its parameters do
 not match. See [parameter directions](../tests/conformance/positive/interface-adapter-direction-lattice.slang)
 and [output views](../tests/conformance/positive/interface-adapter-output-views.slang).
 
-Public interface requirements do not yet project an imported public struct's
-internal adapted implementation into ordinary concrete member lookup. Such
-direct calls report `T014` even though upstream accepts them; calls through a
-generic interface constraint work.
+Ordinary member lookup merges accessible concrete overloads with visible
+inherited interface requirements. A projected operation uses the requirement's
+parameter types, result type and defaults, invoking its retained implementation
+or adapter. This exposes public interface operations on imported structs even
+when the concrete implementation is internal. An accessible concrete overload
+whose semantic parameter prefix exactly matches the requirement, with the same
+static kind and defaults for every extra trailing parameter, hides that
+projected signature even when its result type differs. Other concrete
+overloads coexist with the requirement. Visibility is evaluated in the caller's
+module, so an internal exact implementation can hide the requirement locally
+while external callers use its public interface signature. See
+[projected overloads](../tests/conformance/positive/interface-projection-overloads/main.slang),
+[default tails](../tests/conformance/positive/interface-projection-default-tails/main.slang),
+and [projected operations](../tests/conformance/positive/interface-projection-operations/main.slang).
 
 Trailing input defaults on requirements belong to the interface declaration.
 For example, `int read(int input = 3)` passes `3` through a constrained call
@@ -1081,9 +1101,12 @@ See [inherited dispatch](../tests/conformance/positive/interface-default-dispatc
 
 Unrelated interfaces can supply separate default witnesses for the same method.
 Calls under each individual constraint select its own witness; an ordinary call
-or a call under their combined constraints is ambiguous. Concrete methods hide
-inherited default members by name. A compatible same-name concrete method is
-selected ahead of the default body, including when it needs a signature adapter.
+or a call under their combined constraints is ambiguous unless an accessible
+matching concrete prefix hides the projected signatures. Derived requirements
+shadow matching base signatures only where the derived requirement is visible;
+an internal derived requirement leaves a public base projection available to
+external callers. A compatible same-name concrete method is selected as the
+implementation ahead of the default body, including when it needs an adapter.
 The concrete method must declare `override`; this is checked independently for
 each adapted requirement, including overloaded generated functions.
 Internal defaults retain declaration-module access for both ordinary and opaque
@@ -1093,7 +1116,7 @@ both upstream Slang and this compiler.
 
 This implementation covers direct signatures and the method adaptations above.
 Generic method requirements, associated types, extensions, constructor witness
-adaptation, adding or dropping parameters through implementation defaults,
+adaptation,
 other static/instance adaptations, `where` constraints, operator/conversion
 constraints, complete constrained ranking and runtime dispatch remain unsupported. Interface existential variables,
 parameters, results and aggregate/resource storage report `T001`. Inheritance is

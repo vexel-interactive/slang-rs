@@ -150,6 +150,14 @@ impl Checker {
     }
 
     pub(crate) fn check_constraint_defaults(&mut self, binding: &ConstraintCallInfo) {
+        // Resolve the validated call's types before entering the declaration
+        // module, which need not be able to name a private caller-owned type.
+        let types: Vec<_> = binding
+            .requirement
+            .parameters
+            .iter()
+            .map(|parameter| self.resolve_type(&parameter.ty))
+            .collect();
         let module = self.current_module;
         let current_type = self.current_type.take();
         let static_type = self.current_static_type.take();
@@ -159,8 +167,7 @@ impl Checker {
         self.current_static_type = Some(binding.owner.name.clone());
         let mut parameters = BTreeMap::new();
 
-        for parameter in &binding.requirement.parameters {
-            let ty = self.resolve_type(&parameter.ty);
+        for (parameter, ty) in binding.requirement.parameters.iter().zip(types) {
             parameters.insert(
                 parameter.name.clone(),
                 Binding {

@@ -1,5 +1,6 @@
 //! Nominal interface inheritance and direct method requirement signatures.
 
+mod projection;
 pub(crate) mod witness;
 
 pub(crate) struct MethodAdaptation {
@@ -95,7 +96,8 @@ impl Checker {
             if !signature.defined
                 || signature.generic
                 || (target_static != method.is_static && !receiver_adaptation)
-                || parameters.len() != signature.parameters.len()
+                || parameters.len() > signature.parameters.len()
+                || signature.defaults[parameters.len()..].iter().any(Option::is_none)
                 || !parameters.iter().zip(&signature.parameters).all(|(a, b)| a.convertible_to(b))
             {
                 continue;

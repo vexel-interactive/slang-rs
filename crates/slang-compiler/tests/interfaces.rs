@@ -546,15 +546,13 @@ fn imported_constraints_resolve_requirements_and_private_caller_types() {
         &includes,
     )
     .unwrap();
-    let error = compile_source(
+    compile_source(
         "main.slang",
         "module main;import lib;int run(){Item item;return item.read();}",
         &CompileOptions::default(),
         &includes,
     )
-    .unwrap_err();
-
-    assert!(error.diagnostics.iter().any(|d| d.code == "T014"), "{error}");
+    .unwrap();
 }
 
 #[test]

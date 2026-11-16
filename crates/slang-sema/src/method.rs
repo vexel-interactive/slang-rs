@@ -43,29 +43,44 @@ impl Checker {
         let constrained = self.constraint_call_signature(callee.id, &owner);
         let mut matches: Vec<_> = if let Some(signature) = constrained {
             match signature {
-                Ok(signature) => vec![signature],
+                Ok(signature) => vec![(signature, None)],
                 Err(()) => return Some(Type::Error),
             }
         } else {
-            self.functions[&function]
+            let visible: Vec<_> = self.functions[&function]
                 .iter()
                 .filter(|signature| {
                     let method = signature.method.as_ref().unwrap();
-                    let offset = usize::from(!method.is_static);
-                    let parameters = &signature.parameters[offset..];
                     (!type_receiver || method.is_static)
                         && (signature.public
                             || signature.module == self.current_module
                             || self.constraint_witness_access(signature, &owner, span))
-                        && types.len() <= parameters.len()
-                        && signature.defaults[offset + types.len()..].iter().all(Option::is_some)
-                        && types
-                            .iter()
-                            .zip(parameters)
-                            .all(|(a, b)| *a == Type::InitializerList || a.convertible_to(b))
                 })
                 .cloned()
-                .collect()
+                .collect();
+            let viable = |signature: &Signature| {
+                let offset = usize::from(!signature.method.as_ref().unwrap().is_static);
+                let parameters = &signature.parameters[offset..];
+                types.len() <= parameters.len()
+                    && signature.defaults[offset + types.len()..].iter().all(Option::is_some)
+                    && types
+                        .iter()
+                        .zip(parameters)
+                        .all(|(a, b)| *a == Type::InitializerList || a.convertible_to(b))
+            };
+            let mut matches: Vec<_> = visible
+                .iter()
+                .filter(|signature| viable(signature))
+                .cloned()
+                .map(|signature| (signature, None))
+                .collect();
+            matches.extend(
+                self.projected_interface_methods(&owner, name, &visible, type_receiver, span)
+                    .into_iter()
+                    .filter(|(signature, _)| viable(signature))
+                    .map(|(signature, binding)| (signature, Some(binding))),
+            );
+            matches
         };
 
         let score = |signature: &Signature| {
@@ -81,8 +96,8 @@ impl Checker {
             (conversions, signature.default_type_arguments, signature.generic)
         };
 
-        matches.sort_by_key(score);
-        let Some(best) = matches.first() else {
+        matches.sort_by_key(|(signature, _)| score(signature));
+        let Some((best, binding)) = matches.first() else {
             self.error(
                 "T014",
                 span,
@@ -91,7 +106,7 @@ impl Checker {
             return Some(Type::Error);
         };
 
-        if matches.get(1).is_some_and(|s| score(s) == score(best)) {
+        if matches.get(1).is_some_and(|(s, _)| score(s) == score(best)) {
             self.error(
                 "T014",
                 span,
@@ -102,6 +117,11 @@ impl Checker {
 
         if !best.defined {
             self.error("T014", span, "method has no definition");
+        }
+
+        if let Some(binding) = binding {
+            self.constraint_calls.insert(callee.id, binding.clone());
+            self.check_constraint_defaults(binding);
         }
 
         let mut supplied = arguments.to_vec();
