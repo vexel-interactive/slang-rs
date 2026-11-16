@@ -291,9 +291,7 @@ impl Processor<'_> {
                         }
                     }
 
-                    "pragma" if args.len() == 1 && args[0].is("once") => {
-                        self.once.insert(file.name.clone());
-                    }
+                    "pragma" => self.pragma(args, span, &file.name),
                     "error" | "warning" => {
                         let message =
                             args.iter().map(|t| t.text.as_str()).collect::<Vec<_>>().join(" ");
@@ -326,6 +324,31 @@ impl Processor<'_> {
 
     fn error(&mut self, span: Span, message: impl Into<String>) {
         self.diagnostics.push(Diagnostic::error("P002", span, message));
+    }
+
+    fn pragma(&mut self, args: &[Token], span: Span, file: &str) {
+        let Some(name) = args.first().filter(|t| t.kind == TokenKind::Identifier) else {
+            self.error(span, "expected a name after #pragma");
+            return;
+        };
+
+        // Pragma names and unknown payloads remain raw, even when they name macros.
+        match name.text.as_str() {
+            "once" => {
+                self.once.insert(file.to_owned());
+
+                if let Some(extra) = args.get(1) {
+                    self.error(extra.span, "unexpected tokens after #pragma once");
+                }
+            }
+
+            "warning" => self.error(name.span, "#pragma warning has not been implemented"),
+            _ => self.diagnostics.push(Diagnostic::warning(
+                "P011",
+                name.span,
+                format!("ignoring unknown directive '#pragma {}'", name.text),
+            )),
+        }
     }
 
     fn expand(&mut self, tokens: &[Token]) -> Vec<Token> {
@@ -559,5 +582,64 @@ mod tests {
         ] {
             assert!(!run(text).diagnostics.is_empty(), "{text}");
         }
+    }
+
+    #[test]
+    fn unknown_pragmas_warn_without_expanding_names_or_payloads() {
+        let source = "#define NAME once\n#define BAD(a,b) a+b\n#pragma NAME\n#pragma custom BAD(1)\n#define VALUE 7\nVALUE";
+        let result = run(source);
+        let mut sources = SourceMap::default();
+        let id = sources.add("test", source);
+
+        assert_eq!(result.diagnostics.len(), 2);
+
+        for (diagnostic, name, line) in
+            [(&result.diagnostics[0], "NAME", 3), (&result.diagnostics[1], "custom", 4)]
+        {
+            assert_eq!(diagnostic.code, "P011");
+            assert_eq!(diagnostic.severity, Severity::Warning);
+            assert_eq!(diagnostic.message, format!("ignoring unknown directive '#pragma {name}'"));
+            assert_eq!(sources.get(id).unwrap().location(diagnostic.span.start), (line, 9));
+        }
+
+        assert_eq!(result.tokens[0].text, "7");
+    }
+
+    #[test]
+    fn pragma_names_and_once_tails_are_validated() {
+        for source in ["#pragma", "#pragma 123", "#pragma (once)"] {
+            let result = run(source);
+
+            assert_eq!(result.diagnostics.len(), 1);
+            assert_eq!(result.diagnostics[0].code, "P002");
+            assert_eq!(result.diagnostics[0].message, "expected a name after #pragma");
+            assert_eq!(result.diagnostics[0].span.start, 1);
+        }
+
+        for source in ["#pragma once trailing", "#define EMPTY\n#pragma once EMPTY"] {
+            let result = run(source);
+
+            assert_eq!(result.diagnostics.len(), 1);
+            assert_eq!(result.diagnostics[0].code, "P002");
+            assert_eq!(result.diagnostics[0].severity, Severity::Error);
+            assert_eq!(result.diagnostics[0].message, "unexpected tokens after #pragma once");
+        }
+
+        assert!(run("#pragma once /* comment */").diagnostics.is_empty());
+    }
+
+    #[test]
+    fn inactive_pragmas_are_ignored_and_known_warning_controls_report_the_limit() {
+        let result =
+            run("#if 0\n#pragma\n#pragma 123\n#pragma custom\n#pragma warning(push)\n#endif\n1");
+
+        assert!(result.diagnostics.is_empty(), "{:?}", result.diagnostics);
+        assert_eq!(result.tokens[0].text, "1");
+        let result = run("#pragma warning(push)");
+
+        assert_eq!(result.diagnostics.len(), 1);
+        assert_eq!(result.diagnostics[0].code, "P002");
+        assert_eq!(result.diagnostics[0].severity, Severity::Error);
+        assert_eq!(result.diagnostics[0].message, "#pragma warning has not been implemented");
     }
 }

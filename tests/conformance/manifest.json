@@ -10249,6 +10249,51 @@
       ]
     },
     {
+      "file": "positive/unknown-pragmas.slang",
+      "accept": true,
+      "entry": "main",
+      "rust_warning": "P011",
+      "rust_stderr_contains": [
+        "#pragma NAME",
+        "#pragma custom"
+      ],
+      "oracle_stderr_contains": [
+        "E15601",
+        "#pragma NAME",
+        "#pragma custom"
+      ],
+      "dxc_constant_stores": {
+        "0": 7
+      }
+    },
+    {
+      "file": "negative/pragma-missing-name.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "P002",
+      "oracle_stderr_contains": [
+        "E15600"
+      ]
+    },
+    {
+      "file": "negative/pragma-numeric-name.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "P002",
+      "oracle_stderr_contains": [
+        "E15600"
+      ]
+    },
+    {
+      "file": "negative/pragma-once-trailing.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "P002",
+      "oracle_stderr_contains": [
+        "E15103"
+      ]
+    },
+    {
       "file": "negative/nested-interface.slang",
       "accept": false,
       "entry": "main",
