@@ -495,14 +495,22 @@ impl Lowerer<'_> {
                 }
                 // Intrinsic and resource signatures can infer a wider input type
                 // from output parameters. Preserve that choice in target code.
+                // Output arguments retain their checked writable locations.
                 if !self.checked.call_names.contains_key(&callee.id)
                     && let Some(Type::Callable {
                         parameters,
                         ..
                     }) = self.checked.expression_types.get(&callee.id)
                 {
-                    for (argument, target) in arguments.iter_mut().zip(parameters) {
-                        if &argument.ty != target {
+                    for (index, (argument, target)) in
+                        arguments.iter_mut().zip(parameters).enumerate()
+                    {
+                        let output = self
+                            .checked
+                            .call_output_parameters
+                            .get(&span_key(expression.span))
+                            .is_some_and(|(_, outputs)| outputs.get(index) == Some(&true));
+                        if !output && &argument.ty != target {
                             *argument = Expr {
                                 ty: target.clone(),
                                 span: argument.span,

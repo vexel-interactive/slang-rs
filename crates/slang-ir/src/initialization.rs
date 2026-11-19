@@ -319,6 +319,12 @@ impl Lowerer {
                 Self::field(
                     path,
                     value,
+                    field
+                        .modifiers
+                        .iter()
+                        .rev()
+                        .find(|m| matches!(m.as_str(), "row_major" | "column_major"))
+                        .map(String::as_str),
                     initialize_zero,
                     &mut parameters,
                     &mut arguments,
@@ -392,6 +398,7 @@ impl Lowerer {
     fn field(
         path: Expr,
         value: &Expr,
+        matrix_major: Option<&str>,
         initialize_zero: bool,
         parameters: &mut Vec<Variable>,
         arguments: &mut Vec<Expr>,
@@ -425,7 +432,15 @@ impl Lowerer {
                     span: value.span,
                 };
 
-                Self::field(child, value, initialize_zero, parameters, arguments, statements)?;
+                Self::field(
+                    child,
+                    value,
+                    matrix_major,
+                    initialize_zero,
+                    parameters,
+                    arguments,
+                    statements,
+                )?;
             }
 
             return Ok(());
@@ -464,7 +479,9 @@ impl Lowerer {
         parameters.push(Variable {
             name: name.clone(),
             ty: value.ty.clone(),
-            modifiers: vec![],
+            // DXC array copies preserve logical matrix components only when
+            // the parameter and destination use the same storage order.
+            modifiers: matrix_major.map(str::to_owned).into_iter().collect(),
             semantic: None,
             binding: None,
             uniform_layout: None,

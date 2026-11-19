@@ -20,7 +20,16 @@ fn byte_buffers_preserve_widths_atomic_outputs_and_reflection() {
     let code = compiled.artifact.unwrap();
 
     assert!(code.contains("uint4 values = (input).Load4(0u)"));
-    assert!(code.contains("(output).InterlockedAdd(16u, byteCount, original)"));
+    let atomic = code.lines().find(|line| line.contains(".InterlockedAdd(")).unwrap().trim();
+    let (receiver, arguments) = atomic.split_once(".InterlockedAdd(").unwrap();
+    let receiver = receiver.strip_prefix('(').unwrap().strip_suffix(')').unwrap();
+    let arguments: Vec<_> = arguments.strip_suffix(");").unwrap().split(", ").collect();
+    assert_eq!(arguments.len(), 3);
+    assert_eq!(arguments[0], "16u");
+    assert_eq!(arguments[2], "original");
+    let captures = code.split_once(atomic).unwrap().0;
+    assert!(captures.contains(&format!("({receiver} = output);")), "{code}");
+    assert!(captures.contains(&format!("({} = byteCount);", arguments[1])), "{code}");
 
     for (source, code) in [
         ("ByteAddressBuffer data;void run(){data.Store(0u,1u);}", "T014"),

@@ -334,6 +334,12 @@ impl Checker {
             );
             return Type::Error;
         };
+        let raw_atomic = matches!(
+            receiver,
+            Type::ByteBuffer {
+                writable: true
+            }
+        ) && name.starts_with("Interlocked");
 
         self.call_output_parameters.insert(
             crate::span_key(span),
@@ -357,7 +363,11 @@ impl Checker {
 
                 self.require_writable(argument);
 
-                if actual != expected {
+                if actual != expected
+                    && !(raw_atomic
+                        && *actual == Type::Scalar(Scalar::Int)
+                        && *expected == Type::Scalar(Scalar::Uint))
+                {
                     self.error(
                         "T014",
                         argument.span,
@@ -365,7 +375,24 @@ impl Checker {
                     );
                 }
             } else {
-                self.coerce_value(argument, expected);
+                if raw_atomic && self.coerce_byte_atomic_list(argument) {
+                    continue;
+                }
+                if raw_atomic && !matches!(actual, Type::Scalar(_) | Type::Vector(Scalar::Uint, 1))
+                {
+                    self.error("T008", argument.span, format!("cannot convert {actual} to uint"));
+                } else if raw_atomic && *actual == Type::Scalar(Scalar::Bool) {
+                    // Raw word overloads promote bool independently of ordinary
+                    // implicit numeric conversion eligibility.
+                    if matches!(
+                        self.expression_types.get(&argument.id),
+                        Some(Type::ConstantBuffer { .. })
+                    ) {
+                        self.constant_buffer_loads.insert(argument.id);
+                    }
+                } else {
+                    self.coerce_value(argument, expected);
+                }
             }
         }
 
@@ -490,19 +517,30 @@ fn byte_buffer(name: &str, types: &[Type], writable: bool) -> Option<Method> {
     }
 
     if writable {
+        if name == "InterlockedCompareStore" {
+            return (types.len() == 3).then_some(Method {
+                parameters: vec![uint; 3],
+                output_start: 3,
+                result: Type::Void,
+            });
+        }
         let inputs = match name {
             "InterlockedAdd"
             | "InterlockedAnd"
             | "InterlockedOr"
             | "InterlockedXor"
+            | "InterlockedMin"
+            | "InterlockedMax"
             | "InterlockedExchange" => 2,
             "InterlockedCompareExchange" => 3,
             _ => return None,
         };
 
-        if types.len() == inputs + 1 {
+        if types.len() == inputs + 1
+            || (name != "InterlockedCompareExchange" && types.len() == inputs)
+        {
             return Some(Method {
-                parameters: vec![uint; inputs + 1],
+                parameters: vec![uint; types.len()],
                 output_start: inputs,
                 result: Type::Void,
             });

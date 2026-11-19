@@ -2,6 +2,7 @@
 
 mod alias;
 mod binding;
+mod byte_atomic_initializer;
 mod call;
 mod capability;
 mod checker;

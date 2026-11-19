@@ -10811,6 +10811,235 @@
         "0": 5,
         "1": 6
       }
+    },
+    {
+      "file": "positive/byte-buffer-atomics.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "positive/byte-buffer-atomic-program.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_integer_stores": {
+        "0": 4294967294,
+        "1": 4294967294,
+        "2": 4294967294,
+        "3": 4294967294,
+        "4": 4294967294,
+        "5": 1,
+        "6": 1,
+        "7": 0,
+        "8": 0,
+        "9": 9,
+        "10": 9,
+        "11": 10,
+        "12": 10,
+        "13": 23,
+        "14": 37,
+        "15": 37,
+        "16": 37,
+        "17": 41,
+        "18": 41,
+        "19": 41,
+        "20": 8,
+        "21": 12,
+        "22": 2147483649,
+        "23": 4,
+        "24": 4,
+        "25": 4,
+        "26": 2147483650,
+        "27": 1234,
+        "28": 3,
+        "29": 7,
+        "30": 12,
+        "31": 4294901760,
+        "32": 0,
+        "33": 32,
+        "34": 123,
+        "35": 10,
+        "36": 15,
+        "37": 123,
+        "38": 20
+      },
+      "dxc_raw_uav_bytes": {
+        "0": 20
+      }
+    },
+    {
+      "file": "positive/byte-buffer-atomic-program.slang",
+      "accept": true,
+      "entry": "main",
+      "profile": "cs_6_2",
+      "compile_profile": "cs_6_2",
+      "native_16bit_types": true,
+      "dxc_integer_stores": {
+        "0": 4294967294,
+        "1": 4294967294,
+        "2": 4294967294,
+        "3": 4294967294,
+        "4": 4294967294,
+        "5": 1,
+        "6": 1,
+        "7": 0,
+        "8": 0,
+        "9": 9,
+        "10": 9,
+        "11": 10,
+        "12": 10,
+        "13": 23,
+        "14": 37,
+        "15": 37,
+        "16": 37,
+        "17": 41,
+        "18": 41,
+        "19": 41,
+        "20": 8,
+        "21": 12,
+        "22": 2147483649,
+        "23": 4,
+        "24": 4,
+        "25": 4,
+        "26": 2147483650,
+        "27": 1234,
+        "28": 3,
+        "29": 7,
+        "30": 12,
+        "31": 4294901760,
+        "32": 0,
+        "33": 32,
+        "34": 123,
+        "35": 10,
+        "36": 15,
+        "37": 123,
+        "38": 20
+      },
+      "dxc_raw_uav_bytes": {
+        "0": 20
+      }
+    },
+    {
+      "file": "positive/byte-buffer-atomic-fragment.slang",
+      "accept": true,
+      "entry": "main",
+      "profile": "ps_6_0"
+    },
+    {
+      "file": "positive/byte-buffer-atomic-exchange-discard.slang",
+      "accept": true,
+      "entry": "main",
+      "oracle_validation_accept": false,
+      "reason": "Slang 2026.21 accepts discarded raw Exchange but emits a two-argument HLSL method that DXC rejects; native lowering supplies private uint scratch output."
+    },
+    {
+      "file": "positive/byte-buffer-atomic-exchange-word.slang",
+      "accept": true,
+      "entry": "main",
+      "oracle_validation_accept": false,
+      "reason": "Slang 2026.21 accepts discarded raw Exchange but emits a two-argument HLSL method that DXC rejects; native lowering supplies private uint scratch output."
+    },
+    {
+      "file": "negative/byte-buffer-atomic-readonly.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014",
+      "oracle_stderr_contains": [
+        "E30027"
+      ]
+    },
+    {
+      "file": "negative/byte-buffer-atomic-output-type.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014",
+      "oracle_stderr_contains": [
+        "E30063"
+      ]
+    },
+    {
+      "file": "negative/byte-buffer-atomic-output-vector.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014",
+      "oracle_stderr_contains": [
+        "E30063"
+      ]
+    },
+    {
+      "file": "negative/byte-buffer-atomic-output-let.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T015",
+      "oracle_stderr_contains": [
+        "E30047"
+      ]
+    },
+    {
+      "file": "negative/byte-buffer-atomic-compare-arity.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T014",
+      "oracle_stderr_contains": [
+        "E39999"
+      ]
+    },
+    {
+      "file": "negative/byte-buffer-atomic-input-shape.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T008",
+      "oracle_stderr_contains": [
+        "E30019"
+      ]
+    },
+    {
+      "file": "positive/byte-buffer-atomic-contextual.slang",
+      "accept": true,
+      "entry": "main"
+    },
+    {
+      "file": "negative/byte-buffer-atomic-initializer-count.slang",
+      "accept": false,
+      "entry": "main",
+      "rust_code": "T021",
+      "oracle_stderr_contains": [
+        "E30523"
+      ]
+    },
+    {
+      "file": "positive/byte-buffer-atomic-global-order.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_integer_stores": {
+        "0": 123,
+        "1": 12,
+        "2": 0,
+        "3": 0
+      },
+      "oracle_dxc_integer_stores": {
+        "0": 0,
+        "1": 7,
+        "2": 0,
+        "3": 0
+      },
+      "dxc_raw_uav_bytes": {
+        "0": 4
+      },
+      "reason": "Slang 2026.21 drops the direct global comma-expression atomic initializer; exact separate compiled goldens preserve this difference. Native global effects retain source argument order."
+    },
+    {
+      "file": "positive/byte-buffer-atomic-global-matrix-array.slang",
+      "accept": true,
+      "entry": "main",
+      "dxc_integer_stores": {
+        "0": 4,
+        "1": 9,
+        "2": 123,
+        "3": 12
+      },
+      "dxc_raw_uav_bytes": {
+        "0": 4
+      }
     }
   ]
 }

@@ -291,6 +291,45 @@ layout or execution parity. The
 checks the separate native mode. No raw-buffer GPU execution comparison has
 been performed.
 
+## Raw buffer atomic operations
+
+`RWByteAddressBuffer` provides the following 32-bit word operations:
+
+| Methods | Arguments |
+| --- | --- |
+| `InterlockedAdd`, `InterlockedAnd`, `InterlockedOr`, `InterlockedXor`, `InterlockedMin`, `InterlockedMax`, `InterlockedExchange` | `address, value[, out original]` |
+| `InterlockedCompareStore` | `address, comparison, value` |
+| `InterlockedCompareExchange` | `address, comparison, value, out original` |
+
+Address, input and comparison values convert to `uint`. Numeric scalars and
+`uint1` inputs are accepted. Other one-component vectors require an explicit
+scalar conversion; wider vectors must select a scalar component. Contextual
+scalar brace initializers also work. An old-value output
+must be a writable scalar `uint` or `int`; signed outputs retain the original
+word's bits. Fields, array elements, scalar vector/matrix components, groupshared
+locations and RW resource elements preserve their output location. Min/Max use
+unsigned comparisons even when inputs or outputs use signed source types.
+Receiver, input operands and output coordinates are evaluated once in source
+order. A read-only raw buffer has no atomic methods.
+
+These calls do not imply a memory barrier. Raw atomic addresses need physical
+word alignment, but the frontend follows upstream in accepting misaligned
+constant addresses. Typed access alignment promises are separate. Resource
+bounds, concurrency and complete target capabilities remain unverified.
+
+HLSL requires an output for Exchange. When source code discards it, native
+lowering supplies private per-invocation `uint` storage, including global and
+field initializer calls. This storage avoids source name collisions and does
+not appear in source reflection. Slang 2026.21 accepts discarded Exchange but
+emits a two-argument HLSL method that DXC rejects; that artifact difference is
+explicitly recorded in the corpus.
+
+The [atomic word program](../tests/conformance/positive/byte-buffer-atomic-program.slang)
+initializes its raw words and checks old values, updates and argument effects
+through bounded interpretation of both compilers' integer DXIL. This models one
+invocation with explicit byte bounds, without establishing concurrent GPU
+execution parity. Floating-point and 64-bit raw atomics remain unsupported.
+
 ## Current limits
 
 Vulkan binding attributes, packed constant-buffer handle arrays,

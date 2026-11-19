@@ -476,12 +476,14 @@ def main():
                         )
                         try:
                             validation["integer_stores_actual"] = interpret_integer_stores(
-                                dump["stdout"], case["entry"]
+                                dump["stdout"],
+                                case["entry"],
+                                raw_uav_bytes=case.get("dxc_raw_uav_bytes"),
                             )
-                            validation["integer_stores_passed"] = (
-                                dump["accepted"]
-                                and validation["integer_stores_actual"]
-                                == case["dxc_integer_stores"]
+                            validation["integer_stores_passed"] = dump["accepted"] and validation[
+                                "integer_stores_actual"
+                            ] == case.get(
+                                f"{compiler}_dxc_integer_stores", case["dxc_integer_stores"]
                             )
                         except ValueError as error:
                             validation["integer_stores_error"] = str(error)

@@ -478,6 +478,17 @@ or ambiguous stores fail these checks. The rounding and boundary fixtures check
 29 stored words against expected IEEE values in both compilers' artifacts;
 native fixtures require the same values. This verifies emitted constants,
 including subnormals and negative zero, without claiming GPU execution.
+An optional `dxc_integer_stores` map checks final output words through bounded
+interpretation of compiled integer DXIL, including branches, loops and phi
+arguments. Resource reads require an explicit `dxc_raw_uav_bytes` map from
+decimal space-zero UAV registers to byte sizes, for example `{"0": 20}`.
+Raw probes require exactly those single raw UAV bindings and one structured
+four-byte output UAV. They support scalar 32-bit loads, stores and atomics for
+one sequential invocation. Uninitialized reads, invalid alignment or bounds,
+undefined observed operands and unsupported instructions fail the comparison.
+An `oracle_dxc_integer_stores` map records an exact upstream word difference
+while retaining both compiled checks.
+The native HLSL runner supports the same word maps and raw byte contracts.
 An optional `bindings` map specifies expected direct resource ranges by source
 name. The runner requests JSON reflection from both compilers, normalizes the
 four range fields, and requires every named range to match. Native origin flags
@@ -917,8 +928,8 @@ The private caller-owned type fixture also checks ordinary, generic-interface
 and first-`This` static projections. Requirement parameter types resolve in the
 caller context before default expressions enter their declaration module. The
 former cross-module projection limitation fixture now succeeds in both compilers.
-The full release corpus passes 856 expected cases, the native HLSL suite validates
-235 artifacts, and workspace and Python tests pass 647 and 34 cases respectively.
+The full release corpus passes 871 expected cases, the native HLSL suite validates
+243 artifacts, and workspace and Python tests pass 663 and 41 cases respectively.
 
 ## Modern declarations and typed raw storage
 
@@ -949,6 +960,38 @@ retry writes, plus native 16-bit raw operations. The legacy half oracle artifact
 widens its physical storage, so that case compares acceptance and HLSL validity.
 Negative fixtures force their loads to remain live and verify upstream alignment
 diagnostics. Compiled instruction and layout checks do not run shaders on a GPU.
+
+Raw atomic regressions add seventeen compiler integration tests, sixteen
+differential cases and nine native HLSL cases. They cover every supported
+32-bit operation, optional outputs, unsigned Min/Max with signed old-value
+locations, compare-store/exchange, scalar conversions, contextual nested braces,
+read-only destinations, invalid input shapes and exact output arity. The
+[word program](../tests/conformance/positive/byte-buffer-atomic-program.slang)
+compares 39 words in each of legacy and native 16-bit modes; all 78 shared words
+match. Receiver, address, value and output-index effects occur once in source
+order, including scalar vector/matrix locations and structured UAV output.
+Generated half-store CAS helpers retain the output word used by their retry
+condition.
+
+The [global initializer fixture](../tests/conformance/positive/byte-buffer-atomic-global-order.slang)
+checks four more words. Native initializer functions preserve argument order
+and the raw update. Two words differ because Slang 2026.21 drops the atomic
+inside the direct global comma initializer; separate exact goldens retain this
+observation. Scalar and fixed-array initializer regressions keep capture
+storage in generated functions and preserve array result wrapping.
+The [matrix-array fixture](../tests/conformance/positive/byte-buffer-atomic-global-matrix-array.slang)
+compares four matching words. Generated constructor parameters retain the
+destination field's matrix storage order when copying arrays. Integration
+regressions check both row-major and column-major global matrix arrays.
+
+Discarded Exchange cases check private scratch storage, name collisions and
+global/field initializer calls. Slang 2026.21 accepts them but emits a
+two-argument HLSL Exchange that DXC rejects. Native artifacts remain valid;
+the [discarded word fixture](../tests/conformance/positive/byte-buffer-atomic-exchange-word.slang)
+checks the final word and argument trace independently. Seven raw-memory Python
+tests exercise resource ID/register validation, every atomic opcode, loop phi
+transfers and rejected memory/metadata contracts. These compiled checks model
+one invocation; they do not validate GPU concurrency or memory ordering.
 
 
 Constructor signature adapters add fifteen integration tests and fourteen

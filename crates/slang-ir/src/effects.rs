@@ -34,6 +34,48 @@ pub(crate) fn lower(module: &mut Module, checked: &CheckedModule) -> Result<(), 
         checked,
     };
 
+    // Global initializers need the same evaluation boundaries as function
+    // bodies. Keep their captures in a function's private storage.
+    let mut initializers = vec![];
+    for global in &mut module.globals {
+        let Some(value) = &mut global.initializer else {
+            continue;
+        };
+        let mut statements = lowerer.value(value)?;
+        if statements.is_empty() {
+            continue;
+        }
+        let mut body = std::mem::take(&mut lowerer.declarations);
+        body.append(&mut statements);
+        body.push(Stmt {
+            kind: StmtKind::Return(Some(value.clone())),
+            span: value.span,
+        });
+        let name = format!("{}global_init_{}", lowerer.prefix, initializers.len());
+        initializers.push(Function {
+            name: name.clone(),
+            return_type: value.ty.clone(),
+            parameters: vec![],
+            modifiers: global
+                .modifiers
+                .iter()
+                .filter(|modifier| matches!(modifier.as_str(), "row_major" | "column_major"))
+                .cloned()
+                .collect(),
+            semantic: None,
+            body: Some(block(body, value.span)),
+            span: value.span,
+        });
+        value.kind = ExprKind::Call {
+            name,
+            arguments: vec![],
+        };
+    }
+    if !initializers.is_empty() {
+        module.functions.extend(initializers);
+        crate::array_result::lower(module)?;
+    }
+
     for function in &mut module.functions {
         if let Some(body) = &mut function.body {
             lowerer.statement(body)?;
@@ -286,6 +328,39 @@ impl Lowerer<'_> {
             } => {
                 let mut prefix = self.value(receiver)?;
                 let outputs = self.outputs(name, span, arguments.len(), false);
+                // Generated raw-buffer helpers have no checked source call.
+                let raw_output_start = match name.as_str() {
+                    "InterlockedAdd"
+                    | "InterlockedAnd"
+                    | "InterlockedOr"
+                    | "InterlockedXor"
+                    | "InterlockedMin"
+                    | "InterlockedMax"
+                    | "InterlockedExchange" => Some(2),
+                    "InterlockedCompareExchange" => Some(3),
+                    "InterlockedCompareStore" => Some(usize::MAX),
+                    _ => None,
+                };
+                if matches!(
+                    receiver.ty,
+                    Type::ByteBuffer {
+                        writable: true
+                    }
+                ) && let Some(output_start) = raw_output_start
+                {
+                    // HLSL raw methods may reorder inputs and evaluate output
+                    // coordinates again on copy-out. Capture the source order.
+                    self.save(receiver, &mut prefix);
+                    for (index, argument) in arguments.iter_mut().enumerate() {
+                        if index >= output_start {
+                            prefix.extend(self.location(argument, true)?);
+                        } else {
+                            prefix.extend(self.value(argument)?);
+                            self.save(argument, &mut prefix);
+                        }
+                    }
+                    return Ok(prefix);
+                }
                 let mut argument_prefix = self.arguments(arguments, &outputs, false)?;
 
                 if !argument_prefix.is_empty() {

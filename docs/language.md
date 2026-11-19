@@ -1422,14 +1422,19 @@ Byte-address buffers support `Load`, `Load2`, `Load3`, and `Load4`, returning
 one to four `uint` components. Writable buffers provide matching `Store` methods.
 `GetDimensions` returns the byte count through a writable `uint` argument.
 `InterlockedAdd`, `InterlockedAnd`, `InterlockedOr`, `InterlockedXor`,
-`InterlockedExchange`, and `InterlockedCompareExchange` support writable buffers
-with an explicit `uint` original-value output. Addresses are byte offsets;
-these signatures follow native HLSL methods.
+`InterlockedMin`, `InterlockedMax`, and `InterlockedExchange` support writable
+buffers with an optional original-value output. `InterlockedCompareExchange`
+requires that output; `InterlockedCompareStore` has no output. Old-value locations
+can be scalar `uint` or `int`, preserving their 32-bit bits. Addresses are byte
+offsets and all operations use unsigned words, including Min/Max with signed
+inputs or outputs. See [resources.md](resources.md#raw-buffer-atomic-operations)
+for exact signatures and conversions.
 
-Typed generic loads/stores, status outputs, optional atomic outputs, min/max and
-64-bit atomics, and atomics on other resource families remain unimplemented.
-The frontend does not prove byte-offset alignment, resource size, memory ordering,
-or target capabilities.
+Typed generic loads and inferred stores use the natural byte layouts described
+in [resources.md](resources.md#typed-byte-address-buffers). Status outputs,
+floating-point/64-bit atomics and atomic methods on other resource families remain
+unimplemented. The frontend does not prove raw atomic byte-offset alignment,
+resource size, memory ordering or complete target capabilities.
 
 Read-only textures support indexed loads at mip zero, except cube textures.
 Read-write textures support indexed reads and writes. Coordinates have one, two,

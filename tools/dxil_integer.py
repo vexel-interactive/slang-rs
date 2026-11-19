@@ -1,12 +1,14 @@
 """Bounded interpretation of the integer-only DXIL used by control-flow probes.
 
 This is an independent check of DXC's compiled instructions, not GPU execution
-or a general DXIL runtime. Resource reads, floating operations, pointers, and
-unsupported instructions fail explicitly. Undefined values may travel through
+or a general DXIL runtime. Resource reads require explicit raw-word contracts;
+floating operations, pointers, and unsupported instructions fail explicitly.
+Undefined values may travel through
 unselected SSA paths but cannot control a branch or reach an observed store.
 """
 
 import re
+from dxil_memory import RawUavMemory
 
 UNDEFINED = object()
 NAME = r"%[-\w.$]+"
@@ -19,8 +21,9 @@ def signed(value, width):
     return value - (1 << width) if value & sign else value
 
 
-def interpret_integer_stores(dump, entry="main", max_steps=100_000):
-    """Return the final scalar uint values of the single supported structured UAV."""
+def interpret_integer_stores(dump, entry="main", max_steps=100_000, raw_uav_bytes=None):
+    """Return scalar word stores, optionally interpreting contracted raw UAVs."""
+    memory = RawUavMemory(dump, raw_uav_bytes) if raw_uav_bytes is not None else None
     function = re.search(
         rf"^define void @{re.escape(entry)}\(\)\s*\{{\n(.*?)^\}}", dump, re.M | re.S
     )
@@ -133,6 +136,8 @@ def interpret_integer_stores(dump, entry="main", max_steps=100_000):
                     raise ValueError("duplicate DXIL switch value")
                 next_block = chosen[0] if chosen else default
                 break
+            if memory is not None and memory.step(instruction, values, observed, stores):
+                continue
             if match := re.fullmatch(
                 rf"({NAME}) = call %dx.types.Handle @dx.op.createHandle\(i32 57, i8 1, i32 (\d+), i32 (\d+), i1 false\)",
                 instruction,

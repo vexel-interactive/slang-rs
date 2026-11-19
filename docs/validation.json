@@ -6,23 +6,25 @@
     "rustfmt": "passed",
     "clippy_all_targets_warnings_denied": "passed",
     "unit_tests": 45,
-    "integration_tests": 601,
+    "integration_tests": 617,
     "doc_tests": 1,
     "conformance_comparison_tests": 27,
     "rustdoc": "passed",
     "release_build": "passed",
     "english_documentation_and_links": "passed",
     "dxil_integer_interpreter_tests": 7,
-    "python_black": "passed"
+    "python_black": "passed",
+    "dxil_raw_memory_interpreter_tests": 7,
+    "python_tests_total": 41
   },
   "differential_validation": {
     "oracle": "Slang 2026.21",
-    "cases_passed": 856,
-    "cases_total": 856,
-    "matching_acceptance_cases": 844,
+    "cases_passed": 871,
+    "cases_total": 871,
+    "matching_acceptance_cases": 859,
     "documented_oracle_differences": 12,
-    "dxc_hlsl_artifacts_validated": 872,
-    "dxc_invalid_hlsl_artifacts_rejected": 22,
+    "dxc_hlsl_artifacts_validated": 886,
+    "dxc_invalid_hlsl_artifacts_rejected": 24,
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
     "profiles": [
@@ -32,7 +34,7 @@
       "ps_6_0",
       "vs_6_0"
     ],
-    "documented_oracle_artifact_differences": 4,
+    "documented_oracle_artifact_differences": 6,
     "resource_binding_cases_compared": 41,
     "global_uniform_binding_cases_compared": 17,
     "uniform_byte_layout_cases_compared": 62,
@@ -44,18 +46,20 @@
     "documented_oracle_constant_words_differing": 14,
     "documented_oracle_constant_cases_differing": 6,
     "documented_oracle_uniform_reflection_differences": 1,
-    "integer_program_cases_compared": 1,
-    "integer_program_words_compared": 49,
-    "integer_program_words_matching": 49,
-    "integer_program_validation": "Bounded interpretation of compiled integer DXIL, not GPU execution",
+    "integer_program_cases_compared": 4,
+    "integer_program_words_compared": 131,
+    "integer_program_words_matching": 129,
+    "integer_program_validation": "Bounded sequential interpretation of compiled integer DXIL, with explicit raw UAV byte contracts; not GPU execution",
     "documented_shared_hlsl_artifact_limitations": 1,
-    "undefined_value_hlsl_artifact_regressions": 1
+    "undefined_value_hlsl_artifact_regressions": 1,
+    "documented_oracle_integer_words_differing": 2,
+    "documented_oracle_integer_cases_differing": 1
   },
   "remote_ci_executed": false,
   "remote_ci": null,
   "previous_remote_ci": {
-    "run_id": 43918542434,
-    "head_sha": "863abd4b17eec5573041b0e702d5d47ef902e24f",
+    "run_id": 43930495508,
+    "head_sha": "57f36744883875f659414fb746ef6e1b3bbccf41",
     "conclusion": "success",
     "platforms": [
       "ubuntu-latest",
@@ -685,6 +689,16 @@
         "windows-latest",
         "macos-latest"
       ]
+    },
+    {
+      "run_id": 43918542434,
+      "head_sha": "863abd4b17eec5573041b0e702d5d47ef902e24f",
+      "conclusion": "success",
+      "platforms": [
+        "ubuntu-latest",
+        "windows-latest",
+        "macos-latest"
+      ]
     }
   ],
   "additional_dxc_checks": [
@@ -709,7 +723,7 @@
   },
   "native_hlsl_suite": {
     "manifest": "tests/native/manifest.json",
-    "artifacts_validated": 235,
+    "artifacts_validated": 243,
     "profiles": [
       "cs_6_0",
       "cs_6_2",
@@ -952,13 +966,23 @@
       "../conformance/positive/modern-binding-global-order.slang",
       "../conformance/positive/modern-binding-global-effects.slang",
       "../conformance/positive/modern-binding-matrix-major.slang",
-      "../conformance/positive/modern-binding-global-static-helper.slang"
+      "../conformance/positive/modern-binding-global-static-helper.slang",
+      "../conformance/positive/byte-buffer-atomics.slang",
+      "../conformance/positive/byte-buffer-atomic-program.slang",
+      "../conformance/positive/byte-buffer-atomic-program.slang",
+      "../conformance/positive/byte-buffer-atomic-fragment.slang",
+      "../conformance/positive/byte-buffer-atomic-exchange-discard.slang",
+      "../conformance/positive/byte-buffer-atomic-exchange-word.slang",
+      "../conformance/positive/byte-buffer-atomic-contextual.slang",
+      "../conformance/positive/byte-buffer-atomic-global-order.slang"
     ],
-    "uniform_byte_layout_cases": 61,
+    "uniform_byte_layout_cases": 62,
     "matrix_layout_shapes": 96,
     "constant_buffer_numeric_layouts": 252,
-    "compiled_constant_cases": 87,
-    "compiled_constant_words": 1334
+    "compiled_constant_cases": 129,
+    "compiled_constant_words": 1510,
+    "integer_program_cases": 4,
+    "integer_program_words": 84
   },
   "pointer_integer_validation": {
     "target_pointer_bits": 64,
@@ -1790,7 +1814,7 @@
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
     "production_binary_validated": "release",
-    "production_binary_sha256": "61847e89e140632ca5c2eea96e1829181da01f67d095fe15a7179e60797fa1d0",
+    "production_binary_sha256": "6b97c57bc82b258a96d87fbbca0595bc0b8e079d48c23646d3a35da8e012680f",
     "mutable_var_and_runtime_immutable_let": true,
     "forward_inference_and_global_initializer_dependencies": true,
     "mixed_immutable_field_defaults_skipped": true,
@@ -1814,12 +1838,44 @@
     "gpu_execution_compared": false,
     "complete_upstream_parity": false,
     "production_binary_validated": "release",
-    "production_binary_sha256": "61847e89e140632ca5c2eea96e1829181da01f67d095fe15a7179e60797fa1d0",
+    "production_binary_sha256": "6b97c57bc82b258a96d87fbbca0595bc0b8e079d48c23646d3a35da8e012680f",
     "typed_and_inferred_scalar_vector_matrix_array_struct_access": true,
     "natural_byte_layout_and_alignment_diagnostics": true,
     "receiver_address_and_stored_value_evaluated_once": true,
     "legacy_binary16_and_masked_compare_exchange_retry": true,
     "native_16bit_scalar_access": true,
     "legacy_half_oracle_physical_layout_parity": false
+  },
+  "raw_byte_atomic_validation": {
+    "integration_tests": 16,
+    "differential_cases": 15,
+    "matching_acceptance_cases": 15,
+    "dxc_hlsl_artifacts_validated": 14,
+    "compiled_integer_program_cases": 3,
+    "compiled_integer_program_words": 82,
+    "matching_integer_program_words": 80,
+    "documented_oracle_integer_words_differing": 2,
+    "native_hlsl_cases": 8,
+    "native_integer_program_cases": 4,
+    "native_integer_program_words": 84,
+    "discarded_exchange_oracle_invalid_artifacts": 2,
+    "all_supported_32bit_word_methods": true,
+    "optional_outputs_and_signed_old_value_bits": true,
+    "unsigned_min_max_input_semantics": true,
+    "contextual_nested_scalar_initializers": true,
+    "receiver_input_and_output_index_source_order": true,
+    "global_initializer_effects_and_array_results": true,
+    "documented_oracle_direct_global_atomic_effect_loss": true,
+    "generated_half_store_cas_output_preserved": true,
+    "discarded_exchange_private_collision_free_storage": true,
+    "raw_uav_metadata_and_byte_bounds_checked": true,
+    "uninitialized_word_reads_rejected": true,
+    "sequential_single_invocation_interpretation": true,
+    "floating_and_64bit_raw_atomics": false,
+    "gpu_execution_compared": false,
+    "concurrent_memory_semantics_validated": false,
+    "complete_upstream_parity": false,
+    "production_binary_validated": "release",
+    "production_binary_sha256": "6b97c57bc82b258a96d87fbbca0595bc0b8e079d48c23646d3a35da8e012680f"
   }
 }

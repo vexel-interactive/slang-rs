@@ -34,33 +34,48 @@ impl Visitor for Lowerer {
     fn expression(&mut self, expression: &mut Expr) -> Result<(), Diagnostic> {
         walk_expression(self, expression)?;
 
-        if let ExprKind::IntrinsicCall {
-            name,
-            arguments,
-        } = &mut expression.kind
-            && name == "InterlockedExchange"
-            && arguments.len() == 2
-        {
-            let name = format!("{}{}", self.prefix, self.outputs.len());
-            let ty = arguments[0].ty.clone();
-            self.outputs.push(Variable {
-                name: name.clone(),
-                ty: ty.clone(),
-                modifiers: vec!["static".into()],
-                semantic: None,
-                binding: None,
-                uniform_layout: None,
-                pack_offset: None,
-                initializer: None,
-                span: expression.span,
-            });
-            arguments.push(Expr {
-                kind: ExprKind::Name(name),
-                ty,
-                span: expression.span,
-            });
-        }
-
+        let (arguments, ty) = match &mut expression.kind {
+            ExprKind::IntrinsicCall {
+                name,
+                arguments,
+            } if name == "InterlockedExchange" && arguments.len() == 2 => {
+                let ty = arguments[0].ty.clone();
+                (arguments, ty)
+            }
+            ExprKind::MethodCall {
+                receiver,
+                name,
+                arguments,
+            } if name == "InterlockedExchange"
+                && arguments.len() == 2
+                && matches!(
+                    receiver.ty,
+                    slang_sema::Type::ByteBuffer {
+                        writable: true
+                    }
+                ) =>
+            {
+                (arguments, slang_sema::Type::Scalar(slang_sema::Scalar::Uint))
+            }
+            _ => return Ok(()),
+        };
+        let name = format!("{}{}", self.prefix, self.outputs.len());
+        self.outputs.push(Variable {
+            name: name.clone(),
+            ty: ty.clone(),
+            modifiers: vec!["static".into()],
+            semantic: None,
+            binding: None,
+            uniform_layout: None,
+            pack_offset: None,
+            initializer: None,
+            span: expression.span,
+        });
+        arguments.push(Expr {
+            kind: ExprKind::GlobalName(name),
+            ty,
+            span: expression.span,
+        });
         Ok(())
     }
 }
